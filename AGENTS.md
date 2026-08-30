@@ -144,7 +144,7 @@
   T3 may manage T1/T2 members, while only T4 or system administrators may grant or manage T3/T4 roles; at least one
   T4 owner must remain. Administrators still enforce the target account's membership limit and receive no notification
   when adding themselves.
-- **`internal/service/review/`**: Session-only, notification-independent review APIs for bounded reviewer/requester
+- **`internal/service/review/`**: Session-only, message-center-integrated review APIs for bounded reviewer/requester
   pages and global-team ownership transfers. Docker images, npm packages, Cargo crates, Maven artifacts, and Maven
   publishing domains share one stable resource model. An L4 owner or authorized administrator submits a request, a
   T3/T4 manager of the reviewing team or a system administrator decides it exactly once, and approval rechecks the
@@ -160,6 +160,10 @@
   nonexistent objects to the storage index; approval completes its catalog and task mutation in one database transaction.
   npm and Docker creation requests use the reserved `@create` review version, bind retries to the requester's immutable
   identity, expose a bounded virtual JSON request, and create the resource in the same transaction as the review CAS.
+- **`internal/service/reviewnotify/`**: Review lifecycle notification coordinator. New tasks send recipient-scoped,
+  deduplicated notices to active T3/T4 team reviewers, repository moderators, and system administrators; one completed
+  decision removes every remaining reviewer notice and sends the requester a result payload that never includes reviewer
+  identity. Notification failures are recorded without rolling back an already durable task.
 - **`internal/service/audit/`**: Durable behavior logging with a central registry of stable action identifiers.
   Frontend tests require every registered action to have a translation in every locale before changes can ship.
 - **`internal/service/tasks/`**: Process-wide non-reentrant scheduler for coalescible periodic maintenance, including
@@ -266,6 +270,8 @@
   public Registry v2 manifest, tag-list, and catalog responses remain unchanged until approval.
   Approved npm/Docker creation dialogs enter the review center through its application-level router, avoiding a stale
   repository-loader error before refresh.
+  `js/review-messages.js` localizes pending and result notifications from stable payload fields. Review list and decision
+  responses redact `decided_by` for requesters and non-system moderators; only system administrators receive it.
   npm repositories use `js/browser/npm.js` for bounded catalog, package, integrity, immutable-version, dist-tag,
   visibility, provenance, published README/project metadata, and responsive L0-L4 team management while protocol
   failures are localized through stable codes in `js/npm-errors.js`. npm integrity/action panels and Maven version-file

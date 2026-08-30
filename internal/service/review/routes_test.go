@@ -147,6 +147,55 @@ func TestReviewRoutesCreateListAndSingleDecision(t *testing.T) {
 	require.NoError(t, response.Body.Close())
 }
 
+func TestReviewDecisionActorIsVisibleOnlyToSystemAdministrators(t *testing.T) {
+	app, state, current, _ := setupReviewApp(t)
+	response := reviewRequest(t, app, http.MethodPost, "/api/reviews/super-team-transfers",
+		core.SuperTeamTransferRequest{
+			ResourceType: core.ReviewResourceDockerImage, Repository: "containers",
+			ResourceKey: "personal", TargetTeamPrefix: "platform",
+		})
+	require.Equal(t, http.StatusCreated, response.StatusCode)
+	var task core.ReviewTask
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&task))
+	require.NoError(t, response.Body.Close())
+
+	*current = config.User{Username: "bob", Roles: []string{"base"}}
+	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+task.ID+"/decision",
+		decisionRequest{Decision: core.ReviewStatusApproved})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var decided core.ReviewTask
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&decided))
+	require.NoError(t, response.Body.Close())
+	assert.Empty(t, decided.DecidedBy)
+
+	*current = config.User{Username: "charlie", Roles: []string{"base"}}
+	response = reviewRequest(t, app, http.MethodGet,
+		"/api/reviews?view=requested&status=all&limit=10&offset=0", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var requestedPage struct {
+		Tasks []*core.ReviewTask `json:"tasks"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&requestedPage))
+	require.NoError(t, response.Body.Close())
+	require.Len(t, requestedPage.Tasks, 1)
+	assert.Empty(t, requestedPage.Tasks[0].DecidedBy)
+
+	require.NoError(t, state.GetDB().SaveToken(&core.AccessToken{
+		Name: "dana", Permissions: []string{"base", "manager"},
+	}))
+	*current = config.User{Username: "dana", Roles: []string{"base", "manager"}}
+	response = reviewRequest(t, app, http.MethodGet,
+		"/api/reviews?view=reviewer&status=all&limit=10&offset=0", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var administratorPage struct {
+		Tasks []*core.ReviewTask `json:"tasks"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&administratorPage))
+	require.NoError(t, response.Body.Close())
+	require.Len(t, administratorPage.Tasks, 1)
+	assert.Equal(t, "bob", administratorPage.Tasks[0].DecidedBy)
+}
+
 func TestReviewRoutesRejectInvalidFiltersAndEmptyRejectionReasons(t *testing.T) {
 	app, _, current, _ := setupReviewApp(t)
 	response := reviewRequest(t, app, http.MethodGet,

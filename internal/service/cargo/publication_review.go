@@ -17,6 +17,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/reviewnotify"
 	"renop/internal/utils"
 )
 
@@ -110,13 +111,17 @@ func QueuePublicationReview(state *core.AppState, repo *config.Repository, pkg *
 	if err != nil {
 		return nil, err
 	}
-	return state.GetDB().CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+	result, err := state.GetDB().CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
 		ResourceType: core.ReviewResourceCargoPackage, Repository: repo.Name,
 		ResourceKey: pkg.NormalizedName, ResourceName: pkg.Name, Version: version.Version,
 		RequestedBy: version.Publisher, Policy: repo.PublicationReviewPolicy(), PackageExists: packageExists,
 		Files:   []*core.ReviewFile{{Path: cratePath, Size: version.Size, Critical: true}},
 		Payload: payload, CreatedAt: version.CreatedAt,
 	})
+	if err == nil {
+		reviewnotify.DeliverPending(state, result)
+	}
+	return result, err
 }
 
 // ApprovePublicationReview writes the sparse index and Cargo catalog before exposing the crate archive.

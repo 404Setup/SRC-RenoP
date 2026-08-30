@@ -34,6 +34,7 @@ import './npm-messages.js';
 import './team-messages.js';
 import './super-team-messages.js';
 import './updater-messages.js';
+import './review-messages.js';
 import {navigateToUserProfile, profileRouteFromPath} from './user-profiles.js';
 import {installBackendAvailabilityMonitor} from './backend-availability.js';
 import {initializeGitHubAuth} from './github-auth.js';

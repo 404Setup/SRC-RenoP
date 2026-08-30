@@ -20,6 +20,11 @@ The reviewer view contains ownership tasks for teams where the account is T3 or 
 repositories where it is a moderator. System administrators can review every task. The requester view follows the
 current immutable account identity, including records created before a username change.
 
+New tasks create deduplicated message-center notices for eligible team reviewers, repository moderators, and system
+administrators. The first completed decision removes every remaining reviewer notice and sends the requester a localized
+approved, rejected, or cancelled result. Requesters and non-administrator moderators never receive `decided_by`;
+only system administrators can inspect the decision actor.
+
 ## Transfer rules
 
 The requester must hold effective L4 ownership of the project or publishing domain, or current repository/system

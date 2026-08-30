@@ -15,8 +15,19 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/reviewnotify"
 	"renop/internal/utils"
 )
+
+func queueMavenPublicationReview(state *core.AppState,
+	request core.PublicationReviewRequest,
+) (*core.PublicationReviewResult, error) {
+	result, err := state.GetDB().CreateOrUpdatePublicationReview(request)
+	if err == nil {
+		reviewnotify.DeliverPending(state, result)
+	}
+	return result, err
+}
 
 func publicationReviewCoordinate(files []*core.ReviewFile) (MavenCoordinate, bool) {
 	for _, file := range files {
@@ -164,7 +175,7 @@ func ProcessPublishedFiles(state *core.AppState, repo *config.Repository, userna
 		if err != nil || pending == nil {
 			return &core.PublicationReviewResult{}, err
 		}
-		return state.GetDB().CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+		return queueMavenPublicationReview(state, core.PublicationReviewRequest{
 			ResourceType: pending.ResourceType, Repository: pending.Repository,
 			ResourceKey: pending.ResourceKey, ResourceName: pending.ResourceName,
 			Version: pending.ResourceVersion, RequestedBy: username, Policy: policy,
@@ -187,7 +198,7 @@ func ProcessPublishedFiles(state *core.AppState, repo *config.Repository, userna
 			createdAt = file.AddedAt
 		}
 	}
-	result, err := db.CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+	result, err := queueMavenPublicationReview(state, core.PublicationReviewRequest{
 		ResourceType: core.ReviewResourceMavenArtifact, Repository: repo.Name,
 		ResourceKey:  coordinate.GroupID + ":" + coordinate.ArtifactID,
 		ResourceName: coordinate.GroupID + ":" + coordinate.ArtifactID,

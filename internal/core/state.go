@@ -142,12 +142,14 @@ type StateDB interface {
 	TransitionMessageAction(id, username, expectedStatus, newStatus string, actedAt int64) (bool, error)
 	DeleteUserMessage(id, username string) (bool, error)
 	DeleteUserMessages(username string) (int64, error)
+	DeleteMessagesByDedupeKey(dedupeKey string) (int64, error)
 	GetSuperTeamLimitStatus(username string, globalCreateLimit, globalJoinLimit int) (*SuperTeamLimitStatus, error)
 	SetSuperTeamLimitOverride(username string, createLimit, joinLimit *int, updatedAt int64) error
 	CreateSuperTeam(team *SuperTeam, owner string, globalCreateLimit, globalJoinLimit int) error
 	ListSuperTeams(username string, administrator bool, limit, offset int) ([]*SuperTeam, int, error)
 	ListManageableSuperTeams(username string, minimumRole, limit, offset int) ([]*SuperTeam, int, error)
 	GetSuperTeamDetails(prefix, username string, administrator bool) (*SuperTeamDetails, error)
+	ListSuperTeamReviewerNames(prefix string) ([]string, error)
 	UpdateSuperTeam(prefix, actor, name, description string, administrator bool, updatedAt int64) error
 	DeleteSuperTeam(prefix, actor string, administrator bool, actedAt int64) error
 	CreateSuperTeamInvitations(invitations []*SuperTeamInvitation, messages []*UserMessage) error

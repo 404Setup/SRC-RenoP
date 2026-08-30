@@ -106,6 +106,10 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		if err != nil || inserted {
 			return errorsOrMissing(err, "message deduplication")
 		}
+		deleted, err := db.DeleteMessagesByDedupeKey(message.DedupeKey)
+		if err != nil || deleted != 1 {
+			return errorsOrMissing(err, "workflow notification cleanup")
+		}
 		return nil
 	}); err != nil {
 		return results, err
@@ -155,6 +159,16 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		if err := db.SetSuperTeamMemberLevel(team.Prefix, username, memberUsername,
 			core.SuperTeamRoleManage, false); err != nil {
 			return err
+		}
+		reviewers, err := db.ListSuperTeamReviewerNames(team.Prefix)
+		reviewerSet := make(map[string]struct{}, len(reviewers))
+		for _, reviewer := range reviewers {
+			reviewerSet[reviewer] = struct{}{}
+		}
+		_, hasOwner := reviewerSet[username]
+		_, hasManager := reviewerSet[memberUsername]
+		if err != nil || len(reviewers) != 2 || !hasOwner || !hasManager {
+			return errorsOrMissing(err, "global team reviewer listing")
 		}
 		if err := db.RemoveSuperTeamMember(team.Prefix, username, memberUsername, false, now+2); err != nil {
 			return err

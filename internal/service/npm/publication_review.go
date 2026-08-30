@@ -20,6 +20,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/reviewnotify"
 )
 
 type npmPublicationReviewPayload struct {
@@ -104,13 +105,17 @@ func QueuePackageCreationReview(state *core.AppState, repo *config.Repository, p
 	if err != nil {
 		return nil, err
 	}
-	return state.GetDB().CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+	result, err := state.GetDB().CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
 		ResourceType: core.ReviewResourceNPMPackage, Repository: repo.Name,
 		ResourceKey: packageName, ResourceName: packageName, Version: core.ReviewVersionPackageCreation,
 		RequestedBy: publisher, Policy: repo.PublicationReviewPolicy(), Files: []*core.ReviewFile{{
 			Path: npmCreationReviewFilePath(repo.Name, packageName), Size: int64(len(payload)), Critical: true,
 		}}, Payload: payload, CreatedAt: createdAt,
 	})
+	if err == nil {
+		reviewnotify.DeliverPending(state, result)
+	}
+	return result, err
 }
 
 // ServePackageCreationReview returns one validated virtual npm reservation request.
@@ -207,13 +212,17 @@ func QueuePublicationReview(state *core.AppState, repo *config.Repository, pkg *
 	if err != nil {
 		return nil, err
 	}
-	return state.GetDB().CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+	result, err := state.GetDB().CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
 		ResourceType: core.ReviewResourceNPMPackage, Repository: repo.Name,
 		ResourceKey: pkg.Name, ResourceName: pkg.Name, Version: version.Version,
 		RequestedBy: version.Publisher, Policy: repo.PublicationReviewPolicy(), PackageExists: packageExists,
 		Files:   []*core.ReviewFile{{Path: version.TarballPath, Size: version.Size, Critical: true}},
 		Payload: payload, CreatedAt: version.CreatedAt,
 	})
+	if err == nil {
+		reviewnotify.DeliverPending(state, result)
+	}
+	return result, err
 }
 
 // ApprovePublicationReview records one reviewed npm version and its dist-tags.

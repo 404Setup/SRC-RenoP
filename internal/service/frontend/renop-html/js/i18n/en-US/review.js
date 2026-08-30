@@ -49,6 +49,10 @@ export default Object.freeze({
     "review.publicationActive": "The publication is still receiving files. Wait a few seconds and try again.",
     "review.publicationSealed": "This reviewed version is sealed and cannot receive more files.",
     "review.fileNotFound": "The review file was not found.", "review.limitReached": "The publication review limit was reached.",
+    "review.message.pendingTitle": "Review required", "review.message.pendingBody": "{type} {resource} requires your review.",
+    "review.message.resultTitle.approved": "Review approved", "review.message.resultTitle.rejected": "Review rejected",
+    "review.message.resultTitle.cancelled": "Review cancelled", "review.message.resultBody": "The review for {type} {resource} is now {status}.",
+    "review.message.resultReason": "Reason: {reason}",
     "audit.action.REVIEW_REQUEST": "Review Requested", "audit.action.REVIEW_DECISION": "Review Decided",
     "audit.action.REVIEW_CANCEL": "Review Request Cancelled"
 });

@@ -41,5 +41,9 @@ export default Object.freeze({
     "review.publicationActive": "Файлы публикации всё ещё поступают. Подождите несколько секунд и повторите попытку.",
     "review.publicationSealed": "Эта проверенная версия закрыта для добавления файлов.",
     "review.fileNotFound": "Файл проверки не найден.", "review.limitReached": "Достигнут предел ожидающих проверок публикации.",
+    "review.message.pendingTitle": "Требуется проверка", "review.message.pendingBody": "{type} {resource} ожидает вашей проверки.",
+    "review.message.resultTitle.approved": "Проверка одобрена", "review.message.resultTitle.rejected": "Проверка отклонена",
+    "review.message.resultTitle.cancelled": "Проверка отменена", "review.message.resultBody": "Проверка {type} {resource} теперь имеет статус {status}.",
+    "review.message.resultReason": "Причина: {reason}",
     "audit.action.REVIEW_REQUEST": "Проверка запрошена", "audit.action.REVIEW_DECISION": "Проверка обработана", "audit.action.REVIEW_CANCEL": "Запрос проверки отменен"
 });

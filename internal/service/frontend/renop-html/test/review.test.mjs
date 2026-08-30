@@ -143,3 +143,19 @@ test('reviewed package creation uses the application router and keeps Docker act
     assert.match(creation, /WHERE id = \? AND status = \?/);
     assert.match(styles, /\.docker-page-actions\s*\{[\s\S]*?gap:\s*0\.65rem/);
 });
+
+test('review notifications are localized and decision actors are administrator-only', () => {
+    const main = frontendSource('js', 'main.js');
+    const renderer = frontendSource('js', 'review-messages.js');
+    const routes = repositorySource('internal', 'service', 'review', 'routes.go');
+    const notifications = repositorySource('internal', 'service', 'reviewnotify', 'notifications.go');
+    assert.match(main, /import '\.\/review-messages\.js'/);
+    assert.match(renderer, /registerMessageRenderer\('review_pending'/);
+    assert.match(renderer, /registerMessageRenderer\('review_result'/);
+    assert.doesNotMatch(renderer, /decided_by|DecidedBy/);
+    assert.match(routes, /redactReviewDecisionActor/);
+    assert.match(routes, /if !administrator/);
+    assert.match(notifications, /DeleteMessagesByDedupeKey/);
+    assert.match(notifications, /review:pending:/);
+    assert.doesNotMatch(notifications, /DecidedBy|decided_by/);
+});

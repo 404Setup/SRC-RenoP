@@ -41,5 +41,9 @@ export default Object.freeze({
     "review.publicationActive": "게시 파일을 아직 수신하고 있습니다. 잠시 후 다시 시도하세요.",
     "review.publicationSealed": "검토가 끝난 이 버전에는 파일을 더 추가할 수 없습니다.",
     "review.fileNotFound": "검토 파일을 찾을 수 없습니다.", "review.limitReached": "게시 검토 한도에 도달했습니다.",
+    "review.message.pendingTitle": "검토 필요", "review.message.pendingBody": "{type} {resource}에 대한 검토가 필요합니다.",
+    "review.message.resultTitle.approved": "검토 승인됨", "review.message.resultTitle.rejected": "검토 거부됨",
+    "review.message.resultTitle.cancelled": "검토 취소됨", "review.message.resultBody": "{type} {resource} 검토 상태가 {status}(으)로 변경되었습니다.",
+    "review.message.resultReason": "사유: {reason}",
     "audit.action.REVIEW_REQUEST": "검토 요청", "audit.action.REVIEW_DECISION": "검토 처리", "audit.action.REVIEW_CANCEL": "검토 요청 취소"
 });

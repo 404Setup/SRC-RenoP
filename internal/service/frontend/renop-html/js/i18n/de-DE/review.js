@@ -42,5 +42,9 @@ export default Object.freeze({
     "review.publicationActive": "Die Veröffentlichung empfängt noch Dateien. Warten Sie einige Sekunden und versuchen Sie es erneut.",
     "review.publicationSealed": "Diese geprüfte Version ist abgeschlossen und kann keine weiteren Dateien annehmen.",
     "review.fileNotFound": "Die Prüfdatei wurde nicht gefunden.", "review.limitReached": "Das Limit für Veröffentlichungsprüfungen wurde erreicht.",
+    "review.message.pendingTitle": "Prüfung erforderlich", "review.message.pendingBody": "{type} {resource} wartet auf Ihre Prüfung.",
+    "review.message.resultTitle.approved": "Prüfung genehmigt", "review.message.resultTitle.rejected": "Prüfung abgelehnt",
+    "review.message.resultTitle.cancelled": "Prüfung abgebrochen", "review.message.resultBody": "Die Prüfung für {type} {resource} ist jetzt {status}.",
+    "review.message.resultReason": "Grund: {reason}",
     "audit.action.REVIEW_REQUEST": "Prüfung beantragt", "audit.action.REVIEW_DECISION": "Prüfung entschieden", "audit.action.REVIEW_CANCEL": "Prüfantrag abgebrochen"
 });

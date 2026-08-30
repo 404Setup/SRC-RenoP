@@ -41,5 +41,9 @@ export default Object.freeze({
     "review.publicationActive": "公開ファイルをまだ受信しています。数秒待ってから再試行してください。",
     "review.publicationSealed": "審査済みのこのバージョンは確定しており、ファイルを追加できません。",
     "review.fileNotFound": "審査ファイルが見つかりません。", "review.limitReached": "公開審査の上限に達しました。",
+    "review.message.pendingTitle": "審査が必要です", "review.message.pendingBody": "{type} {resource} の審査が必要です。",
+    "review.message.resultTitle.approved": "審査を承認しました", "review.message.resultTitle.rejected": "審査を拒否しました",
+    "review.message.resultTitle.cancelled": "審査を取り消しました", "review.message.resultBody": "{type} {resource} の審査状態は {status} です。",
+    "review.message.resultReason": "理由: {reason}",
     "audit.action.REVIEW_REQUEST": "審査を申請", "audit.action.REVIEW_DECISION": "審査を処理", "audit.action.REVIEW_CANCEL": "審査申請を取消"
 });

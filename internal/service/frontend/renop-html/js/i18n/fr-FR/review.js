@@ -41,5 +41,9 @@ export default Object.freeze({
     "review.publicationActive": "La publication reçoit encore des fichiers. Patientez quelques secondes, puis réessayez.",
     "review.publicationSealed": "Cette version examinée est verrouillée et ne peut plus recevoir de fichiers.",
     "review.fileNotFound": "Fichier d’examen introuvable.", "review.limitReached": "La limite d’examens de publication est atteinte.",
+    "review.message.pendingTitle": "Examen requis", "review.message.pendingBody": "{type} {resource} attend votre examen.",
+    "review.message.resultTitle.approved": "Examen approuvé", "review.message.resultTitle.rejected": "Examen refusé",
+    "review.message.resultTitle.cancelled": "Examen annulé", "review.message.resultBody": "L’examen de {type} {resource} est maintenant {status}.",
+    "review.message.resultReason": "Motif : {reason}",
     "audit.action.REVIEW_REQUEST": "Examen demandé", "audit.action.REVIEW_DECISION": "Examen traité", "audit.action.REVIEW_CANCEL": "Demande d’examen annulée"
 });

@@ -24,6 +24,7 @@ import (
 	"renop/internal/service/maven"
 	"renop/internal/service/npm"
 	"renop/internal/service/repositorygate"
+	"renop/internal/service/reviewnotify"
 	"renop/internal/service/storage"
 	"renop/internal/utils"
 )
@@ -159,6 +160,14 @@ func logReviewAudit(c fiber.Ctx, state *core.AppState, action, details string) {
 	})
 }
 
+func redactReviewDecisionActor(task *core.ReviewTask, administrator bool) {
+	if task == nil || administrator {
+		return
+	}
+	task.DecidedByID = ""
+	task.DecidedBy = ""
+}
+
 func createTransfer(c fiber.Ctx, state *core.AppState) error {
 	username, administrator, err := currentUser(c)
 	if err != nil {
@@ -177,6 +186,7 @@ func createTransfer(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return reviewError(c, err)
 	}
+	reviewnotify.DeliverTask(state, task)
 	logReviewAudit(c, state, audit.ActionReviewRequest,
 		fmt.Sprintf("Type: %s, repository: %s, resource: %s, team: %s",
 			task.ResourceType, task.Repository, task.ResourceName, task.ReviewTeamPrefix))
@@ -229,6 +239,11 @@ func listTasks(c fiber.Ctx, state *core.AppState) error {
 	})
 	if err != nil {
 		return reviewError(c, err)
+	}
+	if !administrator {
+		for _, task := range tasks {
+			redactReviewDecisionActor(task, false)
+		}
 	}
 	c.Set(fiber.HeaderCacheControl, "no-store")
 	return c.JSON(fiber.Map{
@@ -455,7 +470,7 @@ func decidePublicationTask(c fiber.Ctx, state *core.AppState, username string,
 }
 
 func decideTask(c fiber.Ctx, state *core.AppState) error {
-	username, _, err := currentUser(c)
+	username, administrator, err := currentUser(c)
 	if err != nil {
 		return reviewError(c, err)
 	}
@@ -476,18 +491,24 @@ func decideTask(c fiber.Ctx, state *core.AppState) error {
 	}
 	if err != nil {
 		if task != nil && errors.Is(err, core.ErrReviewResourceConflict) {
+			if task.Status != core.ReviewStatusPending {
+				reviewnotify.DeliverDecision(state, task)
+			}
+			redactReviewDecisionActor(task, administrator)
 			c.Set("X-Renop-Error-Code", "resource_changed")
 			return c.Status(fiber.StatusConflict).JSON(task)
 		}
 		return reviewError(c, err)
 	}
+	reviewnotify.DeliverDecision(state, task)
 	logReviewAudit(c, state, audit.ActionReviewDecision,
 		fmt.Sprintf("Review: %s, decision: %s, type: %s", task.ID, task.Status, task.ResourceType))
+	redactReviewDecisionActor(task, administrator)
 	return c.JSON(task)
 }
 
 func cancelTask(c fiber.Ctx, state *core.AppState) error {
-	username, _, err := currentUser(c)
+	username, administrator, err := currentUser(c)
 	if err != nil {
 		return reviewError(c, err)
 	}
@@ -495,7 +516,9 @@ func cancelTask(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return reviewError(c, err)
 	}
+	reviewnotify.DeliverDecision(state, task)
 	logReviewAudit(c, state, audit.ActionReviewCancel, "Review: "+task.ID)
+	redactReviewDecisionActor(task, administrator)
 	return c.JSON(task)
 }
 

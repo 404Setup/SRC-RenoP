@@ -1524,7 +1524,9 @@ components:
           type: string
           maxLength: 512
           description: Preset publication reasons use `preset:<code>`; custom reasons use `custom:<text>`; transfers retain their reason text.
-        decided_by: { type: string }
+        decided_by:
+          type: string
+          description: Present only for system administrators; requester and moderator responses omit reviewer identity.
         created_at: { type: integer, format: int64 }
         updated_at: { type: integer, format: int64 }
         decided_at: { type: integer, format: int64 }

@@ -21,6 +21,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/reviewnotify"
 )
 
 var dockerTagPattern = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$`)
@@ -128,13 +129,17 @@ func QueueImageCreationReview(state *core.AppState, repo *config.Repository, ima
 	if err != nil {
 		return nil, err
 	}
-	return state.GetDB().CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+	result, err := state.GetDB().CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
 		ResourceType: core.ReviewResourceDockerImage, Repository: repo.Name,
 		ResourceKey: imageName, ResourceName: imageName, Version: core.ReviewVersionPackageCreation,
 		RequestedBy: publisher, Policy: repo.PublicationReviewPolicy(), Files: []*core.ReviewFile{{
 			Path: dockerCreationReviewFilePath(repo.Name, imageName), Size: int64(len(payload)), Critical: true,
 		}}, Payload: payload, CreatedAt: createdAt,
 	})
+	if err == nil {
+		reviewnotify.DeliverPending(state, result)
+	}
+	return result, err
 }
 
 func dockerReviewPayload(state *core.AppState, task *core.ReviewTask) (*dockerPublicationReviewPayload, error) {
@@ -184,7 +189,7 @@ func QueuePublicationReview(state *core.AppState, repo *config.Repository, image
 	if err != nil {
 		return nil, err
 	}
-	return state.GetDB().CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+	result, err := state.GetDB().CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
 		ResourceType: core.ReviewResourceDockerImage, Repository: repo.Name,
 		ResourceKey: imageName, ResourceName: imageName, Version: version,
 		RequestedBy: publisher, Policy: repo.PublicationReviewPolicy(), PackageExists: packageExists,
@@ -193,6 +198,10 @@ func QueuePublicationReview(state *core.AppState, repo *config.Repository, image
 		}},
 		Payload: payload, CreatedAt: createdAt,
 	})
+	if err == nil {
+		reviewnotify.DeliverPending(state, result)
+	}
+	return result, err
 }
 
 // ServePublicationReviewManifest returns a validated virtual manifest to an authorized reviewer.

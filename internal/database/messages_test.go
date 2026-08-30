@@ -103,4 +103,10 @@ func TestMessageDedupeKeyIsIdempotent(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, page, 1)
 	require.Equal(t, first.ID, page[0].ID)
+	deleted, err := db.DeleteMessagesByDedupeKey(first.DedupeKey)
+	require.NoError(t, err)
+	require.EqualValues(t, 1, deleted)
+	page, err = db.ListMessages("alice", 10, 0, "", now+2)
+	require.NoError(t, err)
+	require.Empty(t, page)
 }

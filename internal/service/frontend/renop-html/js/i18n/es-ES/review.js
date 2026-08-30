@@ -41,5 +41,9 @@ export default Object.freeze({
     "review.publicationActive": "La publicación todavía está recibiendo archivos. Espera unos segundos e inténtalo de nuevo.",
     "review.publicationSealed": "Esta versión revisada está cerrada y no admite más archivos.",
     "review.fileNotFound": "No se encontró el archivo de revisión.", "review.limitReached": "Se alcanzó el límite de revisiones de publicación.",
+    "review.message.pendingTitle": "Revisión requerida", "review.message.pendingBody": "{type} {resource} requiere su revisión.",
+    "review.message.resultTitle.approved": "Revisión aprobada", "review.message.resultTitle.rejected": "Revisión rechazada",
+    "review.message.resultTitle.cancelled": "Revisión cancelada", "review.message.resultBody": "La revisión de {type} {resource} está ahora {status}.",
+    "review.message.resultReason": "Motivo: {reason}",
     "audit.action.REVIEW_REQUEST": "Revisión solicitada", "audit.action.REVIEW_DECISION": "Revisión resuelta", "audit.action.REVIEW_CANCEL": "Solicitud de revisión cancelada"
 });

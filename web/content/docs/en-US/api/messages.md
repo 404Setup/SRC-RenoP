@@ -75,3 +75,5 @@ Message routes require authentication. Responses use protobuf by default and are
 
 Workflow invitations and system results are created by their owning services. Package-team removal messages identify
 the repository and package or Maven domain, but deliberately do not disclose which member performed the removal.
+Review tasks send deduplicated `review_pending` messages to eligible reviewers. The first decision removes all remaining
+reviewer copies and sends one localized `review_result` to the requester without the reviewer’s identity.

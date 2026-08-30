@@ -41,6 +41,10 @@ export default Object.freeze({
     "review.publicationActive": "发布仍在接收文件，请等待几秒后重试。",
     "review.publicationSealed": "该版本已经完成审核，不能继续添加文件。",
     "review.fileNotFound": "找不到审核文件。", "review.limitReached": "待发布审核数量已达到上限。",
+    "review.message.pendingTitle": "需要审核", "review.message.pendingBody": "{type} {resource} 正在等待你的审核。",
+    "review.message.resultTitle.approved": "审核已通过", "review.message.resultTitle.rejected": "审核已拒绝",
+    "review.message.resultTitle.cancelled": "审核已取消", "review.message.resultBody": "{type} {resource} 的审核状态现为{status}。",
+    "review.message.resultReason": "原因：{reason}",
     "audit.action.REVIEW_REQUEST": "提交审核", "audit.action.REVIEW_DECISION": "处理审核",
     "audit.action.REVIEW_CANCEL": "取消审核申请"
 });

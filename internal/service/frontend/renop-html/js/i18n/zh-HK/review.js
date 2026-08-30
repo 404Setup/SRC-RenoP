@@ -41,5 +41,9 @@ export default Object.freeze({
     "review.publicationActive": "發佈仍在接收檔案，請等待數秒後再試。",
     "review.publicationSealed": "該版本已完成審核，不能繼續加入檔案。",
     "review.fileNotFound": "找不到審核檔案。", "review.limitReached": "待發佈審核數量已達上限。",
+    "review.message.pendingTitle": "需要審核", "review.message.pendingBody": "{type} {resource} 正在等待你的審核。",
+    "review.message.resultTitle.approved": "審核已通過", "review.message.resultTitle.rejected": "審核已拒絕",
+    "review.message.resultTitle.cancelled": "審核已取消", "review.message.resultBody": "{type} {resource} 的審核狀態現為{status}。",
+    "review.message.resultReason": "原因：{reason}",
     "audit.action.REVIEW_REQUEST": "提交審核", "audit.action.REVIEW_DECISION": "處理審核", "audit.action.REVIEW_CANCEL": "取消審核申請"
 });

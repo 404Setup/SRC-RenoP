@@ -386,6 +386,37 @@ func (db *DB) GetSuperTeamDetails(prefix, username string, administrator bool) (
 	return &core.SuperTeamDetails{Team: team, Members: members, Administrator: administrator}, nil
 }
 
+// ListSuperTeamReviewerNames returns active T3/T4 members eligible to decide team reviews.
+func (db *DB) ListSuperTeamReviewerNames(prefix string) ([]string, error) {
+	if db == nil || db.SQLDB == nil {
+		return nil, core.ErrDatabaseUnavailable
+	}
+	prefix, valid := sanitizeSuperTeamPrefix(prefix)
+	if !valid {
+		return nil, core.ErrSuperTeamNotFound
+	}
+	rows, err := db.Query(`SELECT p.username FROM super_team_members m
+		JOIN user_profiles p ON p.user_id = m.user_id
+		WHERE m.team_prefix = ? AND m.role_level >= ? ORDER BY p.username`,
+		prefix, core.SuperTeamRoleManage)
+	if err != nil {
+		return nil, fmt.Errorf("list global team reviewers: %w", err)
+	}
+	defer rows.Close()
+	reviewers := make([]string, 0)
+	for rows.Next() {
+		var username string
+		if err := rows.Scan(&username); err != nil {
+			return nil, fmt.Errorf("scan global team reviewer: %w", err)
+		}
+		reviewers = append(reviewers, username)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate global team reviewers: %w", err)
+	}
+	return reviewers, nil
+}
+
 // UpdateSuperTeam changes mutable display metadata while preserving the namespace prefix.
 func (db *DB) UpdateSuperTeam(prefix, actor, name, description string, administrator bool, updatedAt int64) error {
 	if db == nil || db.SQLDB == nil {

@@ -332,3 +332,23 @@ func (db *DB) DeleteUserMessages(username string) (int64, error) {
 	}
 	return rows, nil
 }
+
+// DeleteMessagesByDedupeKey removes every non-action notification for one workflow event.
+func (db *DB) DeleteMessagesByDedupeKey(dedupeKey string) (int64, error) {
+	if db == nil || db.SQLDB == nil {
+		return 0, core.ErrDatabaseUnavailable
+	}
+	dedupeKey = SanitizeInputString(strings.TrimSpace(dedupeKey), 255)
+	if dedupeKey == "" {
+		return 0, nil
+	}
+	result, err := db.Exec(`DELETE FROM user_messages WHERE dedupe_key = ? AND action_kind = ''`, dedupeKey)
+	if err != nil {
+		return 0, fmt.Errorf("delete workflow notifications: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("count deleted workflow notifications: %w", err)
+	}
+	return rows, nil
+}

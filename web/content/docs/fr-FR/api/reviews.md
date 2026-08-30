@@ -21,6 +21,11 @@ La vue de validation contient les transferts des équipes où le compte est T3 o
 dépôts où il est modérateur. Les administrateurs système voient toutes les tâches. La vue des demandes repose sur
 l'identité immuable du compte et conserve les tâches antérieures à un changement de nom d'utilisateur.
 
+Une nouvelle tâche crée des messages dédupliqués pour les examinateurs d’équipe, les modérateurs du dépôt et les
+administrateurs système concernés. La première décision supprime les autres rappels et envoie au demandeur un résultat
+localisé approuvé, refusé ou annulé. Le demandeur et les modérateurs non administrateurs ne reçoivent jamais
+`decided_by` ; seul un administrateur système peut connaître l’auteur de la décision.
+
 ## Règles de transfert
 
 Le demandeur doit posséder le projet ou le domaine avec un niveau effectif L4, ou disposer de l'administration actuelle
