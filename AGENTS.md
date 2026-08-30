@@ -41,7 +41,8 @@
   sidecar files deterministically. Bounded sharded read-through caches use randomized zero-allocation key hashing and coalesce concurrent
   token, session, and immutable-user lookup misses;
   nickname-first profile batches query only uncached accounts, and commit-time invalidation prevents stale rename or
-  creation results. Includes
+  creation results. A repository-wide AST regression test rejects production Go SQL containing any `DELETE FROM`
+  statement that cannot statically demonstrate a `WHERE` clause. Includes
   zero-alloc SQL parameter rebinding (`RebindPostgres`), unified transaction wrappers, schema migrations, public user
   profiles, immutable user identities for package ownership, private normalized login emails, serialized login-method
   invariants, masked account-token/profile mutations, irreversible one-time recovery-code verifiers, and hashed,
