@@ -5,34 +5,33 @@
  */
 
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync, readdirSync} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 
 const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const userFacingModules = [
-    'js/auth.js',
-    'js/browser.js',
-    'js/browser/cargo.js',
-    'js/browser/maven.js',
-    'js/browser/npm.js',
-    'js/cargo-messages.js',
-    'js/dashboard.js',
-    'js/maven-messages.js',
-    'js/npm-messages.js',
-    'js/messages.js',
-    'js/notification-composer.js',
-    'js/profile.js',
-    'js/publication-quota.js',
-    'js/repositories.js',
-    'js/reviews.js',
-    'js/sessions.js',
-    'js/settings.js',
-    'js/user-profiles.js',
-    'js/users.js',
-    'js/users/modal.js',
-];
+
+/**
+ * Discover every handwritten frontend JavaScript module.
+ * @param {string} directory - Absolute directory to scan.
+ * @param {string} relative - Repository-relative label.
+ * @returns {string[]} Module labels.
+ */
+function discoverUserFacingModules(directory, relative = 'js') {
+    const modules = [];
+    for (const entry of readdirSync(directory, {withFileTypes: true})) {
+        if (entry.isDirectory()) {
+            if (entry.name === 'i18n' || entry.name === 'proto') continue;
+            modules.push(...discoverUserFacingModules(join(directory, entry.name), `${relative}/${entry.name}`));
+        } else if (entry.isFile() && entry.name.endsWith('.js') && !entry.name.endsWith('.generated.js')) {
+            modules.push(`${relative}/${entry.name}`);
+        }
+    }
+    return modules.sort();
+}
+
+const userFacingModules = discoverUserFacingModules(join(frontendRoot, 'js'));
 
 test('user-facing request failures never expose raw response or runtime error text', () => {
     for (const relativePath of userFacingModules) {

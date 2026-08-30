@@ -205,6 +205,8 @@
   version labels or older hosted records are unavailable.
 - **`internal/middleware/` & `internal/api/`**: Format-aware search (modern Maven domain/artifact catalog,
   classic Maven/files index, and npm/Cargo/Docker package catalogs), anomaly detection, and brute-force mitigation.
+  The optional privacy policy is cached only after a streaming-bounded 512 KiB regular-file read validates UTF-8 plain
+  text; missing or invalid files keep both HEAD and GET unavailable without buffering arbitrary local content.
 - **`internal/daemon/`**: Cross-platform system service installation and lifecycle management (`--install`,
   `--uninstall`) supporting Windows Services (SCM), Linux (systemd & OpenRC), macOS (LaunchDaemons), and BSD (rc.d).
 - **`internal/caddy/`**: Transactional `--install-caddy` deployment integration. It discovers standard Caddyfile and
@@ -253,7 +255,10 @@
   scrollable.
   `js/response-errors.js` is the shared boundary for user-facing HTTP failures: it reads only bounded error bodies,
   accepts registered stable codes or known localized messages, maps common statuses, and never exposes unknown backend
-  text or runtime exception strings in the UI. `js/api.js` treats 401 as invalid authentication by default, while 403
+  text or runtime exception strings in the UI. Its regression test automatically discovers every handwritten frontend
+  JS module. `js/privacy-policy-response.js` is the DOM-free streaming decoder for successful same-origin plain text;
+  `js/privacy-policy.js` coalesces modal loads and localizes HTTP, media-type, encoding, and size failures under the same
+  512 KiB contract. `js/api.js` treats 401 as invalid authentication by default, while 403
   remains an ordinary authorization result unless a caller explicitly opts into logout; concurrent permission failures
   therefore cannot clear a valid browser session or start a route-reset loop.
   `js/main.js` is the single owner of browser `popstate` dispatch and home-route resets to prevent concurrent route

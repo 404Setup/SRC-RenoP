@@ -28,6 +28,7 @@ import {loadSuperTeamCenterPage, openSuperTeamCenter, superTeamRouteFromPath} fr
 import {loadReviewCenterPage, openReviewCenter, reviewRouteFromPath} from './reviews.js';
 import {initMessageCenter, openMessageCenter} from './messages.js';
 import {initNotificationComposer, openNotificationComposer} from './notification-composer.js';
+import {initPrivacyPolicy} from './privacy-policy.js';
 import './cargo-messages.js';
 import './docker-messages.js';
 import './maven-messages.js';
@@ -606,46 +607,7 @@ async function initializeApplication() {
             });
         }
 
-        const privacyLink = document.getElementById('privacy-policy-link');
-        const privacySeparator = document.getElementById('privacy-policy-separator');
-        const privacyModal = document.getElementById('privacy-policy-modal');
-        const privacyContent = document.getElementById('privacy-policy-content');
-        const privacyBackdrop = document.getElementById('privacy-policy-backdrop');
-        const btnClosePrivacy = document.getElementById('btn-close-privacy-policy');
-
-        if (privacyLink && privacySeparator) {
-            fetch('/api/privacy-policy', {method: 'HEAD'})
-                .then(res => {
-                    if (res.ok) {
-                        privacyLink.style.display = 'inline';
-                        privacySeparator.style.display = 'inline';
-                    }
-                })
-                .catch(err => console.error('Failed to check privacy policy', err));
-
-            let policyCached = false;
-            privacyLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                privacyModal.style.display = 'flex';
-                updateModalInertState();
-                if (!policyCached) {
-                    privacyContent.textContent = t('privacy.loading');
-                    fetch('/api/privacy-policy')
-                        .then(res => res.text())
-                        .then(text => {
-                            privacyContent.textContent = text;
-                            policyCached = true;
-                        })
-                        .catch(err => privacyContent.textContent = t('privacy.failedLoad'));
-                }
-            });
-
-            const closeModal = () => {
-                closeModalWithAnim(privacyModal);
-            };
-            if (btnClosePrivacy) btnClosePrivacy.addEventListener('click', closeModal);
-            if (privacyBackdrop) privacyBackdrop.addEventListener('click', closeModal);
-        }
+        initPrivacyPolicy();
 
         const icpText = document.getElementById('icp-text');
         const icpContainer = document.getElementById('icp-container');
