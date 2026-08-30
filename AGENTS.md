@@ -24,8 +24,10 @@
   its build slot immediately and queues compression without delaying the next architecture. The parent preserves
   deterministic manifest order and aggregates failures from both pools. The `dist/` update payload is restricted to
   raw `.br` packages plus `manifest.json`; `.github/scripts/test-release-payload.ps1` enforces that boundary before
-  the update API is called. License, README, and third-party notices are attached to GitHub releases directly from the
-  checkout and are never uploaded to the update API.
+  the update API is called. Nightly publishing retains the latest three package trees with downloadable target metadata
+  while preserving up to 100 lightweight release-history records; older package trees are deleted in bounded batches.
+  License, README, and third-party notices are attached to GitHub releases directly from the checkout and are never
+  uploaded to the update API.
 - **`internal/database/`**: Pluggable multi-dialect DB (SQLite, MySQL, PostgreSQL via `jackc/pgx/v5`, and native
   ClickHouse via `clickhouse.Open` from `clickhouse-go/v2`). ClickHouse uses mutable `EmbeddedRocksDB` tables with
   materialized collision-free composite keys, synchronous mutations, portable scan conversion, and a serialized

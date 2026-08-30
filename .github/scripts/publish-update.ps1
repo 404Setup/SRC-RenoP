@@ -57,6 +57,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$nightlyPackageRetention = 3
 
 $token = $env:RENOP_PUBLISH_TOKEN
 if ([string]::IsNullOrWhiteSpace($token)) {
@@ -317,12 +318,12 @@ foreach ($r in $existingReleases) {
 }
 
 if ($Channel -eq 'nightly') {
-    # Retain up to 100 nightly releases in info.json
+    # Retain up to 100 nightly releases in info.json.
     if ($updatedReleases.Count -gt 100) {
         $updatedReleases = [System.Collections.Generic.List[object]]($updatedReleases.GetRange(0, 100))
     }
-    # Older nightly builds do not provide downloads -> strip targets field completely
-    for ($i = 1; $i -lt $updatedReleases.Count; $i++) {
+    # Only retained package trees keep downloadable target metadata.
+    for ($i = $nightlyPackageRetention; $i -lt $updatedReleases.Count; $i++) {
         $rel = $updatedReleases[$i]
         $updatedReleases[$i] = [ordered]@{
             version      = [string]$rel.version
@@ -379,7 +380,12 @@ if ($Channel -eq 'nightly') {
 
 $allowedMvncVersions = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 if ($Channel -eq 'nightly') {
-    $allowedMvncVersions.Add($Version) | Out-Null
+    for ($i = 0; $i -lt [Math]::Min($updatedReleases.Count, $nightlyPackageRetention); $i++) {
+        $retainedVersion = [string]$updatedReleases[$i].version
+        if (-not [string]::IsNullOrWhiteSpace($retainedVersion)) {
+            $allowedMvncVersions.Add($retainedVersion) | Out-Null
+        }
+    }
 } else {
     $allowedMvncVersions.Add($Version) | Out-Null
     if ($updatedReleases.Count -gt 1) {

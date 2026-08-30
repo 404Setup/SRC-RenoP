@@ -75,4 +75,7 @@ test('release tooling decouples bounded compilation from raw Brotli packaging', 
     assert.match(workflow, /^\s+THIRD_PARTY_NOTICES\.md$/m);
     assert.doesNotMatch(publish, /README\.md|THIRD_PARTY_NOTICES\.md|LICENSE/);
     assert.match(workflow, /previous_commit/);
+    assert.match(publish, /\$nightlyPackageRetention = 3/);
+    assert.match(publish, /for \(\$i = \$nightlyPackageRetention; \$i -lt \$updatedReleases\.Count; \$i\+\+\)/);
+    assert.match(publish, /\[Math\]::Min\(\$updatedReleases\.Count, \$nightlyPackageRetention\)/);
 });
