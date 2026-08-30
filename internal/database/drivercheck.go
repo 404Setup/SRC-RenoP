@@ -390,6 +390,46 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		if err != nil || createdPackage == nil || createdPackage.Publisher != username {
 			return errorsOrMissing(err, "npm creation review result")
 		}
+		if err := db.SaveToken(&core.AccessToken{
+			Name: memberUsername, CreatedAt: time.Now().UTC().Format(time.RFC3339),
+			Permissions: []string{"base", "canupdate:" + npmRepository},
+		}); err != nil {
+			return err
+		}
+		if err := db.SetSuperTeamMemberLevel(globalTeamPrefix, username, memberUsername,
+			core.SuperTeamRoleWrite, false); err != nil {
+			return err
+		}
+		teamPackageName := "@" + globalTeamPrefix + "/review-created"
+		teamCreation, err := db.CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+			ResourceType: core.ReviewResourceNPMPackage, Repository: npmRepository,
+			ResourceKey: teamPackageName, ResourceName: teamPackageName,
+			Version: core.ReviewVersionPackageCreation, RequestedBy: memberUsername,
+			Policy: config.PublicationReviewNewPackages, ReviewTeamPrefix: globalTeamPrefix,
+			TargetTeamPrefix: globalTeamPrefix, Payload: []byte(`{"driver":"team-npm-create"}`),
+			CreatedAt: now + 10, Files: []*core.ReviewFile{{
+				Path: "review-requests/npm/team-driver-contract.json", Size: 64, Critical: true,
+			}},
+		})
+		if err != nil || teamCreation == nil || !teamCreation.Pending {
+			return errorsOrMissing(err, "team npm creation review")
+		}
+		advanced, err := db.AdvancePackageCreationReview(
+			teamCreation.TaskID, username, now+10+core.PublicationReviewSettleMillis+1)
+		if err != nil || advanced == nil || advanced.Status != core.ReviewStatusPending ||
+			advanced.ReviewTeamPrefix != "" || advanced.TargetTeamPrefix != globalTeamPrefix {
+			return errorsOrMissing(err, "team npm creation review advancement")
+		}
+		if _, err := db.ApproveNPMPackageCreationReview(
+			teamCreation.TaskID, username, npmRepository, teamPackageName, globalTeamPrefix, false,
+			now+10, now+10+core.PublicationReviewSettleMillis+2); err != nil {
+			return err
+		}
+		teamCreatedPackage, err := db.GetNPMPackage(npmRepository, teamPackageName)
+		if err != nil || teamCreatedPackage == nil || teamCreatedPackage.Publisher != memberUsername ||
+			teamCreatedPackage.SuperTeamPrefix != globalTeamPrefix {
+			return errorsOrMissing(err, "team npm creation review result")
+		}
 		dockerPublication, err := db.CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
 			ResourceType: core.ReviewResourceDockerImage, Repository: dockerRepository,
 			ResourceKey: globalTeamPrefix + "/demo", ResourceName: globalTeamPrefix + "/demo",

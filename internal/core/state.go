@@ -154,6 +154,7 @@ type StateDB interface {
 	CreateSuperTeam(team *SuperTeam, owner string, globalCreateLimit, globalJoinLimit int) error
 	ListSuperTeams(username string, administrator bool, limit, offset int) ([]*SuperTeam, int, error)
 	ListManageableSuperTeams(username string, minimumRole, limit, offset int) ([]*SuperTeam, int, error)
+	GetSuperTeamRole(prefix, username string) (int, error)
 	GetSuperTeamDetails(prefix, username string, administrator bool) (*SuperTeamDetails, error)
 	ListSuperTeamReviewerNames(prefix string) ([]string, error)
 	UpdateSuperTeam(prefix, actor, name, description string, administrator bool, updatedAt int64) error
@@ -174,6 +175,7 @@ type StateDB interface {
 	IsPublicationReviewPathPending(repository, path string) (bool, error)
 	HasPendingPublicationReviews(repository string) (bool, error)
 	ListPublicationReviews(repository, resourceType, resourceName string) ([]*ReviewTask, error)
+	AdvancePackageCreationReview(id, actor string, advancedAt int64) (*ReviewTask, error)
 	DecideReviewTask(id, actor, decision, reason string, decidedAt int64) (*ReviewTask, error)
 	CancelReviewTask(id, actor string, cancelledAt int64) (*ReviewTask, error)
 	CreateMavenDomain(domain *MavenDomain, owner string) error

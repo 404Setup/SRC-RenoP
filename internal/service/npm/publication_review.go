@@ -93,7 +93,7 @@ func npmCreationReviewPayload(state *core.AppState,
 
 // QueuePackageCreationReview creates a moderator task without reserving the npm package name.
 func QueuePackageCreationReview(state *core.AppState, repo *config.Repository, packageName,
-	superTeamPrefix, publisher string, private bool, createdAt int64,
+	superTeamPrefix, reviewTeamPrefix, publisher string, private bool, createdAt int64,
 ) (*core.PublicationReviewResult, error) {
 	if state == nil || state.GetDB() == nil || repo == nil || createdAt <= 0 {
 		return nil, core.ErrDatabaseUnavailable
@@ -105,10 +105,15 @@ func QueuePackageCreationReview(state *core.AppState, repo *config.Repository, p
 	if err != nil {
 		return nil, err
 	}
+	policy := repo.PublicationReviewPolicy()
+	if reviewTeamPrefix != "" && policy == config.PublicationReviewOff {
+		policy = config.PublicationReviewNewPackages
+	}
 	result, err := state.GetDB().CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
 		ResourceType: core.ReviewResourceNPMPackage, Repository: repo.Name,
 		ResourceKey: packageName, ResourceName: packageName, Version: core.ReviewVersionPackageCreation,
-		RequestedBy: publisher, Policy: repo.PublicationReviewPolicy(), Files: []*core.ReviewFile{{
+		RequestedBy: publisher, Policy: policy, ReviewTeamPrefix: reviewTeamPrefix,
+		TargetTeamPrefix: reviewTeamPrefix, Files: []*core.ReviewFile{{
 			Path: npmCreationReviewFilePath(repo.Name, packageName), Size: int64(len(payload)), Critical: true,
 		}}, Payload: payload, CreatedAt: createdAt,
 	})

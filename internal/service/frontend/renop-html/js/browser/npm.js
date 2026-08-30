@@ -388,11 +388,11 @@ function showCreatePackageDialog() {
         type: 'text', maxlength: '214', autocomplete: 'off', placeholder: t('npm.packageNamePlaceholder'), required: true
     });
     const privateInput = el('input', {type: 'checkbox'});
-    const teamBinding = createSuperTeamBindingField();
+    const teamBinding = createSuperTeamBindingField({minimumRole: 2});
     const body = el('div', {class: 'npm-dialog-fields'},
         el('label', {}, el('span', {}, t('npm.packageName')), name),
         el('label', {}, el('span', {}, t('superTeam.projectOwner')), teamBinding.element,
-            el('small', {class: 'npm-dialog-hint'}, t('superTeam.bindingHint'))),
+            el('small', {class: 'npm-dialog-hint'}, t('superTeam.creationBindingHint'))),
         el('label', {class: 'npm-check-row'}, privateInput, el('span', {}, t('npm.privatePackage'))),
         el('p', {class: 'npm-dialog-hint'}, t('npm.privateRequiresScope'))
     );

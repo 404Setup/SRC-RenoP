@@ -195,9 +195,40 @@ func createPackageAPI(c fiber.Ctx, state *core.AppState) error {
 		c.Set("X-Renop-Required-Scope", core.APITokenScopeTeamManage)
 		return npmAPIError(c, fiber.StatusForbidden, "super_team_permission", "API token cannot use this global team")
 	}
+	db := state.GetDB()
+	if db == nil {
+		return npmAPIError(c, fiber.StatusServiceUnavailable, "internal_error", "Database unavailable")
+	}
+	reviewTeamPrefix := ""
+	if teamPrefix != "" {
+		teamRole, roleErr := db.GetSuperTeamRole(teamPrefix, user.Username)
+		if roleErr != nil {
+			if errors.Is(roleErr, core.ErrSuperTeamPermissionDenied) {
+				return npmAPIError(c, fiber.StatusForbidden, "super_team_permission",
+					"T2 or higher global team permission is required")
+			}
+			return npmAPIError(c, fiber.StatusInternalServerError, "internal_error",
+				"Failed to inspect global team permission")
+		}
+		if teamRole < core.SuperTeamRoleWrite {
+			return npmAPIError(c, fiber.StatusForbidden, "super_team_permission",
+				"T2 or higher global team permission is required")
+		}
+		if teamRole == core.SuperTeamRoleWrite {
+			reviewTeamPrefix = teamPrefix
+		}
+	}
 	release := repositorygate.AcquireMutation(repo.Name)
 	defer release()
-	existing, err := state.GetDB().GetNPMPackage(repo.Name, packageName)
+	currentConfig := state.Inner.Config.Load()
+	if currentConfig == nil {
+		return npmAPIError(c, fiber.StatusServiceUnavailable, "internal_error", "Configuration unavailable")
+	}
+	repo = currentConfig.Maven.Repositories[repo.Name]
+	if repo == nil || repo.NormalizedFormat() != config.RepositoryFormatNPM {
+		return npmAPIError(c, fiber.StatusNotFound, "repository_not_found", "Repository not found")
+	}
+	existing, err := db.GetNPMPackage(repo.Name, packageName)
 	if err != nil {
 		return npmAPIError(c, fiber.StatusInternalServerError, "internal_error", "Failed to inspect npm package")
 	}
@@ -205,9 +236,9 @@ func createPackageAPI(c fiber.Ctx, state *core.AppState) error {
 		return npmAPIError(c, fiber.StatusConflict, "package_exists", "npm package already exists")
 	}
 	createdAt := time.Now().UnixMilli()
-	if repo.PublicationReviewPolicy() != config.PublicationReviewOff {
+	if repo.PublicationReviewPolicy() != config.PublicationReviewOff || reviewTeamPrefix != "" {
 		review, reviewErr := QueuePackageCreationReview(
-			state, repo, packageName, teamPrefix, user.Username, request.Private, createdAt)
+			state, repo, packageName, teamPrefix, reviewTeamPrefix, user.Username, request.Private, createdAt)
 		if errors.Is(reviewErr, core.ErrReviewPermissionDenied) {
 			return npmAPIError(c, fiber.StatusConflict, "review_pending",
 				"Another account already requested this npm package name")
@@ -224,7 +255,7 @@ func createPackageAPI(c fiber.Ctx, state *core.AppState) error {
 			"pending": true, "review_id": review.TaskID, "name": packageName,
 		})
 	}
-	pkg, err := state.GetDB().CreateNPMPackageForTeam(repo.Name, packageName, user.Username,
+	pkg, err := db.CreateNPMPackageForTeam(repo.Name, packageName, user.Username,
 		teamPrefix, request.Private, createdAt)
 	if errors.Is(err, core.ErrNPMPackageExists) {
 		return npmAPIError(c, fiber.StatusConflict, "package_exists", "npm package already exists")

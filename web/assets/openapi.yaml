@@ -1567,8 +1567,14 @@ components:
           maxLength: 512
         resource_version: { type: string, maxLength: 255 }
         source_team_prefix: { type: string, maxLength: 64 }
-        target_team_prefix: { type: string, maxLength: 64 }
-        review_team_prefix: { type: string, maxLength: 64 }
+        target_team_prefix:
+          type: string
+          maxLength: 64
+          description: Target owner for a transfer, or the team that approved a T2 package-creation request.
+        review_team_prefix:
+          type: string
+          maxLength: 64
+          description: Non-empty while a team task is waiting for one of its T3/T4 managers; cleared when a package-creation task advances to repository review.
         requested_by: { type: string }
         status: { type: string, enum: [pending, approved, rejected, cancelled] }
         decision_reason:
@@ -3950,9 +3956,10 @@ paths:
       tags: [reviews]
       summary: List review tasks
       description: >
-        Returns a bounded reviewer or requester page. Team transfers are visible to current T3/T4 team managers;
-        publication reviews are visible to repository-scoped moderators and system administrators. This route accepts
-        a browser session only; Basic credentials and Bearer API tokens are denied.
+        Returns a bounded reviewer or requester page. Team transfers and T2 package-creation requests are visible to
+        current T3/T4 team managers. Publication reviews are visible to repository-scoped moderators and system
+        administrators only after any required team approval. This route accepts a browser session only; Basic
+        credentials and Bearer API tokens are denied.
       operationId: listReviewTasks
       security:
         - sessionCookie: []
@@ -4020,9 +4027,11 @@ paths:
       tags: [reviews]
       summary: Decide one pending review
       description: >
-        A T3/T4 manager decides team transfers. A repository moderator or system administrator decides publication
-        reviews after the five-second upload-settling window. Publication rejection uses a preset reason or a bounded
-        custom reason. A pending-state compare-and-set guarantees that only one decision is applied.
+        A T3/T4 manager decides team transfers and T2 package-creation requests. If repository creation review is also
+        enabled, team approval keeps the same task pending, clears `review_team_prefix`, and forwards it to repository
+        moderators; it does not reserve the name. A repository moderator or system administrator decides that second
+        stage after the five-second settling window. Publication rejection uses a preset reason or bounded custom
+        reason. Compare-and-set transitions prevent concurrent decisions from applying twice.
       operationId: decideReviewTask
       security:
         - sessionCookie: []
@@ -4047,7 +4056,7 @@ paths:
                   description: Required for publication rejection. `custom` also requires `reason`.
       responses:
         "200":
-          description: Review decided and approved ownership applied atomically when requested.
+          description: Review decided, or a team-approved package creation advanced to its still-pending repository-review stage.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ReviewTask" }
@@ -6684,7 +6693,7 @@ paths:
     post:
       tags: [npm]
       summary: Reserve an npm package before publication
-      description: Creates an empty package and assigns the caller L4. Scoped names require a matching global team where the caller has T3 or T4. npm publish cannot create packages implicitly. When publication review is enabled, creation returns an accepted review task and does not reserve the name before approval.
+      description: Creates an empty package and assigns the caller L4. Scoped names require a matching global team. T3/T4 members create directly unless repository review is enabled; T2 members always create a team-review task for T3/T4 approval. If repository creation review is also enabled, the same task advances to a second moderator stage. Neither stage reserves the name before final approval. npm publish cannot create packages implicitly.
       operationId: createNPMPackage
       security:
         - sessionCookie: []
@@ -6719,7 +6728,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/NPMPackage"
         "202":
-          description: Package creation accepted for review; the name is not yet reserved.
+          description: Package creation accepted for team and/or repository review; the name is not yet reserved.
           headers:
             X-RenoP-Review-ID:
               schema:
@@ -6727,7 +6736,7 @@ paths:
         "400":
           description: Invalid package name, missing team, or scope/team mismatch.
         "403":
-          description: Repository creation permission or T3/T4 membership is missing.
+          description: Repository creation permission or at least T2 membership is missing.
         "409":
           description: Package already exists.
     put:
@@ -7185,10 +7194,11 @@ paths:
       tags: [docker]
       summary: Reserve a container image before push
       description: |
-        Creates an empty public or private image and assigns the caller L4. When publication review is enabled, the
-        request returns an accepted review task and does not reserve the name before approval. Docker pushes cannot
-        create images implicitly. Namespaced images require a matching global team where the caller has T3 or T4. Names must be
-        unique within the repository and cannot match an image exposed by an enabled mirror.
+        Creates an empty public or private image and assigns the caller L4. Namespaced images require a matching global
+        team. T3/T4 members create directly unless repository review is enabled; T2 members always create a team-review
+        task for T3/T4 approval. If repository creation review is also enabled, the same task advances to a second
+        moderator stage. Neither stage reserves the name before final approval. Docker pushes cannot create images
+        implicitly. Names must be unique within the repository and cannot match an image exposed by an enabled mirror.
       operationId: createDockerImage
       security:
         - sessionCookie: []
@@ -7222,7 +7232,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/DockerRepositoryImage"
         "202":
-          description: Image creation accepted for review; the name is not yet reserved.
+          description: Image creation accepted for team and/or repository review; the name is not yet reserved.
           headers:
             X-RenoP-Review-ID:
               schema:
@@ -7230,7 +7240,7 @@ paths:
         "400":
           description: Invalid image name, missing team, or namespace/team mismatch.
         "403":
-          description: Repository creation permission or T3/T4 membership is missing.
+          description: Repository creation permission or at least T2 membership is missing.
         "409":
           description: Image name is already occupied locally or by an enabled upstream mirror.
         "503":

@@ -176,9 +176,22 @@ func TestNPMPackageCreationRequiresMatchingGlobalTeamScope(t *testing.T) {
 	require.NoError(t, db.CreateSuperTeam(&core.SuperTeam{
 		Prefix: "platform", Name: "Platform", CreatedAt: now,
 	}, "alice", 5, 10))
+	require.NoError(t, db.SaveToken(&core.AccessToken{
+		Name: "bob", CreatedAt: time.Now().Format(time.RFC3339),
+		Permissions: []string{"base", "canupdate:npm"},
+	}))
+	require.NoError(t, db.SaveToken(&core.AccessToken{
+		Name: "carol", CreatedAt: time.Now().Format(time.RFC3339),
+		Permissions: []string{"base", "canupdate:npm"},
+	}))
+	require.NoError(t, db.ForceAddSuperTeamMembers("platform", "alice", []string{"bob"},
+		core.SuperTeamRoleWrite, 5, 10, now+1))
+	require.NoError(t, db.ForceAddSuperTeamMembers("platform", "alice", []string{"carol"},
+		core.SuperTeamRoleRead, 5, 10, now+2))
 	app := fiber.New(fiber.Config{JSONEncoder: json.Marshal, JSONDecoder: json.Unmarshal})
+	current := &config.User{Username: "alice", Roles: []string{"base", "canupdate:npm"}}
 	app.Use(func(c fiber.Ctx) error {
-		c.Locals("user", &config.User{Username: "alice", Roles: []string{"base", "canupdate:npm"}})
+		c.Locals("user", current)
 		return c.Next()
 	})
 	SetupRoutes(app.Group("/api"), state, store)
@@ -205,6 +218,27 @@ func TestNPMPackageCreationRequiresMatchingGlobalTeamScope(t *testing.T) {
 	assert.Equal(t, "platform", pkg.SuperTeamPrefix)
 	response = create(`{"name":"standalone"}`)
 	require.Equal(t, http.StatusCreated, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	current = &config.User{Username: "bob", Roles: []string{"base", "canupdate:npm"}}
+	response = create(`{"name":"@platform/reviewed","super_team_prefix":"platform","private":true}`)
+	require.Equal(t, http.StatusAccepted, response.StatusCode)
+	var queued struct {
+		ReviewID string `json:"review_id"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&queued))
+	require.NoError(t, response.Body.Close())
+	require.NotEmpty(t, queued.ReviewID)
+	task, err := db.GetReviewTask(queued.ReviewID)
+	require.NoError(t, err)
+	assert.Equal(t, "platform", task.ReviewTeamPrefix)
+	assert.Equal(t, "platform", task.TargetTeamPrefix)
+	pendingPackage, err := db.GetNPMPackage("npm", "@platform/reviewed")
+	require.NoError(t, err)
+	assert.Nil(t, pendingPackage)
+	current = &config.User{Username: "carol", Roles: []string{"base", "canupdate:npm"}}
+	response = create(`{"name":"@platform/denied","super_team_prefix":"platform"}`)
+	require.Equal(t, http.StatusForbidden, response.StatusCode)
+	require.Equal(t, "super_team_permission", response.Header.Get(npmAPIErrorCodeHeader))
 	require.NoError(t, response.Body.Close())
 }
 

@@ -16,14 +16,16 @@ and Maven publishing domains.
 Review routes accept only an authenticated browser session. Basic credentials and Bearer API tokens cannot create,
 list, decide, or cancel tasks. The account menu opens the same workflow at `/account/reviews`.
 
-The reviewer view contains ownership tasks for teams where the account is T3 or T4 and publication tasks for
-repositories where it is a moderator. System administrators can review every task. The requester view follows the
-current immutable account identity, including records created before a username change.
+The reviewer view contains ownership and T2 package-creation tasks for teams where the account is T3 or T4. It contains
+publication tasks for repositories where the account is a moderator, after any required team stage has completed.
+System administrators can review every task. The requester view follows the current immutable account identity,
+including records created before a username change.
 
-New tasks create deduplicated message-center notices for eligible team reviewers, repository moderators, and system
-administrators. The first completed decision removes every remaining reviewer notice and sends the requester a localized
-approved, rejected, or cancelled result. Requesters and non-administrator moderators never receive `decided_by`;
-only system administrators can inspect the decision actor.
+New tasks create deduplicated message-center notices for the reviewers assigned to the current stage and for system
+administrators. Advancing a T2 creation request removes team notices and creates moderator notices without telling the
+requester that the package is approved. The final decision removes every remaining reviewer notice and sends the
+requester a localized approved, rejected, or cancelled result. Requesters and non-administrator moderators never
+receive `decided_by`; only system administrators can inspect the final decision actor.
 
 ## Transfer rules
 
@@ -49,20 +51,22 @@ publication review. Files uploaded for the same version are attached to one task
 Maven metadata companions. A five-second settling window after the latest file prevents a reviewer from deciding a
 version while the client is still uploading it. An approved version is sealed against later file additions.
 
-For npm, both review policies hold the explicit creation request without reserving the name. Approval atomically creates
-the package and L4 owner after rechecking repository and optional global-team permission. Under `new_packages`, later
-versions publish normally. Under `every_version`, RenoP also hides each tarball and retains a bounded manifest/dist-tag
-payload until approval, then records the immutable version and tags together. Upstream content never creates tasks.
+For npm, both review policies hold the explicit creation request without reserving the name. A T2 team member always
+starts with T3/T4 team approval. If repository creation review is enabled, that approval advances the same task to a
+repository moderator; otherwise it atomically creates the package. Final approval rechecks repository permission and
+live team membership before assigning the requester L4. Under `new_packages`, later versions publish normally. Under
+`every_version`, RenoP also hides each tarball and retains a bounded manifest/dist-tag payload until approval, then
+records the immutable version and tags together. Upstream content never creates tasks.
 
 A Cargo publication stores and hides the crate archive without changing the sparse index or public catalog. Approval
 adds the immutable version to both metadata stores before exposing the archive. Rejection removes the hidden archive.
 With `new_packages`, the crate remains new until its first visible version is approved. Mirrored crates bypass review.
 
-For Docker, both policies hold the explicit image creation request without reserving the name and recheck local,
-upstream, repository, and optional global-team authority at approval. Under `new_packages`, later manifests publish
-normally. Under `every_version`, each exact manifest remains a bounded virtual file until approval; its reference and
-tag do not enter storage or catalog tables, so a new tag cannot hide an existing tag for the same digest. Approval
-atomically records the manifest, blob links, tag, and task decision. Mirror imports bypass review.
+For Docker, T2 creation follows the same ordered team and optional repository stages as npm. Final approval rechecks
+local and upstream names plus repository and live team authority before reserving the image. Under `new_packages`, later
+manifests publish normally. Under `every_version`, each exact manifest remains a bounded virtual file until approval;
+its reference and tag do not enter storage or catalog tables, so a new tag cannot hide an existing tag for the same
+digest. Approval atomically records the manifest, blob links, tag, and task decision. Mirror imports bypass review.
 
 ## List tasks
 
@@ -71,7 +75,9 @@ GET /api/reviews returns a bounded page. `view` accepts `reviewer` or `requested
 resource types. `limit` is between 1 and 100, and `offset` is non-negative.
 
 The response contains `tasks`, `total`, `limit`, `offset`, and the resolved `view`. A task preserves its source and
-target team prefixes, requester display name, timestamps, current status, and any completed decision metadata.
+target team prefixes, current reviewing team, requester display name, timestamps, status, and completed decision
+metadata. A non-empty `review_team_prefix` assigns the task to that team's T3/T4 members. Team approval of a T2 package
+creation clears this field while preserving `target_team_prefix` and `pending` status for repository review.
 Publication tasks also include `resource_version`, `file_count`, `total_size`, and the latest file time.
 Explicit npm/Docker creation uses the reserved `resource_version` value `@create` and exposes its bounded JSON request
 through the same file API.
@@ -89,7 +95,8 @@ Only one ownership transfer may be pending for a resource, regardless of its req
 
 GET /api/reviews/{id}/files returns at most 256 repository-relative files with a stable file identifier, size, upload
 time, and critical-file marker. GET /api/reviews/{id}/files/{file_id} streams one hidden file. These routes are
-available only to the requester, an assigned repository moderator, or a system administrator using a browser session.
+available only to the requester, a T3/T4 member of the currently assigned team, an assigned repository moderator after
+the team stage, or a system administrator using a browser session.
 
 The web review center downloads files with at most four adaptive workers and retries each failure twice. When every
 file succeeds, it creates a ZIP archive in the browser using the standard repository paths. If any file still fails,
@@ -97,7 +104,9 @@ it opens the critical files individually instead of presenting an incomplete arc
 
 ## Decide or cancel
 
-POST /api/reviews/{id}/decision accepts `approved` or `rejected`. Ownership-transfer rejection requires a non-empty
+POST /api/reviews/{id}/decision accepts `approved` or `rejected`. Approving a T2 package-creation task either completes
+creation or returns the same task as `pending` with an empty `review_team_prefix` when repository review is required.
+Ownership-transfer rejection requires a non-empty
 reason of at most 512 characters. Publication rejection requires `reason_code`; supported values are
 `invalid_metadata`, `quality`, `policy_violation`, `copyright`, `malware`, and `custom`. A custom reason is limited to
 505 characters. Approval records the engine’s version metadata before exposing its files; rejection deletes the

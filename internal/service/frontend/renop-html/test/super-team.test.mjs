@@ -62,7 +62,7 @@ test('global teams persist independently from package membership tables', () => 
     assert.doesNotMatch(database, /INSERT INTO (?:npm|docker|cargo)_members/);
 });
 
-test('package and domain creation use one T3 global-team binding selector', () => {
+test('package creation includes T2 approval while domain binding remains T3', () => {
     const selector = source('js', 'super-team-selector.js');
     const docker = source('js', 'browser', 'docker.js');
     const npm = source('js', 'browser', 'npm.js');
@@ -76,6 +76,9 @@ test('package and domain creation use one T3 global-team binding selector', () =
         assert.match(script, /createSuperTeamBindingField/);
         assert.match(script, /super_team_prefix/);
     }
+    assert.match(docker, /createSuperTeamBindingField\(\{minimumRole: 2}\)/);
+    assert.match(npm, /createSuperTeamBindingField\(\{minimumRole: 2}\)/);
+    assert.doesNotMatch(maven, /createSuperTeamBindingField\(\{minimumRole: 2}\)/);
     for (const table of ['npm_packages', 'maven_domains', 'maven_artifacts']) {
         assert.match(schema, new RegExp(`${table}[\\s\\S]*?super_team_prefix`));
     }

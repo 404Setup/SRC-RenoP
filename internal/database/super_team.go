@@ -339,6 +339,31 @@ func (db *DB) ListManageableSuperTeams(username string, minimumRole, limit, offs
 	return teams, total, nil
 }
 
+// GetSuperTeamRole returns the caller's exact T-level in one global team.
+func (db *DB) GetSuperTeamRole(prefix, username string) (int, error) {
+	if db == nil || db.SQLDB == nil {
+		return 0, core.ErrDatabaseUnavailable
+	}
+	prefix, valid := sanitizeSuperTeamPrefix(prefix)
+	if !valid {
+		return 0, core.ErrSuperTeamNotFound
+	}
+	userID, err := db.userIDForExistingAccount(username)
+	if err != nil {
+		return 0, core.ErrSuperTeamPermissionDenied
+	}
+	var role int
+	err = db.QueryRow(`SELECT role_level FROM super_team_members WHERE team_prefix = ? AND user_id = ?`,
+		prefix, userID).Scan(&role)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, core.ErrSuperTeamPermissionDenied
+	}
+	if err != nil {
+		return 0, fmt.Errorf("get global team role: %w", err)
+	}
+	return role, nil
+}
+
 // GetSuperTeamDetails returns one visible global team and its members.
 func (db *DB) GetSuperTeamDetails(prefix, username string, administrator bool) (*core.SuperTeamDetails, error) {
 	if db == nil || db.SQLDB == nil {

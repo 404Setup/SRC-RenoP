@@ -375,7 +375,7 @@ func validateTransferNamespace(resourceType, resourceKey, teamPrefix string, tra
 	return nil
 }
 
-// ListReviewTasks returns one requester or T3+ team-reviewer page.
+// ListReviewTasks returns one requester, team-reviewer, or repository-moderator page.
 func (db *DB) ListReviewTasks(options core.ReviewTaskListOptions) ([]*core.ReviewTask, int, error) {
 	if db == nil || db.SQLDB == nil {
 		return nil, 0, core.ErrDatabaseUnavailable
@@ -418,8 +418,11 @@ func (db *DB) ListReviewTasks(options core.ReviewTaskListOptions) ([]*core.Revie
 		from += ` LEFT JOIN super_team_members reviewer ON reviewer.team_prefix = r.review_team_prefix
 			AND reviewer.user_id = ? AND reviewer.role_level >= ?`
 		args = append(args, userID, core.SuperTeamRoleManage)
-		reviewerClauses := []string{"(r.kind = ? AND reviewer.user_id IS NOT NULL)"}
-		args = append(args, core.ReviewKindSuperTeamTransfer)
+		reviewerClauses := []string{
+			"(r.kind = ? AND reviewer.user_id IS NOT NULL)",
+			"(r.kind = ? AND r.review_team_prefix != '' AND reviewer.user_id IS NOT NULL)",
+		}
+		args = append(args, core.ReviewKindSuperTeamTransfer, core.ReviewKindPublication)
 		moderated := make([]string, 0, len(options.ModeratedRepositories))
 		seenRepositories := make(map[string]struct{}, len(options.ModeratedRepositories))
 		for _, candidate := range options.ModeratedRepositories {
@@ -437,10 +440,10 @@ func (db *DB) ListReviewTasks(options core.ReviewTaskListOptions) ([]*core.Revie
 			moderated = append(moderated, repository)
 		}
 		if options.ModerateAll {
-			reviewerClauses = append(reviewerClauses, "r.kind = ?")
+			reviewerClauses = append(reviewerClauses, "(r.kind = ? AND r.review_team_prefix = '')")
 			args = append(args, core.ReviewKindPublication)
 		} else if len(moderated) > 0 {
-			reviewerClauses = append(reviewerClauses, "(r.kind = ? AND r.repository IN ("+
+			reviewerClauses = append(reviewerClauses, "(r.kind = ? AND r.review_team_prefix = '' AND r.repository IN ("+
 				strings.TrimSuffix(strings.Repeat("?,", len(moderated)), ",")+"))")
 			args = append(args, core.ReviewKindPublication)
 			for _, repository := range moderated {
@@ -706,7 +709,14 @@ func (db *DB) DecideReviewTask(id, actor, decision, reason string, decidedAt int
 		return nil, err
 	}
 	if task.Kind == core.ReviewKindPublication {
-		if !reviewer.CheckModeratePermission(task.Repository) {
+		if task.ReviewTeamPrefix != "" {
+			if !reviewer.IsManager() {
+				if err := requireSuperTeamRoleTx(tx, task.ReviewTeamPrefix,
+					actorID, core.SuperTeamRoleManage); err != nil {
+					return nil, core.ErrReviewPermissionDenied
+				}
+			}
+		} else if !reviewer.CheckModeratePermission(task.Repository) {
 			return nil, core.ErrReviewPermissionDenied
 		}
 		var updatedAt int64

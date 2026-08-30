@@ -41,6 +41,7 @@ export default Object.freeze({
     "superTeam.membershipAddedTitle": "已加入超级团队", "superTeam.membershipAddedBody": "你已被加入 {prefix}，权限为 T{level}。",
 	"superTeam.projectOwner": "项目所有者", "superTeam.domainOwner": "发布域所有者", "superTeam.personalOwnership": "个人所有",
 	"superTeam.bindingHint": "选择你拥有 T3 或 T4 权限的超级团队。Docker 命名空间与 npm 作用域必须和团队前缀一致。",
+	"superTeam.creationBindingHint": "T3 与 T4 成员可直接创建；T2 成员的申请需由 T3 或 T4 成员批准。软件包命名空间必须与团队前缀一致。",
 	"superTeam.bindingLoadFailed": "无法加载你可管理的超级团队。", "superTeam.bindingRequired": "请选择拥有此命名空间的超级团队。",
 	"superTeam.bindingMismatch": "软件包命名空间必须与所选超级团队前缀一致。",
 	"superTeam.bindingPermission": "以此超级团队身份发布需要 T3 或 T4 权限。",

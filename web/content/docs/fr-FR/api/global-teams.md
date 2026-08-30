@@ -13,8 +13,9 @@ immuables ; les réponses exposent uniquement les noms d’utilisateur.
 
 ## Rôles et propriété
 
-T1 lit selon la visibilité du paquet. T2 publie et maintient les versions. T3 gère les membres T1/T2 et crée des
-paquets pour l’équipe. T4 possède la configuration et peut accorder T3/T4.
+T1 lit selon la visibilité du paquet. T2 publie et maintient les versions, et peut demander la création d’un paquet
+npm ou d’une image Docker pour l’équipe. Un membre T3 ou T4 doit approuver cette demande. T3 gère les membres T1/T2 et
+peut créer directement des paquets. T4 possède la configuration et peut accorder T3/T4.
 
 Il doit toujours rester un propriétaire T4. T3 ne peut ni modifier ni accorder T3/T4. Un administrateur système gère
 toutes les équipes sans les rejoindre, mais l’ajout respecte toujours la limite du compte cible. S’ajouter soi-même ne
@@ -23,9 +24,13 @@ produit pas de message redondant.
 ## Liaisons de projets et de domaines
 
 GET /api/super-teams/eligible renvoie par défaut les équipes où l’appelant est au moins T3 ; `minimum_role` accepte
-T1-T4 pour sélectionner une cible de transfert. Une image Docker avec une barre oblique doit sélectionner l’équipe du
-premier segment. Un paquet npm avec portée doit sélectionner l’équipe de la portée sans `@`. Les noms sans préfixe
-peuvent rester personnels.
+T1-T4. Les dialogues de création npm et Docker demandent T2 afin qu’un membre éligible puisse soumettre une tâche.
+Une image Docker avec une barre oblique doit sélectionner l’équipe du premier segment. Un paquet npm avec portée doit
+sélectionner l’équipe de la portée sans `@`. Les noms sans préfixe peuvent rester personnels.
+
+Une demande T2 ne réserve pas le nom. L’approbation T3/T4 de l’équipe constitue la première étape. Si le dépôt examine
+aussi les nouveaux paquets, la même tâche passe ensuite aux modérateurs et le nom reste libre jusqu’à l’approbation
+finale. Aucune des deux frontières d’autorisation ne peut ainsi remplacer l’autre.
 
 La même liaison s’applique aux crates Cargo, aux artefacts Maven et aux domaines de publication Maven. L’accès effectif
 est le niveau le plus élevé entre l’autorisation explicite et le rôle d’équipe mappé. Les membres ne sont jamais copiés

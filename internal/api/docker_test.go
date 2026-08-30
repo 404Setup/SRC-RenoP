@@ -346,13 +346,32 @@ func TestCreateDockerImageRequiresMatchingGlobalTeamNamespace(t *testing.T) {
 	require.Equal(t, "super_team_mismatch", response.Header.Get(dockerAPIErrorCodeHeader))
 	require.NoError(t, response.Body.Close())
 	response = create("bob-team-token", `{"image":"platform/bob","super_team_prefix":"platform"}`)
-	require.Equal(t, http.StatusForbidden, response.StatusCode)
-	require.Equal(t, "super_team_permission", response.Header.Get(dockerAPIErrorCodeHeader))
+	require.Equal(t, http.StatusAccepted, response.StatusCode)
+	var queued struct {
+		ReviewID string `json:"review_id"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&queued))
 	require.NoError(t, response.Body.Close())
+	require.NotEmpty(t, queued.ReviewID)
+	pending, err := db.GetReviewTask(queued.ReviewID)
+	require.NoError(t, err)
+	assert.Equal(t, "platform", pending.ReviewTeamPrefix)
+	assert.Equal(t, "platform", pending.TargetTeamPrefix)
+	image, err := db.GetDockerImage("docker-pub", "platform/bob")
+	require.NoError(t, err)
+	assert.Nil(t, image)
+	approved, err := docker.ApproveImageCreationReview(context.Background(), state, pending, "admin",
+		pending.UpdatedAt+core.PublicationReviewSettleMillis+1)
+	require.NoError(t, err)
+	assert.Equal(t, core.ReviewStatusApproved, approved.Status)
+	image, err = db.GetDockerImage("docker-pub", "platform/bob")
+	require.NoError(t, err)
+	require.NotNil(t, image)
+	assert.Equal(t, "bob", image.Publisher)
 	response = create("admin-test-token", `{"image":"platform/api","super_team_prefix":"platform"}`)
 	require.Equal(t, http.StatusCreated, response.StatusCode)
-	var image core.DockerRepositoryImage
-	require.NoError(t, json.NewDecoder(response.Body).Decode(&image))
+	image = &core.DockerRepositoryImage{}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(image))
 	require.NoError(t, response.Body.Close())
 	assert.Equal(t, "platform", image.SuperTeamPrefix)
 	response = create("admin-test-token", `{"image":"standalone"}`)

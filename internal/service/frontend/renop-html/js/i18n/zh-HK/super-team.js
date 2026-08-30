@@ -34,6 +34,7 @@ export default Object.freeze({
     "superTeam.membershipAddedTitle": "已加入超級團隊", "superTeam.membershipAddedBody": "你已加入 {prefix}，權限為 T{level}。",
 	"superTeam.projectOwner": "項目擁有者", "superTeam.domainOwner": "發佈域擁有者", "superTeam.personalOwnership": "個人擁有",
 	"superTeam.bindingHint": "選擇你擁有 T3 或 T4 權限的超級團隊；命名空間必須與團隊前綴一致。",
+	"superTeam.creationBindingHint": "T3 與 T4 成員可直接建立；T2 成員的申請需由 T3 或 T4 成員批准。套件命名空間必須與團隊前綴一致。",
 	"superTeam.bindingLoadFailed": "無法載入你可管理的超級團隊。", "superTeam.bindingRequired": "請選擇擁有此命名空間的超級團隊。",
 	"superTeam.bindingMismatch": "軟件包命名空間必須與所選超級團隊前綴一致。",
 	"superTeam.bindingPermission": "以此超級團隊身份發佈需要 T3 或 T4 權限。",

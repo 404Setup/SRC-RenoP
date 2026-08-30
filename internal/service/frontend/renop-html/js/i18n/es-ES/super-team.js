@@ -36,6 +36,7 @@ export default Object.freeze({
     "superTeam.membershipAddedTitle": "Membresía de equipo global añadida", "superTeam.membershipAddedBody": "Se te añadió a {prefix} con permiso T{level}.",
 	"superTeam.projectOwner": "Propietario del proyecto", "superTeam.domainOwner": "Propietario del dominio de publicación", "superTeam.personalOwnership": "Propiedad personal",
 	"superTeam.bindingHint": "Elige un equipo global en el que tengas permiso T3 o T4. El espacio de nombres debe coincidir con su prefijo.",
+	"superTeam.creationBindingHint": "Los miembros T3 y T4 pueden crear de inmediato. Las solicitudes T2 requieren la aprobación de un miembro T3 o T4. El espacio de nombres debe coincidir con el prefijo del equipo.",
 	"superTeam.bindingLoadFailed": "No se pudieron cargar los equipos globales que administras.", "superTeam.bindingRequired": "Elige el equipo global propietario de este espacio de nombres.",
 	"superTeam.bindingMismatch": "El espacio de nombres del paquete debe coincidir con el prefijo del equipo global seleccionado.",
 	"superTeam.bindingPermission": "Se necesita permiso T3 o T4 para publicar como este equipo global.",

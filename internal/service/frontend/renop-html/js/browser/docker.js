@@ -418,7 +418,7 @@ function openCreateImageDialog(repoName) {
         placeholder: t('docker.imageNamePlaceholder')
     });
     const privateInput = el('input', {type: 'checkbox'});
-    const teamBinding = createSuperTeamBindingField();
+	const teamBinding = createSuperTeamBindingField({minimumRole: 2});
     const privateOption = el('label', {class: 'docker-create-private-option'},
         privateInput,
         el('span', {class: 'docker-create-private-copy'},
@@ -437,7 +437,7 @@ function openCreateImageDialog(repoName) {
             ),
             el('label', {class: 'docker-create-image-field'},
                 el('span', {}, t('superTeam.projectOwner')), teamBinding.element,
-                el('small', {}, t('superTeam.bindingHint'))
+				el('small', {}, t('superTeam.creationBindingHint'))
             ),
             privateOption
         ),

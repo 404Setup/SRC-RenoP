@@ -36,6 +36,7 @@ export default Object.freeze({
     "superTeam.membershipAddedTitle": "Globale Teammitgliedschaft hinzugefügt", "superTeam.membershipAddedBody": "Du wurdest mit T{level} zu {prefix} hinzugefügt.",
 	"superTeam.projectOwner": "Projektinhaber", "superTeam.domainOwner": "Inhaber der Veröffentlichungsdomain", "superTeam.personalOwnership": "Persönlicher Besitz",
 	"superTeam.bindingHint": "Wählen Sie ein globales Team, in dem Sie T3- oder T4-Rechte besitzen. Der Namensraum muss zum Teampräfix passen.",
+	"superTeam.creationBindingHint": "T3- und T4-Mitglieder können sofort erstellen. Anfragen von T2 müssen durch ein T3- oder T4-Mitglied genehmigt werden. Der Namensraum muss zum Teampräfix passen.",
 	"superTeam.bindingLoadFailed": "Verwaltbare globale Teams konnten nicht geladen werden.", "superTeam.bindingRequired": "Wählen Sie das globale Team dieses Namensraums.",
 	"superTeam.bindingMismatch": "Der Paketnamensraum muss zum Präfix des gewählten globalen Teams passen.",
 	"superTeam.bindingPermission": "Zum Veröffentlichen als dieses globale Team sind T3- oder T4-Rechte erforderlich.",

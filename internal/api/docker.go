@@ -183,6 +183,34 @@ func CreateDockerImageAPI(c fiber.Ctx, state *core.AppState) error {
 	if db == nil {
 		return c.Status(fiber.StatusServiceUnavailable).SendString("Database unavailable")
 	}
+	reviewTeamPrefix := ""
+	if teamPrefix != "" {
+		teamRole, roleErr := db.GetSuperTeamRole(teamPrefix, user.Username)
+		if roleErr != nil {
+			if errors.Is(roleErr, core.ErrSuperTeamPermissionDenied) {
+				return dockerAPIError(c, fiber.StatusForbidden, "super_team_permission",
+					"T2 or higher global team permission is required")
+			}
+			return c.Status(fiber.StatusInternalServerError).SendString("Failed to inspect global team permission")
+		}
+		if teamRole < core.SuperTeamRoleWrite {
+			return dockerAPIError(c, fiber.StatusForbidden, "super_team_permission",
+				"T2 or higher global team permission is required")
+		}
+		if teamRole == core.SuperTeamRoleWrite {
+			reviewTeamPrefix = teamPrefix
+		}
+	}
+	release := repositorygate.AcquireMutation(repoName)
+	defer release()
+	currentConfig := state.Inner.Config.Load()
+	if currentConfig == nil {
+		return c.Status(fiber.StatusServiceUnavailable).SendString("Configuration unavailable")
+	}
+	repo = currentConfig.Maven.Repositories[repoName]
+	if repo == nil || repo.NormalizedFormat() != config.RepositoryFormatDocker {
+		return c.Status(fiber.StatusNotFound).SendString("Repository not found")
+	}
 	imageExists, _, _, _, _, err := db.GetDockerImageAccess(repoName, imageName, "")
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to inspect Docker image name")
@@ -201,19 +229,10 @@ func CreateDockerImageAPI(c fiber.Ctx, state *core.AppState) error {
 			return c.Status(fiber.StatusConflict).SendString("Docker image name is already in use by an upstream mirror")
 		}
 	}
-	release := repositorygate.AcquireMutation(repoName)
-	defer release()
-	imageExists, _, _, _, _, err = db.GetDockerImageAccess(repoName, imageName, "")
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to inspect Docker image name")
-	}
-	if imageExists {
-		return c.Status(fiber.StatusConflict).SendString("Docker image name is already in use")
-	}
 	createdAt := time.Now().UnixMilli()
-	if repo.PublicationReviewPolicy() != config.PublicationReviewOff {
+	if repo.PublicationReviewPolicy() != config.PublicationReviewOff || reviewTeamPrefix != "" {
 		review, reviewErr := docker.QueueImageCreationReview(
-			state, repo, imageName, teamPrefix, user.Username, request.Private, createdAt)
+			state, repo, imageName, teamPrefix, reviewTeamPrefix, user.Username, request.Private, createdAt)
 		if errors.Is(reviewErr, core.ErrReviewPermissionDenied) {
 			return dockerAPIError(c, fiber.StatusConflict, "review_pending",
 				"Another account already requested this Docker image name")

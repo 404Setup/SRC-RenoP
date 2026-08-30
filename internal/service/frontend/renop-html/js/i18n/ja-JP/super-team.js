@@ -40,6 +40,7 @@ export default Object.freeze({
     "superTeam.membershipAddedTitle": "グローバルチームに追加されました", "superTeam.membershipAddedBody": "{prefix} に T{level} 権限で追加されました。",
 	"superTeam.projectOwner": "プロジェクト所有者", "superTeam.domainOwner": "公開ドメイン所有者", "superTeam.personalOwnership": "個人所有",
 	"superTeam.bindingHint": "T3 または T4 権限を持つグローバルチームを選択してください。名前空間はチームのプレフィックスと一致する必要があります。",
+	"superTeam.creationBindingHint": "T3 と T4 のメンバーはすぐに作成できます。T2 の申請には T3 または T4 メンバーの承認が必要です。名前空間はチームのプレフィックスと一致する必要があります。",
 	"superTeam.bindingLoadFailed": "管理可能なグローバルチームを読み込めませんでした。", "superTeam.bindingRequired": "この名前空間を所有するグローバルチームを選択してください。",
 	"superTeam.bindingMismatch": "パッケージの名前空間は、選択したグローバルチームのプレフィックスと一致する必要があります。",
 	"superTeam.bindingPermission": "このグローバルチームとして公開するには T3 または T4 権限が必要です。",

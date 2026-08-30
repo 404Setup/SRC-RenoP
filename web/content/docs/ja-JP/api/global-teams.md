@@ -13,17 +13,22 @@ username だけを公開します。
 
 ## ロールと所有権
 
-T1 は package visibility に応じた read、T2 は version の publish と保守、T3 は T1/T2 の member 管理と team
-package 作成、T4 は team 設定の所有と T3/T4 の付与を行います。
+T1 は package visibility に応じた read を行います。T2 は version の publish と保守に加え、team の npm package
+または Docker image の作成を申請できます。この申請には T3/T4 の承認が必要です。T3 は T1/T2 member の管理と
+package の直接作成、T4 は team 設定の所有と T3/T4 の付与を行います。
 
 T4 owner は最低 1 人必要です。T3 は T3/T4 を変更・付与できません。system administrator は加入せず全 team を
 管理できますが、member 追加時は対象 account の上限を適用します。自分自身の追加では不要な message を送りません。
 
 ## プロジェクトとドメインの関連付け
 
-GET /api/super-teams/eligible は既定で T3 以上のチームを返し、移管先の選択では `minimum_role` に T1-T4 を
-指定できます。スラッシュを含む Docker イメージは先頭要素と一致するチームを選択し、スコープ付き npm
+GET /api/super-teams/eligible は既定で T3 以上のチームを返し、`minimum_role` に T1-T4 を指定できます。npm と
+Docker の作成画面は T2 を指定し、対象メンバーが審査を申請できるようにします。スラッシュを含む Docker イメージは先頭要素と一致するチームを選択し、スコープ付き npm
 パッケージは `@` を除いたスコープと一致するチームを選択します。プレフィックスのない名前は個人所有にできます。
+
+T2 の作成申請は名前を予約しません。T3/T4 のチーム承認が最初の審査段階です。リポジトリでも新規 package を
+審査する場合、同じタスクが次にモデレーターへ移り、最終承認まで名前は未予約のままです。どちらの権限境界も
+もう一方を迂回できません。
 
 Cargo crate、Maven アーティファクト、Maven 公開ドメインも同じ関連付けを使用します。有効な権限は明示的な
 パッケージ権限とチームロールのマッピングの高い方です。チームメンバーはパッケージメンバー表へ複製されません。

@@ -13,8 +13,9 @@ account IDs internally; responses expose usernames only.
 
 ## Roles and ownership
 
-Roles are cumulative. T1 provides read access according to package visibility. T2 publishes and maintains versions.
-T3 manages T1/T2 members and may create packages for the team. T4 owns team metadata and can grant T3/T4.
+Roles are cumulative. T1 provides read access according to package visibility. T2 publishes and maintains versions,
+and may request a new npm package or Docker image for the team. A T3 or T4 member must approve that request. T3
+manages T1/T2 members and may create packages directly. T4 owns team metadata and can grant T3/T4.
 
 At least one T4 owner must remain. T3 cannot modify another T3 or T4, and cannot grant either role. System
 administrators can manage every team without joining it, but account membership limits still apply when they add a
@@ -22,10 +23,14 @@ member. Adding the administrator's own account does not generate a redundant mes
 
 ## Package and domain bindings
 
-GET /api/super-teams/eligible defaults to teams where the caller has at least T3; `minimum_role` may request T1-T4 for
-transfer selection. Docker images whose names contain a slash must select the team matching the first path component.
-Scoped npm packages must select the team matching their scope without `@`. Unprefixed Docker images and unscoped npm
-packages may remain personally owned.
+GET /api/super-teams/eligible defaults to teams where the caller has at least T3; `minimum_role` may request T1-T4.
+The npm and Docker creation dialogs request T2 so eligible members can submit an approval task. Docker images whose
+names contain a slash must select the team matching the first path component. Scoped npm packages must select the team
+matching their scope without `@`. Unprefixed Docker images and unscoped npm packages may remain personally owned.
+
+A T2 creation request does not reserve the package name. Its T3/T4 team approval is the first review stage. When the
+repository also reviews new packages, the same task then moves to repository moderators and the name remains available
+until final approval. This sequencing prevents either permission boundary from bypassing the other.
 
 The same binding is available to Cargo crates, Maven artifacts, and Maven publishing domains. Effective access is the
 higher of the explicit package permission and the mapped team role. Team members are never copied into package member

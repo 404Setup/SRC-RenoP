@@ -111,7 +111,8 @@ func (db *DB) createNPMPackage(repository, packageName, owner, superTeamPrefix s
 	}
 	defer tx.Rollback()
 	pkg, err := createNPMPackageTx(
-		tx, repository, packageName, owner, ownerID, superTeamPrefix, private, createdAt)
+		tx, repository, packageName, owner, ownerID, superTeamPrefix, private, createdAt,
+		core.SuperTeamRoleManage)
 	if err != nil {
 		return nil, err
 	}
@@ -122,12 +123,12 @@ func (db *DB) createNPMPackage(repository, packageName, owner, superTeamPrefix s
 }
 
 func createNPMPackageTx(tx *Tx, repository, packageName, owner, ownerID, superTeamPrefix string,
-	private bool, createdAt int64,
+	private bool, createdAt int64, requiredTeamRole int,
 ) (*core.NPMPackage, error) {
 	if tx == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
-	if err := requireSuperTeamRoleTx(tx, superTeamPrefix, ownerID, core.SuperTeamRoleManage); err != nil {
+	if err := requireSuperTeamRoleTx(tx, superTeamPrefix, ownerID, requiredTeamRole); err != nil {
 		return nil, err
 	}
 	var exists int

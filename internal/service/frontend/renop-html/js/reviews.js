@@ -188,7 +188,13 @@ function statusLabel(status) {
 /** @param {object} task - Review task. @returns {string} Localized transfer direction. */
 function directionLabel(task) {
     if (task.kind === 'publication') {
-        if (task.resource_version === '@create') return t('review.packageCreation');
+        if (task.resource_version === '@create') {
+            if (task.review_team_prefix) {
+                return t('review.teamCreationApproval', {team: task.review_team_prefix});
+            }
+            if (task.target_team_prefix) return t('review.repositoryCreationApproval');
+            return t('review.packageCreation');
+        }
         return t('review.publicationVersion', {version: task.resource_version});
     }
     return task.target_team_prefix
@@ -201,6 +207,7 @@ function directionLabel(task) {
  * @param {object} task - Pending review task.
  * @param {string} decision - `approved` or `rejected`.
  * @param {string} [reason=''] - Optional decision reason.
+ * @param {string} [reasonCode=''] - Optional stable publication rejection reason.
  * @returns {Promise<void>} Completion.
  */
 async function submitDecision(task, decision, reason = '', reasonCode = '') {
@@ -209,9 +216,12 @@ async function submitDecision(task, decision, reason = '', reasonCode = '') {
         body: JSON.stringify({decision, reason, reason_code: reasonCode})
     });
     if (!response.ok) throw await localizedResponseError(response, 'review.operationFailed', {}, REVIEW_ERROR_KEYS);
+    const result = await response.json();
     const publication = task.kind === 'publication';
     const creation = publication && task.resource_version === '@create';
-    const resultKey = creation
+    const resultKey = creation && decision === 'approved' && result?.status === 'pending'
+        ? 'review.creationForwarded'
+        : creation
         ? decision === 'approved' ? 'review.creationApproved' : 'review.creationRejected'
         : publication
         ? decision === 'approved' ? 'review.publicationApproved' : 'review.publicationRejected'
@@ -224,6 +234,7 @@ async function submitDecision(task, decision, reason = '', reasonCode = '') {
 function openRejectDialog(task) {
     const reason = el('textarea', {class: 'profile-input', maxlength: task.kind === 'publication' ? '505' : '512', rows: '4'});
     const publication = task.kind === 'publication';
+    const creation = publication && task.resource_version === '@create';
     let reasonCode = publication ? 'invalid_metadata' : '';
     const reasonField = el('label', {class: 'review-reject-field'},
         el('span', {}, t('review.rejectReason')), reason);
@@ -237,7 +248,7 @@ function openRejectDialog(task) {
     }) : null;
     RenopDialog.show({
         id: 'review-reject-dialog', maxWidth: '520px', icon: 'warning',
-        title: t(publication ? 'review.rejectPublicationTitle' : 'review.rejectTitle'),
+        title: t(creation ? 'review.rejectCreationTitle' : publication ? 'review.rejectPublicationTitle' : 'review.rejectTitle'),
         body: el('div', {class: 'review-reject-form'},
             publication ? el('label', {class: 'review-reject-field'},
                 el('span', {}, t('review.rejectPresetLabel')), reasonSelect) : null,

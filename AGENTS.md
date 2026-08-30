@@ -113,15 +113,15 @@
   manifest in a bounded virtual payload. Approval rechecks the publisher and referenced blobs, then atomically records
   manifest metadata, blob links, the tag, and the review decision. Existing digest files are never hidden by another
   pending tag, rejection leaves shared blobs untouched, and mirror imports bypass review. Local names
-  containing `/` require a matching global team prefix and T3/T4 membership at reservation time; unprefixed images may
-  remain personally owned.
+  containing `/` require a matching global team prefix. T3/T4 members reserve directly unless repository review is
+  enabled; T2 members enter the ordered team-approval workflow. Unprefixed images may remain personally owned.
 - **`internal/service/npm/`**: npm-compatible per-repository registry with explicitly reserved public or scoped-private
   packages, immutable semantic versions, validated streaming tarball publication, dist-tags, deprecation/unpublish
   workflows, L0-L4 package teams, upstream packument/tarball mirrors, and full/abbreviated metadata negotiation.
   URL-encoded scoped metadata routes are decoded by the npm protocol before shared file-path sanitization. Mirrored
   packages remain pull-only, while local publication requires both repository and package permission. Scoped local
-  packages require a matching global team prefix and T3/T4 membership at reservation time; unscoped packages may
-  remain personally owned. Both review policies hold explicit package creation without reserving its name;
+  packages require a matching global team prefix. T3/T4 members reserve directly unless repository review is enabled;
+  T2 members enter the ordered team-approval workflow. Unscoped packages may remain personally owned. Both review policies hold explicit package creation without reserving its name;
   `new_packages` stops after creation approval, while `every_version` also hides each committed tarball and bounded
   manifest/dist-tag payload until a repository moderator approves the same immutable publication transaction. Creation
   and publication decisions are atomic, and decision failure restores the exact prior package summary and revision.
@@ -167,10 +167,15 @@
   nonexistent objects to the storage index; approval completes its catalog and task mutation in one database transaction.
   npm and Docker creation requests use the reserved `@create` review version, bind retries to the requester's immutable
   identity, expose a bounded virtual JSON request, and create the resource in the same transaction as the review CAS.
+  T2 global-team members always start with a T3/T4 team stage. When repository creation review is enabled, team approval
+  atomically clears `review_team_prefix` on the same still-pending task and forwards it to repository moderators; the
+  immutable `target_team_prefix` proves that team approval occurred, freezes later payload retries, and permits the
+  final transaction to recheck the requester's live T2 membership without weakening direct T3/T4 creation.
 - **`internal/service/reviewnotify/`**: Review lifecycle notification coordinator. New tasks send recipient-scoped,
-  deduplicated notices to active T3/T4 team reviewers, repository moderators, and system administrators; one completed
-  decision removes every remaining reviewer notice and sends the requester a result payload that never includes reviewer
-  identity. Notification failures are recorded without rolling back an already durable task.
+  deduplicated notices to reviewers assigned to the current stage and system administrators. A T2 creation transition
+  removes team notices before creating repository-moderator notices; one completed decision removes every remaining
+  reviewer notice and sends the requester a result payload that never includes reviewer identity. Notification failures
+  are recorded without rolling back an already durable task.
 - **`internal/service/publicationquota/`**: Shared daily, weekly, or monthly publication accounting for users and global
   teams. Defaults are 600 files, 40 MiB, and 20 completed publications per month. Manager-only owner overrides may set
   individual limits to zero or enable the hidden no-quota flag. Validated uploads use short-lived durable reservations;
@@ -273,9 +278,9 @@
   The routed `/account/teams` center owns global-team pagination, immutable-prefix creation, responsive T1-T4 member
   controls, shared username suggestions, invitation actions, and embedded profile usage limits. System settings load
   global team defaults through a separate JSON domain without expanding the protobuf settings schema; all 12 frontend
-  locales include global-team UI, message, error, and audit text. A shared T3+ selector binds Docker/npm creation and
-  Maven-domain creation to eligible teams; namespace validation and API-token `global/<prefix>` targets are rechecked
-  server-side before the transactional reservation.
+  locales include global-team UI, message, error, and audit text. The shared selector exposes T2+ teams for Docker/npm
+  creation and T3+ teams for Maven-domain creation; namespace validation, live role checks, ordered approval stages,
+  and API-token `global/<prefix>` targets are rechecked server-side before the transactional reservation.
   Maven artifact versions, npm package versions, and Docker image tags use `@renop/ui/pagination` for bounded
   previous/next pages, responsive summaries, height-morphed page changes, and page clamping after deletions; the
   shared pager intentionally avoids dense numbered-button rows on mobile.

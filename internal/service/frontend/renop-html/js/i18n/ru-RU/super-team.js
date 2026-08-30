@@ -39,6 +39,7 @@ export default Object.freeze({
     "superTeam.membershipAddedTitle": "Добавлено участие в глобальной команде", "superTeam.membershipAddedBody": "Вы добавлены в {prefix} с правами T{level}.",
 	"superTeam.projectOwner": "Владелец проекта", "superTeam.domainOwner": "Владелец домена публикации", "superTeam.personalOwnership": "Личное владение",
 	"superTeam.bindingHint": "Выберите глобальную команду, в которой у вас есть права T3 или T4. Пространство имён должно совпадать с префиксом команды.",
+	"superTeam.creationBindingHint": "Участники T3 и T4 могут создавать пакеты сразу. Запрос T2 должен одобрить участник T3 или T4. Пространство имён должно совпадать с префиксом команды.",
 	"superTeam.bindingLoadFailed": "Не удалось загрузить доступные для управления глобальные команды.", "superTeam.bindingRequired": "Выберите глобальную команду — владельца этого пространства имён.",
 	"superTeam.bindingMismatch": "Пространство имён пакета должно совпадать с префиксом выбранной глобальной команды.",
 	"superTeam.bindingPermission": "Для публикации от имени этой глобальной команды требуются права T3 или T4.",

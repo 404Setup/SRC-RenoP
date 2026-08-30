@@ -172,8 +172,14 @@ func (db *DB) CreateOrUpdatePublicationReview(request core.PublicationReviewRequ
 	resourceName := SanitizeInputString(strings.TrimSpace(request.ResourceName), 512)
 	version := SanitizeInputString(strings.TrimSpace(request.Version), 255)
 	actor := sanitizeMavenUsername(request.RequestedBy)
+	reviewTeam, reviewTeamErr := normalizeOptionalSuperTeamPrefix(request.ReviewTeamPrefix)
+	targetTeam, targetTeamErr := normalizeOptionalSuperTeamPrefix(request.TargetTeamPrefix)
+	teamCreationReview := reviewTeam != "" && targetTeam == reviewTeam &&
+		version == core.ReviewVersionPackageCreation
 	if !valid || repository == "" || resourceKey == "" || resourceName == "" || version == "" ||
-		actor == "" || request.CreatedAt <= 0 || len(request.Files) == 0 || len(request.Files) > maxPublicationReviewFiles {
+		actor == "" || request.CreatedAt <= 0 || len(request.Files) == 0 || len(request.Files) > maxPublicationReviewFiles ||
+		reviewTeamErr != nil || targetTeamErr != nil || (reviewTeam == "") != (targetTeam == "") ||
+		reviewTeam != "" && (!teamCreationReview || policy == config.PublicationReviewOff) {
 		return nil, core.ErrReviewInvalidRequest
 	}
 	files := make([]*core.ReviewFile, 0, len(request.Files))
@@ -198,9 +204,10 @@ func (db *DB) CreateOrUpdatePublicationReview(request core.PublicationReviewRequ
 	}
 	defer tx.Rollback()
 	actorID := ""
-	var taskID, taskActorID string
-	err = tx.QueryRow(`SELECT id, requested_by_id FROM review_tasks WHERE active_key = ? AND status = ?`,
-		activeKey, core.ReviewStatusPending).Scan(&taskID, &taskActorID)
+	var taskID, taskActorID, taskReviewTeam, taskTargetTeam string
+	err = tx.QueryRow(`SELECT id, requested_by_id, review_team_prefix, target_team_prefix
+		FROM review_tasks WHERE active_key = ? AND status = ?`,
+		activeKey, core.ReviewStatusPending).Scan(&taskID, &taskActorID, &taskReviewTeam, &taskTargetTeam)
 	if errors.Is(err, sql.ErrNoRows) {
 		if policy == config.PublicationReviewOff {
 			return &core.PublicationReviewResult{}, nil
@@ -223,6 +230,15 @@ func (db *DB) CreateOrUpdatePublicationReview(request core.PublicationReviewRequ
 		if identityErr != nil {
 			return nil, core.ErrReviewPermissionDenied
 		}
+		if teamCreationReview {
+			role, member, roleErr := superTeamRoleTx(tx, reviewTeam, actorID)
+			if roleErr != nil {
+				return nil, roleErr
+			}
+			if !member || role != core.SuperTeamRoleWrite {
+				return nil, core.ErrReviewPermissionDenied
+			}
+		}
 		var pendingTotal, pendingForActor int
 		if err := tx.QueryRow(`SELECT COUNT(*) FROM review_tasks WHERE kind = ? AND status = ?`,
 			core.ReviewKindPublication, core.ReviewStatusPending).Scan(&pendingTotal); err != nil {
@@ -240,9 +256,9 @@ func (db *DB) CreateOrUpdatePublicationReview(request core.PublicationReviewRequ
 			(id, kind, resource_type, repository, resource_key, resource_name, source_team_prefix,
 			target_team_prefix, review_team_prefix, requested_by_id, requested_by_name, status,
 			decision_reason, decided_by_id, decided_by_name, created_at, decided_at, active_key)
-			VALUES (?, ?, ?, ?, ?, ?, '', '', '', ?, ?, ?, '', '', '', ?, 0, ?)`, taskID,
+			VALUES (?, ?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, '', '', '', ?, 0, ?)`, taskID,
 			core.ReviewKindPublication, resourceType, repository, storedResourceKey, resourceName,
-			actorID, actor, core.ReviewStatusPending, request.CreatedAt, activeKey); err != nil {
+			targetTeam, reviewTeam, actorID, actor, core.ReviewStatusPending, request.CreatedAt, activeKey); err != nil {
 			return nil, fmt.Errorf("create publication review: %w", err)
 		}
 	} else if err != nil {
@@ -251,6 +267,12 @@ func (db *DB) CreateOrUpdatePublicationReview(request core.PublicationReviewRequ
 		var identityErr error
 		actorID, identityErr = userIDForUsernameTx(tx, actor)
 		if identityErr != nil || taskActorID != actorID {
+			return nil, core.ErrReviewPermissionDenied
+		}
+		if taskReviewTeam == "" && taskTargetTeam == targetTeam && reviewTeam == targetTeam && targetTeam != "" {
+			return &core.PublicationReviewResult{Pending: true, TaskID: taskID}, nil
+		}
+		if taskReviewTeam != reviewTeam || taskTargetTeam != targetTeam {
 			return nil, core.ErrReviewPermissionDenied
 		}
 	}

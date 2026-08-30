@@ -51,7 +51,7 @@ func setupReviewApp(t *testing.T) (*fiber.App, *core.AppState, *config.User, *st
 	require.NoError(t, db.ForceAddSuperTeamMembers("platform", "alice", []string{"bob"},
 		core.SuperTeamRoleManage, 5, 10, now+1))
 	require.NoError(t, db.ForceAddSuperTeamMembers("platform", "alice", []string{"charlie"},
-		core.SuperTeamRoleRead, 5, 10, now+2))
+		core.SuperTeamRoleWrite, 5, 10, now+2))
 	_, err = db.CreateDockerImage("containers", "personal", "charlie", false, now+3)
 	require.NoError(t, err)
 	state := core.NewAppState()
@@ -194,6 +194,102 @@ func TestReviewDecisionActorIsVisibleOnlyToSystemAdministrators(t *testing.T) {
 	require.NoError(t, response.Body.Close())
 	require.Len(t, administratorPage.Tasks, 1)
 	assert.Equal(t, "bob", administratorPage.Tasks[0].DecidedBy)
+}
+
+func TestTeamPackageCreationReviewAdvancesToRepositoryModerator(t *testing.T) {
+	app, state, current, _ := setupReviewApp(t)
+	repo := state.Inner.Config.Load().Maven.Repositories["npm"]
+	repo.PublicationReview = config.PublicationReviewNewPackages
+	require.NoError(t, state.GetDB().SaveToken(&core.AccessToken{
+		Name: "charlie", CreatedAt: time.Now().Format(time.RFC3339),
+		Permissions: []string{"base", "canupdate:npm"},
+	}))
+	require.NoError(t, state.GetDB().SaveToken(&core.AccessToken{
+		Name: "dana", CreatedAt: time.Now().Format(time.RFC3339),
+		Permissions: []string{"base", "canmoderate:npm"},
+	}))
+	createdAt := time.Now().UnixMilli() - core.PublicationReviewSettleMillis - 100
+	queued, err := npmservice.QueuePackageCreationReview(
+		state, repo, "@platform/team-tool", "platform", "platform", "charlie", true, createdAt)
+	require.NoError(t, err)
+	require.True(t, queued.Pending)
+	task, err := state.GetDB().GetReviewTask(queued.TaskID)
+	require.NoError(t, err)
+	assert.Equal(t, "platform", task.ReviewTeamPrefix)
+	assert.Equal(t, "platform", task.TargetTeamPrefix)
+
+	*current = config.User{Username: "dana", Roles: []string{"base", "canmoderate:npm"}}
+	response := reviewRequest(t, app, http.MethodGet, "/api/reviews/"+task.ID+"/files", nil)
+	require.Equal(t, http.StatusForbidden, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+task.ID+"/decision",
+		decisionRequest{Decision: core.ReviewStatusApproved})
+	require.Equal(t, http.StatusForbidden, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	response = reviewRequest(t, app, http.MethodGet,
+		"/api/reviews?view=reviewer&status=pending&types=npm_package&limit=10&offset=0", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var page struct {
+		Tasks []*core.ReviewTask `json:"tasks"`
+		Total int                `json:"total"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&page))
+	require.NoError(t, response.Body.Close())
+	assert.Zero(t, page.Total)
+
+	*current = config.User{Username: "bob", Roles: []string{"base"}}
+	response = reviewRequest(t, app, http.MethodGet,
+		"/api/reviews?view=reviewer&status=pending&types=npm_package&limit=10&offset=0", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&page))
+	require.NoError(t, response.Body.Close())
+	require.Len(t, page.Tasks, 1)
+	assert.Equal(t, "platform", page.Tasks[0].ReviewTeamPrefix)
+	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+task.ID+"/decision",
+		decisionRequest{Decision: core.ReviewStatusApproved})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var advanced core.ReviewTask
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&advanced))
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, core.ReviewStatusPending, advanced.Status)
+	assert.Empty(t, advanced.ReviewTeamPrefix)
+	assert.Equal(t, "platform", advanced.TargetTeamPrefix)
+	pkg, err := state.GetDB().GetNPMPackage("npm", "@platform/team-tool")
+	require.NoError(t, err)
+	assert.Nil(t, pkg)
+	response = reviewRequest(t, app, http.MethodGet,
+		"/api/reviews?view=reviewer&status=pending&types=npm_package&limit=10&offset=0", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	page.Tasks = nil
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&page))
+	require.NoError(t, response.Body.Close())
+	assert.Zero(t, page.Total)
+	response = reviewRequest(t, app, http.MethodGet, "/api/reviews/"+task.ID+"/files", nil)
+	require.Equal(t, http.StatusForbidden, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+
+	*current = config.User{Username: "dana", Roles: []string{"base", "canmoderate:npm"}}
+	response = reviewRequest(t, app, http.MethodGet,
+		"/api/reviews?view=reviewer&status=pending&types=npm_package&limit=10&offset=0", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	page.Tasks = nil
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&page))
+	require.NoError(t, response.Body.Close())
+	require.Len(t, page.Tasks, 1)
+	assert.Empty(t, page.Tasks[0].ReviewTeamPrefix)
+	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+task.ID+"/decision",
+		decisionRequest{Decision: core.ReviewStatusApproved})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var approved core.ReviewTask
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&approved))
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, core.ReviewStatusApproved, approved.Status)
+	assert.Empty(t, approved.DecidedBy)
+	pkg, err = state.GetDB().GetNPMPackage("npm", "@platform/team-tool")
+	require.NoError(t, err)
+	require.NotNil(t, pkg)
+	assert.Equal(t, "platform", pkg.SuperTeamPrefix)
+	assert.Equal(t, "charlie", pkg.Publisher)
 }
 
 func TestReviewRoutesRejectInvalidFiltersAndEmptyRejectionReasons(t *testing.T) {
@@ -490,7 +586,7 @@ func TestRepositoryModeratorDownloadsAndApprovesVirtualDockerManifest(t *testing
 		Permissions: []string{"base", "canupdate:containers", "canupdate:npm"},
 	}))
 	dockerCreation, err := dockerservice.QueueImageCreationReview(
-		state, repo, "created-after-review", "", "charlie", true, now)
+		state, repo, "created-after-review", "", "", "charlie", true, now)
 	require.NoError(t, err)
 	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+dockerCreation.TaskID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusApproved})
@@ -511,7 +607,7 @@ func TestRepositoryModeratorDownloadsAndApprovesVirtualDockerManifest(t *testing
 	npmRepo := state.Inner.Config.Load().Maven.Repositories["npm"]
 	npmRepo.PublicationReview = config.PublicationReviewNewPackages
 	npmCreation, err := npmservice.QueuePackageCreationReview(
-		state, npmRepo, "created-after-review", "", "charlie", false, now)
+		state, npmRepo, "created-after-review", "", "", "charlie", false, now)
 	require.NoError(t, err)
 	response = reviewRequest(t, app, http.MethodGet, "/api/reviews/"+npmCreation.TaskID+"/files", nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)

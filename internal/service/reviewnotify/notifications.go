@@ -70,12 +70,12 @@ func reviewRecipients(state *core.AppState, task *core.ReviewTask) ([]string, er
 		if strings.EqualFold(user.Username, task.RequestedBy) {
 			continue
 		}
-		if user.IsManager() || (task.Kind == core.ReviewKindPublication &&
+		if user.IsManager() || (task.Kind == core.ReviewKindPublication && task.ReviewTeamPrefix == "" &&
 			user.CheckModeratePermission(task.Repository)) {
 			unique[user.Username] = struct{}{}
 		}
 	}
-	if task.Kind == core.ReviewKindSuperTeamTransfer && task.ReviewTeamPrefix != "" {
+	if task.ReviewTeamPrefix != "" {
 		teamReviewers, err := state.GetDB().ListSuperTeamReviewerNames(task.ReviewTeamPrefix)
 		if err != nil {
 			return nil, err
@@ -94,6 +94,15 @@ func reviewRecipients(state *core.AppState, task *core.ReviewTask) ([]string, er
 	}
 	sort.Strings(recipients)
 	return recipients, nil
+}
+
+// NotifyPendingTransition replaces team-stage notices with repository-stage notices.
+func NotifyPendingTransition(state *core.AppState, task *core.ReviewTask) error {
+	if state == nil || state.GetDB() == nil || task == nil || task.Status != core.ReviewStatusPending {
+		return core.ErrDatabaseUnavailable
+	}
+	_, deleteErr := state.GetDB().DeleteMessagesByDedupeKey(pendingDedupeKey(task.ID))
+	return errors.Join(deleteErr, NotifyPending(state, task))
 }
 
 func payloadBytes(task *core.ReviewTask, includeDecision bool) ([]byte, error) {
@@ -229,5 +238,18 @@ func DeliverDecision(state *core.AppState, task *core.ReviewTask) {
 			state.Inner.FailuresCount.Add(1)
 		}
 		log.Printf("failed to deliver review result notification for %s: %v", task.ID, err)
+	}
+}
+
+// DeliverPendingTransition records notification failures after a durable review-stage transition.
+func DeliverPendingTransition(state *core.AppState, task *core.ReviewTask) {
+	if task == nil {
+		return
+	}
+	if err := NotifyPendingTransition(state, task); err != nil {
+		if state != nil && state.Inner != nil {
+			state.Inner.FailuresCount.Add(1)
+		}
+		log.Printf("failed to transition pending review notifications for %s: %v", task.ID, err)
 	}
 }

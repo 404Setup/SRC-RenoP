@@ -55,17 +55,19 @@ type ReviewFile struct {
 
 // PublicationReviewRequest identifies one immutable package version and its committed files.
 type PublicationReviewRequest struct {
-	ResourceType  string
-	Repository    string
-	ResourceKey   string
-	ResourceName  string
-	Version       string
-	RequestedBy   string
-	Policy        string
-	PackageExists bool
-	Files         []*ReviewFile
-	Payload       []byte
-	CreatedAt     int64
+	ResourceType     string
+	Repository       string
+	ResourceKey      string
+	ResourceName     string
+	Version          string
+	RequestedBy      string
+	Policy           string
+	PackageExists    bool
+	ReviewTeamPrefix string
+	TargetTeamPrefix string
+	Files            []*ReviewFile
+	Payload          []byte
+	CreatedAt        int64
 }
 
 // PublicationReviewResult describes whether a committed publication remains hidden for review.

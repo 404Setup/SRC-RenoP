@@ -117,7 +117,7 @@ func dockerCreationReviewPayload(state *core.AppState,
 
 // QueueImageCreationReview creates a moderator task without reserving the Docker image name.
 func QueueImageCreationReview(state *core.AppState, repo *config.Repository, imageName,
-	superTeamPrefix, publisher string, private bool, createdAt int64,
+	superTeamPrefix, reviewTeamPrefix, publisher string, private bool, createdAt int64,
 ) (*core.PublicationReviewResult, error) {
 	if state == nil || state.GetDB() == nil || repo == nil || createdAt <= 0 {
 		return nil, core.ErrDatabaseUnavailable
@@ -129,10 +129,15 @@ func QueueImageCreationReview(state *core.AppState, repo *config.Repository, ima
 	if err != nil {
 		return nil, err
 	}
+	policy := repo.PublicationReviewPolicy()
+	if reviewTeamPrefix != "" && policy == config.PublicationReviewOff {
+		policy = config.PublicationReviewNewPackages
+	}
 	result, err := state.GetDB().CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
 		ResourceType: core.ReviewResourceDockerImage, Repository: repo.Name,
 		ResourceKey: imageName, ResourceName: imageName, Version: core.ReviewVersionPackageCreation,
-		RequestedBy: publisher, Policy: repo.PublicationReviewPolicy(), Files: []*core.ReviewFile{{
+		RequestedBy: publisher, Policy: policy, ReviewTeamPrefix: reviewTeamPrefix,
+		TargetTeamPrefix: reviewTeamPrefix, Files: []*core.ReviewFile{{
 			Path: dockerCreationReviewFilePath(repo.Name, imageName), Size: int64(len(payload)), Critical: true,
 		}}, Payload: payload, CreatedAt: createdAt,
 	})

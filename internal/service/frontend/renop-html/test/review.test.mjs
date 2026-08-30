@@ -141,6 +141,10 @@ test('reviewed package creation uses the application router and keeps Docker act
     assert.match(creation, /createDockerImageTx/);
     assert.match(creation, /createNPMPackageTx/);
     assert.match(creation, /WHERE id = \? AND status = \?/);
+    assert.match(creation, /AdvancePackageCreationReview/);
+    assert.match(creation, /review_team_prefix = ''/);
+    assert.match(reviews, /result\?\.status === 'pending'/);
+    assert.match(reviews, /review\.creationForwarded/);
     assert.match(styles, /\.docker-page-actions\s*\{[\s\S]*?gap:\s*0\.65rem/);
 });
 
@@ -156,6 +160,7 @@ test('review notifications are localized and decision actors are administrator-o
     assert.match(routes, /redactReviewDecisionActor/);
     assert.match(routes, /if !administrator/);
     assert.match(notifications, /DeleteMessagesByDedupeKey/);
+    assert.match(notifications, /NotifyPendingTransition/);
     assert.match(notifications, /review:pending:/);
     assert.doesNotMatch(notifications, /DecidedBy|decided_by/);
 });

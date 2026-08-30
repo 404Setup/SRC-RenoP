@@ -138,6 +138,48 @@ func TestPublicationReviewFilesAreBoundedScopedAndSingleDecision(t *testing.T) {
 	assert.False(t, notPending.Pending)
 }
 
+func TestTeamPackageCreationReviewRequiresT2AndPreservesApprovedPayload(t *testing.T) {
+	_, db, now := setupReviewTeam(t)
+	require.NoError(t, db.SetSuperTeamMemberLevel(
+		"platform", "admin", "charlie", core.SuperTeamRoleWrite, true))
+	require.NoError(t, db.SaveToken(&core.AccessToken{
+		Name: "charlie", CreatedAt: time.Now().Format(time.RFC3339),
+		Permissions: []string{"base", "canupdate:releases"},
+	}))
+	request := core.PublicationReviewRequest{
+		ResourceType: core.ReviewResourceNPMPackage, Repository: "releases",
+		ResourceKey: "@platform/tool", ResourceName: "@platform/tool", Version: core.ReviewVersionPackageCreation,
+		RequestedBy: "charlie", Policy: config.PublicationReviewNewPackages,
+		ReviewTeamPrefix: "platform", TargetTeamPrefix: "platform",
+		Files:   []*core.ReviewFile{{Path: "review-requests/npm/platform-tool.json", Size: 7}},
+		Payload: []byte("initial"), CreatedAt: now,
+	}
+	mismatched := request
+	mismatched.TargetTeamPrefix = "another"
+	_, err := db.CreateOrUpdatePublicationReview(mismatched)
+	require.ErrorIs(t, err, core.ErrReviewInvalidRequest)
+	managerRequest := request
+	managerRequest.RequestedBy = "bob"
+	_, err = db.CreateOrUpdatePublicationReview(managerRequest)
+	require.ErrorIs(t, err, core.ErrReviewPermissionDenied)
+
+	result, err := db.CreateOrUpdatePublicationReview(request)
+	require.NoError(t, err)
+	require.True(t, result.Pending)
+	advanced, err := db.AdvancePackageCreationReview(
+		result.TaskID, "bob", now+core.PublicationReviewSettleMillis+1)
+	require.NoError(t, err)
+	assert.Empty(t, advanced.ReviewTeamPrefix)
+	assert.Equal(t, "platform", advanced.TargetTeamPrefix)
+	request.Payload = []byte("changed")
+	retried, err := db.CreateOrUpdatePublicationReview(request)
+	require.NoError(t, err)
+	assert.Equal(t, result.TaskID, retried.TaskID)
+	payload, err := db.GetReviewTaskPayload(result.TaskID)
+	require.NoError(t, err)
+	assert.Equal(t, "initial", string(payload))
+}
+
 func TestSuperTeamTransferReviewIsSingleDecisionAndReversible(t *testing.T) {
 	_, stateDB, now := setupReviewTeam(t)
 	db := stateDB

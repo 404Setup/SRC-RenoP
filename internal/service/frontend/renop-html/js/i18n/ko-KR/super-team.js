@@ -36,6 +36,7 @@ export default Object.freeze({
     "superTeam.membershipAddedTitle": "글로벌 팀 멤버십 추가", "superTeam.membershipAddedBody": "{prefix}에 T{level} 권한으로 추가되었습니다.",
 	"superTeam.projectOwner": "프로젝트 소유자", "superTeam.domainOwner": "게시 도메인 소유자", "superTeam.personalOwnership": "개인 소유",
 	"superTeam.bindingHint": "T3 또는 T4 권한이 있는 글로벌 팀을 선택하세요. 네임스페이스는 팀 접두사와 일치해야 합니다.",
+	"superTeam.creationBindingHint": "T3 및 T4 구성원은 즉시 생성할 수 있습니다. T2 요청은 T3 또는 T4 구성원의 승인이 필요합니다. 네임스페이스는 팀 접두사와 일치해야 합니다.",
 	"superTeam.bindingLoadFailed": "관리 가능한 글로벌 팀을 불러오지 못했습니다.", "superTeam.bindingRequired": "이 네임스페이스를 소유할 글로벌 팀을 선택하세요.",
 	"superTeam.bindingMismatch": "패키지 네임스페이스는 선택한 글로벌 팀 접두사와 일치해야 합니다.",
 	"superTeam.bindingPermission": "이 글로벌 팀으로 게시하려면 T3 또는 T4 권한이 필요합니다.",

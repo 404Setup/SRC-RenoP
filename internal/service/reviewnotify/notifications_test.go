@@ -110,3 +110,40 @@ func TestTeamReviewNotifiesT3AndSystemManager(t *testing.T) {
 	assert.Len(t, messagesFor(t, state, "manager"), 1)
 	assert.Empty(t, messagesFor(t, state, "unrelated"))
 }
+
+func TestTeamPackageCreationNotificationMovesToRepositoryModerators(t *testing.T) {
+	state := setupNotificationState(t)
+	db := state.GetDB()
+	now := time.Now().UnixMilli() - core.PublicationReviewSettleMillis - 100
+	require.NoError(t, db.CreateSuperTeam(&core.SuperTeam{
+		Prefix: "platform", Name: "Platform", CreatedAt: now,
+	}, "manager", 10, 10))
+	require.NoError(t, db.ForceAddSuperTeamMembers(
+		"platform", "manager", []string{"requester"}, core.SuperTeamRoleWrite, 10, 10, now+1))
+	require.NoError(t, db.ForceAddSuperTeamMembers(
+		"platform", "manager", []string{"unrelated"}, core.SuperTeamRoleManage, 10, 10, now+2))
+	for _, username := range []string{"requester", "unrelated", "moderator", "manager"} {
+		_, err := db.DeleteUserMessages(username)
+		require.NoError(t, err)
+	}
+	result, err := db.CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+		ResourceType: core.ReviewResourceNPMPackage, Repository: "releases",
+		ResourceKey: "@platform/tool", ResourceName: "@platform/tool", Version: core.ReviewVersionPackageCreation,
+		RequestedBy: "requester", Policy: config.PublicationReviewNewPackages,
+		ReviewTeamPrefix: "platform", TargetTeamPrefix: "platform", CreatedAt: now + 3,
+		Files: []*core.ReviewFile{{Path: "review-requests/npm/platform-tool.json", Size: 64}},
+	})
+	require.NoError(t, err)
+	require.NoError(t, NotifyPendingByID(state, result.TaskID))
+	assert.Len(t, messagesFor(t, state, "unrelated"), 1)
+	assert.Len(t, messagesFor(t, state, "manager"), 1)
+	assert.Empty(t, messagesFor(t, state, "moderator"))
+
+	advanced, err := db.AdvancePackageCreationReview(
+		result.TaskID, "unrelated", now+core.PublicationReviewSettleMillis+4)
+	require.NoError(t, err)
+	require.NoError(t, NotifyPendingTransition(state, advanced))
+	assert.Empty(t, messagesFor(t, state, "unrelated"))
+	assert.Len(t, messagesFor(t, state, "manager"), 1)
+	assert.Len(t, messagesFor(t, state, "moderator"), 1)
+}

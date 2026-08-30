@@ -113,7 +113,8 @@ func (db *DB) createDockerImage(repository, imageName, owner, superTeamPrefix st
 	}
 	defer tx.Rollback()
 	image, err := createDockerImageTx(
-		tx, repository, imageName, owner, ownerID, superTeamPrefix, private, createdAt)
+		tx, repository, imageName, owner, ownerID, superTeamPrefix, private, createdAt,
+		core.SuperTeamRoleManage)
 	if err != nil {
 		return nil, err
 	}
@@ -124,12 +125,12 @@ func (db *DB) createDockerImage(repository, imageName, owner, superTeamPrefix st
 }
 
 func createDockerImageTx(tx *Tx, repository, imageName, owner, ownerID, superTeamPrefix string,
-	private bool, createdAt int64,
+	private bool, createdAt int64, requiredTeamRole int,
 ) (*core.DockerRepositoryImage, error) {
 	if tx == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
-	if err := requireSuperTeamRoleTx(tx, superTeamPrefix, ownerID, core.SuperTeamRoleManage); err != nil {
+	if err := requireSuperTeamRoleTx(tx, superTeamPrefix, ownerID, requiredTeamRole); err != nil {
 		return nil, err
 	}
 	var existing int

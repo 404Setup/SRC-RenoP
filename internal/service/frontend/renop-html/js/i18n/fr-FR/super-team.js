@@ -39,6 +39,7 @@ export default Object.freeze({
     "superTeam.membershipAddedTitle": "Adhésion à une équipe globale", "superTeam.membershipAddedBody": "Vous avez été ajouté à {prefix} avec le rôle T{level}.",
 	"superTeam.projectOwner": "Propriétaire du projet", "superTeam.domainOwner": "Propriétaire du domaine de publication", "superTeam.personalOwnership": "Propriété personnelle",
 	"superTeam.bindingHint": "Choisissez une équipe globale dans laquelle vous disposez du niveau T3 ou T4. L’espace de noms doit correspondre à son préfixe.",
+	"superTeam.creationBindingHint": "Les membres T3 et T4 peuvent créer immédiatement. Les demandes T2 doivent être approuvées par un membre T3 ou T4. L’espace de noms doit correspondre au préfixe de l’équipe.",
 	"superTeam.bindingLoadFailed": "Impossible de charger les équipes globales que vous gérez.", "superTeam.bindingRequired": "Choisissez l’équipe globale propriétaire de cet espace de noms.",
 	"superTeam.bindingMismatch": "L’espace de noms du paquet doit correspondre au préfixe de l’équipe globale choisie.",
 	"superTeam.bindingPermission": "Le niveau T3 ou T4 est requis pour publier au nom de cette équipe globale.",

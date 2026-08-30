@@ -88,6 +88,7 @@ export default Object.freeze({
 	"superTeam.domainOwner": "Publishing domain owner",
 	"superTeam.personalOwnership": "Personal ownership",
 	"superTeam.bindingHint": "Choose a global team where you have T3 or T4 permission. Namespaced Docker images and scoped npm packages must match its prefix.",
+	"superTeam.creationBindingHint": "T3 and T4 members can create immediately. T2 requests require approval from a T3 or T4 member. The package namespace must match the team prefix.",
 	"superTeam.bindingLoadFailed": "Could not load your manageable global teams.",
 	"superTeam.bindingRequired": "Choose the global team that owns this namespace.",
 	"superTeam.bindingMismatch": "The package namespace must match the selected global team prefix.",

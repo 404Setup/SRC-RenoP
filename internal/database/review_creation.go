@@ -50,7 +50,20 @@ func (db *DB) approvePackageCreationReview(id, reviewer, resourceType, repositor
 		return nil, core.ErrReviewPermissionDenied
 	}
 	reviewerUser, err := reviewUserTx(tx, reviewerID)
-	if err != nil || !reviewerUser.CheckModeratePermission(task.Repository) {
+	if err != nil {
+		return nil, core.ErrReviewPermissionDenied
+	}
+	if task.ReviewTeamPrefix != "" {
+		if task.TargetTeamPrefix != task.ReviewTeamPrefix {
+			return nil, core.ErrReviewInvalidRequest
+		}
+		if !reviewerUser.IsManager() {
+			if err := requireSuperTeamRoleTx(tx, task.ReviewTeamPrefix,
+				reviewerID, core.SuperTeamRoleManage); err != nil {
+				return nil, core.ErrReviewPermissionDenied
+			}
+		}
+	} else if !reviewerUser.CheckModeratePermission(task.Repository) {
 		return nil, core.ErrReviewPermissionDenied
 	}
 	var latestFileAt int64
@@ -95,6 +108,83 @@ func (db *DB) approvePackageCreationReview(id, reviewer, resourceType, repositor
 	return task, nil
 }
 
+// AdvancePackageCreationReview records team approval while preserving a required repository review.
+func (db *DB) AdvancePackageCreationReview(id, actor string, advancedAt int64) (*core.ReviewTask, error) {
+	if db == nil || db.SQLDB == nil {
+		return nil, core.ErrDatabaseUnavailable
+	}
+	id = SanitizeInputString(strings.TrimSpace(id), 64)
+	actor = strings.ToLower(SanitizeInputString(strings.TrimSpace(actor), maxTokenNameLen))
+	if id == "" || actor == "" || advancedAt <= 0 {
+		return nil, core.ErrReviewInvalidRequest
+	}
+	superTeamMutationLock.Lock()
+	defer superTeamMutationLock.Unlock()
+	reviewTaskMutationLock.Lock()
+	defer reviewTaskMutationLock.Unlock()
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("begin package creation review advancement: %w", err)
+	}
+	defer tx.Rollback()
+	task, err := loadReviewTaskTx(tx, id)
+	if err != nil {
+		return nil, err
+	}
+	if task.Status != core.ReviewStatusPending || task.Kind != core.ReviewKindPublication ||
+		task.ResourceVersion != core.ReviewVersionPackageCreation || task.ReviewTeamPrefix == "" ||
+		task.TargetTeamPrefix != task.ReviewTeamPrefix ||
+		(task.ResourceType != core.ReviewResourceDockerImage && task.ResourceType != core.ReviewResourceNPMPackage) {
+		return nil, core.ErrReviewTaskConflict
+	}
+	actorID, err := userIDForUsernameTx(tx, actor)
+	if err != nil {
+		return nil, core.ErrReviewPermissionDenied
+	}
+	reviewer, err := reviewUserTx(tx, actorID)
+	if err != nil {
+		return nil, core.ErrReviewPermissionDenied
+	}
+	if !reviewer.IsManager() {
+		if err := requireSuperTeamRoleTx(tx, task.ReviewTeamPrefix,
+			actorID, core.SuperTeamRoleManage); err != nil {
+			return nil, core.ErrReviewPermissionDenied
+		}
+	}
+	var latestFileAt int64
+	if err := tx.QueryRow(`SELECT COALESCE(MAX(added_at), ?) FROM review_task_files WHERE task_id = ?`,
+		task.CreatedAt, task.ID).Scan(&latestFileAt); err != nil {
+		return nil, fmt.Errorf("inspect team package creation review activity: %w", err)
+	}
+	if advancedAt-latestFileAt < core.PublicationReviewSettleMillis {
+		return nil, core.ErrReviewPublicationActive
+	}
+	requester, err := reviewUserTx(tx, task.RequestedByID)
+	if err != nil || (!requester.IsManager() && !requester.CheckUpdatePermission(task.Repository)) {
+		return nil, core.ErrReviewResourceConflict
+	}
+	if err := requireSuperTeamRoleTx(tx, task.TargetTeamPrefix,
+		task.RequestedByID, core.SuperTeamRoleWrite); err != nil {
+		return nil, errors.Join(core.ErrReviewResourceConflict, err)
+	}
+	result, err := tx.Exec(`UPDATE review_tasks SET review_team_prefix = ''
+		WHERE id = ? AND status = ? AND review_team_prefix = ?`, task.ID,
+		core.ReviewStatusPending, task.ReviewTeamPrefix)
+	if err != nil {
+		return nil, fmt.Errorf("advance package creation review: %w", err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil || changed != 1 {
+		return nil, core.ErrReviewTaskConflict
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit package creation review advancement: %w", err)
+	}
+	task.ReviewTeamPrefix = ""
+	task.UpdatedAt = advancedAt
+	return task, nil
+}
+
 // ApproveDockerImageCreationReview atomically reserves an approved Docker image and completes its task.
 func (db *DB) ApproveDockerImageCreationReview(id, reviewer, repository, imageName,
 	superTeamPrefix string, private bool, createdAt, decidedAt int64,
@@ -112,8 +202,15 @@ func (db *DB) ApproveDockerImageCreationReview(id, reviewer, repository, imageNa
 	}
 	return db.approvePackageCreationReview(id, reviewer, core.ReviewResourceDockerImage,
 		repository, imageName, decidedAt, func(tx *Tx, task *core.ReviewTask) error {
+			requiredRole := core.SuperTeamRoleManage
+			if task.TargetTeamPrefix != "" {
+				if task.TargetTeamPrefix != superTeamPrefix {
+					return core.ErrSuperTeamBindingMismatch
+				}
+				requiredRole = core.SuperTeamRoleWrite
+			}
 			_, err := createDockerImageTx(tx, repository, imageName, task.RequestedBy,
-				task.RequestedByID, superTeamPrefix, private, createdAt)
+				task.RequestedByID, superTeamPrefix, private, createdAt, requiredRole)
 			return err
 		})
 }
@@ -136,8 +233,15 @@ func (db *DB) ApproveNPMPackageCreationReview(id, reviewer, repository, packageN
 	}
 	return db.approvePackageCreationReview(id, reviewer, core.ReviewResourceNPMPackage,
 		repository, packageName, decidedAt, func(tx *Tx, task *core.ReviewTask) error {
+			requiredRole := core.SuperTeamRoleManage
+			if task.TargetTeamPrefix != "" {
+				if task.TargetTeamPrefix != superTeamPrefix {
+					return core.ErrSuperTeamBindingMismatch
+				}
+				requiredRole = core.SuperTeamRoleWrite
+			}
 			_, err := createNPMPackageTx(tx, repository, packageName, task.RequestedBy,
-				task.RequestedByID, superTeamPrefix, private, createdAt)
+				task.RequestedByID, superTeamPrefix, private, createdAt, requiredRole)
 			return err
 		})
 }

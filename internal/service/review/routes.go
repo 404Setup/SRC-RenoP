@@ -16,6 +16,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
+	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
@@ -272,8 +273,17 @@ func canInspectPublicationTask(c fiber.Ctx, state *core.AppState, task *core.Rev
 	if user == nil || task == nil || state == nil || state.GetDB() == nil {
 		return false, nil
 	}
-	if user.IsManager() || user.CheckModeratePermission(task.Repository) {
+	if user.IsManager() || (task.ReviewTeamPrefix == "" && user.CheckModeratePermission(task.Repository)) {
 		return true, nil
+	}
+	if task.ReviewTeamPrefix != "" {
+		role, err := state.GetDB().GetSuperTeamRole(task.ReviewTeamPrefix, user.Username)
+		if err == nil {
+			return role >= core.SuperTeamRoleManage, nil
+		}
+		if !errors.Is(err, core.ErrSuperTeamPermissionDenied) && !errors.Is(err, core.ErrSuperTeamNotFound) {
+			return false, err
+		}
 	}
 	profile, err := state.GetDB().GetUserProfile(user.Username)
 	if err != nil {
@@ -354,7 +364,22 @@ func decidePublicationTask(c fiber.Ctx, state *core.AppState, username string,
 	task *core.ReviewTask, request decisionRequest,
 ) (*core.ReviewTask, error) {
 	user := auth.GetUser(c)
-	if user == nil || !user.CheckModeratePermission(task.Repository) {
+	if user == nil {
+		return nil, core.ErrReviewPermissionDenied
+	}
+	teamStage := task.ReviewTeamPrefix != ""
+	if teamStage {
+		if task.ResourceVersion != core.ReviewVersionPackageCreation ||
+			task.TargetTeamPrefix != task.ReviewTeamPrefix {
+			return nil, core.ErrReviewInvalidRequest
+		}
+		if !user.IsManager() {
+			role, err := state.GetDB().GetSuperTeamRole(task.ReviewTeamPrefix, user.Username)
+			if err != nil || role < core.SuperTeamRoleManage {
+				return nil, core.ErrReviewPermissionDenied
+			}
+		}
+	} else if !user.CheckModeratePermission(task.Repository) {
 		return nil, core.ErrReviewPermissionDenied
 	}
 	decision := strings.ToLower(strings.TrimSpace(request.Decision))
@@ -391,6 +416,19 @@ func decidePublicationTask(c fiber.Ctx, state *core.AppState, username string,
 	}
 	if decision != core.ReviewStatusApproved {
 		return nil, core.ErrReviewInvalidRequest
+	}
+	if teamStage {
+		cfg := state.Inner.Config.Load()
+		if cfg == nil {
+			return nil, core.ErrDatabaseUnavailable
+		}
+		repo := cfg.Maven.Repositories[current.Repository]
+		if repo == nil {
+			return nil, core.ErrReviewResourceConflict
+		}
+		if repo.PublicationReviewPolicy() != config.PublicationReviewOff {
+			return state.GetDB().AdvancePackageCreationReview(current.ID, username, now)
+		}
 	}
 	var rollback func() error
 	switch current.ResourceType {
@@ -500,7 +538,12 @@ func decideTask(c fiber.Ctx, state *core.AppState) error {
 		}
 		return reviewError(c, err)
 	}
-	reviewnotify.DeliverDecision(state, task)
+	if existing.Kind == core.ReviewKindPublication && existing.ReviewTeamPrefix != "" &&
+		task.Status == core.ReviewStatusPending && task.ReviewTeamPrefix == "" {
+		reviewnotify.DeliverPendingTransition(state, task)
+	} else {
+		reviewnotify.DeliverDecision(state, task)
+	}
 	logReviewAudit(c, state, audit.ActionReviewDecision,
 		fmt.Sprintf("Review: %s, decision: %s, type: %s", task.ID, task.Status, task.ResourceType))
 	redactReviewDecisionActor(task, administrator)
