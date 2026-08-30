@@ -68,6 +68,8 @@ func reviewError(c fiber.Ctx, err error) error {
 		status, code = fiber.StatusConflict, "resource_changed"
 	case errors.Is(err, core.ErrSuperTeamBindingMismatch):
 		status, code = fiber.StatusBadRequest, "super_team_mismatch"
+	case errors.Is(err, docker.ErrUpstreamImageProbeUnavailable):
+		status, code = fiber.StatusServiceUnavailable, "service_unavailable"
 	case errors.Is(err, core.ErrDatabaseUnavailable):
 		status, code = fiber.StatusServiceUnavailable, "service_unavailable"
 	}
@@ -311,6 +313,19 @@ func downloadReviewFile(c fiber.Ctx, state *core.AppState) error {
 	for _, file := range files {
 		if file != nil && file.ID == fileID {
 			c.Set(fiber.HeaderCacheControl, "private, no-store")
+			if task.ResourceType == core.ReviewResourceNPMPackage &&
+				task.ResourceVersion == core.ReviewVersionPackageCreation {
+				if err := npm.ServePackageCreationReview(c, state, task, file); err != nil {
+					return reviewError(c, err)
+				}
+				return nil
+			}
+			if task.ResourceType == core.ReviewResourceDockerImage {
+				if err := docker.ServePublicationReviewManifest(c, state, task, file); err != nil {
+					return reviewError(c, err)
+				}
+				return nil
+			}
 			if err := storage.ServePublicationReviewFile(c, state, file); err != nil {
 				return reviewError(c, err)
 			}
@@ -370,6 +385,16 @@ func decidePublicationTask(c fiber.Ctx, state *core.AppState, username string,
 		}
 		rollback = func() error { return maven.RemoveApprovedPublicationMetadata(state, current) }
 	case core.ReviewResourceNPMPackage:
+		if current.ResourceVersion == core.ReviewVersionPackageCreation {
+			decided, err := npm.ApprovePackageCreationReview(state, current, username, now)
+			if err != nil {
+				return nil, err
+			}
+			if err := storage.UnblockPublicationReviewFiles(state, files); err != nil {
+				return nil, err
+			}
+			return decided, nil
+		}
 		previousDetails, err := state.GetDB().GetNPMPackageDetails(
 			current.Repository, current.ResourceKey, current.RequestedBy)
 		if err != nil || previousDetails == nil || previousDetails.Package == nil {
@@ -391,6 +416,31 @@ func decidePublicationTask(c fiber.Ctx, state *core.AppState, username string,
 			return nil, err
 		}
 		rollback = cargoRollback
+	case core.ReviewResourceDockerImage:
+		if current.ResourceVersion == core.ReviewVersionPackageCreation {
+			decided, err := docker.ApproveImageCreationReview(
+				c.Context(), state, current, username, now)
+			if err != nil {
+				return nil, err
+			}
+			if err := storage.UnblockPublicationReviewFiles(state, files); err != nil {
+				return nil, err
+			}
+			return decided, nil
+		}
+		cfg := state.Inner.Config.Load()
+		if cfg == nil {
+			return nil, core.ErrDatabaseUnavailable
+		}
+		decided, err := docker.ApprovePublicationReview(
+			state, current, storage.NewDockerStore(cfg.StoragePath), username, now)
+		if err != nil {
+			return nil, err
+		}
+		if err := storage.UnblockPublicationReviewFiles(state, files); err != nil {
+			return nil, err
+		}
+		return decided, nil
 	default:
 		return nil, core.ErrReviewInvalidRequest
 	}

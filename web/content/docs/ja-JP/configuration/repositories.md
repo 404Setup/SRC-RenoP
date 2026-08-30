@@ -45,10 +45,14 @@ repositories:
 | `visibility` | `PUBLIC` | `PUBLIC`、`HIDDEN`、`PRIVATE` |
 | `allow_redeployment` | `false` | 対応形式で Maven 再公開または files/Docker 上書き |
 | `require_gpg_signature` | `false` | Maven 公開時の OpenPGP 分離署名検証 |
-| `publication_review` | `off` | Maven/npm/Cargo 審査方針: `off`、`new_packages`、`every_version` |
+| `publication_review` | `off` | Maven/npm/Cargo/Docker 審査方針: `off`、`new_packages`、`every_version` |
 | `download_statistics` | エンジン既定 | Maven/npm/Cargo/Docker は有効、`files` は明示的に有効化 |
 | `mirrors` | `[]` | 順序付き上流定義 |
 | `s3` | 省略 | リポジトリ固有 S3 storage |
+
+npm と Docker の `new_packages` は、名前を予約する前に明示的な作成 request を審査します。`every_version` は
+その後の各 version または manifest も審査します。Maven と Cargo には空 package の作成段階がないため、
+`new_packages` は最初の公開を審査します。mirror import はすべての engine で審査対象外です。
 
 `maven-classic` は画面レイアウトだけを変え、Maven の公開規則を維持します。`files` は非構造化で、
 チェックサムや POM の生成、署名検証を行いません。Maven と `files` の相互移行ではオブジェクトを移動せず、

@@ -45,15 +45,21 @@ y compris les sommes, signatures et métadonnées Maven, rejoignent une tâche u
 cinq secondes après le dernier fichier empêche toute décision pendant l'envoi. Une version approuvée est ensuite
 verrouillée contre l'ajout de fichiers.
 
-Une publication npm constitue déjà une transaction complète. RenoP masque son tarball et conserve un manifeste ainsi
-que des dist-tags bornés jusqu’à l’approbation, puis enregistre ensemble la version immuable et ses tags. Avec
-`new_packages`, une réservation reste nouvelle jusqu’à l’approbation de sa première version visible. Les packuments et
-tarballs provenant d’un miroir ne créent jamais de tâche.
+Pour npm, les deux politiques retiennent la demande de création explicite sans réserver le nom. L’approbation crée
+atomiquement le paquet et son propriétaire L4 après une nouvelle vérification du dépôt et de l’éventuelle équipe globale.
+Avec `new_packages`, les versions suivantes sont publiées normalement. Avec `every_version`, RenoP masque aussi chaque
+tarball et conserve un manifeste ainsi que des dist-tags bornés jusqu’à l’approbation. Le contenu miroir est exclu.
 
 Une publication Cargo stocke et masque l’archive du crate sans modifier l’index sparse ni le catalogue public.
 L’approbation ajoute la version immuable aux deux ensembles de métadonnées avant de rendre l’archive accessible ; le
 rejet supprime l’archive masquée. Avec `new_packages`, le crate reste nouveau jusqu’à l’approbation de sa première
 version visible. Les crates issus d’un miroir ne sont pas examinés.
+
+Pour Docker, les deux politiques retiennent la création explicite sans réserver le nom et revérifient à l’approbation
+les conflits locaux ou amont ainsi que les droits du dépôt et de l’éventuelle équipe globale. Avec `new_packages`, les
+manifestes suivants sont publiés normalement. Avec `every_version`, chaque manifeste exact reste un fichier virtuel
+borné jusqu’à l’approbation ; sa référence et son tag n’entrent pas dans le catalogue, de sorte qu’un nouveau tag ne
+masque pas un tag existant du même digest. L’enregistrement du manifeste, des blobs, du tag et de la décision est atomique.
 
 ## Lister les tâches
 
@@ -64,6 +70,8 @@ types de ressource. `limit` est compris entre 1 et 100 et `offset` ne peut pas �
 La réponse contient `tasks`, `total`, `limit`, `offset` et la valeur résolue de `view`. Chaque tâche conserve les
 préfixes source et cible, le nom du demandeur, les horodatages, l'état et les métadonnées de décision.
 Une publication fournit aussi `resource_version`, `file_count`, `total_size` et l'heure du dernier fichier.
+La création explicite npm/Docker utilise la valeur réservée `@create` dans `resource_version` et expose sa requête JSON
+bornée par la même API de fichiers.
 
 ## Demander un transfert
 

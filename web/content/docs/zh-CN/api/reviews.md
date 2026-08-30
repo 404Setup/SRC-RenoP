@@ -38,13 +38,18 @@ Maven 存储库可以关闭审核、仅审核新建制品的第一个版本，�
 会合并到同一任务。最后一个文件到达后的五秒静默期内不能处理任务，以免客户端仍在上传。版本批准后会
 被封存，不能继续添加文件。
 
-npm publish 本身就是一项完整事务。RenoP 会隐藏 tarball，并在批准前保存有界的 manifest 与 dist-tag 载荷，
-批准后再一并写入不可变版本和标签。在 `new_packages` 模式下，预留的软件包在第一个可见版本获批前仍视为新包。
-镜像 packument 和 tarball 不会创建审核任务。
+npm 的两种审核策略都会先保留显式创建申请，但不占用名称。批准时重新检查存储库与可选超级团队权限，并在
+同一事务中创建软件包和 L4 所有者。`new_packages` 模式下，后续版本正常发布；`every_version` 模式还会隐藏
+每个 tarball，并在批准前保留有界的 manifest 与 dist-tag 载荷。镜像内容不创建审核任务。
 
 Cargo 发布会先保存并隐藏 crate 归档，不修改 sparse index 与公共目录。批准时先向两处元数据写入不可变版本，
 再开放归档；拒绝时删除隐藏归档。`new_packages` 策略下，首个可见版本获批前，该 crate 仍视为新包。镜像获取的
 crate 不进入审核流程。
+
+Docker 的两种策略都会保留显式镜像创建申请但不占用名称，并在批准时重新检查本地与上游冲突、存储库权限及
+可选超级团队权限。`new_packages` 模式下，后续 Manifest 正常发布；`every_version` 模式会将每个 Manifest 的
+原始字节保存为有界虚拟文件，批准前不写入引用和标签。审核相同 Digest 的新标签不会隐藏已有标签，Manifest、
+Blob 关联、标签和审核结果在同一事务中写入。镜像源导入不进入审核流程。
 
 ## 查询任务
 
@@ -55,6 +60,7 @@ GET /api/reviews 返回有界分页结果。`view` 可为 `reviewer` 或 `reques
 响应包含 `tasks`、`total`、`limit`、`offset` 和最终使用的 `view`。每个任务保留来源与目标团队前缀、
 申请人显示名称、时间、当前状态及已完成的决策信息。
 发布任务还包含 `resource_version`、`file_count`、`total_size` 和最后文件时间。
+npm/Docker 显式创建任务使用保留的 `resource_version` 值 `@create`，并通过同一文件 API 提供有界 JSON 申请。
 
 ## 提交转让
 

@@ -37,6 +37,7 @@ export default Object.freeze({
     "npm.privatePackage": "Private package",
     "npm.privateRequiresScope": "Private npm packages must use a scoped name such as @team/package.",
     "npm.packageCreated": "npm package created",
+    "npm.packageCreationQueued": "npm package creation is awaiting review",
     "npm.createFailed": "Could not create npm package",
     "npm.packageExists": "This npm package name is already reserved",
     "npm.invalidPackageName": "Enter a valid lowercase npm package name",

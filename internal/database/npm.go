@@ -110,6 +110,23 @@ func (db *DB) createNPMPackage(repository, packageName, owner, superTeamPrefix s
 		return nil, fmt.Errorf("begin npm package creation: %w", err)
 	}
 	defer tx.Rollback()
+	pkg, err := createNPMPackageTx(
+		tx, repository, packageName, owner, ownerID, superTeamPrefix, private, createdAt)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit npm package creation: %w", err)
+	}
+	return pkg, nil
+}
+
+func createNPMPackageTx(tx *Tx, repository, packageName, owner, ownerID, superTeamPrefix string,
+	private bool, createdAt int64,
+) (*core.NPMPackage, error) {
+	if tx == nil {
+		return nil, core.ErrDatabaseUnavailable
+	}
 	if err := requireSuperTeamRoleTx(tx, superTeamPrefix, ownerID, core.SuperTeamRoleManage); err != nil {
 		return nil, err
 	}
@@ -131,9 +148,6 @@ func (db *DB) createNPMPackage(repository, packageName, owner, superTeamPrefix s
 		(repository, package_name, username, user_id, permission_level, added_at) VALUES (?, ?, ?, ?, ?, ?)`,
 		repository, packageName, owner, ownerID, core.NPMPermissionOwner, createdAt); err != nil {
 		return nil, fmt.Errorf("create npm package owner: %w", err)
-	}
-	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("commit npm package creation: %w", err)
 	}
 	return &core.NPMPackage{
 		Repository: repository, Name: packageName, Publisher: owner, Private: private,
@@ -171,27 +185,6 @@ func (db *DB) GetNPMPackage(repository, packageName string) (*core.NPMPackage, e
 		}
 	}
 	return result, nil
-}
-
-// NPMHasPublishedVersions reports whether a reserved package has any visible version.
-func (db *DB) NPMHasPublishedVersions(repository, packageName string) (bool, error) {
-	if db == nil || db.SQLDB == nil {
-		return false, core.ErrDatabaseUnavailable
-	}
-	repository, packageName = sanitizeNPMKey(repository, packageName)
-	if repository == "" || packageName == "" {
-		return false, core.ErrNPMPackageNotFound
-	}
-	var exists int
-	err := db.QueryRow(`SELECT 1 FROM npm_versions WHERE repository = ? AND package_name = ?
-		AND unpublished = 0 LIMIT 1`, repository, packageName).Scan(&exists)
-	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
-	}
-	if err != nil {
-		return false, fmt.Errorf("inspect npm package versions: %w", err)
-	}
-	return exists != 0, nil
 }
 
 // GetNPMPackageAccess returns visibility, publication state, and exact membership.

@@ -25,8 +25,10 @@ import (
 	"renop/internal/core"
 	"renop/internal/database"
 	cargoservice "renop/internal/service/cargo"
+	dockerservice "renop/internal/service/docker"
 	"renop/internal/service/index"
 	npmservice "renop/internal/service/npm"
+	"renop/internal/service/storage"
 )
 
 func setupReviewApp(t *testing.T) (*fiber.App, *core.AppState, *config.User, *string) {
@@ -57,9 +59,10 @@ func setupReviewApp(t *testing.T) (*fiber.App, *core.AppState, *config.User, *st
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = storagePath
 	cfg.Maven.Repositories = map[string]*config.Repository{
-		"releases": {Name: "releases", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC"},
-		"npm":      {Name: "npm", Format: config.RepositoryFormatNPM, Visibility: "PUBLIC"},
-		"cargo":    {Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"},
+		"releases":   {Name: "releases", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC"},
+		"npm":        {Name: "npm", Format: config.RepositoryFormatNPM, Visibility: "PUBLIC"},
+		"cargo":      {Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"},
+		"containers": {Name: "containers", Format: config.RepositoryFormatDocker, Visibility: "PUBLIC"},
 	}
 	state.Inner.Config.Store(cfg)
 	state.Inner.FileIndex = index.NewFileIndexCustom(true)
@@ -368,6 +371,116 @@ func TestRepositoryModeratorApprovalPublishesCargoIndexBeforeCrate(t *testing.T)
 	assert.Contains(t, string(indexContents), `"vers":"1.0.0"`)
 	assert.False(t, state.Inner.FileIndex.IsBlocked(absolute))
 	assert.True(t, state.Inner.FileIndex.HasFile(absolute))
+}
+
+func TestRepositoryModeratorDownloadsAndApprovesVirtualDockerManifest(t *testing.T) {
+	app, state, current, _ := setupReviewApp(t)
+	repo := state.Inner.Config.Load().Maven.Repositories["containers"]
+	repo.PublicationReview = config.PublicationReviewEveryVersion
+	require.NoError(t, state.GetDB().SaveToken(&core.AccessToken{
+		Name: "bob", CreatedAt: time.Now().Format(time.RFC3339),
+		Permissions: []string{"base", "canmoderate:containers"},
+	}))
+	now := time.Now().UnixMilli() - core.PublicationReviewSettleMillis - 1000
+	manifestJSON := []byte(`{"schemaVersion":2,"mediaType":"application/vnd.docker.distribution.manifest.v2+json","config":{},"layers":[]}`)
+	parsed, err := dockerservice.ParseManifest(manifestJSON, dockerservice.MediaTypeDockerManifest2)
+	require.NoError(t, err)
+	result, err := dockerservice.QueuePublicationReview(
+		state, repo, "personal", "1.0.0", parsed, "charlie", false, now)
+	require.NoError(t, err)
+	*current = config.User{Username: "bob", Roles: []string{"base", "canmoderate:containers"}}
+	response := reviewRequest(t, app, http.MethodGet, "/api/reviews/"+result.TaskID+"/files", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var filePage struct {
+		Files []*core.ReviewFile `json:"files"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&filePage))
+	require.NoError(t, response.Body.Close())
+	require.Len(t, filePage.Files, 1)
+	response = reviewRequest(t, app, http.MethodGet,
+		"/api/reviews/"+result.TaskID+"/files/"+filePage.Files[0].ID, nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	downloaded, err := io.ReadAll(response.Body)
+	require.NoError(t, err)
+	require.NoError(t, response.Body.Close())
+	assert.JSONEq(t, string(manifestJSON), string(downloaded))
+
+	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+result.TaskID+"/decision",
+		decisionRequest{Decision: core.ReviewStatusApproved})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	tag, err := state.GetDB().GetDockerTag("containers", "personal", "1.0.0")
+	require.NoError(t, err)
+	require.NotNil(t, tag)
+	assert.Equal(t, parsed.Digest, tag.Digest)
+	stored, found, err := storage.NewDockerStore(state.Inner.Config.Load().StoragePath).
+		OpenManifest("containers", "personal", parsed.Digest)
+	require.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, manifestJSON, stored)
+	rejectedJSON := []byte(`{"schemaVersion":2,"mediaType":"application/vnd.docker.distribution.manifest.v2+json","config":{},"layers":[],"annotations":{"review":"reject"}}`)
+	rejectedManifest, err := dockerservice.ParseManifest(rejectedJSON, dockerservice.MediaTypeDockerManifest2)
+	require.NoError(t, err)
+	rejected, err := dockerservice.QueuePublicationReview(
+		state, repo, "personal", "2.0.0", rejectedManifest, "charlie", true, now)
+	require.NoError(t, err)
+	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+rejected.TaskID+"/decision",
+		decisionRequest{Decision: core.ReviewStatusRejected, ReasonCode: "quality"})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	tag, err = state.GetDB().GetDockerTag("containers", "personal", "2.0.0")
+	require.NoError(t, err)
+	assert.Nil(t, tag)
+	_, found, err = storage.NewDockerStore(state.Inner.Config.Load().StoragePath).
+		OpenManifest("containers", "personal", rejectedManifest.Digest)
+	require.NoError(t, err)
+	assert.False(t, found)
+
+	require.NoError(t, state.GetDB().SaveToken(&core.AccessToken{
+		Name: "charlie", CreatedAt: time.Now().Format(time.RFC3339),
+		Permissions: []string{"base", "canupdate:containers", "canupdate:npm"},
+	}))
+	dockerCreation, err := dockerservice.QueueImageCreationReview(
+		state, repo, "created-after-review", "", "charlie", true, now)
+	require.NoError(t, err)
+	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+dockerCreation.TaskID+"/decision",
+		decisionRequest{Decision: core.ReviewStatusApproved})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	createdImage, err := state.GetDB().GetDockerImage("containers", "created-after-review")
+	require.NoError(t, err)
+	require.NotNil(t, createdImage)
+	assert.True(t, createdImage.Private)
+
+	require.NoError(t, state.GetDB().SaveToken(&core.AccessToken{
+		Name: "bob", CreatedAt: time.Now().Format(time.RFC3339),
+		Permissions: []string{"base", "canmoderate:containers", "canmoderate:npm"},
+	}))
+	*current = config.User{Username: "bob", Roles: []string{
+		"base", "canmoderate:containers", "canmoderate:npm",
+	}}
+	npmRepo := state.Inner.Config.Load().Maven.Repositories["npm"]
+	npmRepo.PublicationReview = config.PublicationReviewNewPackages
+	npmCreation, err := npmservice.QueuePackageCreationReview(
+		state, npmRepo, "created-after-review", "", "charlie", false, now)
+	require.NoError(t, err)
+	response = reviewRequest(t, app, http.MethodGet, "/api/reviews/"+npmCreation.TaskID+"/files", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	filePage.Files = nil
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&filePage))
+	require.NoError(t, response.Body.Close())
+	require.Len(t, filePage.Files, 1)
+	response = reviewRequest(t, app, http.MethodGet,
+		"/api/reviews/"+npmCreation.TaskID+"/files/"+filePage.Files[0].ID, nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+npmCreation.TaskID+"/decision",
+		decisionRequest{Decision: core.ReviewStatusApproved})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	createdPackage, err := state.GetDB().GetNPMPackage("npm", "created-after-review")
+	require.NoError(t, err)
+	require.NotNil(t, createdPackage)
 }
 
 func TestSystemAdministratorListsAndDecidesTeamReview(t *testing.T) {

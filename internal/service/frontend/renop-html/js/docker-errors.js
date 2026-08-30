@@ -22,6 +22,8 @@ const dockerErrorKeys = Object.freeze({
     permission_denied: 'docker.permissionDenied',
     readme_too_large: 'docker.readmeTooLarge',
     repository_not_found: 'docker.repositoryNotFound',
+    review_pending: 'review.alreadyPending',
+    review_unavailable: 'review.serviceUnavailable',
     service_unavailable: 'docker.serviceUnavailable',
     super_team_mismatch: 'superTeam.bindingMismatch',
     super_team_permission: 'superTeam.bindingPermission',

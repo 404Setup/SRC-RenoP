@@ -656,7 +656,9 @@ func reviewResourceStateChanged(err error) bool {
 		errors.Is(err, core.ErrSuperTeamBindingPermission) ||
 		errors.Is(err, core.ErrSuperTeamBindingMismatch) ||
 		errors.Is(err, core.ErrDockerImageNotFound) ||
+		errors.Is(err, core.ErrDockerImageExists) ||
 		errors.Is(err, core.ErrNPMPackageNotFound) ||
+		errors.Is(err, core.ErrNPMPackageExists) ||
 		errors.Is(err, core.ErrCargoPackageNotFound) ||
 		errors.Is(err, core.ErrMavenArtifactNotFound) ||
 		errors.Is(err, core.ErrMavenDomainNotFound)

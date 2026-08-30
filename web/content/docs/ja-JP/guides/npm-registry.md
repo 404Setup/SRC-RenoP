@@ -60,9 +60,10 @@ bun add @example/library
 RenoP はサイズ制限付き gzip tarball を検証し、`package/package.json` と要求の一致を確認し、npm 互換の SHA-1
 と SHA-512 integrity を計算します。すべての検証に成功した後だけアーカイブを確定します。
 
-リポジトリの公開審査が有効な場合、成功した `npm publish` は受理応答を返しますが、バージョンは packument と
-tarball 経路にまだ現れません。リポジトリモデレーターまたはシステム管理者が `/account/reviews` で同じ不変の
-manifest、dist-tag、tarball を審査し、承認時にまとめて公開します。
+どちらの公開審査方針でも package 作成は `202 Accepted` を返し、承認まで名前を予約しません。
+`new_packages` では後続の `npm publish` は通常どおり実行されます。`every_version` では各 publish も審査対象となり、
+承認まで packument と tarball 経路には現れません。リポジトリモデレーターまたはシステム管理者が不変の
+manifest、dist-tag、tarball をまとめて審査します。
 
 ## 可視性とパッケージチーム
 

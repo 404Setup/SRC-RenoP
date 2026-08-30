@@ -59,6 +59,7 @@ export default Object.freeze({
     "npm.packageName": "Paketname", "npm.privatePackage": "Privates Paket",
     "npm.privateRequiresScope": "Private npm-Pakete benötigen einen Scope-Namen wie @team/package.",
     "npm.packageCreated": "npm-Paket erstellt", "npm.createFailed": "npm-Paket konnte nicht erstellt werden",
+    "npm.packageCreationQueued": "Die Erstellung des npm-Pakets wartet auf Prüfung",
     "npm.packageExists": "Dieser npm-Paketname ist bereits reserviert", "npm.invalidPackageName": "Geben Sie einen gültigen kleingeschriebenen npm-Paketnamen ein",
     "npm.commands": "Client-Befehle", "npm.configureRegistry": "Registry und Token konfigurieren", "npm.installPackage": "Paket installieren",
     "npm.publishPackage": "Aktuelles Projekt veröffentlichen", "npm.copyFailed": "npm-Befehl konnte nicht kopiert werden", "npm.backToPackages": "Zurück zu den Paketen",

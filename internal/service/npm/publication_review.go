@@ -7,11 +7,15 @@
 package npm
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/goccy/go-json"
+	"github.com/gofiber/fiber/v3"
 	"golang.org/x/mod/semver"
 
 	"renop/internal/config"
@@ -33,6 +37,119 @@ type npmPublicationReviewPayload struct {
 	CreatedAt    int64             `json:"created_at"`
 	UpdatedAt    int64             `json:"updated_at"`
 	Tags         map[string]string `json:"tags"`
+}
+
+type npmPackageCreationReviewPayload struct {
+	Repository      string `json:"repository"`
+	PackageName     string `json:"package_name"`
+	SuperTeamPrefix string `json:"super_team_prefix,omitempty"`
+	Private         bool   `json:"private"`
+	CreatedAt       int64  `json:"created_at"`
+}
+
+func npmCreationReviewFilePath(repository, packageName string) string {
+	digest := sha256.Sum256([]byte(repository + "\x00" + packageName + "\x00create"))
+	return "review-requests/npm/" + hex.EncodeToString(digest[:]) + ".json"
+}
+
+func npmCreationReviewPayload(state *core.AppState,
+	task *core.ReviewTask,
+) (*npmPackageCreationReviewPayload, []byte, error) {
+	if state == nil || state.GetDB() == nil || task == nil || task.Kind != core.ReviewKindPublication ||
+		task.ResourceType != core.ReviewResourceNPMPackage ||
+		task.ResourceVersion != core.ReviewVersionPackageCreation {
+		return nil, nil, core.ErrReviewInvalidRequest
+	}
+	raw, err := state.GetDB().GetReviewTaskPayload(task.ID)
+	if err != nil {
+		return nil, nil, err
+	}
+	var payload npmPackageCreationReviewPayload
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return nil, nil, core.ErrReviewInvalidRequest
+	}
+	packageName, valid := NormalizePackageName(payload.PackageName)
+	teamPrefix := payload.SuperTeamPrefix
+	if teamPrefix != "" {
+		var teamValid bool
+		teamPrefix, teamValid = core.NormalizeSuperTeamPrefix(teamPrefix)
+		if !teamValid {
+			return nil, nil, core.ErrReviewInvalidRequest
+		}
+	}
+	if !valid || payload.Repository != task.Repository || packageName != task.ResourceKey || payload.CreatedAt <= 0 ||
+		payload.Private && !strings.HasPrefix(packageName, "@") {
+		return nil, nil, core.ErrReviewInvalidRequest
+	}
+	requiredPrefix, scoped := core.NPMPackageSuperTeamPrefix(packageName)
+	if scoped && teamPrefix != requiredPrefix {
+		return nil, nil, core.ErrReviewInvalidRequest
+	}
+	payload.PackageName = packageName
+	payload.SuperTeamPrefix = teamPrefix
+	return &payload, raw, nil
+}
+
+// QueuePackageCreationReview creates a moderator task without reserving the npm package name.
+func QueuePackageCreationReview(state *core.AppState, repo *config.Repository, packageName,
+	superTeamPrefix, publisher string, private bool, createdAt int64,
+) (*core.PublicationReviewResult, error) {
+	if state == nil || state.GetDB() == nil || repo == nil || createdAt <= 0 {
+		return nil, core.ErrDatabaseUnavailable
+	}
+	payload, err := json.Marshal(&npmPackageCreationReviewPayload{
+		Repository: repo.Name, PackageName: packageName, SuperTeamPrefix: superTeamPrefix,
+		Private: private, CreatedAt: createdAt,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return state.GetDB().CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+		ResourceType: core.ReviewResourceNPMPackage, Repository: repo.Name,
+		ResourceKey: packageName, ResourceName: packageName, Version: core.ReviewVersionPackageCreation,
+		RequestedBy: publisher, Policy: repo.PublicationReviewPolicy(), Files: []*core.ReviewFile{{
+			Path: npmCreationReviewFilePath(repo.Name, packageName), Size: int64(len(payload)), Critical: true,
+		}}, Payload: payload, CreatedAt: createdAt,
+	})
+}
+
+// ServePackageCreationReview returns one validated virtual npm reservation request.
+func ServePackageCreationReview(c fiber.Ctx, state *core.AppState, task *core.ReviewTask,
+	file *core.ReviewFile,
+) error {
+	payload, raw, err := npmCreationReviewPayload(state, task)
+	if err != nil {
+		return err
+	}
+	if file == nil || !file.Virtual || file.Path != npmCreationReviewFilePath(
+		payload.Repository, payload.PackageName) {
+		return core.ErrReviewFileNotFound
+	}
+	c.Set(fiber.HeaderCacheControl, "private, no-store")
+	c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSONCharsetUTF8)
+	c.Set(fiber.HeaderContentDisposition, `attachment; filename="package-request.json"`)
+	c.Set(fiber.HeaderContentLength, strconv.Itoa(len(raw)))
+	return c.Send(raw)
+}
+
+// ApprovePackageCreationReview atomically reserves an approved npm package.
+func ApprovePackageCreationReview(state *core.AppState, task *core.ReviewTask,
+	reviewer string, decidedAt int64,
+) (*core.ReviewTask, error) {
+	payload, _, err := npmCreationReviewPayload(state, task)
+	if err != nil {
+		return nil, err
+	}
+	existing, err := state.GetDB().GetNPMPackage(payload.Repository, payload.PackageName)
+	if err != nil {
+		return nil, err
+	}
+	if existing != nil {
+		return nil, core.ErrReviewResourceConflict
+	}
+	return state.GetDB().ApproveNPMPackageCreationReview(
+		task.ID, reviewer, payload.Repository, payload.PackageName, payload.SuperTeamPrefix,
+		payload.Private, payload.CreatedAt, decidedAt)
 }
 
 func validateNPMReviewPayload(task *core.ReviewTask, payload *npmPublicationReviewPayload) error {

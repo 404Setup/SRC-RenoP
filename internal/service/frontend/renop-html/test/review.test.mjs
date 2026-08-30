@@ -105,6 +105,12 @@ test('publication reviews use bounded parallel downloads and preset rejection re
     assert.match(cargoReview, /rollbackCargoIndexVersion/);
     assert.match(cargoBrowser, /version\.review_status === 'pending'/);
     assert.match(cargoBrowser, /cargo\.reviewPending/);
+    const dockerReview = repositorySource('internal', 'service', 'docker', 'publication_review.go');
+    const dockerBrowser = frontendSource('js', 'browser', 'docker.js');
+    assert.match(dockerReview, /ApproveDockerPublicationReview/);
+    assert.match(dockerReview, /ServePublicationReviewManifest/);
+    assert.match(dockerBrowser, /tag\.review_status !== 'pending'/);
+    assert.match(dockerBrowser, /docker\.reviewPending/);
     assert.match(chunked, /X-RenoP-Review-ID/);
     assert.match(upload, /browser\.uploadQueuedReview/);
 });
@@ -116,5 +122,24 @@ test('review layouts remain bounded on narrow viewports', () => {
     assert.match(styles, /\.review-card\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\)/);
     assert.match(styles, /\.review-toolbar-selects \.custom-select-wrapper/);
     assert.match(styles, /\.review-transfer-resource[\s\S]*?min-width:\s*0/);
+    assert.match(styles, /\.review-reject-field\s*\{[\s\S]*?gap:\s*0\.6rem/);
     assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
+});
+
+test('reviewed package creation uses the application router and keeps Docker actions separated', () => {
+    const docker = frontendSource('js', 'browser', 'docker.js');
+    const npm = frontendSource('js', 'browser', 'npm.js');
+    const reviews = frontendSource('js', 'reviews.js');
+    const creation = repositorySource('internal', 'database', 'review_creation.go');
+    const styles = frontendSource('css', 'browser', 'docker.css');
+    assert.match(docker, /openReviewCenter\('requested'\)/);
+    assert.match(npm, /openReviewCenter\('requested'\)/);
+    assert.doesNotMatch(docker, /activeNavigate\?\.\('\/account\/reviews'\)/);
+    assert.doesNotMatch(npm, /activeNavigate\?\.\('\/account\/reviews'\)/);
+    assert.match(reviews, /task\.resource_version === '@create'/);
+    assert.match(reviews, /review\.packageCreation/);
+    assert.match(creation, /createDockerImageTx/);
+    assert.match(creation, /createNPMPackageTx/);
+    assert.match(creation, /WHERE id = \? AND status = \?/);
+    assert.match(styles, /\.docker-page-actions\s*\{[\s\S]*?gap:\s*0\.65rem/);
 });

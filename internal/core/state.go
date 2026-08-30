@@ -220,7 +220,6 @@ type StateDB interface {
 	CreateNPMPackage(repository, packageName, owner string, private bool, createdAt int64) (*NPMPackage, error)
 	CreateNPMPackageForTeam(repository, packageName, owner, superTeamPrefix string, private bool, createdAt int64) (*NPMPackage, error)
 	GetNPMPackage(repository, packageName string) (*NPMPackage, error)
-	NPMHasPublishedVersions(repository, packageName string) (bool, error)
 	GetNPMPackageAccess(repository, packageName, username string) (exists, private, publishEnabled, member bool, level int, err error)
 	GetNPMPackageDetails(repository, packageName, username string) (*NPMPackageDetails, error)
 	ListNPMPackages(repository, username string, administrator bool, limit, offset int) ([]*NPMPackage, int, error)
@@ -260,6 +259,12 @@ type StateDB interface {
 	ListDockerTags(repository, imageName, last string, limit int) ([]*DockerTag, error)
 	GetDockerManifest(repository, imageName, digest string) (*DockerManifest, error)
 	PutDockerManifest(manifest *DockerManifest, tag string, username string) error
+	ApproveDockerPublicationReview(id, reviewer string, manifest *DockerManifest, tag string,
+		decidedAt int64) (*ReviewTask, error)
+	ApproveDockerImageCreationReview(id, reviewer, repository, imageName, superTeamPrefix string,
+		private bool, createdAt, decidedAt int64) (*ReviewTask, error)
+	ApproveNPMPackageCreationReview(id, reviewer, repository, packageName, superTeamPrefix string,
+		private bool, createdAt, decidedAt int64) (*ReviewTask, error)
 	CacheDockerManifest(manifest *DockerManifest, tag string) error
 	DeleteDockerTag(repository, imageName, tag string) error
 	DeleteDockerManifest(repository, imageName, digest string) error

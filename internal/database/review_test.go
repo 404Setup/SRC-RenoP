@@ -58,6 +58,14 @@ func TestPublicationReviewFilesAreBoundedScopedAndSingleDecision(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, result.Pending)
 	require.NotEmpty(t, result.TaskID)
+	hijacked := request
+	hijacked.RequestedBy = "outsider"
+	hijacked.Payload = []byte(`{"engine":"hijacked"}`)
+	_, err = db.CreateOrUpdatePublicationReview(hijacked)
+	require.ErrorIs(t, err, core.ErrReviewPermissionDenied)
+	originalPayload, err := db.GetReviewTaskPayload(result.TaskID)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"engine":"test"}`, string(originalPayload))
 
 	request.Files[0].Size = 84
 	request.Files[0].AddedAt = now + 100

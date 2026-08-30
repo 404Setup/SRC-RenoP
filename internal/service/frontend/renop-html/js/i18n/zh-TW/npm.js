@@ -18,6 +18,7 @@ export default Object.freeze({
     "npm.packageKicker": "npm 套件", "npm.privatePackage": "私有套件",
     "npm.privateRequiresScope": "私有 npm 套件必須使用 @team/package 這類作用域名稱。",
     "npm.packageCreated": "npm 套件已建立", "npm.createFailed": "無法建立 npm 套件",
+    "npm.packageCreationQueued": "npm 套件建立申請正在等待審核",
     "npm.packageExists": "此 npm 套件名稱已被保留", "npm.invalidPackageName": "請輸入有效的小寫 npm 套件名稱",
     "npm.commands": "用戶端命令", "npm.configureRegistry": "設定儲存庫與 Token", "npm.installPackage": "安裝套件",
     "npm.publishPackage": "發布目前專案", "npm.copyFailed": "無法複製 npm 命令", "npm.backToPackages": "返回套件清單",

@@ -44,13 +44,20 @@ publication review. Files uploaded for the same version are attached to one task
 Maven metadata companions. A five-second settling window after the latest file prevents a reviewer from deciding a
 version while the client is still uploading it. An approved version is sealed against later file additions.
 
-An npm publish is already one complete transaction. RenoP hides its tarball and retains a bounded manifest/dist-tag
-payload until approval, then records the immutable version and tags together. For `new_packages`, a reservation remains
-new until its first visible version is approved. Upstream packuments and tarballs never create review tasks.
+For npm, both review policies hold the explicit creation request without reserving the name. Approval atomically creates
+the package and L4 owner after rechecking repository and optional global-team permission. Under `new_packages`, later
+versions publish normally. Under `every_version`, RenoP also hides each tarball and retains a bounded manifest/dist-tag
+payload until approval, then records the immutable version and tags together. Upstream content never creates tasks.
 
 A Cargo publication stores and hides the crate archive without changing the sparse index or public catalog. Approval
 adds the immutable version to both metadata stores before exposing the archive. Rejection removes the hidden archive.
 With `new_packages`, the crate remains new until its first visible version is approved. Mirrored crates bypass review.
+
+For Docker, both policies hold the explicit image creation request without reserving the name and recheck local,
+upstream, repository, and optional global-team authority at approval. Under `new_packages`, later manifests publish
+normally. Under `every_version`, each exact manifest remains a bounded virtual file until approval; its reference and
+tag do not enter storage or catalog tables, so a new tag cannot hide an existing tag for the same digest. Approval
+atomically records the manifest, blob links, tag, and task decision. Mirror imports bypass review.
 
 ## List tasks
 
@@ -61,6 +68,8 @@ resource types. `limit` is between 1 and 100, and `offset` is non-negative.
 The response contains `tasks`, `total`, `limit`, `offset`, and the resolved `view`. A task preserves its source and
 target team prefixes, requester display name, timestamps, current status, and any completed decision metadata.
 Publication tasks also include `resource_version`, `file_count`, `total_size`, and the latest file time.
+Explicit npm/Docker creation uses the reserved `resource_version` value `@create` and exposes its bounded JSON request
+through the same file API.
 
 ## Request transfer
 

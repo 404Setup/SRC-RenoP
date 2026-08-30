@@ -43,14 +43,20 @@ Maven リポジトリでは、審査なし、新規アーティファクトの�
 メタデータは一つのタスクに集約されます。最後のファイルから 5 秒間は決定できないため、アップロード途中で
 処理されません。承認済みバージョンへのファイル追加も拒否されます。
 
-npm publish は最初から一つの完全なトランザクションです。RenoP は tarball を非公開にし、上限付きの manifest と
-dist-tag を承認まで保持してから、不変バージョンとタグをまとめて記録します。`new_packages` では最初の公開
-バージョンが承認されるまで予約を新規パッケージとして扱います。ミラーの packument と tarball は審査されません。
+npm では、どちらの審査方針も名前を予約せずに明示的な作成 request を保留します。承認時に repository と任意の
+global team 権限を再確認し、package と L4 owner を原子的に作成します。`new_packages` では後続 version は通常どおり
+公開されます。`every_version` では各 tarball と上限付き manifest/dist-tag payload も承認まで非公開にします。
 
 Cargo 公開では crate archive を保存して非公開にし、sparse index と公開 catalog は変更しません。承認時は
 archive を公開する前に、不変 version を両方の metadata に追加します。拒否時は非公開 archive を削除します。
 `new_packages` では最初の公開 version が承認されるまで新規 crate として扱います。mirror 由来の crate は
 審査対象外です。
+
+Docker では、どちらの方針も名前を予約せずに明示的な image 作成 request を保留し、承認時に local/upstream の
+競合と repository/global team 権限を再確認します。`new_packages` では後続 manifest は通常どおり公開されます。
+`every_version` では正確な manifest bytes を上限付き virtual file として保持し、承認前は reference と tag を
+catalog に書き込みません。同じ digest の既存 tag は影響を受けず、manifest、blob link、tag、decision は原子的に
+記録されます。mirror import は審査対象外です。
 
 ## タスク一覧
 
@@ -61,6 +67,8 @@ GET /api/reviews は上限付きページを返します。`view` は `reviewer`
 応答には `tasks`、`total`、`limit`、`offset`、確定した `view` が含まれます。各タスクは移管元と
 移管先のプレフィックス、申請者名、時刻、状態、決定情報を保持します。
 公開タスクには `resource_version`、`file_count`、`total_size`、最新ファイル時刻も含まれます。
+npm/Docker の明示的な作成では `resource_version` に予約値 `@create` を使用し、同じ file API から上限付き JSON
+request を取得できます。
 
 ## 移管申請
 

@@ -20,7 +20,7 @@ import {t} from '../i18n.js';
 import {createSuperTeamBindingField} from '../super-team-selector.js';
 import {setSafeMarkdown} from '../markdown.js';
 import {getRepositoryFormat} from '../repository-formats.js';
-import {openSuperTeamTransferDialog} from '../reviews.js';
+import {openReviewCenter, openSuperTeamTransferDialog} from '../reviews.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {decodePathSegment, encodePathSegment, encodeRelativePath, formatBytes} from './utils.js';
 import {resolveUserDisplayName} from '../user-profiles.js';
@@ -468,6 +468,11 @@ function openCreateImageDialog(repoName) {
                             }
                             const image = await response.json();
                             dialog.close(true);
+                            if (response.status === 202 || image.pending === true) {
+                                showAlert(t('docker.imageCreationQueued'), 'success');
+                                openReviewCenter('requested');
+                                return;
+                            }
                             showAlert(t('docker.imageCreated'), 'success');
                             activeNavigate?.(`/${encodePathSegment(repoName)}/${encodeRelativePath(image.image_name)}`);
                         } catch (error) {
@@ -614,6 +619,8 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         const details = await response.json();
         let image = details.image || {};
         const tags = details.tags || [];
+        const visibleTags = tags.filter(tag => tag.review_status !== 'pending');
+        const pendingTags = tags.filter(tag => tag.review_status === 'pending');
         const tagImageKey = `${repoName}/${imageName}`;
         if (dockerTagImage !== tagImageKey) {
             dockerTagImage = tagImageKey;
@@ -629,10 +636,11 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         const canTransferOwnership = isAdministrator || permissionLevel === 4;
         const canPush = isAdministrator || permissionLevel >= 1;
 
-        const latestTag = tags[0]?.tag || 'latest';
-        const clientCommand = tags.length > 0
+        const latestTag = visibleTags[0]?.tag || 'latest';
+        const clientCommand = visibleTags.length > 0
             ? `docker pull ${window.location.host}/${repoName}/${imageName}:${latestTag}`
-            : (canPush ? `docker push ${window.location.host}/${repoName}/${imageName}:<tag>` : '');
+            : (pendingTags.length === 0 && canPush
+                ? `docker push ${window.location.host}/${repoName}/${imageName}:<tag>` : '');
 
         const backBtn = createRepositoryBackButton({
             path: `/${encodePathSegment(repoName)}`,
@@ -714,17 +722,17 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             metaRow.appendChild(createRepositoryMirrorBadge(t('common.fromMirror')));
         }
 
-        metaRow.appendChild(
-            el('div', {class: 'docker-meta-chip'},
+        if (visibleTags.length > 0) {
+            metaRow.appendChild(el('div', {class: 'docker-meta-chip'},
                 createIcon('fileCode', {class: 'icon-svg'}),
                 el('span', {}, t('docker.latestTag', {tag: latestTag}))
-            )
-        );
+            ));
+        }
 
         metaRow.appendChild(
             el('div', {class: 'docker-meta-chip'},
                 createIcon(dockerRepositoryIcon, {class: 'icon-svg'}),
-                el('span', {}, t('docker.totalTags', {count: tags.length}))
+                el('span', {}, t('docker.totalTags', {count: visibleTags.length}))
             )
         );
 
@@ -766,11 +774,12 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                 el('button', {
                     class: 'docker-pull-copy-btn',
                     type: 'button',
-                    title: t(tags.length > 0 ? 'docker.copyPull' : 'docker.copyPush'),
+                    title: t(visibleTags.length > 0 ? 'docker.copyPull' : 'docker.copyPush'),
                     onclick: (e) => triggerDockerCopy(e.currentTarget, clientCommand)
                 }, createIcon('copy', {class: 'icon-svg'}))
             )
-            : el('p', {class: 'docker-create-first-hint'}, t('docker.awaitingFirstPush'));
+            : el('p', {class: 'docker-create-first-hint'},
+                t(pendingTags.length > 0 ? 'docker.awaitingReview' : 'docker.awaitingFirstPush'));
 
         const hero = el('div', {class: 'docker-page-hero'},
             topNav,
@@ -798,6 +807,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         } else {
             const tagRows = [];
             for (const tObj of tags) {
+                const pendingReview = tObj.review_status === 'pending';
                 const tagPullCmd = `docker pull ${window.location.host}/${repoName}/${imageName}:${tObj.tag}`;
                 const shortDigest = tObj.digest ? tObj.digest.slice(0, 19) + '…' : '';
                 const sizeStr = tObj.size > 0 ? formatBytes(tObj.size) : '';
@@ -825,8 +835,10 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                     )
                     : null;
 
-                const actionsWrap = el('div', {class: 'docker-tag-actions'},
-                    el('button', {
+                const actionsWrap = el('div', {class: 'docker-tag-actions'});
+                if (!pendingReview) {
+                    actionsWrap.append(
+                        el('button', {
                         class: 'docker-action-btn',
                         type: 'button',
                         title: t('docker.copyPull'),
@@ -838,9 +850,10 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                         title: t('docker.inspect'),
                         onclick: () => openManifestDetails(repoName, imageName, tObj.digest, tObj.tag)
                     }, createIcon('eye', {class: 'icon-svg'}))
-                );
+                    );
+                }
 
-                if (canManageL2) {
+                if (canManageL2 && !pendingReview) {
                     actionsWrap.appendChild(
                         el('button', {
                             class: 'docker-action-btn docker-action-btn--delete',
@@ -872,6 +885,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                 const row = el('div', {class: 'docker-tag-row'},
                     el('div', {class: 'docker-tag-left'},
                         el('span', {class: 'docker-tag-badge'}, tObj.tag),
+                        pendingReview ? el('span', {class: 'docker-tag-review'}, t('docker.reviewPending')) : null,
                         digestPill,
                         sizeStr ? el('span', {class: 'docker-tag-size'}, sizeStr) : null,
                         publisherChip,

@@ -222,7 +222,7 @@ export default Object.freeze({
     "repos.resetDownloadStatisticsConfirm": "Alle Downloadstatistiken für {name} zurücksetzen? Dies kann nicht rückgängig gemacht werden.",
     "repos.resetDownloadStatisticsSuccess": "Downloadstatistiken zurückgesetzt",
     "repos.resetDownloadStatisticsFailed": "Downloadstatistiken konnten nicht zurückgesetzt werden",
-    "repos.publicationReview": "Veröffentlichungsprüfung", "repos.publicationReviewDesc": "Lokale Paketversionen bis zur Prüfung durch einen Repository-Moderator oder Systemadministrator zurückhalten. Bei Maven wird auch die erneute Bereitstellung deaktiviert.",
+    "repos.publicationReview": "Veröffentlichungsprüfung", "repos.publicationReviewDesc": "Neue Paket-/Image-Erstellung oder jede Version vor der Veröffentlichung prüfen. Bei Maven wird auch die erneute Bereitstellung deaktiviert.",
     "repos.publicationReviewOff": "Deaktiviert", "repos.publicationReviewNewPackages": "Nur neue Pakete",
     "repos.publicationReviewEveryVersion": "Jede Version", "repos.publicationReviewSaved": "Einstellungen zur Veröffentlichungsprüfung gespeichert",
     "repos.publicationReviewUpdateFailed": "Einstellungen zur Veröffentlichungsprüfung konnten nicht aktualisiert werden",

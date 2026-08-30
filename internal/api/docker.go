@@ -27,6 +27,7 @@ import (
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
 	"renop/internal/service/docker"
+	"renop/internal/service/repositorygate"
 	"renop/internal/utils"
 )
 
@@ -200,8 +201,37 @@ func CreateDockerImageAPI(c fiber.Ctx, state *core.AppState) error {
 			return c.Status(fiber.StatusConflict).SendString("Docker image name is already in use by an upstream mirror")
 		}
 	}
+	release := repositorygate.AcquireMutation(repoName)
+	defer release()
+	imageExists, _, _, _, _, err = db.GetDockerImageAccess(repoName, imageName, "")
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to inspect Docker image name")
+	}
+	if imageExists {
+		return c.Status(fiber.StatusConflict).SendString("Docker image name is already in use")
+	}
+	createdAt := time.Now().UnixMilli()
+	if repo.PublicationReviewPolicy() != config.PublicationReviewOff {
+		review, reviewErr := docker.QueueImageCreationReview(
+			state, repo, imageName, teamPrefix, user.Username, request.Private, createdAt)
+		if errors.Is(reviewErr, core.ErrReviewPermissionDenied) {
+			return dockerAPIError(c, fiber.StatusConflict, "review_pending",
+				"Another account already requested this Docker image name")
+		}
+		if reviewErr != nil || review == nil || !review.Pending {
+			return dockerAPIError(c, fiber.StatusInternalServerError, "review_unavailable",
+				"Failed to create Docker image review")
+		}
+		c.Set("X-RenoP-Review-ID", review.TaskID)
+		logDockerAudit(c, state, audit.ActionUploadQueuedReview,
+			fmt.Sprintf("Repository: %s, image creation: %s, global team: %s",
+				repoName, imageName, teamPrefix))
+		return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
+			"pending": true, "review_id": review.TaskID, "image_name": imageName,
+		})
+	}
 	image, err := db.CreateDockerImageForTeam(
-		repoName, imageName, user.Username, teamPrefix, request.Private, time.Now().UnixMilli())
+		repoName, imageName, user.Username, teamPrefix, request.Private, createdAt)
 	if errors.Is(err, core.ErrDockerImageExists) {
 		return c.Status(fiber.StatusConflict).SendString("Docker image already exists")
 	}
@@ -263,6 +293,12 @@ func GetDockerImageDetailsAPI(c fiber.Ctx, state *core.AppState) error {
 	if user.IsManager() || user.CheckUpdatePermission(repoName) {
 		details.Administrator = true
 		details.PermissionLevel = core.DockerPermissionFull
+	}
+	if details.Administrator || user.CheckModeratePermission(repoName) ||
+		details.PermissionLevel >= core.DockerPermissionPublish {
+		if err := docker.AddPendingPublicationTags(state, details); err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString("Failed to load pending Docker publications")
+		}
 	}
 
 	c.Set(fiber.HeaderContentType, "application/json; charset=utf-8")

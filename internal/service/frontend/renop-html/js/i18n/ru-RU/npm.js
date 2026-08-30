@@ -59,6 +59,7 @@ export default Object.freeze({
     "npm.packageName": "Имя пакета", "npm.privatePackage": "Закрытый пакет",
     "npm.privateRequiresScope": "Закрытый npm-пакет должен иметь имя с областью, например @team/package.",
     "npm.packageCreated": "npm-пакет создан", "npm.createFailed": "Не удалось создать npm-пакет",
+    "npm.packageCreationQueued": "Создание npm-пакета ожидает проверки",
     "npm.packageExists": "Это имя npm-пакета уже зарезервировано", "npm.invalidPackageName": "Введите допустимое имя npm-пакета в нижнем регистре",
     "npm.commands": "Команды клиента", "npm.configureRegistry": "Настроить реестр и Token", "npm.installPackage": "Установить пакет",
     "npm.publishPackage": "Опубликовать текущий проект", "npm.copyFailed": "Не удалось скопировать команду npm", "npm.backToPackages": "Назад к пакетам",

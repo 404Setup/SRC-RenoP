@@ -27,14 +27,14 @@ test('repository settings expose localized download-statistics controls', () => 
     }
 });
 
-test('Maven, npm, and Cargo settings expose publication review without extending the legacy protobuf', () => {
+test('Maven, npm, Cargo, and Docker settings expose publication review without extending the legacy protobuf', () => {
     const source = readFileSync(join(frontendRoot, 'js/repositories.js'), 'utf8');
     for (const required of [
         "apiRequest('/api/settings/repositories/publication-reviews')",
         '/publication-review',
         "value: 'new_packages'",
         "value: 'every_version'",
-        "format.protocol === 'maven' || format.protocol === 'npm' || format.protocol === 'cargo'",
+        "format.protocol === 'cargo' || format.protocol === 'docker'",
         "repo.allow_redeployment = false",
         "redeploymentToggle.setAttribute('disabled', '')",
     ]) {

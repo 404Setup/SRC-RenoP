@@ -51,6 +51,12 @@ docker push localhost:3000/containers/team/service:1.0.0
 RenoP refuse le droit push, le début d’upload et le manifeste avant la création de l’image. Après un échec, les retries
 restent valides sans rouvrir le login ou la fenêtre du navigateur.
 
+Avec l’une ou l’autre politique, la création de l’image renvoie `202 Accepted` et ne réserve pas le nom avant
+l’approbation. Sous `new_packages`, les push suivants s’exécutent normalement. Sous `every_version`, chaque envoi de
+manifeste renvoie aussi un identifiant d’examen et reste absent des réponses pull, tag-list et catalogue. L’approbation
+revérifie l’éditeur et les blobs avant de publier atomiquement le tag. Le rejet ne touche que le manifeste virtuel ; les
+blobs partagés et tags existants restent intacts. Les imports de miroir ne sont pas examinés.
+
 ## Pull et exécution
 
 ```bash

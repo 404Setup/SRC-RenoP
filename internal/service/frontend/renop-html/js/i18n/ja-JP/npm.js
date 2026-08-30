@@ -59,6 +59,7 @@ export default Object.freeze({
     "npm.packageName": "パッケージ名", "npm.privatePackage": "非公開パッケージ",
     "npm.privateRequiresScope": "非公開 npm パッケージには @team/package のようなスコープ名が必要です。",
     "npm.packageCreated": "npm パッケージを作成しました", "npm.createFailed": "npm パッケージを作成できませんでした",
+    "npm.packageCreationQueued": "npm パッケージの作成は審査待ちです",
     "npm.packageExists": "この npm パッケージ名は予約済みです", "npm.invalidPackageName": "有効な小文字の npm パッケージ名を入力してください",
     "npm.commands": "クライアントコマンド", "npm.configureRegistry": "レジストリと Token を設定", "npm.installPackage": "パッケージをインストール",
     "npm.publishPackage": "現在のプロジェクトを公開", "npm.copyFailed": "npm コマンドをコピーできませんでした", "npm.backToPackages": "パッケージ一覧に戻る",

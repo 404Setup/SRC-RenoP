@@ -12,6 +12,7 @@ package docker
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -476,6 +477,144 @@ func TestDockerRegistryFullLifecycle(t *testing.T) {
 	}
 	if resp.StatusCode != http.StatusAccepted {
 		t.Fatalf("expected 202 Accepted for DELETE blob, got %d", resp.StatusCode)
+	}
+}
+
+func TestDockerPublicationReviewDefersManifestAndTags(t *testing.T) {
+	app, state, store := setupTestDockerApp(t)
+	createTestDockerImage(t, state, "docker-local", "reviewed-app", false)
+	repo := state.Inner.Config.Load().Maven.Repositories["docker-local"]
+	repo.PublicationReview = config.PublicationReviewEveryVersion
+
+	tokenRequest := httptest.NewRequest(http.MethodGet,
+		"/v2/token?service=127.0.0.1:8080&scope=repository:docker-local/reviewed-app:pull,push", nil)
+	tokenRequest.SetBasicAuth("admin", "admin-secret-token")
+	tokenResponse, err := app.Test(tokenRequest)
+	if err != nil {
+		t.Fatalf("request Docker token: %v", err)
+	}
+	var token TokenResponse
+	if err := json.NewDecoder(tokenResponse.Body).Decode(&token); err != nil {
+		t.Fatalf("decode Docker token: %v", err)
+	}
+	_ = tokenResponse.Body.Close()
+
+	publish := func(reference, marker string) *http.Response {
+		t.Helper()
+		manifest := []byte(fmt.Sprintf(`{
+			"schemaVersion":2,
+			"mediaType":%q,
+			"config":{},
+			"layers":[],
+			"annotations":{"test.marker":%q}
+		}`, MediaTypeDockerManifest2, marker))
+		request := httptest.NewRequest(http.MethodPut,
+			"/v2/docker-local/reviewed-app/manifests/"+reference, bytes.NewReader(manifest))
+		request.Header.Set(fiber.HeaderContentType, MediaTypeDockerManifest2)
+		request.Header.Set(fiber.HeaderAuthorization, "Bearer "+token.Token)
+		response, requestErr := app.Test(request)
+		if requestErr != nil {
+			t.Fatalf("publish Docker manifest: %v", requestErr)
+		}
+		return response
+	}
+
+	response := publish("1.0.0", "pending")
+	if response.StatusCode != http.StatusAccepted {
+		t.Fatalf("reviewed manifest status = %d, want %d", response.StatusCode, http.StatusAccepted)
+	}
+	reviewID := response.Header.Get("X-RenoP-Review-ID")
+	manifestDigest := response.Header.Get(DockerDigestHeader)
+	_ = response.Body.Close()
+	if reviewID == "" || manifestDigest == "" {
+		t.Fatalf("review response headers: review=%q digest=%q", reviewID, manifestDigest)
+	}
+	if _, found, err := store.OpenManifest("docker-local", "reviewed-app", manifestDigest); err != nil || found {
+		t.Fatalf("pending manifest storage visibility: found=%t err=%v", found, err)
+	}
+	tag, err := state.GetDB().GetDockerTag("docker-local", "reviewed-app", "1.0.0")
+	if err != nil || tag != nil {
+		t.Fatalf("pending Docker tag was public: %#v, %v", tag, err)
+	}
+	details, err := state.GetDB().GetDockerImageDetails("docker-local", "reviewed-app", "admin")
+	if err != nil {
+		t.Fatalf("load reviewed image: %v", err)
+	}
+	if err := AddPendingPublicationTags(state, details); err != nil {
+		t.Fatalf("add pending Docker tags: %v", err)
+	}
+	if len(details.Tags) != 1 || details.Tags[0].ReviewStatus != core.ReviewStatusPending {
+		t.Fatalf("pending Docker tags = %#v", details.Tags)
+	}
+
+	reviewTask, err := state.GetDB().GetReviewTask(reviewID)
+	if err != nil {
+		t.Fatalf("load Docker review: %v", err)
+	}
+	if err := state.GetDB().SaveToken(&core.AccessToken{
+		Name: "moderator", Permissions: []string{"base", "canmoderate:docker-local"},
+	}); err != nil {
+		t.Fatalf("save Docker moderator: %v", err)
+	}
+	decided, err := ApprovePublicationReview(state, reviewTask, store, "moderator",
+		reviewTask.UpdatedAt+core.PublicationReviewSettleMillis+1)
+	if err != nil {
+		t.Fatalf("approve Docker publication: %v", err)
+	}
+	if decided.Status != core.ReviewStatusApproved {
+		t.Fatalf("Docker review status = %q", decided.Status)
+	}
+	if _, found, err := store.OpenManifest("docker-local", "reviewed-app", manifestDigest); err != nil || !found {
+		t.Fatalf("approved manifest storage visibility: found=%t err=%v", found, err)
+	}
+	tag, err = state.GetDB().GetDockerTag("docker-local", "reviewed-app", "1.0.0")
+	if err != nil || tag == nil || tag.Digest != manifestDigest {
+		t.Fatalf("approved Docker tag = %#v, %v", tag, err)
+	}
+
+	repo.PublicationReview = config.PublicationReviewNewPackages
+	response = publish("2.0.0", "visible")
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("existing image manifest status = %d, want %d", response.StatusCode, http.StatusCreated)
+	}
+	if response.Header.Get("X-RenoP-Review-ID") != "" {
+		t.Fatal("existing image unexpectedly entered new-package review")
+	}
+	_ = response.Body.Close()
+
+	repo.PublicationReview = config.PublicationReviewEveryVersion
+	missingDigest := "sha256:" + strings.Repeat("a", 64)
+	missingManifestJSON := []byte(fmt.Sprintf(`{
+		"schemaVersion":2,
+		"mediaType":%q,
+		"config":{"digest":%q},
+		"layers":[]
+	}`, MediaTypeDockerManifest2, missingDigest))
+	missingManifest, err := ParseManifest(missingManifestJSON, MediaTypeDockerManifest2)
+	if err != nil {
+		t.Fatalf("parse missing-blob manifest: %v", err)
+	}
+	missingReview, err := QueuePublicationReview(
+		state, repo, "reviewed-app", "3.0.0", missingManifest, "admin", true, time.Now().UnixMilli())
+	if err != nil {
+		t.Fatalf("queue missing-blob manifest: %v", err)
+	}
+	missingTask, err := state.GetDB().GetReviewTask(missingReview.TaskID)
+	if err != nil {
+		t.Fatalf("load missing-blob review: %v", err)
+	}
+	_, err = ApprovePublicationReview(state, missingTask, store, "moderator",
+		missingTask.UpdatedAt+core.PublicationReviewSettleMillis+1)
+	if !errors.Is(err, core.ErrReviewResourceConflict) {
+		t.Fatalf("missing-blob approval error = %v", err)
+	}
+	missingTask, err = state.GetDB().GetReviewTask(missingReview.TaskID)
+	if err != nil || missingTask.Status != core.ReviewStatusPending {
+		t.Fatalf("missing-blob review state = %#v, %v", missingTask, err)
+	}
+	if _, found, err := store.OpenManifest(
+		"docker-local", "reviewed-app", missingManifest.Digest); err != nil || found {
+		t.Fatalf("missing-blob manifest visibility: found=%t err=%v", found, err)
 	}
 }
 

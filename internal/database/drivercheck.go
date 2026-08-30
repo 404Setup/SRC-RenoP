@@ -288,16 +288,85 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		}
 		if err := db.SaveToken(&core.AccessToken{
 			Name: username, CreatedAt: time.Now().UTC().Format(time.RFC3339),
-			Permissions: []string{"base", "canmoderate:" + mavenRepository},
+			Permissions: []string{
+				"base", "canupdate:" + dockerRepository, "canupdate:" + npmRepository,
+				"canmoderate:" + dockerRepository, "canmoderate:" + npmRepository,
+				"canmoderate:" + mavenRepository,
+			},
 		}); err != nil {
 			return err
+		}
+		dockerCreation, err := db.CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+			ResourceType: core.ReviewResourceDockerImage, Repository: dockerRepository,
+			ResourceKey: "review-created", ResourceName: "review-created",
+			Version: core.ReviewVersionPackageCreation, RequestedBy: username,
+			Policy: config.PublicationReviewNewPackages, Payload: []byte(`{"driver":"docker-create"}`),
+			CreatedAt: now + 8, Files: []*core.ReviewFile{{
+				Path: "review-requests/docker/driver-contract.json", Size: 64, Critical: true,
+			}},
+		})
+		if err != nil || dockerCreation == nil || !dockerCreation.Pending {
+			return errorsOrMissing(err, "Docker creation review")
+		}
+		if _, err := db.ApproveDockerImageCreationReview(
+			dockerCreation.TaskID, username, dockerRepository, "review-created", "", false,
+			now+8, now+8+core.PublicationReviewSettleMillis+1); err != nil {
+			return err
+		}
+		createdImage, err := db.GetDockerImage(dockerRepository, "review-created")
+		if err != nil || createdImage == nil || createdImage.Publisher != username {
+			return errorsOrMissing(err, "Docker creation review result")
+		}
+		npmCreation, err := db.CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+			ResourceType: core.ReviewResourceNPMPackage, Repository: npmRepository,
+			ResourceKey: "review-created", ResourceName: "review-created",
+			Version: core.ReviewVersionPackageCreation, RequestedBy: username,
+			Policy: config.PublicationReviewNewPackages, Payload: []byte(`{"driver":"npm-create"}`),
+			CreatedAt: now + 9, Files: []*core.ReviewFile{{
+				Path: "review-requests/npm/driver-contract.json", Size: 64, Critical: true,
+			}},
+		})
+		if err != nil || npmCreation == nil || !npmCreation.Pending {
+			return errorsOrMissing(err, "npm creation review")
+		}
+		if _, err := db.ApproveNPMPackageCreationReview(
+			npmCreation.TaskID, username, npmRepository, "review-created", "", false,
+			now+9, now+9+core.PublicationReviewSettleMillis+1); err != nil {
+			return err
+		}
+		createdPackage, err := db.GetNPMPackage(npmRepository, "review-created")
+		if err != nil || createdPackage == nil || createdPackage.Publisher != username {
+			return errorsOrMissing(err, "npm creation review result")
+		}
+		dockerPublication, err := db.CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+			ResourceType: core.ReviewResourceDockerImage, Repository: dockerRepository,
+			ResourceKey: globalTeamPrefix + "/demo", ResourceName: globalTeamPrefix + "/demo",
+			Version: "reviewed", RequestedBy: memberUsername, Policy: config.PublicationReviewEveryVersion,
+			Payload: []byte(`{"driver":"docker-contract"}`), CreatedAt: now + 10,
+			Files: []*core.ReviewFile{{Path: "review-manifests/driver-contract.json", Size: 64, Critical: true}},
+		})
+		if err != nil || dockerPublication == nil || !dockerPublication.Pending {
+			return errorsOrMissing(err, "Docker publication review creation")
+		}
+		approvedDocker, err := db.ApproveDockerPublicationReview(
+			dockerPublication.TaskID, username, &core.DockerManifest{
+				Repository: dockerRepository, ImageName: globalTeamPrefix + "/demo",
+				Digest: "sha256:" + strings.Repeat("d", 64), MediaType: "application/vnd.oci.image.manifest.v1+json",
+				RawJSON: []byte(`{"schemaVersion":2}`), CreatedAt: now + 10,
+			}, "reviewed", now+10+core.PublicationReviewSettleMillis+1)
+		if err != nil || approvedDocker == nil || approvedDocker.Status != core.ReviewStatusApproved {
+			return errorsOrMissing(err, "Docker publication review approval")
+		}
+		dockerTag, err := db.GetDockerTag(dockerRepository, globalTeamPrefix+"/demo", "reviewed")
+		if err != nil || dockerTag == nil || dockerTag.Digest != "sha256:"+strings.Repeat("d", 64) {
+			return errorsOrMissing(err, "Docker publication review catalog")
 		}
 		publication, err := db.CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
 			ResourceType: core.ReviewResourceMavenArtifact, Repository: mavenRepository,
 			ResourceKey: mavenDomain + ":reviewed", ResourceName: mavenDomain + ":reviewed",
 			Version: "1.0.0", RequestedBy: memberUsername, Policy: config.PublicationReviewEveryVersion,
 			Payload:   []byte(`{"driver":"contract"}`),
-			CreatedAt: now + 8, Files: []*core.ReviewFile{{
+			CreatedAt: now + 11, Files: []*core.ReviewFile{{
 				Path: strings.ReplaceAll(mavenDomain, ".", "/") + "/reviewed/1.0.0/reviewed-1.0.0.jar",
 				Size: 128, Critical: true,
 			}},
@@ -323,7 +392,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 			return errorsOrMissing(err, "publication reviewer task listing")
 		}
 		if _, err := db.DecideReviewTask(publication.TaskID, username,
-			core.ReviewStatusApproved, "", now+core.PublicationReviewSettleMillis+20); err != nil {
+			core.ReviewStatusApproved, "", now+core.PublicationReviewSettleMillis+23); err != nil {
 			return err
 		}
 		pending, err := db.IsPublicationReviewPathPending(mavenRepository, files[0].Path)

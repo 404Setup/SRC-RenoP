@@ -62,9 +62,10 @@ bun add @example/library
 RenoP validates the bounded gzip tarball, requires `package/package.json` to match the request, computes npm-compatible
 SHA-1 and SHA-512 integrity values, and commits the archive only after validation succeeds.
 
-If repository publication review is enabled, a successful `npm publish` returns an accepted response while the
-version remains absent from packuments and tarball routes. A repository moderator or system administrator reviews the
-same immutable manifest, dist-tags, and tarball in `/account/reviews`; approval publishes them together.
+When either publication-review policy is enabled, package creation returns `202 Accepted` and does not reserve the name
+until approval. Under `new_packages`, subsequent `npm publish` operations proceed normally. Under `every_version`, a
+successful publish is also accepted for review while the version remains absent from packuments and tarball routes. A
+repository moderator or system administrator reviews the immutable manifest, dist-tags, and tarball together.
 
 ## Visibility and package teams
 

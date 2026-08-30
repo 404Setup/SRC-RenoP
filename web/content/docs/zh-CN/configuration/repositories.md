@@ -45,10 +45,14 @@ repositories:
 | `visibility` | `PUBLIC` | `PUBLIC`、`HIDDEN` 或 `PRIVATE` |
 | `allow_redeployment` | `false` | 在支持的引擎中允许 Maven 版本重发或 files/Docker 覆盖 |
 | `require_gpg_signature` | `false` | Maven 发布要求通过 OpenPGP 分离签名校验 |
-| `publication_review` | `off` | Maven/npm/Cargo 审核策略：`off`、`new_packages` 或 `every_version` |
+| `publication_review` | `off` | Maven/npm/Cargo/Docker 审核策略：`off`、`new_packages` 或 `every_version` |
 | `download_statistics` | 引擎默认值 | Maven/npm/Cargo/Docker 默认启用；`files` 需手动启用 |
 | `mirrors` | `[]` | 按顺序执行的上游镜像定义 |
 | `s3` | 省略 | 当前仓库独立的 S3 兼容存储 |
+
+对于 npm 与 Docker，`new_packages` 会在占用名称前审核显式创建申请；`every_version` 还会审核之后的每个版本或
+Manifest。Maven 与 Cargo 没有空包创建步骤，因此其 `new_packages` 策略审核首次发布。所有引擎的镜像源导入
+均不进入审核流程。
 
 `maven-classic` 只改变前端布局，仍执行 Maven 发布规则。`files` 为非结构化存储，不生成校验文件、POM 或
 签名校验。Maven 可迁移到 `files` 并反向迁移，存储对象保持原位；切回 Maven 时重建目录并恢复保存的策略。

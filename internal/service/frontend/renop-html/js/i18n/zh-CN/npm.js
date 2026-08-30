@@ -32,6 +32,7 @@ export default Object.freeze({
     "npm.privatePackage": "私有软件包",
     "npm.privateRequiresScope": "私有 npm 软件包必须使用 @team/package 这样的作用域名称。",
     "npm.packageCreated": "npm 软件包已创建",
+    "npm.packageCreationQueued": "npm 软件包创建申请正在等待审核",
     "npm.createFailed": "无法创建 npm 软件包",
     "npm.packageExists": "此 npm 软件包名称已被预留",
     "npm.invalidPackageName": "请输入有效的小写 npm 软件包名称",

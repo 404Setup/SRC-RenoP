@@ -51,6 +51,11 @@ docker push localhost:3000/containers/team/service:1.0.0
 镜像创建前，RenoP 不会授予推送动作，也不会开始 Blob 上传或接受 Manifest。管理请求失败后可直接重试，无需
 重新登录或重开浏览器窗口。
 
+启用任一审核策略后，创建镜像会返回 `202 Accepted`，且批准前不会占用名称。`new_packages` 模式下，后续推送
+正常执行；`every_version` 模式还会将每次 Manifest 推送送审，并返回审核 ID。批准前，Manifest 与标签不会出现
+在拉取、标签列表和目录响应中。批准时重新检查发布者与引用 Blob，再以原子事务发布标签。拒绝只丢弃虚拟
+Manifest，不影响共享 Blob 或已有标签。镜像源导入不进入审核流程。
+
 ## 拉取与运行
 
 ```bash

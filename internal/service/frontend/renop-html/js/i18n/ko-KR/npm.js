@@ -59,6 +59,7 @@ export default Object.freeze({
     "npm.packageName": "패키지 이름", "npm.privatePackage": "비공개 패키지",
     "npm.privateRequiresScope": "비공개 npm 패키지는 @team/package와 같은 범위 이름을 사용해야 합니다.",
     "npm.packageCreated": "npm 패키지를 만들었습니다", "npm.createFailed": "npm 패키지를 만들 수 없습니다",
+    "npm.packageCreationQueued": "npm 패키지 생성이 검토를 기다리고 있습니다",
     "npm.packageExists": "이 npm 패키지 이름은 이미 예약되었습니다", "npm.invalidPackageName": "유효한 소문자 npm 패키지 이름을 입력하세요",
     "npm.commands": "클라이언트 명령", "npm.configureRegistry": "레지스트리와 Token 설정", "npm.installPackage": "패키지 설치",
     "npm.publishPackage": "현재 프로젝트 게시", "npm.copyFailed": "npm 명령을 복사할 수 없습니다", "npm.backToPackages": "패키지 목록으로 돌아가기",

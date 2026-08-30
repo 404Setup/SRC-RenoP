@@ -51,6 +51,12 @@ docker push localhost:3000/containers/team/service:1.0.0
 RenoP rejects token push grants, blob upload initiation, and manifest publication until the image has been created.
 Chunk retries remain valid after a failed management request; recreating the login or browser dialog is not required.
 
+With either review policy, image creation returns `202 Accepted` and does not reserve the name before approval. Under
+`new_packages`, later pushes proceed normally. Under `every_version`, each manifest push also returns an accepted review
+identifier and stays absent from pull, tag-list, and catalog responses. Approval rechecks the publisher and referenced
+blobs before atomically publishing the tag. Rejection discards only the virtual manifest; shared blobs and existing
+tags remain intact. Mirror imports bypass review.
+
 ## Pull and run
 
 ```bash

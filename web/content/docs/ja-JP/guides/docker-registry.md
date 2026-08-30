@@ -51,6 +51,11 @@ docker push localhost:3000/containers/team/service:1.0.0
 image 作成前は push grant、blob upload start、manifest publication を拒否します。管理要求失敗後も retry は
 有効で、login や browser dialog を開き直す必要はありません。
 
+どちらの審査方針でも image 作成は `202 Accepted` を返し、承認まで名前を予約しません。`new_packages` では
+後続 push は通常どおり実行されます。`every_version` では各 manifest push も審査 ID と受理応答を返し、承認まで
+pull、tag-list、catalog に表示されません。承認時は publisher と参照 blob を再確認して tag を原子的に公開します。
+拒否時に破棄されるのは virtual manifest だけで、共有 blob と既存 tag は維持されます。
+
 ## Pull と実行
 
 ```bash

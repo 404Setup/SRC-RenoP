@@ -8,6 +8,7 @@ export default Object.freeze({
     "npm.repositoryDescription": "發布同鏡像不可變嘅 JavaScript 套件版本，並按套件管理 L0-L4 權限。",
     "npm.noPackages": "呢個儲存庫暫時冇可用嘅 npm 套件。",
     "npm.createPackageHint": "用 npm 客戶端發布之前，必須先保留套件名稱。",
+    "npm.packageCreationQueued": "npm 套件建立申請正在等待審核",
     "npm.privateRequiresScope": "私有 npm 套件必須使用 @team/package 呢類作用域名稱。",
     "npm.authenticationRequired": "請登入先管理呢個 npm 套件",
     "npm.cannotInviteSelf": "唔可以邀請自己",

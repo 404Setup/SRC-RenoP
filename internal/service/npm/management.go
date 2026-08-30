@@ -23,6 +23,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
+	"renop/internal/service/repositorygate"
 	"renop/internal/utils"
 )
 
@@ -194,8 +195,37 @@ func createPackageAPI(c fiber.Ctx, state *core.AppState) error {
 		c.Set("X-Renop-Required-Scope", core.APITokenScopeTeamManage)
 		return npmAPIError(c, fiber.StatusForbidden, "super_team_permission", "API token cannot use this global team")
 	}
+	release := repositorygate.AcquireMutation(repo.Name)
+	defer release()
+	existing, err := state.GetDB().GetNPMPackage(repo.Name, packageName)
+	if err != nil {
+		return npmAPIError(c, fiber.StatusInternalServerError, "internal_error", "Failed to inspect npm package")
+	}
+	if existing != nil {
+		return npmAPIError(c, fiber.StatusConflict, "package_exists", "npm package already exists")
+	}
+	createdAt := time.Now().UnixMilli()
+	if repo.PublicationReviewPolicy() != config.PublicationReviewOff {
+		review, reviewErr := QueuePackageCreationReview(
+			state, repo, packageName, teamPrefix, user.Username, request.Private, createdAt)
+		if errors.Is(reviewErr, core.ErrReviewPermissionDenied) {
+			return npmAPIError(c, fiber.StatusConflict, "review_pending",
+				"Another account already requested this npm package name")
+		}
+		if reviewErr != nil || review == nil || !review.Pending {
+			return npmAPIError(c, fiber.StatusInternalServerError, "review_unavailable",
+				"Failed to create npm package review")
+		}
+		c.Set("X-RenoP-Review-ID", review.TaskID)
+		logNPMAudit(c, state, audit.ActionUploadQueuedReview,
+			fmt.Sprintf("Repository: %s, package creation: %s, global team: %s",
+				repo.Name, packageName, teamPrefix))
+		return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
+			"pending": true, "review_id": review.TaskID, "name": packageName,
+		})
+	}
 	pkg, err := state.GetDB().CreateNPMPackageForTeam(repo.Name, packageName, user.Username,
-		teamPrefix, request.Private, time.Now().UnixMilli())
+		teamPrefix, request.Private, createdAt)
 	if errors.Is(err, core.ErrNPMPackageExists) {
 		return npmAPIError(c, fiber.StatusConflict, "package_exists", "npm package already exists")
 	}

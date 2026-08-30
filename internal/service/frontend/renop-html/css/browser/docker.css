@@ -751,6 +751,27 @@
     margin-top: 0.85rem;
 }
 
+.docker-page-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.docker-tag-review {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.22rem 0.55rem;
+    border: 1px solid color-mix(in srgb, #d69e2e 40%, var(--border-color));
+    border-radius: 999px;
+    background: color-mix(in srgb, #d69e2e 12%, transparent);
+    color: color-mix(in srgb, #d69e2e 82%, var(--text-color));
+    font-size: 0.75rem;
+    font-weight: 650;
+    line-height: 1.2;
+}
+
 .docker-readme-editor {
     display: flex;
     flex-direction: column;

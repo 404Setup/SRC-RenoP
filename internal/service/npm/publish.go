@@ -380,15 +380,7 @@ func publish(c fiber.Ctx, state *core.AppState, repo *config.Repository, store S
 		Size: size, Deprecated: manifestDeprecated(manifest), CreatedAt: now,
 	}
 	reviewPolicy := repo.PublicationReviewPolicy()
-	publishedVersions := false
 	reviewRequired := reviewPolicy == config.PublicationReviewEveryVersion
-	if reviewPolicy == config.PublicationReviewNewPackages {
-		publishedVersions, err = state.GetDB().NPMHasPublishedVersions(repo.Name, packageName)
-		if err != nil {
-			return npmError(c, fiber.StatusServiceUnavailable, "database unavailable", "npm review state is unavailable")
-		}
-		reviewRequired = !publishedVersions
-	}
 	if reviewRequired {
 		state.Inner.FileIndex.BlockFile(targetPath)
 		state.InvalidateFileCache(targetPath)
@@ -402,7 +394,7 @@ func publish(c fiber.Ctx, state *core.AppState, repo *config.Repository, store S
 	}
 	if reviewRequired {
 		review, reviewErr := QueuePublicationReview(state, repo, packageMetadata, versionMetadata,
-			document.DistTags, publishedVersions)
+			document.DistTags, true)
 		if reviewErr != nil || review == nil || !review.Pending {
 			if cleanupErr := store.Delete(state, targetPath); cleanupErr != nil {
 				state.Inner.FailuresCount.Add(1)

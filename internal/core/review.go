@@ -24,6 +24,7 @@ const (
 	ReviewStatusCancelled = "cancelled"
 
 	PublicationReviewSettleMillis = 5000
+	ReviewVersionPackageCreation  = "@create"
 )
 
 var (
@@ -49,6 +50,7 @@ type ReviewFile struct {
 	Size       int64  `json:"size"`
 	Critical   bool   `json:"critical"`
 	AddedAt    int64  `json:"added_at"`
+	Virtual    bool   `json:"-"`
 }
 
 // PublicationReviewRequest identifies one immutable package version and its committed files.

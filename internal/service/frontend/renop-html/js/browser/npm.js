@@ -23,7 +23,7 @@ import {t} from '../i18n.js';
 import {createSuperTeamBindingField} from '../super-team-selector.js';
 import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
 import {npmResponseError} from '../npm-errors.js';
-import {openSuperTeamTransferDialog} from '../reviews.js';
+import {openReviewCenter, openSuperTeamTransferDialog} from '../reviews.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {
@@ -413,6 +413,11 @@ function showCreatePackageDialog() {
                             super_team_prefix: teamBinding.value()})
                     }, 'npm.createFailed');
                     dialog.close(true);
+                    if (pkg.pending === true) {
+                        showAlert(t('npm.packageCreationQueued'), 'success');
+                        openReviewCenter('requested');
+                        return;
+                    }
                     showAlert(t('npm.packageCreated'), 'success');
                     activeNavigate?.(`/${encodeURIComponent(activeRepository)}/packages/${encodeURIComponent(pkg.name)}`);
                 } catch (error) {

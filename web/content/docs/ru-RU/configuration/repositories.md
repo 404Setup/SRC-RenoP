@@ -45,10 +45,14 @@ repositories:
 | `visibility` | `PUBLIC` | `PUBLIC`, `HIDDEN` или `PRIVATE` |
 | `allow_redeployment` | `false` | Повтор Maven или замена files/Docker, если поддерживается |
 | `require_gpg_signature` | `false` | Проверка отделённой OpenPGP подписи для Maven |
-| `publication_review` | `off` | Режим проверки Maven/npm/Cargo: `off`, `new_packages` или `every_version` |
+| `publication_review` | `off` | Режим проверки Maven/npm/Cargo/Docker: `off`, `new_packages` или `every_version` |
 | `download_statistics` | Зависит от движка | Включено для Maven/npm/Cargo/Docker; для `files` включается явно |
 | `mirrors` | `[]` | Упорядоченные upstream definitions |
 | `s3` | отсутствует | Отдельное S3-хранилище репозитория |
+
+Для npm и Docker режим `new_packages` проверяет явный запрос на создание до резервирования имени, а `every_version`
+также проверяет каждую следующую версию или manifest. У Maven и Cargo нет этапа создания пустого пакета, поэтому их
+режим `new_packages` проверяет первую публикацию. Импорт из зеркала всегда обходит проверку.
 
 `maven-classic` меняет только компоновку интерфейса и сохраняет правила публикации Maven. `files` неструктурирован,
 не создаёт контрольные суммы и POM и не проверяет подписи. Миграция Maven ↔ `files` не перемещает объекты; возврат в

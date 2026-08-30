@@ -4915,7 +4915,7 @@ paths:
     get:
       tags: [settings, reviews]
       summary: Read repository publication-review policies
-      description: Maven, npm, and Cargo repositories return `off`, `new_packages`, or `every_version`; unsupported engines return `off`.
+      description: Maven, npm, Cargo, and Docker repositories return `off`, `new_packages`, or `every_version`. For npm and Docker, `new_packages` reviews explicit creation; for Maven and Cargo it reviews the first publication. Unsupported engines return `off`.
       operationId: getRepositoryPublicationReviewSettings
       security:
         - sessionCookie: []
@@ -4938,7 +4938,7 @@ paths:
     put:
       tags: [settings, reviews]
       summary: Configure repository publication review
-      description: Maven, npm, and Cargo are supported. Maven review disables redeployment. A pending task prevents policy changes.
+      description: Maven, npm, Cargo, and Docker are supported. `every_version` also reviews explicit npm/Docker creation. Maven review disables redeployment. A pending task prevents policy changes.
       operationId: putRepositoryPublicationReviewSettings
       security:
         - sessionCookie: []
@@ -6497,7 +6497,7 @@ paths:
     post:
       tags: [npm]
       summary: Reserve an npm package before publication
-      description: Creates an empty package and assigns the caller L4. Scoped names require a matching global team where the caller has T3 or T4. npm publish cannot create packages implicitly.
+      description: Creates an empty package and assigns the caller L4. Scoped names require a matching global team where the caller has T3 or T4. npm publish cannot create packages implicitly. When publication review is enabled, creation returns an accepted review task and does not reserve the name before approval.
       operationId: createNPMPackage
       security:
         - sessionCookie: []
@@ -6531,6 +6531,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/NPMPackage"
+        "202":
+          description: Package creation accepted for review; the name is not yet reserved.
+          headers:
+            X-RenoP-Review-ID:
+              schema:
+                type: string
         "400":
           description: Invalid package name, missing team, or scope/team mismatch.
         "403":
@@ -6992,8 +6998,9 @@ paths:
       tags: [docker]
       summary: Reserve a container image before push
       description: |
-        Creates an empty public or private image and assigns the caller L4. Docker pushes cannot create images
-        implicitly. Namespaced images require a matching global team where the caller has T3 or T4. Names must be
+        Creates an empty public or private image and assigns the caller L4. When publication review is enabled, the
+        request returns an accepted review task and does not reserve the name before approval. Docker pushes cannot
+        create images implicitly. Namespaced images require a matching global team where the caller has T3 or T4. Names must be
         unique within the repository and cannot match an image exposed by an enabled mirror.
       operationId: createDockerImage
       security:
@@ -7027,6 +7034,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DockerRepositoryImage"
+        "202":
+          description: Image creation accepted for review; the name is not yet reserved.
+          headers:
+            X-RenoP-Review-ID:
+              schema:
+                type: string
         "400":
           description: Invalid image name, missing team, or namespace/team mismatch.
         "403":
@@ -7288,7 +7301,7 @@ paths:
     put:
       tags: [docker]
       summary: Push image manifest
-      description: Stores or updates the manifest for the given reference. The target image must already exist and the caller requires L1 or higher.
+      description: Stores or updates the manifest for the given reference. The target image must already exist and the caller requires L1 or higher. Under `every_version`, the bounded manifest remains outside the registry catalog until approval.
       operationId: putDockerManifest
       security:
         - basicAuth: []
@@ -7321,6 +7334,18 @@ paths:
               schema:
                 type: string
             Docker-Content-Digest:
+              schema:
+                type: string
+        "202":
+          description: Manifest accepted for publication review but not yet pullable.
+          headers:
+            Location:
+              schema:
+                type: string
+            Docker-Content-Digest:
+              schema:
+                type: string
+            X-RenoP-Review-ID:
               schema:
                 type: string
         "400":

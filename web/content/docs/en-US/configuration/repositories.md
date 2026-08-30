@@ -46,10 +46,14 @@ repositories:
 | `visibility` | `PUBLIC` | `PUBLIC`, `HIDDEN`, or `PRIVATE` |
 | `allow_redeployment` | `false` | Maven version redeployment or replacement in files/Docker, when supported |
 | `require_gpg_signature` | `false` | Require detached OpenPGP validation for Maven publication |
-| `publication_review` | `off` | Maven/npm/Cargo review policy: `off`, `new_packages`, or `every_version` |
+| `publication_review` | `off` | Maven/npm/Cargo/Docker review policy: `off`, `new_packages`, or `every_version` |
 | `download_statistics` | Engine default | Enabled for Maven/npm/Cargo/Docker; unstructured `files` opts in |
 | `mirrors` | `[]` | Ordered upstream definitions |
 | `s3` | omitted | Repository-specific S3-compatible storage |
+
+For npm and Docker, `new_packages` reviews the explicit creation request before reserving the name; `every_version`
+also reviews every later version or manifest. Maven and Cargo have no empty-package creation step, so their
+`new_packages` policy reviews the first publication. Mirror imports bypass review for every engine.
 
 `maven-classic` changes only the frontend layout and retains Maven publication rules. `files` is unstructured and does
 not generate checksums, POM files, or signature validation. Maven repositories can migrate to `files` and back without

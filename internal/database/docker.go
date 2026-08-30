@@ -112,6 +112,23 @@ func (db *DB) createDockerImage(repository, imageName, owner, superTeamPrefix st
 		return nil, fmt.Errorf("begin Docker image creation: %w", err)
 	}
 	defer tx.Rollback()
+	image, err := createDockerImageTx(
+		tx, repository, imageName, owner, ownerID, superTeamPrefix, private, createdAt)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit Docker image creation: %w", err)
+	}
+	return image, nil
+}
+
+func createDockerImageTx(tx *Tx, repository, imageName, owner, ownerID, superTeamPrefix string,
+	private bool, createdAt int64,
+) (*core.DockerRepositoryImage, error) {
+	if tx == nil {
+		return nil, core.ErrDatabaseUnavailable
+	}
 	if err := requireSuperTeamRoleTx(tx, superTeamPrefix, ownerID, core.SuperTeamRoleManage); err != nil {
 		return nil, err
 	}
@@ -136,9 +153,6 @@ func (db *DB) createDockerImage(repository, imageName, owner, superTeamPrefix st
 		(repository, image_name, username, user_id, permission_level, added_at) VALUES (?, ?, ?, ?, ?, ?)`,
 		repository, imageName, owner, ownerID, core.DockerPermissionOwner, createdAt); err != nil {
 		return nil, fmt.Errorf("create Docker image owner: %w", err)
-	}
-	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("commit Docker image creation: %w", err)
 	}
 	return &core.DockerRepositoryImage{
 		Repository: repository, ImageName: imageName, Publisher: owner, Private: private, PushEnabled: true,
@@ -615,26 +629,73 @@ func (db *DB) CacheDockerManifest(manifest *core.DockerManifest, tag string) err
 	return db.putDockerManifest(manifest, tag, "mirror", true)
 }
 
+type dockerManifestWrite struct {
+	manifest          *core.DockerManifest
+	repository        string
+	imageName         string
+	digest            string
+	mediaType         string
+	configDigest      string
+	tag               string
+	username          string
+	now               int64
+	allowMirrorCreate bool
+}
+
+func normalizeDockerManifestWrite(manifest *core.DockerManifest, tag, username string,
+	allowMirrorCreate bool, now int64,
+) (*dockerManifestWrite, error) {
+	if manifest == nil {
+		return nil, errors.New("missing Docker manifest")
+	}
+	repository, imageName := sanitizeDockerKey(manifest.Repository, manifest.ImageName)
+	write := &dockerManifestWrite{
+		manifest: manifest, repository: repository, imageName: imageName,
+		digest:       strings.ToLower(SanitizeInputString(strings.TrimSpace(manifest.Digest), 128)),
+		mediaType:    SanitizeInputString(strings.TrimSpace(manifest.MediaType), 128),
+		configDigest: strings.ToLower(SanitizeInputString(strings.TrimSpace(manifest.ConfigDigest), 128)),
+		tag:          SanitizeInputString(strings.TrimSpace(tag), 128), username: sanitizeDockerUsername(username),
+		now: now, allowMirrorCreate: allowMirrorCreate,
+	}
+	if write.repository == "" || write.imageName == "" || write.digest == "" ||
+		write.mediaType == "" || write.username == "" || now <= 0 {
+		return nil, core.ErrDockerManifestInvalid
+	}
+	return write, nil
+}
+
 func (db *DB) putDockerManifest(manifest *core.DockerManifest, tag string, username string, allowMirrorCreate bool) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
-	if manifest == nil {
-		return errors.New("missing Docker manifest")
+	write, err := normalizeDockerManifestWrite(manifest, tag, username, allowMirrorCreate, time.Now().UnixMilli())
+	if err != nil {
+		return err
 	}
-	repository, imageName := sanitizeDockerKey(manifest.Repository, manifest.ImageName)
-	digest := strings.ToLower(SanitizeInputString(strings.TrimSpace(manifest.Digest), 128))
-	mediaType := SanitizeInputString(strings.TrimSpace(manifest.MediaType), 128)
-	configDigest := strings.ToLower(SanitizeInputString(strings.TrimSpace(manifest.ConfigDigest), 128))
-	tag = SanitizeInputString(strings.TrimSpace(tag), 128)
-	username = sanitizeDockerUsername(username)
-	now := time.Now().UnixMilli()
-
 	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin Docker manifest transaction: %w", err)
 	}
 	defer tx.Rollback()
+	if err := putDockerManifestTx(tx, write); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit Docker manifest: %w", err)
+	}
+	return nil
+}
+
+func putDockerManifestTx(tx *Tx, write *dockerManifestWrite) error {
+	if tx == nil || write == nil || write.manifest == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	manifest := write.manifest
+	repository, imageName := write.repository, write.imageName
+	digest, mediaType, configDigest := write.digest, write.mediaType, write.configDigest
+	tag, username, now := write.tag, write.username, write.now
+	allowMirrorCreate := write.allowMirrorCreate
+	var err error
 
 	var pushEnabled int
 	err = tx.QueryRow(`SELECT push_enabled FROM docker_images WHERE repository = ? AND image_name = ?`, repository, imageName).Scan(&pushEnabled)
@@ -761,9 +822,6 @@ func (db *DB) putDockerManifest(manifest *core.DockerManifest, tag string, usern
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit Docker manifest: %w", err)
-	}
 	return nil
 }
 

@@ -610,7 +610,8 @@ function buildRepoSection(container, data, repoKey, repo) {
             handleGpgRequirementChange
         ));
     }
-    if (format.protocol === 'maven' || format.protocol === 'npm' || format.protocol === 'cargo') {
+    if (format.protocol === 'maven' || format.protocol === 'npm' ||
+        format.protocol === 'cargo' || format.protocol === 'docker') {
         let reviewSelect = null;
         reviewSelect = makeCustomSelect([
             {value: 'off', label: t('repos.publicationReviewOff')},

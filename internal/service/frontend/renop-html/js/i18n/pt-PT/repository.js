@@ -222,7 +222,7 @@ export default Object.freeze({
     "repos.resetDownloadStatisticsConfirm": "Repor todas as estatísticas de transferências de {name}? Esta ação é irreversível.",
     "repos.resetDownloadStatisticsSuccess": "Estatísticas de transferências repostas",
     "repos.resetDownloadStatisticsFailed": "Não foi possível repor as estatísticas de transferências",
-    "repos.publicationReview": "Revisão de publicação", "repos.publicationReviewDesc": "Reter versões locais até à revisão por um moderador do repositório ou administrador do sistema. Em Maven, também desativa a republicação.",
+    "repos.publicationReview": "Revisão de publicação", "repos.publicationReviewDesc": "Rever a criação de pacotes/imagens ou cada versão antes da publicação. Em Maven, também desativa a republicação.",
     "repos.publicationReviewOff": "Desativada", "repos.publicationReviewNewPackages": "Apenas pacotes novos",
     "repos.publicationReviewEveryVersion": "Todas as versões", "repos.publicationReviewSaved": "Definições de revisão guardadas",
     "repos.publicationReviewUpdateFailed": "Não foi possível atualizar as definições de revisão",

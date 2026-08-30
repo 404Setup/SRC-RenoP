@@ -208,6 +208,70 @@ func TestNPMPackageCreationRequiresMatchingGlobalTeamScope(t *testing.T) {
 	require.NoError(t, response.Body.Close())
 }
 
+func TestNPMPackageCreationPolicyRequiresReviewBeforeReservation(t *testing.T) {
+	registryApp, state, store := setupNPMTestApp(t)
+	repo := state.Inner.Config.Load().Maven.Repositories["npm"]
+	repo.PublicationReview = config.PublicationReviewNewPackages
+	app := fiber.New(fiber.Config{JSONEncoder: json.Marshal, JSONDecoder: json.Unmarshal})
+	app.Use(func(c fiber.Ctx) error {
+		c.Locals("user", &config.User{Username: "alice", Roles: []string{"base", "canupdate:npm"}})
+		return c.Next()
+	})
+	SetupRoutes(app.Group("/api"), state, store)
+	request := httptest.NewRequest(http.MethodPost, "/api/npm/repositories/npm/packages",
+		bytes.NewBufferString(`{"name":"reviewed-package"}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err := app.Test(request)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusAccepted, response.StatusCode)
+	var queued struct {
+		Pending  bool   `json:"pending"`
+		ReviewID string `json:"review_id"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&queued))
+	require.NoError(t, response.Body.Close())
+	assert.True(t, queued.Pending)
+	require.NotEmpty(t, queued.ReviewID)
+	pkg, err := state.GetDB().GetNPMPackage("npm", "reviewed-package")
+	require.NoError(t, err)
+	assert.Nil(t, pkg)
+
+	require.NoError(t, state.GetDB().SaveToken(&core.AccessToken{
+		Name: "moderator", Permissions: []string{"base", "canmoderate:npm"},
+	}))
+	task, err := state.GetDB().GetReviewTask(queued.ReviewID)
+	require.NoError(t, err)
+	decided, err := ApprovePackageCreationReview(
+		state, task, "moderator", task.UpdatedAt+core.PublicationReviewSettleMillis+1)
+	require.NoError(t, err)
+	assert.Equal(t, core.ReviewStatusApproved, decided.Status)
+	pkg, err = state.GetDB().GetNPMPackage("npm", "reviewed-package")
+	require.NoError(t, err)
+	require.NotNil(t, pkg)
+	assert.Equal(t, "alice", pkg.Publisher)
+	tarball := npmTestTarball(t, "reviewed-package", "1.0.0")
+	document := map[string]any{
+		"_id": "reviewed-package", "name": "reviewed-package",
+		"dist-tags": map[string]string{"latest": "1.0.0"},
+		"versions": map[string]any{"1.0.0": map[string]any{
+			"name": "reviewed-package", "version": "1.0.0",
+		}},
+		"_attachments": map[string]any{"reviewed-package-1.0.0.tgz": map[string]any{
+			"length": len(tarball), "data": base64.StdEncoding.EncodeToString(tarball),
+		}},
+	}
+	body, err := json.Marshal(document)
+	require.NoError(t, err)
+	request = httptest.NewRequest(http.MethodPut,
+		"http://registry.example/npm/reviewed-package", bytes.NewReader(body))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err = registryApp.Test(request)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, response.StatusCode)
+	assert.Empty(t, response.Header.Get("X-RenoP-Review-ID"))
+	require.NoError(t, response.Body.Close())
+}
+
 func TestNPMRegistryPublishInstallTagsAndDeprecation(t *testing.T) {
 	app, state, store := setupNPMTestApp(t)
 	tarball := npmTestTarball(t, "demo", "1.0.0")

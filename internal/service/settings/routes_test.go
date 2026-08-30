@@ -1136,9 +1136,10 @@ func TestRepositoryPublicationReviewSettingsSupportPackageEngines(t *testing.T) 
 		"releases": {
 			Name: "releases", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC", AllowRedeployment: true,
 		},
-		"files": {Name: "files", Format: config.RepositoryFormatFiles, Visibility: "PUBLIC"},
-		"npm":   {Name: "npm", Format: config.RepositoryFormatNPM, Visibility: "PUBLIC"},
-		"cargo": {Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"},
+		"files":  {Name: "files", Format: config.RepositoryFormatFiles, Visibility: "PUBLIC"},
+		"npm":    {Name: "npm", Format: config.RepositoryFormatNPM, Visibility: "PUBLIC"},
+		"cargo":  {Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"},
+		"docker": {Name: "docker", Format: config.RepositoryFormatDocker, Visibility: "PUBLIC"},
 	}
 	app, state := setupSettingsTestApp(t, cfg)
 
@@ -1210,6 +1211,15 @@ func TestRepositoryPublicationReviewSettingsSupportPackageEngines(t *testing.T) 
 	require.NoError(t, response.Body.Close())
 	assert.Equal(t, config.PublicationReviewEveryVersion,
 		state.Inner.Config.Load().Maven.Repositories["cargo"].PublicationReviewPolicy())
+	request = httptest.NewRequest(http.MethodPut, "/repositories/docker/publication-review",
+		strings.NewReader(`{"policy":"new_packages"}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, config.PublicationReviewNewPackages,
+		state.Inner.Config.Load().Maven.Repositories["docker"].PublicationReviewPolicy())
 
 	request = httptest.NewRequest(http.MethodPut, "/repositories/files/publication-review",
 		strings.NewReader(`{"policy":"new_packages"}`))

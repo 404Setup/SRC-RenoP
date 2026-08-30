@@ -11,10 +11,12 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -215,6 +217,103 @@ func TestCreateDockerImageRejectsLocalAndUpstreamNameConflicts(t *testing.T) {
 	require.Equal(t, http.StatusCreated, create("AVAILABLE"))
 	require.Equal(t, http.StatusConflict, create("available"))
 	require.Equal(t, http.StatusServiceUnavailable, create("broken"))
+}
+
+func TestDockerImageCreationPolicyRequiresReviewBeforeReservation(t *testing.T) {
+	app, state := setupTestAPIDockerApp(t)
+	cfg := state.Inner.Config.Load().DeepCopy()
+	cfg.Maven.Repositories["docker-pub"].PublicationReview = config.PublicationReviewNewPackages
+	state.Inner.Config.Store(cfg)
+	request := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/images",
+		strings.NewReader(`{"image":"reviewed-image","private":true}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	request.Header.Set(fiber.HeaderAuthorization, "Bearer admin-test-token")
+	response, err := app.Test(request)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusAccepted, response.StatusCode)
+	var queued struct {
+		Pending  bool   `json:"pending"`
+		ReviewID string `json:"review_id"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&queued))
+	require.NoError(t, response.Body.Close())
+	assert.True(t, queued.Pending)
+	require.NotEmpty(t, queued.ReviewID)
+	image, err := state.GetDB().GetDockerImage("docker-pub", "reviewed-image")
+	require.NoError(t, err)
+	assert.Nil(t, image)
+	retry := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/images",
+		strings.NewReader(`{"image":"reviewed-image","private":false}`))
+	retry.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	retry.Header.Set(fiber.HeaderAuthorization, "Bearer admin-test-token")
+	retryResponse, err := app.Test(retry)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusAccepted, retryResponse.StatusCode)
+	var retried struct {
+		ReviewID string `json:"review_id"`
+	}
+	require.NoError(t, json.NewDecoder(retryResponse.Body).Decode(&retried))
+	require.NoError(t, retryResponse.Body.Close())
+	assert.Equal(t, queued.ReviewID, retried.ReviewID)
+
+	require.NoError(t, state.GetDB().SaveToken(&core.AccessToken{
+		Name: "moderator", Permissions: []string{"base", "canmoderate:docker-pub"},
+	}))
+	task, err := state.GetDB().GetReviewTask(queued.ReviewID)
+	require.NoError(t, err)
+	decided, err := docker.ApproveImageCreationReview(context.Background(), state, task, "moderator",
+		task.UpdatedAt+core.PublicationReviewSettleMillis+1)
+	require.NoError(t, err)
+	assert.Equal(t, core.ReviewStatusApproved, decided.Status)
+	image, err = state.GetDB().GetDockerImage("docker-pub", "reviewed-image")
+	require.NoError(t, err)
+	require.NotNil(t, image)
+	assert.False(t, image.Private)
+}
+
+func TestDockerImageCreationApprovalRechecksUpstreamName(t *testing.T) {
+	var occupied atomic.Bool
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		if request.URL.Path == "/v2/raced-image/tags/list" && occupied.Load() {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		http.NotFound(w, request)
+	}))
+	t.Cleanup(upstream.Close)
+	app, state := setupTestAPIDockerApp(t)
+	cfg := state.Inner.Config.Load().DeepCopy()
+	repo := cfg.Maven.Repositories["docker-pub"]
+	repo.PublicationReview = config.PublicationReviewNewPackages
+	repo.Mirrors = []config.Mirror{{URL: upstream.URL, TimeoutSecs: 5}}
+	state.Inner.Config.Store(cfg)
+	request := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/images",
+		strings.NewReader(`{"image":"raced-image"}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	request.Header.Set(fiber.HeaderAuthorization, "Bearer admin-test-token")
+	response, err := app.Test(request)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusAccepted, response.StatusCode)
+	var queued struct {
+		ReviewID string `json:"review_id"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&queued))
+	require.NoError(t, response.Body.Close())
+	occupied.Store(true)
+	require.NoError(t, state.GetDB().SaveToken(&core.AccessToken{
+		Name: "moderator", Permissions: []string{"base", "canmoderate:docker-pub"},
+	}))
+	task, err := state.GetDB().GetReviewTask(queued.ReviewID)
+	require.NoError(t, err)
+	_, err = docker.ApproveImageCreationReview(context.Background(), state, task, "moderator",
+		task.UpdatedAt+core.PublicationReviewSettleMillis+1)
+	require.ErrorIs(t, err, core.ErrReviewResourceConflict)
+	task, err = state.GetDB().GetReviewTask(queued.ReviewID)
+	require.NoError(t, err)
+	assert.Equal(t, core.ReviewStatusPending, task.Status)
+	image, err := state.GetDB().GetDockerImage("docker-pub", "raced-image")
+	require.NoError(t, err)
+	assert.Nil(t, image)
 }
 
 func TestCreateDockerImageRequiresMatchingGlobalTeamNamespace(t *testing.T) {

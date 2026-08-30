@@ -25,7 +25,7 @@ const (
 	maxPublicationReviewFiles       = 256
 	maxPendingPublicationReviews    = 4096
 	maxPendingPublicationPerAccount = 64
-	maxPublicationReviewPayload     = 5 << 20
+	maxPublicationReviewPayload     = 6 << 20
 )
 
 func publicationReviewKey(resourceKey, version string) string {
@@ -197,9 +197,10 @@ func (db *DB) CreateOrUpdatePublicationReview(request core.PublicationReviewRequ
 		return nil, fmt.Errorf("begin publication review: %w", err)
 	}
 	defer tx.Rollback()
-	var taskID string
-	err = tx.QueryRow(`SELECT id FROM review_tasks WHERE active_key = ? AND status = ?`,
-		activeKey, core.ReviewStatusPending).Scan(&taskID)
+	actorID := ""
+	var taskID, taskActorID string
+	err = tx.QueryRow(`SELECT id, requested_by_id FROM review_tasks WHERE active_key = ? AND status = ?`,
+		activeKey, core.ReviewStatusPending).Scan(&taskID, &taskActorID)
 	if errors.Is(err, sql.ErrNoRows) {
 		if policy == config.PublicationReviewOff {
 			return &core.PublicationReviewResult{}, nil
@@ -208,16 +209,17 @@ func (db *DB) CreateOrUpdatePublicationReview(request core.PublicationReviewRequ
 		approvedErr := tx.QueryRow(`SELECT id FROM review_tasks WHERE kind = ? AND resource_type = ?
 			AND repository = ? AND resource_key = ? AND status = ? LIMIT 1`, core.ReviewKindPublication,
 			resourceType, repository, storedResourceKey, core.ReviewStatusApproved).Scan(&approvedID)
-		if approvedErr == nil {
+		if approvedErr == nil && version != core.ReviewVersionPackageCreation {
 			return nil, core.ErrReviewPublicationSealed
 		}
-		if !errors.Is(approvedErr, sql.ErrNoRows) {
+		if approvedErr != nil && !errors.Is(approvedErr, sql.ErrNoRows) {
 			return nil, fmt.Errorf("inspect approved publication review: %w", approvedErr)
 		}
 		if policy == config.PublicationReviewNewPackages && request.PackageExists {
 			return &core.PublicationReviewResult{}, nil
 		}
-		actorID, identityErr := userIDForUsernameTx(tx, actor)
+		var identityErr error
+		actorID, identityErr = userIDForUsernameTx(tx, actor)
 		if identityErr != nil {
 			return nil, core.ErrReviewPermissionDenied
 		}
@@ -245,6 +247,12 @@ func (db *DB) CreateOrUpdatePublicationReview(request core.PublicationReviewRequ
 		}
 	} else if err != nil {
 		return nil, fmt.Errorf("inspect pending publication review: %w", err)
+	} else {
+		var identityErr error
+		actorID, identityErr = userIDForUsernameTx(tx, actor)
+		if identityErr != nil || taskActorID != actorID {
+			return nil, core.ErrReviewPermissionDenied
+		}
 	}
 	for _, file := range files {
 		if err := savePublicationReviewFileTx(tx, taskID, repository, file); err != nil {
@@ -292,7 +300,7 @@ func (db *DB) ListReviewTaskFiles(id string) ([]*core.ReviewFile, error) {
 	if id == "" {
 		return nil, core.ErrReviewTaskNotFound
 	}
-	rows, err := db.Query(`SELECT f.file_id, f.path, f.size, f.critical, f.added_at, r.repository
+	rows, err := db.Query(`SELECT f.file_id, f.path, f.size, f.critical, f.added_at, r.repository, r.resource_type
 		FROM review_task_files f JOIN review_tasks r ON r.id = f.task_id
 		WHERE f.task_id = ? ORDER BY f.path, f.file_id`, id)
 	if err != nil {
@@ -303,10 +311,14 @@ func (db *DB) ListReviewTaskFiles(id string) ([]*core.ReviewFile, error) {
 	for rows.Next() {
 		file := &core.ReviewFile{}
 		var critical int
-		if err := rows.Scan(&file.ID, &file.Path, &file.Size, &critical, &file.AddedAt, &file.Repository); err != nil {
+		var resourceType string
+		if err := rows.Scan(&file.ID, &file.Path, &file.Size, &critical, &file.AddedAt,
+			&file.Repository, &resourceType); err != nil {
 			return nil, fmt.Errorf("scan review file: %w", err)
 		}
 		file.Critical = critical != 0
+		file.Virtual = resourceType == core.ReviewResourceDockerImage ||
+			strings.HasPrefix(file.Path, "review-requests/")
 		file.Name = file.Path
 		if separator := strings.LastIndexByte(file.Path, '/'); separator >= 0 {
 			file.Name = file.Path[separator+1:]
@@ -329,7 +341,7 @@ func (db *DB) ListPendingPublicationReviewFiles() ([]*core.ReviewFile, error) {
 	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
-	rows, err := db.Query(`SELECT f.file_id, f.path, f.size, f.critical, f.added_at, r.repository
+	rows, err := db.Query(`SELECT f.file_id, f.path, f.size, f.critical, f.added_at, r.repository, r.resource_type
 		FROM review_task_files f JOIN review_tasks r ON r.id = f.task_id
 		WHERE r.kind = ? AND r.status = ? ORDER BY r.repository, f.path`,
 		core.ReviewKindPublication, core.ReviewStatusPending)
@@ -341,10 +353,14 @@ func (db *DB) ListPendingPublicationReviewFiles() ([]*core.ReviewFile, error) {
 	for rows.Next() {
 		file := &core.ReviewFile{}
 		var critical int
-		if err := rows.Scan(&file.ID, &file.Path, &file.Size, &critical, &file.AddedAt, &file.Repository); err != nil {
+		var resourceType string
+		if err := rows.Scan(&file.ID, &file.Path, &file.Size, &critical, &file.AddedAt,
+			&file.Repository, &resourceType); err != nil {
 			return nil, fmt.Errorf("scan pending publication file: %w", err)
 		}
 		file.Critical = critical != 0
+		file.Virtual = resourceType == core.ReviewResourceDockerImage ||
+			strings.HasPrefix(file.Path, "review-requests/")
 		files = append(files, file)
 	}
 	if err := rows.Err(); err != nil {

@@ -27,6 +27,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
+	"renop/internal/service/repositorygate"
 	"renop/internal/service/statistics"
 )
 
@@ -413,6 +414,8 @@ func (h *Handler) HandlePutManifest(c fiber.Ctx, state *core.AppState) error {
 	if !ok {
 		return RespondError(c, fiber.StatusNotFound, ErrCodeNameUnknown, "repository not found", map[string]string{"name": name})
 	}
+	release := repositorygate.AcquireMutation(repoName)
+	defer release()
 
 	user, err := h.authenticateAndAuthorize(c, state, repo, name, true)
 	if err != nil {
@@ -431,20 +434,43 @@ func (h *Handler) HandlePutManifest(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	if strings.HasPrefix(reference, "sha256:") && reference != parsed.Digest {
-		return RespondError(c, fiber.StatusBadRequest, ErrCodeDigestInvalid, "provided digest does not match manifest content", nil)
+		return RespondError(c, fiber.StatusBadRequest, ErrCodeDigestInvalid,
+			"provided digest does not match manifest content", nil)
+	}
+	tag, _, validReference := normalizeManifestReference(reference, parsed.Digest)
+	if !validReference {
+		return RespondError(c, fiber.StatusBadRequest, ErrCodeTagInvalid, "invalid manifest reference", nil)
 	}
 	db := state.GetDB()
 	if db == nil {
 		return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported, "database unavailable", nil)
 	}
 
-	if err := h.Store.PutManifest(state, repoName, imageName, parsed.Digest, body); err != nil {
-		return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to save manifest", nil)
+	reviewPolicy := repo.PublicationReviewPolicy()
+	reviewRequired := reviewPolicy == config.PublicationReviewEveryVersion
+	createdAt := time.Now().UnixMilli()
+	if reviewRequired {
+		review, reviewErr := QueuePublicationReview(
+			state, repo, imageName, reference, parsed, user.Username, true, createdAt)
+		if reviewErr != nil || review == nil || !review.Pending {
+			status := fiber.StatusInternalServerError
+			if errors.Is(reviewErr, core.ErrReviewFileLimit) {
+				status = fiber.StatusTooManyRequests
+			}
+			return RespondError(c, status, ErrCodeUnsupported,
+				"failed to create Docker publication review", nil)
+		}
+		c.Set("X-RenoP-Review-ID", review.TaskID)
+		c.Set(DockerDigestHeader, parsed.Digest)
+		c.Set("Location", fmt.Sprintf("/v2/%s/manifests/%s", name, parsed.Digest))
+		logDockerAudit(c, state, audit.ActionUploadQueuedReview,
+			fmt.Sprintf("Repository: %s, image: %s, reference: %s, digest: %s",
+				repoName, imageName, reference, parsed.Digest))
+		return c.SendStatus(fiber.StatusAccepted)
 	}
 
-	tag := ""
-	if !strings.HasPrefix(reference, "sha256:") {
-		tag = reference
+	if err := h.Store.PutManifest(state, repoName, imageName, parsed.Digest, body); err != nil {
+		return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to save manifest", nil)
 	}
 
 	manifestRecord := &core.DockerManifest{
@@ -456,7 +482,7 @@ func (h *Handler) HandlePutManifest(c fiber.Ctx, state *core.AppState) error {
 		ConfigDigest: parsed.ConfigDigest,
 		BlobDigests:  referencedBlobDigests(parsed),
 		RawJSON:      body,
-		CreatedAt:    time.Now().UnixMilli(),
+		CreatedAt:    createdAt,
 	}
 
 	if err := db.PutDockerManifest(manifestRecord, tag, user.Username); err != nil {

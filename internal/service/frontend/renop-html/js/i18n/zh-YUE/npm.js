@@ -20,6 +20,7 @@ export default Object.freeze({
     "npm.privatePackage": "私有套件",
     "npm.privateRequiresScope": "私有 npm 套件一定要用 @team/package 呢類作用域名稱。",
     "npm.packageCreated": "npm 套件已建立",
+    "npm.packageCreationQueued": "npm 套件建立申請正等緊審核",
     "npm.createFailed": "建立唔到 npm 套件",
     "npm.packageExists": "呢個 npm 套件名稱已經畀人預留咗",
     "npm.invalidPackageName": "請輸入有效嘅小寫 npm 套件名稱",

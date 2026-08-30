@@ -222,7 +222,7 @@ export default Object.freeze({
     "repos.resetDownloadStatisticsConfirm": "Сбросить всю статистику скачиваний для {name}? Это действие нельзя отменить.",
     "repos.resetDownloadStatisticsSuccess": "Статистика скачиваний сброшена",
     "repos.resetDownloadStatisticsFailed": "Не удалось сбросить статистику скачиваний",
-    "repos.publicationReview": "Проверка публикаций", "repos.publicationReviewDesc": "Удерживать локальные версии пакетов до проверки модератором репозитория или системным администратором. Для Maven также отключается повторное развертывание.",
+    "repos.publicationReview": "Проверка публикаций", "repos.publicationReviewDesc": "Проверять создание нового пакета/образа или каждую версию до публикации. Для Maven также отключается повторное развертывание.",
     "repos.publicationReviewOff": "Отключена", "repos.publicationReviewNewPackages": "Только новые пакеты",
     "repos.publicationReviewEveryVersion": "Каждая версия", "repos.publicationReviewSaved": "Настройки проверки публикаций сохранены",
     "repos.publicationReviewUpdateFailed": "Не удалось изменить настройки проверки публикаций",

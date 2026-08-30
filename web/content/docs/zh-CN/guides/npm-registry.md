@@ -59,9 +59,9 @@ bun add @example/library
 RenoP 会验证大小受限的 gzip tarball，确认 `package/package.json` 与请求一致，计算 npm 兼容的 SHA-1 与 SHA-512
 完整性值，并且只在全部验证通过后提交归档。
 
-如果存储库启用了发布审核，成功的 `npm publish` 会返回已受理响应，但该版本暂时不会出现在 packument 和
-tarball 路由中。存储库版主或系统管理员会在 `/account/reviews` 审核同一份不可变 manifest、dist-tag 与
-tarball，批准后再将三者一并发布。
+启用任一发布审核策略后，创建软件包会返回 `202 Accepted`，且批准前不会占用名称。`new_packages` 模式下，
+后续 `npm publish` 正常执行；`every_version` 模式还会将每次发布送审，批准前不会出现在 packument 与 tarball
+路由中。存储库版主或系统管理员会一并审核不可变 manifest、dist-tag 与 tarball。
 
 ## 可见性与软件包团队
 

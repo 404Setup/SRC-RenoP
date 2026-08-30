@@ -222,7 +222,7 @@ export default Object.freeze({
     "repos.resetDownloadStatisticsConfirm": "Reset all download statistics for {name}? This cannot be undone.",
     "repos.resetDownloadStatisticsSuccess": "Download statistics reset",
     "repos.resetDownloadStatisticsFailed": "Could not reset download statistics",
-    "repos.publicationReview": "Publication review", "repos.publicationReviewDesc": "Hold local package versions for a repository moderator or system administrator. Maven review also disables redeployment.",
+    "repos.publicationReview": "Publication review", "repos.publicationReviewDesc": "Review new package/image creation or every version before publication. Maven review also disables redeployment.",
     "repos.publicationReviewOff": "Disabled", "repos.publicationReviewNewPackages": "New packages only",
     "repos.publicationReviewEveryVersion": "Every version", "repos.publicationReviewSaved": "Publication review settings saved",
     "repos.publicationReviewUpdateFailed": "Could not update publication review settings",

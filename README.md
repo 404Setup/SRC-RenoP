@@ -433,11 +433,17 @@ paths, credentials, query strings, or fragments in key server URLs are rejected 
 
 ## Publication Review
 
-Maven, npm, and Cargo repositories can set `publication_review` to `off`, `new_packages`, or `every_version`. Review is
-disabled by default and keeps local files outside the public index until a repository-scoped moderator or system
-administrator approves them. Mirror downloads are never reviewed. Maven review disables redeployment and runs only
-after any required GPG signature verification; npm review preserves its immutable publish transaction and dist-tags;
-Cargo review withholds both the crate archive and sparse-index entry.
+Maven, npm, Cargo, and Docker repositories can set `publication_review` to `off`, `new_packages`, or `every_version`.
+Review is disabled by default and keeps local files outside the public index until a repository-scoped moderator or
+system administrator approves them. Mirror downloads are never reviewed. Maven review disables redeployment and runs
+only after any required GPG signature verification; npm review preserves its immutable publish transaction and
+dist-tags; Cargo review withholds both the crate archive and sparse-index entry; Docker review keeps a bounded manifest
+payload virtual so an existing digest shared by another tag is never hidden or deleted.
+
+For npm and Docker, `new_packages` reviews the explicit package/image creation request before the name is reserved;
+approved creation is not followed by a duplicate first-version review. `every_version` reviews creation and every
+subsequent version or manifest. Maven and Cargo have no empty-package reservation, so `new_packages` reviews their
+first publication instead.
 
 One durable task collects at most 256 files for a version, including checksum, signature, and Maven metadata companions.
 Reviewers wait for a five-second upload-settling interval, can download the complete file set from `/account/reviews`,

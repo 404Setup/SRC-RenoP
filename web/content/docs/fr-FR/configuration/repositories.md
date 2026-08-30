@@ -45,10 +45,14 @@ repositories:
 | `visibility` | `PUBLIC` | `PUBLIC`, `HIDDEN` ou `PRIVATE` |
 | `allow_redeployment` | `false` | Redéploiement Maven ou remplacement files/Docker si pris en charge |
 | `require_gpg_signature` | `false` | Validation OpenPGP détachée obligatoire pour Maven |
-| `publication_review` | `off` | Examen Maven/npm/Cargo : `off`, `new_packages` ou `every_version` |
+| `publication_review` | `off` | Examen Maven/npm/Cargo/Docker : `off`, `new_packages` ou `every_version` |
 | `download_statistics` | Selon le moteur | Activé pour Maven/npm/Cargo/Docker ; `files` doit être activé explicitement |
 | `mirrors` | `[]` | Miroirs ordonnés |
 | `s3` | absent | Stockage S3 propre au dépôt |
+
+Pour npm et Docker, `new_packages` examine la demande de création explicite avant de réserver le nom ;
+`every_version` examine aussi chaque version ou manifeste ultérieur. Maven et Cargo ne créent pas de paquet vide : leur
+politique `new_packages` examine donc la première publication. Les imports de miroir contournent toujours l’examen.
 
 `maven-classic` ne change que l’interface et conserve les règles Maven. `files` est non structuré, sans sommes, POM ni
 signature. Maven peut migrer vers `files` puis revenir sans déplacer les objets ; le retour reconstruit le catalogue et

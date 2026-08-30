@@ -180,6 +180,9 @@ func RestorePublicationReviewState(state *core.AppState) error {
 		return err
 	}
 	for _, file := range files {
+		if file == nil || file.Virtual {
+			continue
+		}
 		path, pathErr := reviewFileLocalPath(state, file)
 		if pathErr != nil {
 			return pathErr
@@ -196,6 +199,9 @@ func UnblockPublicationReviewFiles(state *core.AppState, files []*core.ReviewFil
 		return core.ErrDatabaseUnavailable
 	}
 	for _, file := range files {
+		if file == nil || file.Virtual {
+			continue
+		}
 		pending, err := state.GetDB().IsPublicationReviewPathPending(file.Repository, file.Path)
 		if err != nil {
 			return err
@@ -221,6 +227,9 @@ func DeletePublicationReviewFiles(state *core.AppState, files []*core.ReviewFile
 	}
 	var result error
 	for _, file := range files {
+		if file == nil || file.Virtual {
+			continue
+		}
 		path, err := reviewFileLocalPath(state, file)
 		if err != nil {
 			result = errors.Join(result, err)

@@ -46,8 +46,14 @@ export function reviewRouteFromPath(pathname = window.location.pathname) {
     return (String(pathname || '/').replace(/\/+$/, '') || '/') === routeRoot;
 }
 
-/** Open the routed review center. */
-export function openReviewCenter() {
+/**
+ * Open the routed review center in one supported view.
+ * @param {'reviewer'|'requested'} [view='reviewer'] - Initial task perspective.
+ * @returns {void}
+ */
+export function openReviewCenter(view = 'reviewer') {
+    activeView = view === 'requested' ? 'requested' : 'reviewer';
+    pageOffset = 0;
     if (window.location.pathname !== routeRoot || window.location.search || window.location.hash) {
         window.history.pushState(null, '', routeRoot);
     }
@@ -181,6 +187,7 @@ function statusLabel(status) {
 /** @param {object} task - Review task. @returns {string} Localized transfer direction. */
 function directionLabel(task) {
     if (task.kind === 'publication') {
+        if (task.resource_version === '@create') return t('review.packageCreation');
         return t('review.publicationVersion', {version: task.resource_version});
     }
     return task.target_team_prefix
@@ -202,7 +209,10 @@ async function submitDecision(task, decision, reason = '', reasonCode = '') {
     });
     if (!response.ok) throw await localizedResponseError(response, 'review.operationFailed', {}, REVIEW_ERROR_KEYS);
     const publication = task.kind === 'publication';
-    const resultKey = publication
+    const creation = publication && task.resource_version === '@create';
+    const resultKey = creation
+        ? decision === 'approved' ? 'review.creationApproved' : 'review.creationRejected'
+        : publication
         ? decision === 'approved' ? 'review.publicationApproved' : 'review.publicationRejected'
         : decision === 'approved' ? 'review.approved' : 'review.rejected';
     showAlert(t(resultKey), 'success');
@@ -400,7 +410,9 @@ function taskCard(task) {
             el('button', {
                 type: 'button', class: 'pill-btn pill-btn--primary pill-btn--sm', onclick: async event => {
                     const confirmKey = task.kind === 'publication'
-                        ? 'review.approvePublicationConfirm' : 'review.approveConfirm';
+                        ? task.resource_version === '@create'
+                            ? 'review.approveCreationConfirm' : 'review.approvePublicationConfirm'
+                        : 'review.approveConfirm';
                     if (!await showConfirm(t(confirmKey, {
                         resource: task.resource_name, version: task.resource_version
                     }))) return;

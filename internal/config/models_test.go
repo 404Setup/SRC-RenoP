@@ -312,6 +312,14 @@ func TestRepositoryPublicationReviewPolicyValidation(t *testing.T) {
 	if got := cargoSettings.Repositories["cargo"].PublicationReviewPolicy(); got != PublicationReviewNewPackages {
 		t.Fatalf("Cargo publication-review policy = %q", got)
 	}
+	var dockerSettings MavenSettings
+	if err := json.Unmarshal([]byte(`{"repositories":{"docker":{"name":"docker","format":"docker","publication_review":"every_version"}}}`),
+		&dockerSettings); err != nil {
+		t.Fatalf("valid Docker publication-review configuration was rejected: %v", err)
+	}
+	if got := dockerSettings.Repositories["docker"].PublicationReviewPolicy(); got != PublicationReviewEveryVersion {
+		t.Fatalf("Docker publication-review policy = %q", got)
+	}
 }
 
 func TestMirrorCredentialsUnmarshaling(t *testing.T) {

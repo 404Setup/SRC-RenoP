@@ -99,7 +99,7 @@ func (r *Repository) SupportsPublicationReview() bool {
 		return false
 	}
 	switch r.NormalizedFormat() {
-	case RepositoryFormatMaven, RepositoryFormatNPM, RepositoryFormatCargo:
+	case RepositoryFormatMaven, RepositoryFormatNPM, RepositoryFormatCargo, RepositoryFormatDocker:
 		return true
 	default:
 		return false
@@ -155,7 +155,8 @@ func (r Repository) serialization() repositorySerialization {
 	if r.NormalizedFormat() == RepositoryFormatCargo || r.NormalizedFormat() == RepositoryFormatDocker ||
 		r.NormalizedFormat() == RepositoryFormatNPM ||
 		r.NormalizedFormat() == RepositoryFormatFiles {
-		if r.NormalizedFormat() != RepositoryFormatNPM && r.NormalizedFormat() != RepositoryFormatCargo {
+		if r.NormalizedFormat() != RepositoryFormatNPM && r.NormalizedFormat() != RepositoryFormatCargo &&
+			r.NormalizedFormat() != RepositoryFormatDocker {
 			serialized.PublicationReview = ""
 		}
 		if r.NormalizedFormat() == RepositoryFormatDocker || r.NormalizedFormat() == RepositoryFormatFiles {

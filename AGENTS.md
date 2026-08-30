@@ -101,22 +101,28 @@
   management. Client pushes cannot create images implicitly; administrators reserve public or private images through
   the frontend first. Local reservations are unique and cannot claim names exposed by an enabled upstream mirror;
   mirror-discovered images remain permanently pull-only. Image README content is editable by package managers and
-  bounded to 512 KiB at both the HTTP and database boundaries. Local names containing `/` require a matching global
-  team prefix and T3/T4 membership at reservation time; unprefixed images may remain personally owned.
+  bounded to 512 KiB at both the HTTP and database boundaries. Both review policies hold explicit image creation
+  without reserving its name; `new_packages` stops after creation approval, while `every_version` also keeps each exact
+  manifest in a bounded virtual payload. Approval rechecks the publisher and referenced blobs, then atomically records
+  manifest metadata, blob links, the tag, and the review decision. Existing digest files are never hidden by another
+  pending tag, rejection leaves shared blobs untouched, and mirror imports bypass review. Local names
+  containing `/` require a matching global team prefix and T3/T4 membership at reservation time; unprefixed images may
+  remain personally owned.
 - **`internal/service/npm/`**: npm-compatible per-repository registry with explicitly reserved public or scoped-private
   packages, immutable semantic versions, validated streaming tarball publication, dist-tags, deprecation/unpublish
   workflows, L0-L4 package teams, upstream packument/tarball mirrors, and full/abbreviated metadata negotiation.
   URL-encoded scoped metadata routes are decoded by the npm protocol before shared file-path sanitization. Mirrored
   packages remain pull-only, while local publication requires both repository and package permission. Scoped local
   packages require a matching global team prefix and T3/T4 membership at reservation time; unscoped packages may
-  remain personally owned. Optional new-package or every-version review hides a committed tarball and bounded
-  manifest/dist-tag payload until a repository moderator approves the same immutable publication transaction;
-  decision failure restores the exact prior package summary and revision.
+  remain personally owned. Both review policies hold explicit package creation without reserving its name;
+  `new_packages` stops after creation approval, while `every_version` also hides each committed tarball and bounded
+  manifest/dist-tag payload until a repository moderator approves the same immutable publication transaction. Creation
+  and publication decisions are atomic, and decision failure restores the exact prior package summary and revision.
 - **`internal/service/proxy/` & `internal/service/outboundproxy/`**: Outbound HTTP/HTTPS/SOCKS5 proxy management with
   client connection pooling and per-mirror routing.
 - **`internal/service/repositorygate/`**: Bounded striped read/write gates that serialize repository engine and storage
-  configuration changes with uploads, deletes, GPG publication, npm publish/dist-tag mutations, review decisions, and
-  mirror cache commits.
+  configuration changes with uploads, deletes, GPG publication, npm publish/dist-tag mutations, Docker manifest
+  publication, review decisions, and mirror cache commits.
 - **`internal/service/storage/` & `internal/service/gpg/`**: Multi-backend storage (Disk/S3), OpenPGP signature
   verification, and quarantined publication queue (`.renop.tmp.gpg`). The independent `files` repository format
   provides unstructured replaceable file storage and mirrors without checksum generation or signature processing.
@@ -125,6 +131,8 @@
   binary MIME types without HTTP content-encoding labels. Maven files awaiting publication review are committed but
   blocked from every index insertion path; startup restores those blocks from the review database before watchers run,
   and GPG-success cleanup retains the publication block until an approval exposes or a rejection deletes the files.
+  Virtual Docker review manifests are identified from their task type and bypass filesystem block, delete, and reindex
+  operations while remaining downloadable through the authenticated review API.
 - **`internal/service/packagestore/`**: Shared streaming package-blob boundary used by protocol modules for bounded
   staging, validation, atomic Disk/S3 commit, rollback, and deletion without importing storage implementations.
 - **`internal/service/message/`**: Durable user message-center API for workflow events, team invitations, and
@@ -148,6 +156,10 @@
   migration, and deletion are rejected while a publication review remains pending.
   npm approvals use the same repository gate, payload lifecycle, file download API, preset rejection reasons, and
   single-decision contract as Maven while keeping protocol packuments unaware of pending versions.
+  Docker publication tasks expose a validated virtual `manifest.json` through the same bounded file API without adding
+  nonexistent objects to the storage index; approval completes its catalog and task mutation in one database transaction.
+  npm and Docker creation requests use the reserved `@create` review version, bind retries to the requester's immutable
+  identity, expose a bounded virtual JSON request, and create the resource in the same transaction as the review CAS.
 - **`internal/service/audit/`**: Durable behavior logging with a central registry of stable action identifiers.
   Frontend tests require every registered action to have a translation in every locale before changes can ship.
 - **`internal/service/tasks/`**: Process-wide non-reentrant scheduler for coalescible periodic maintenance, including
@@ -250,6 +262,10 @@
   shared pager intentionally avoids dense numbered-button rows on mobile.
   Cargo package collaborators and repository moderators can see pending versions in the package page, while public
   sparse-index and catalog responses remain unchanged until approval.
+  Docker image collaborators and repository moderators see pending tags with pull, inspect, and delete actions withheld;
+  public Registry v2 manifest, tag-list, and catalog responses remain unchanged until approval.
+  Approved npm/Docker creation dialogs enter the review center through its application-level router, avoiding a stale
+  repository-loader error before refresh.
   npm repositories use `js/browser/npm.js` for bounded catalog, package, integrity, immutable-version, dist-tag,
   visibility, provenance, published README/project metadata, and responsive L0-L4 team management while protocol
   failures are localized through stable codes in `js/npm-errors.js`. npm integrity/action panels and Maven version-file

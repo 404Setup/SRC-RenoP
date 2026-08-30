@@ -52,6 +52,8 @@ type DockerTag struct {
 	Publisher    string `json:"publisher"`
 	CreatedAt    int64  `json:"created_at"`
 	UpdatedAt    int64  `json:"updated_at"`
+	ReviewStatus string `json:"review_status,omitempty"`
+	ReviewID     string `json:"review_id,omitempty"`
 }
 
 // DockerManifest represents a stored OCI or Docker v2 image manifest.
