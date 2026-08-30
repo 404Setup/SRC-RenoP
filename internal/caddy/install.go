@@ -13,6 +13,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,6 +21,8 @@ import (
 
 	"renop/internal/utils"
 )
+
+const maxManagedConfigBytes = 4 << 20
 
 // Options controls a Caddy installation transaction.
 type Options struct {
@@ -233,19 +236,30 @@ func readExistingFile(path string) ([]byte, os.FileMode, error) {
 }
 
 func readOptionalFile(path string) ([]byte, os.FileMode, bool, error) {
-	info, err := os.Stat(path)
+	file, err := os.Open(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, 0600, false, nil
 	}
 	if err != nil {
 		return nil, 0, false, err
 	}
+	defer file.Close()
+	info, err := file.Stat()
+	if err != nil {
+		return nil, 0, false, err
+	}
 	if !info.Mode().IsRegular() {
 		return nil, 0, false, fmt.Errorf("%s is not a regular file", path)
 	}
-	data, err := os.ReadFile(path)
+	if info.Size() > maxManagedConfigBytes {
+		return nil, 0, false, fmt.Errorf("%s exceeds the 4 MiB managed configuration limit", path)
+	}
+	data, err := io.ReadAll(io.LimitReader(file, maxManagedConfigBytes+1))
 	if err != nil {
 		return nil, 0, false, err
+	}
+	if len(data) > maxManagedConfigBytes {
+		return nil, 0, false, fmt.Errorf("%s exceeds the 4 MiB managed configuration limit", path)
 	}
 	return data, info.Mode().Perm(), true, nil
 }

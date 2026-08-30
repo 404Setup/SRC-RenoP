@@ -9,6 +9,7 @@
 package caddy
 
 import (
+	"bytes"
 	"errors"
 	"os"
 	"path/filepath"
@@ -69,6 +70,22 @@ func TestInstallAppliesValidatedTransaction(t *testing.T) {
 		require.NoError(t, statErr)
 		require.Equal(t, os.FileMode(0600), configInfo.Mode().Perm())
 	}
+}
+
+func TestReadOptionalFileEnforcesManagedConfigBoundary(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "Caddyfile")
+	require.NoError(t, os.WriteFile(path, bytes.Repeat([]byte{'x'}, maxManagedConfigBytes), 0o600))
+	data, mode, exists, err := readOptionalFile(path)
+	require.NoError(t, err)
+	require.True(t, exists)
+	require.Len(t, data, maxManagedConfigBytes)
+	if runtime.GOOS != "windows" {
+		require.Equal(t, os.FileMode(0o600), mode)
+	}
+
+	require.NoError(t, os.WriteFile(path, bytes.Repeat([]byte{'x'}, maxManagedConfigBytes+1), 0o600))
+	_, _, _, err = readOptionalFile(path)
+	require.ErrorContains(t, err, "4 MiB")
 }
 
 func TestInstallRollsBackBothFilesWhenReloadFails(t *testing.T) {

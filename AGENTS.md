@@ -216,8 +216,9 @@
 - **`internal/caddy/`**: Transactional `--install-caddy` deployment integration. It discovers standard Caddyfile and
   binary locations, validates normalized hostnames, updates one idempotent managed reverse-proxy block, constrains the
   RenoP listener to loopback, synchronizes the public domain, disables origin TLS, validates through Caddy, atomically
-  replaces each file, and rolls both back if reload fails. Explicit paths and offline `--skip-reload` operation remain
-  available for nonstandard service layouts.
+  replaces each file, and rolls both back if reload fails. Caddyfile and RenoP configuration snapshots are opened once
+  as regular files and streaming-bounded to 4 MiB before comparison, preventing path-swap and unbounded-read behavior.
+  Explicit paths and offline `--skip-reload` operation remain available for nonstandard service layouts.
 - **`internal/utils/`**: Runtime memory/GC tuning (`InitMemoryTuning` for Linux/Windows) and process-wide string
   interning (`unique.Make`).
 - **`web/` & `internal/service/frontend/`**: Embedded SPA with username-based `/user/<username>` profile, edit, and
