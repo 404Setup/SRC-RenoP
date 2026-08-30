@@ -96,11 +96,14 @@ run/
 **/node_modules/
 
 renop
+./tmp-*
+.tmp-*
 storage/private
 storage/releases
 storage/snapshots
 storage/rust-id
 storage/dci
+storage/npm
 .gocache
 .gomodcache
 ## don't remove
