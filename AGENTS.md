@@ -89,6 +89,8 @@
   `Cargo.toml` declaration into package metadata without loading the crate archive into memory. Optional new-package or
   every-version publication review commits and hides the crate archive first, then atomically writes the sparse index
   and catalog metadata before approval exposes it; rejection removes the hidden archive and mirrors bypass review.
+  Raw HTML rendering scans only the final 64 KiB for a closing tag and inserts the external-link guard through a
+  composed file stream, avoiding the former full-file read and second allocation for entries up to 64 MiB.
 - **`internal/service/maven/`**: Process-wide Maven domain registry with DNS/GitHub/GitLab ownership verification,
   global L0-L4 domain teams shared by every Maven repository, invitation workflows, catalog/version management, and
   automatic migration of repository-scoped legacy domains. Upstream mirror discovery persists unverified global

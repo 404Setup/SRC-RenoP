@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -281,6 +282,69 @@ func HandleCargodocPage(c fiber.Ctx, state *core.AppState) error {
 	return c.Status(fiber.StatusOK).SendString(pageHTML)
 }
 
+const (
+	cargodocHTMLTailScanSize   = 64 << 10
+	cargodocExternalLinkScript = `<script>document.addEventListener('click',function(e){var a=e.target.closest('a');if(a&&/^(https?:|\/\/)/i.test(a.getAttribute('href')||'')){a.target='_blank';a.rel='noopener noreferrer';}},true);</script>`
+)
+
+type cargodocHTMLStream struct {
+	io.Reader
+	file *os.File
+}
+
+func (stream *cargodocHTMLStream) Close() error {
+	return stream.file.Close()
+}
+
+func cargodocHTMLInsertionOffset(file *os.File, size int64) (int64, bool, error) {
+	if file == nil || size <= 0 {
+		return 0, false, nil
+	}
+	tailSize := min(size, int64(cargodocHTMLTailScanSize))
+	tail := make([]byte, tailSize)
+	start := size - tailSize
+	read, err := file.ReadAt(tail, start)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return 0, false, err
+	}
+	tail = tail[:read]
+	if index := bytes.LastIndex(tail, []byte("</body>")); index >= 0 {
+		return start + int64(index), true, nil
+	}
+	if index := bytes.LastIndex(tail, []byte("</head>")); index >= 0 {
+		return start + int64(index), true, nil
+	}
+	return 0, false, nil
+}
+
+func serveInjectedCargodocHTML(c fiber.Ctx, path string, size int64) (bool, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	offset, found, err := cargodocHTMLInsertionOffset(file, size)
+	if err != nil || !found {
+		_ = file.Close()
+		return false, err
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		_ = file.Close()
+		return false, err
+	}
+	stream := &cargodocHTMLStream{
+		Reader: io.MultiReader(
+			io.LimitReader(file, offset), strings.NewReader(cargodocExternalLinkScript), file),
+		file: file,
+	}
+	c.Set(fiber.HeaderContentType, "text/html; charset=utf-8")
+	if err := c.Status(fiber.StatusOK).SendStream(stream, int(size)+len(cargodocExternalLinkScript)); err != nil {
+		_ = stream.Close()
+		return true, err
+	}
+	return true, nil
+}
+
+// ServeRawCargodoc streams one sandboxed extracted documentation resource.
 func ServeRawCargodoc(c fiber.Ctx, state *core.AppState, repoName, crateName, version, resource string) error {
 	cfg := state.Inner.Config.Load()
 	if !cfg.EnableCargodocPreview {
@@ -332,24 +396,8 @@ func ServeRawCargodoc(c fiber.Ctx, state *core.AppState, repoName, crateName, ve
 
 	lowerPath := strings.ToLower(resourcePath)
 	if (strings.HasSuffix(lowerPath, ".html") || strings.HasSuffix(lowerPath, ".htm")) && info.Size() <= maxCargodocEntrySize {
-		content, err := os.ReadFile(resourcePath)
-		if err == nil {
-			c.Set(fiber.HeaderContentType, "text/html; charset=utf-8")
-			scriptTag := []byte(`<script>document.addEventListener('click',function(e){var a=e.target.closest('a');if(a&&/^(https?:|\/\/)/i.test(a.getAttribute('href')||'')){a.target='_blank';a.rel='noopener noreferrer';}},true);</script>`)
-			if idx := bytes.LastIndex(content, []byte("</body>")); idx != -1 {
-				modified := make([]byte, len(content)+len(scriptTag))
-				copy(modified, content[:idx])
-				copy(modified[idx:], scriptTag)
-				copy(modified[idx+len(scriptTag):], content[idx:])
-				return c.Status(fiber.StatusOK).Send(modified)
-			} else if idx := bytes.LastIndex(content, []byte("</head>")); idx != -1 {
-				modified := make([]byte, len(content)+len(scriptTag))
-				copy(modified, content[:idx])
-				copy(modified[idx:], scriptTag)
-				copy(modified[idx+len(scriptTag):], content[idx:])
-				return c.Status(fiber.StatusOK).Send(modified)
-			}
-			return c.Status(fiber.StatusOK).Send(content)
+		if served, streamErr := serveInjectedCargodocHTML(c, resourcePath, info.Size()); served {
+			return streamErr
 		}
 	}
 

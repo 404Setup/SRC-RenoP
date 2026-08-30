@@ -159,6 +159,37 @@ func TestExtractZipCargodoc(t *testing.T) {
 	}
 }
 
+func TestCargodocHTMLInsertionScansOnlyBoundedTail(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "large.html")
+	content := strings.Repeat("x", cargodocHTMLTailScanSize*2) + "</body>" + strings.Repeat("y", 64)
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	offset, found, err := cargodocHTMLInsertionOffset(file, int64(len(content)))
+	_ = file.Close()
+	if err != nil || !found || offset != int64(strings.LastIndex(content, "</body>")) {
+		t.Fatalf("tail insertion offset = %d, found = %t, err = %v", offset, found, err)
+	}
+
+	content = "</body>" + strings.Repeat("z", cargodocHTMLTailScanSize+1)
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	file, err = os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, found, err = cargodocHTMLInsertionOffset(file, int64(len(content)))
+	_ = file.Close()
+	if err != nil || found {
+		t.Fatalf("out-of-window closing tag found = %t, err = %v", found, err)
+	}
+}
+
 func TestHandleCargodocPageAndServeRaw(t *testing.T) {
 	tempStorage := t.TempDir()
 	cfg := withIsolatedCargodocConfig(t, func(c *config.Config) {
