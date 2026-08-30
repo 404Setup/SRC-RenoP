@@ -100,5 +100,6 @@ export default Object.freeze({
     "audit.action.NPM_PACKAGE_DELETE": "npm-Paket gelöscht", "audit.action.NPM_DIST_TAG": "npm-Dist-Tag aktualisiert",
     "audit.action.NPM_TEAM_ADD": "npm-Teammitglied hinzugefügt", "audit.action.NPM_TEAM_INVITE": "npm-Teameinladung gesendet",
     "audit.action.NPM_TEAM_LEVEL": "npm-Teamrecht aktualisiert", "audit.action.NPM_TEAM_REMOVE": "npm-Teammitglied entfernt",
-    "audit.action.NPM_INVITE_ACCEPT": "npm-Einladung angenommen", "audit.action.NPM_INVITE_REJECT": "npm-Einladung abgelehnt"
+    "audit.action.NPM_INVITE_ACCEPT": "npm-Einladung angenommen", "audit.action.NPM_INVITE_REJECT": "npm-Einladung abgelehnt",
+    "npm.reviewPending": "Prüfung ausstehend"
 });

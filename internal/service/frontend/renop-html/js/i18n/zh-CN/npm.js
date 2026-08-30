@@ -166,5 +166,6 @@ export default Object.freeze({
     "audit.action.NPM_TEAM_LEVEL": "更新 npm 团队权限",
     "audit.action.NPM_TEAM_REMOVE": "移除 npm 团队成员",
     "audit.action.NPM_INVITE_ACCEPT": "接受 npm 邀请",
-    "audit.action.NPM_INVITE_REJECT": "拒绝 npm 邀请"
+    "audit.action.NPM_INVITE_REJECT": "拒绝 npm 邀请",
+    "npm.reviewPending": "审核中"
 });

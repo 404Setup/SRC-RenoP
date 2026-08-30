@@ -100,5 +100,6 @@ export default Object.freeze({
     "audit.action.NPM_PACKAGE_DELETE": "npm 패키지 삭제", "audit.action.NPM_DIST_TAG": "npm Dist-Tag 업데이트",
     "audit.action.NPM_TEAM_ADD": "npm 팀 구성원 추가", "audit.action.NPM_TEAM_INVITE": "npm 팀 초대 전송",
     "audit.action.NPM_TEAM_LEVEL": "npm 팀 권한 업데이트", "audit.action.NPM_TEAM_REMOVE": "npm 팀 구성원 제거",
-    "audit.action.NPM_INVITE_ACCEPT": "npm 초대 수락", "audit.action.NPM_INVITE_REJECT": "npm 초대 거절"
+    "audit.action.NPM_INVITE_ACCEPT": "npm 초대 수락", "audit.action.NPM_INVITE_REJECT": "npm 초대 거절",
+    "npm.reviewPending": "검토 대기 중"
 });

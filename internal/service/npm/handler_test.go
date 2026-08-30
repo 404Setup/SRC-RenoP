@@ -304,6 +304,74 @@ func TestNPMRegistryPublishInstallTagsAndDeprecation(t *testing.T) {
 	store.mu.Unlock()
 }
 
+func TestNPMPublicationReviewDefersVersionsAndNewPackagePolicy(t *testing.T) {
+	app, state, _ := setupNPMTestApp(t)
+	repo := state.Inner.Config.Load().Maven.Repositories["npm"]
+	repo.PublicationReview = config.PublicationReviewEveryVersion
+	publishVersion := func(version string) *http.Response {
+		tarball := npmTestTarball(t, "demo", version)
+		document := map[string]any{
+			"_id": "demo", "name": "demo", "description": "Reviewed package",
+			"dist-tags": map[string]string{"latest": version},
+			"versions": map[string]any{version: map[string]any{
+				"name": "demo", "version": version, "description": "Reviewed package",
+			}},
+			"_attachments": map[string]any{"demo-" + version + ".tgz": map[string]any{
+				"content_type": "application/octet-stream", "length": len(tarball),
+				"data": base64.StdEncoding.EncodeToString(tarball),
+			}},
+		}
+		body, err := json.Marshal(document)
+		require.NoError(t, err)
+		request := httptest.NewRequest(http.MethodPut, "http://registry.example/npm/demo", bytes.NewReader(body))
+		request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+		response, err := app.Test(request)
+		require.NoError(t, err)
+		return response
+	}
+	response := publishVersion("1.0.0")
+	require.Equal(t, http.StatusAccepted, response.StatusCode)
+	reviewID := response.Header.Get("X-RenoP-Review-ID")
+	require.NotEmpty(t, reviewID)
+	require.NoError(t, response.Body.Close())
+	details, err := state.GetDB().GetNPMPackageDetails("npm", "demo", "alice")
+	require.NoError(t, err)
+	require.Empty(t, details.Versions)
+	require.NoError(t, AddPendingPublicationVersions(state, details))
+	require.Len(t, details.Versions, 1)
+	assert.Equal(t, core.ReviewStatusPending, details.Versions[0].ReviewStatus)
+	assert.Equal(t, reviewID, details.Versions[0].ReviewID)
+
+	task, err := state.GetDB().GetReviewTask(reviewID)
+	require.NoError(t, err)
+	previous, err := state.GetDB().GetNPMPackage("npm", "demo")
+	require.NoError(t, err)
+	require.NoError(t, ApprovePublicationReview(state, task))
+	require.NoError(t, state.GetDB().SaveToken(&core.AccessToken{
+		Name: "moderator", CreatedAt: time.Now().Format(time.RFC3339),
+		Permissions: []string{"base", "canmoderate:npm"},
+	}))
+	_, err = state.GetDB().DecideReviewTask(reviewID, "moderator", core.ReviewStatusApproved, "",
+		task.UpdatedAt+core.PublicationReviewSettleMillis+1)
+	if err != nil {
+		require.NoError(t, RemoveApprovedPublicationMetadata(state, task, previous, map[string]string{}))
+	}
+	require.NoError(t, err)
+	details, err = state.GetDB().GetNPMPackageDetails("npm", "demo", "alice")
+	require.NoError(t, err)
+	require.Len(t, details.Versions, 1)
+	assert.Equal(t, "1.0.0", details.Versions[0].Version)
+
+	repo.PublicationReview = config.PublicationReviewNewPackages
+	response = publishVersion("2.0.0")
+	require.Equal(t, http.StatusCreated, response.StatusCode)
+	require.Empty(t, response.Header.Get("X-RenoP-Review-ID"))
+	require.NoError(t, response.Body.Close())
+	details, err = state.GetDB().GetNPMPackageDetails("npm", "demo", "alice")
+	require.NoError(t, err)
+	require.Len(t, details.Versions, 2)
+}
+
 func TestNPMTarballValidationRejectsUnsafeAndMismatchedArchives(t *testing.T) {
 	_, valid := NormalizePackageName("@team/package")
 	assert.True(t, valid)

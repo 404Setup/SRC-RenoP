@@ -51,7 +51,8 @@ func TestPublicationReviewFilesAreBoundedScopedAndSingleDecision(t *testing.T) {
 		ResourceType: core.ReviewResourceMavenArtifact, Repository: "releases",
 		ResourceKey: "com.example:demo", ResourceName: "com.example:demo", Version: "1.0.0",
 		RequestedBy: "charlie", Policy: config.PublicationReviewEveryVersion, CreatedAt: now,
-		Files: []*core.ReviewFile{{Path: "com/example/demo/1.0.0/demo-1.0.0.jar", Size: 42, Critical: true}},
+		Payload: []byte(`{"engine":"test"}`),
+		Files:   []*core.ReviewFile{{Path: "com/example/demo/1.0.0/demo-1.0.0.jar", Size: 42, Critical: true}},
 	}
 	result, err := db.CreateOrUpdatePublicationReview(request)
 	require.NoError(t, err)
@@ -70,6 +71,9 @@ func TestPublicationReviewFilesAreBoundedScopedAndSingleDecision(t *testing.T) {
 	assert.Equal(t, 1, task.FileCount)
 	assert.EqualValues(t, 84, task.TotalSize)
 	assert.Equal(t, now+100, task.UpdatedAt)
+	payload, err := db.GetReviewTaskPayload(task.ID)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"engine":"test"}`, string(payload))
 	files, err := db.ListReviewTaskFiles(task.ID)
 	require.NoError(t, err)
 	require.Len(t, files, 1)
@@ -94,6 +98,8 @@ func TestPublicationReviewFilesAreBoundedScopedAndSingleDecision(t *testing.T) {
 	approved, err := db.DecideReviewTask(task.ID, "moderator", core.ReviewStatusApproved, "", now+6000)
 	require.NoError(t, err)
 	assert.Equal(t, core.ReviewStatusApproved, approved.Status)
+	_, err = db.GetReviewTaskPayload(task.ID)
+	require.ErrorIs(t, err, core.ErrReviewTaskNotFound)
 	pending, err = db.IsPublicationReviewPathPending("releases", files[0].Path)
 	require.NoError(t, err)
 	assert.False(t, pending)

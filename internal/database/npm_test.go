@@ -218,6 +218,42 @@ func TestNPMPackageMetadataAggregateIsBounded(t *testing.T) {
 	require.Len(t, details.Versions, 1)
 }
 
+func TestRollbackNPMPublicationReviewRestoresPackageSummary(t *testing.T) {
+	db := newMavenDB(t)
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "review_owner", Permissions: []string{"base"}}))
+	now := time.Now().UnixMilli()
+	_, err := db.CreateNPMPackage("npm", "review-demo", "review_owner", false, now)
+	require.NoError(t, err)
+	require.NoError(t, db.RecordNPMPublication(&core.NPMPackage{
+		Repository: "npm", Name: "review-demo", Description: "stable description", UpdatedAt: now + 1,
+	}, &core.NPMVersion{
+		Repository: "npm", Package: "review-demo", Version: "0.9.0",
+		ManifestJSON: `{"name":"review-demo","version":"0.9.0"}`, Publisher: "review_owner",
+		TarballPath: "review-demo/-/review-demo-0.9.0.tgz", CreatedAt: now + 1,
+	}, map[string]string{"latest": "0.9.0", "stable": "0.9.0"}, "review_owner"))
+	previousDetails, err := db.GetNPMPackageDetails("npm", "review-demo", "review_owner")
+	require.NoError(t, err)
+	previous := previousDetails.Package
+	require.NoError(t, db.RecordNPMPublication(&core.NPMPackage{
+		Repository: "npm", Name: "review-demo", Description: "pending description", UpdatedAt: now + 2,
+	}, &core.NPMVersion{
+		Repository: "npm", Package: "review-demo", Version: "1.0.0",
+		ManifestJSON: `{"name":"review-demo","version":"1.0.0"}`, Publisher: "review_owner",
+		TarballPath: "review-demo/-/review-demo-1.0.0.tgz", CreatedAt: now + 2,
+	}, map[string]string{"latest": "1.0.0"}, "review_owner"))
+	require.NoError(t, db.RollbackNPMPublicationReview("npm", "review-demo", "1.0.0", previous,
+		previousDetails.DistTags))
+	details, err := db.GetNPMPackageDetails("npm", "review-demo", "review_owner")
+	require.NoError(t, err)
+	require.Len(t, details.Versions, 1)
+	assert.Equal(t, "0.9.0", details.Versions[0].Version)
+	assert.Equal(t, "0.9.0", details.DistTags["latest"])
+	assert.Equal(t, "0.9.0", details.DistTags["stable"])
+	assert.Equal(t, previous.Description, details.Package.Description)
+	assert.Equal(t, previous.LatestVersion, details.Package.LatestVersion)
+	assert.Equal(t, previous.Revision, details.Package.Revision)
+}
+
 func TestPostgresNPMPackageIntegration(t *testing.T) {
 	dsn, _, _ := newPostgresTestSchema(t, "renop_npm_test")
 	db, err := database.InitDB(config.DatabaseConfig{

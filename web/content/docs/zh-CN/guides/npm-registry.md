@@ -59,6 +59,10 @@ bun add @example/library
 RenoP 会验证大小受限的 gzip tarball，确认 `package/package.json` 与请求一致，计算 npm 兼容的 SHA-1 与 SHA-512
 完整性值，并且只在全部验证通过后提交归档。
 
+如果存储库启用了发布审核，成功的 `npm publish` 会返回已受理响应，但该版本暂时不会出现在 packument 和
+tarball 路由中。存储库版主或系统管理员会在 `/account/reviews` 审核同一份不可变 manifest、dist-tag 与
+tarball，批准后再将三者一并发布。
+
 ## 可见性与软件包团队
 
 公开软件包遵循存储库可见性。私有软件包必须使用作用域，并要求明确的软件包成员关系或管理员权限。L0 可读取，

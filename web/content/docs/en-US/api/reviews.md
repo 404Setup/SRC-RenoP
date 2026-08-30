@@ -44,6 +44,10 @@ publication review. Files uploaded for the same version are attached to one task
 Maven metadata companions. A five-second settling window after the latest file prevents a reviewer from deciding a
 version while the client is still uploading it. An approved version is sealed against later file additions.
 
+An npm publish is already one complete transaction. RenoP hides its tarball and retains a bounded manifest/dist-tag
+payload until approval, then records the immutable version and tags together. For `new_packages`, a reservation remains
+new until its first visible version is approved. Upstream packuments and tarballs never create review tasks.
+
 ## List tasks
 
 GET /api/reviews returns a bounded page. `view` accepts `reviewer` or `requested`; `status` accepts `pending`,
@@ -78,8 +82,8 @@ it opens the critical files individually instead of presenting an incomplete arc
 POST /api/reviews/{id}/decision accepts `approved` or `rejected`. Ownership-transfer rejection requires a non-empty
 reason of at most 512 characters. Publication rejection requires `reason_code`; supported values are
 `invalid_metadata`, `quality`, `policy_violation`, `copyright`, `malware`, and `custom`. A custom reason is limited to
-505 characters. Approval publishes the Maven catalog entry before exposing its files; rejection deletes the hidden
-files. Both paths keep the durable task decision compare-and-set.
+505 characters. Approval records the engine’s version metadata before exposing its files; rejection deletes the
+hidden files. Both paths keep the durable task decision compare-and-set.
 
 DELETE /api/reviews/{id} lets only the requester cancel a pending ownership transfer. Publication reviews cannot be
 cancelled through this route. Competing decisions use a pending-state compare-and-set, so every later attempt receives

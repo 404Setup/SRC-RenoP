@@ -222,7 +222,7 @@ export default Object.freeze({
     "repos.resetDownloadStatisticsConfirm": "重設 {name} 的全部下載統計？此操作無法復原。",
     "repos.resetDownloadStatisticsSuccess": "下載統計已重設",
     "repos.resetDownloadStatisticsFailed": "無法重設下載統計",
-    "repos.publicationReview": "發佈審核", "repos.publicationReviewDesc": "新的 Maven 發佈須由儲存庫版主或系統管理員審核後才會顯示。啟用審核後亦會關閉重新部署。",
+    "repos.publicationReview": "發佈審核", "repos.publicationReviewDesc": "本機套件版本須由儲存庫版主或系統管理員審核後才會顯示；Maven 啟用審核後亦會關閉重新部署。",
     "repos.publicationReviewOff": "關閉", "repos.publicationReviewNewPackages": "僅新建套件",
     "repos.publicationReviewEveryVersion": "每個版本", "repos.publicationReviewSaved": "發佈審核設定已儲存",
     "repos.publicationReviewUpdateFailed": "無法更新發佈審核設定",

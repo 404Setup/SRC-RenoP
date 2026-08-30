@@ -222,7 +222,7 @@ export default Object.freeze({
     "repos.resetDownloadStatisticsConfirm": "¿Restablecer todas las estadísticas de descarga de {name}? Esta acción no se puede deshacer.",
     "repos.resetDownloadStatisticsSuccess": "Estadísticas de descarga restablecidas",
     "repos.resetDownloadStatisticsFailed": "No se pudieron restablecer las estadísticas de descarga",
-    "repos.publicationReview": "Revisión de publicación", "repos.publicationReviewDesc": "Retiene las nuevas publicaciones Maven hasta que las revise un moderador del repositorio o un administrador del sistema. Al activarla también se deshabilita el redespliegue.",
+    "repos.publicationReview": "Revisión de publicación", "repos.publicationReviewDesc": "Retiene versiones locales hasta que las revise un moderador del repositorio o un administrador del sistema. En Maven también deshabilita el redespliegue.",
     "repos.publicationReviewOff": "Deshabilitada", "repos.publicationReviewNewPackages": "Solo paquetes nuevos",
     "repos.publicationReviewEveryVersion": "Cada versión", "repos.publicationReviewSaved": "Configuración de revisión guardada",
     "repos.publicationReviewUpdateFailed": "No se pudo actualizar la configuración de revisión",

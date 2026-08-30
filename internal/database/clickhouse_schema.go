@@ -227,6 +227,9 @@ func clickHouseSchemas() []clickHouseTableSchema {
 			"`task_id` String", "`file_id` String", "`path` String", "`size` Int64 DEFAULT 0",
 			"`critical` Int64 DEFAULT 0", "`added_at` Int64",
 		}},
+		{name: "review_task_payloads", keyColumns: []string{"task_id"}, columns: []string{
+			"`task_id` String", "`payload_json` String",
+		}},
 		{name: "npm_packages", keyColumns: []string{"repository", "package_name"}, columns: []string{
 			"`repository` String", "`package_name` String", "`description` String", "`publisher` String",
 			"`latest_version` String", "`super_team_prefix` String DEFAULT ''", "`private` Int64 DEFAULT 0",

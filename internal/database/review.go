@@ -746,6 +746,11 @@ func (db *DB) DecideReviewTask(id, actor, decision, reason string, decidedAt int
 	if err != nil || changed != 1 {
 		return nil, core.ErrReviewTaskConflict
 	}
+	if task.Kind == core.ReviewKindPublication {
+		if _, err := tx.Exec(`DELETE FROM review_task_payloads WHERE task_id = ?`, task.ID); err != nil {
+			return nil, fmt.Errorf("delete publication review payload: %w", err)
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit review decision: %w", err)
 	}

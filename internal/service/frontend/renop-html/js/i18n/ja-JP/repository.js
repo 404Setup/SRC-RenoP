@@ -222,7 +222,7 @@ export default Object.freeze({
     "repos.resetDownloadStatisticsConfirm": "{name} の全ダウンロード統計をリセットしますか？この操作は元に戻せません。",
     "repos.resetDownloadStatisticsSuccess": "ダウンロード統計をリセットしました",
     "repos.resetDownloadStatisticsFailed": "ダウンロード統計をリセットできませんでした",
-    "repos.publicationReview": "公開審査", "repos.publicationReviewDesc": "新しい Maven 公開をリポジトリモデレーターまたはシステム管理者の審査まで保留します。有効にすると再デプロイも無効になります。",
+    "repos.publicationReview": "公開審査", "repos.publicationReviewDesc": "ローカルパッケージのバージョンをリポジトリモデレーターまたはシステム管理者の審査まで保留します。Maven では再デプロイも無効になります。",
     "repos.publicationReviewOff": "無効", "repos.publicationReviewNewPackages": "新規パッケージのみ",
     "repos.publicationReviewEveryVersion": "すべてのバージョン", "repos.publicationReviewSaved": "公開審査設定を保存しました",
     "repos.publicationReviewUpdateFailed": "公開審査設定を更新できませんでした",

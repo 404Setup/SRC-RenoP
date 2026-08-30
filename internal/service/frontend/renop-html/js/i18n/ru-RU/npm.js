@@ -100,5 +100,6 @@ export default Object.freeze({
     "audit.action.NPM_PACKAGE_DELETE": "npm-пакет удалён", "audit.action.NPM_DIST_TAG": "Обновлён Dist-Tag npm",
     "audit.action.NPM_TEAM_ADD": "Добавлен участник npm", "audit.action.NPM_TEAM_INVITE": "Отправлено приглашение npm",
     "audit.action.NPM_TEAM_LEVEL": "Обновлены права команды npm", "audit.action.NPM_TEAM_REMOVE": "Удалён участник npm",
-    "audit.action.NPM_INVITE_ACCEPT": "Приглашение npm принято", "audit.action.NPM_INVITE_REJECT": "Приглашение npm отклонено"
+    "audit.action.NPM_INVITE_ACCEPT": "Приглашение npm принято", "audit.action.NPM_INVITE_REJECT": "Приглашение npm отклонено",
+    "npm.reviewPending": "Ожидает проверки"
 });

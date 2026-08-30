@@ -58,7 +58,8 @@
   package bytes in the database; active publication keys merge Maven companions into one version task, enforce an
   upload-settling interval, and preserve rejected or approved decision history. Shared task paging and transfer
   decisions remain in `review.go`, while publication keys, file ownership, and hidden-path queries are isolated in
-  `review_publication.go`.
+  `review_publication.go`. Bounded `review_task_payloads` temporarily retain protocol metadata that must be committed
+  atomically at approval; payloads are deleted in the same transaction as the final task decision.
 - **`internal/service/auth/`**: Password, FIDO/Passkey, session, profile, and GitHub OAuth workflows. GitHub OAuth
   separates bounded single-use route state, constrained provider HTTP access, and collision-safe account linking into
   `github_routes.go`, `github_client.go`, and `github_account.go`; access tokens are never persisted. Account recovery
@@ -106,11 +107,14 @@
   URL-encoded scoped metadata routes are decoded by the npm protocol before shared file-path sanitization. Mirrored
   packages remain pull-only, while local publication requires both repository and package permission. Scoped local
   packages require a matching global team prefix and T3/T4 membership at reservation time; unscoped packages may
-  remain personally owned.
+  remain personally owned. Optional new-package or every-version review hides a committed tarball and bounded
+  manifest/dist-tag payload until a repository moderator approves the same immutable publication transaction;
+  decision failure restores the exact prior package summary and revision.
 - **`internal/service/proxy/` & `internal/service/outboundproxy/`**: Outbound HTTP/HTTPS/SOCKS5 proxy management with
   client connection pooling and per-mirror routing.
 - **`internal/service/repositorygate/`**: Bounded striped read/write gates that serialize repository engine and storage
-  configuration changes with uploads, deletes, GPG publication, and mirror cache commits.
+  configuration changes with uploads, deletes, GPG publication, npm publish/dist-tag mutations, review decisions, and
+  mirror cache commits.
 - **`internal/service/storage/` & `internal/service/gpg/`**: Multi-backend storage (Disk/S3), OpenPGP signature
   verification, and quarantined publication queue (`.renop.tmp.gpg`). The independent `files` repository format
   provides unstructured replaceable file storage and mirrors without checksum generation or signature processing.
@@ -140,6 +144,8 @@
   bounded custom rejection reasons, authorized hidden-file streaming, and a single decision gate. Approval records
   catalog metadata before reindexing files; rejection removes the committed Disk/S3 objects. Repository configuration,
   migration, and deletion are rejected while a publication review remains pending.
+  npm approvals use the same repository gate, payload lifecycle, file download API, preset rejection reasons, and
+  single-decision contract as Maven while keeping protocol packuments unaware of pending versions.
 - **`internal/service/audit/`**: Durable behavior logging with a central registry of stable action identifiers.
   Frontend tests require every registered action to have a translation in every locale before changes can ship.
 - **`internal/service/tasks/`**: Process-wide non-reentrant scheduler for coalescible periodic maintenance, including
@@ -216,9 +222,12 @@
   loads. `js/reviews.js` owns the routed `/account/reviews` center, shared cross-engine transfer dialog, multi-type
   filtering, requester/reviewer views, pagination, and responsive height animation without using the message center.
   The same center downloads Maven review files with at most four adaptive workers, retries failures twice, assembles
-  successful sets into a browser-side ZIP with a lazily loaded `fflate`, and falls back to direct critical-file downloads rather than
-  emitting an incomplete archive. Maven repository settings expose `off`, new-package-only, and every-version review
-  policies through a separate JSON settings route so the legacy repository protobuf remains backward compatible.
+  successful sets into a browser-side ZIP with a lazily loaded `fflate`, and falls back to direct critical-file
+  downloads rather than emitting an incomplete archive. Maven and npm repository settings expose `off`,
+  new-package-only, and every-version review policies through a separate JSON settings route so the legacy repository
+  protobuf remains backward compatible.
+  npm package-management responses add pending versions only for package members, repository moderators, and system
+  administrators; npm protocol packuments and tarball routes continue to expose approved versions only.
   Modular i18n catalogs are split into common, auth/error, browser, management, messages/team, review, settings/updater,
   profile, repository, and package-format fragments under `js/i18n/<locale>/`. `scripts/i18n-catalog.mjs` loads
   fragments in parallel and reports all missing/extra keys and placeholder drift against the English catalog during

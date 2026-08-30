@@ -45,6 +45,11 @@ y compris les sommes, signatures et métadonnées Maven, rejoignent une tâche u
 cinq secondes après le dernier fichier empêche toute décision pendant l'envoi. Une version approuvée est ensuite
 verrouillée contre l'ajout de fichiers.
 
+Une publication npm constitue déjà une transaction complète. RenoP masque son tarball et conserve un manifeste ainsi
+que des dist-tags bornés jusqu’à l’approbation, puis enregistre ensemble la version immuable et ses tags. Avec
+`new_packages`, une réservation reste nouvelle jusqu’à l’approbation de sa première version visible. Les packuments et
+tarballs provenant d’un miroir ne créent jamais de tâche.
+
 ## Lister les tâches
 
 GET /api/reviews renvoie une page bornée. `view` accepte `reviewer` ou `requested` ; `status` accepte `pending`,
@@ -79,7 +84,7 @@ essentiels au lieu de produire une archive incomplète.
 POST /api/reviews/{id}/decision accepte `approved` ou `rejected`. Le refus d'un transfert exige un motif non vide de
 512 caractères au maximum. Le refus d'une publication exige `reason_code` parmi `invalid_metadata`, `quality`,
 `policy_violation`, `copyright`, `malware` et `custom`. Un motif personnalisé est limité à 505 caractères.
-L'approbation publie le catalogue Maven avant d'exposer les fichiers ; le refus supprime les fichiers masqués.
+L'approbation enregistre les métadonnées de version du moteur avant d'exposer les fichiers ; le refus supprime les fichiers masqués.
 
 DELETE /api/reviews/{id} permet uniquement au demandeur d'annuler un transfert encore en attente. Une publication ne
 peut pas être annulée par cette route. Une comparaison et mise à jour sur l'état en attente garantit qu'une décision

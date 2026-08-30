@@ -173,6 +173,27 @@ func (db *DB) GetNPMPackage(repository, packageName string) (*core.NPMPackage, e
 	return result, nil
 }
 
+// NPMHasPublishedVersions reports whether a reserved package has any visible version.
+func (db *DB) NPMHasPublishedVersions(repository, packageName string) (bool, error) {
+	if db == nil || db.SQLDB == nil {
+		return false, core.ErrDatabaseUnavailable
+	}
+	repository, packageName = sanitizeNPMKey(repository, packageName)
+	if repository == "" || packageName == "" {
+		return false, core.ErrNPMPackageNotFound
+	}
+	var exists int
+	err := db.QueryRow(`SELECT 1 FROM npm_versions WHERE repository = ? AND package_name = ?
+		AND unpublished = 0 LIMIT 1`, repository, packageName).Scan(&exists)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("inspect npm package versions: %w", err)
+	}
+	return exists != 0, nil
+}
+
 // GetNPMPackageAccess returns visibility, publication state, and exact membership.
 func (db *DB) GetNPMPackageAccess(repository, packageName, username string) (
 	exists, private, publishEnabled, member bool, level int, err error,
@@ -633,6 +654,60 @@ func (db *DB) RecordNPMPublication(pkg *core.NPMPackage, version *core.NPMVersio
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit npm publication: %w", err)
+	}
+	return nil
+}
+
+// RollbackNPMPublicationReview removes metadata inserted before a failed review decision.
+func (db *DB) RollbackNPMPublicationReview(repository, packageName, version string,
+	previous *core.NPMPackage, previousTags map[string]string,
+) error {
+	if db == nil || db.SQLDB == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	repository, packageName = sanitizeNPMKey(repository, packageName)
+	version = SanitizeInputString(strings.TrimSpace(version), 128)
+	if previous == nil || repository == "" || packageName == "" || version == "" ||
+		previous.Repository != repository || previous.Name != packageName {
+		return core.ErrReviewInvalidRequest
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin npm review rollback: %w", err)
+	}
+	defer tx.Rollback()
+	if err := lockNPMPackage(tx, repository, packageName); err != nil {
+		return err
+	}
+	result, err := tx.Exec(`DELETE FROM npm_versions WHERE repository = ? AND package_name = ? AND version = ?`,
+		repository, packageName, version)
+	if err != nil {
+		return fmt.Errorf("delete reviewed npm version: %w", err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("count reviewed npm version rollback: %w", err)
+	}
+	if changed != 1 {
+		return core.ErrNPMVersionNotFound
+	}
+	if _, err := tx.Exec(`DELETE FROM npm_dist_tags WHERE repository = ? AND package_name = ? AND version = ?`,
+		repository, packageName, version); err != nil {
+		return fmt.Errorf("delete reviewed npm dist-tags: %w", err)
+	}
+	for tag, tagVersion := range previousTags {
+		if err := upsertNPMTag(tx, repository, packageName, tag, tagVersion, previous.UpdatedAt); err != nil {
+			return fmt.Errorf("restore npm dist-tag after review: %w", err)
+		}
+	}
+	if _, err := tx.Exec(`UPDATE npm_packages SET description = ?, publisher = ?, latest_version = ?,
+		revision = ?, updated_at = ? WHERE repository = ? AND package_name = ?`,
+		previous.Description, previous.Publisher, previous.LatestVersion, previous.Revision,
+		previous.UpdatedAt, repository, packageName); err != nil {
+		return fmt.Errorf("restore npm package after review: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit npm review rollback: %w", err)
 	}
 	return nil
 }

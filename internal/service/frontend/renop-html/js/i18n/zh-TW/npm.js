@@ -73,5 +73,6 @@ export default Object.freeze({
     "audit.action.NPM_PACKAGE_DELETE": "刪除 npm 套件", "audit.action.NPM_DIST_TAG": "更新 npm Dist-Tag",
     "audit.action.NPM_TEAM_ADD": "新增 npm 團隊成員", "audit.action.NPM_TEAM_INVITE": "傳送 npm 團隊邀請",
     "audit.action.NPM_TEAM_LEVEL": "更新 npm 團隊權限", "audit.action.NPM_TEAM_REMOVE": "移除 npm 團隊成員",
-    "audit.action.NPM_INVITE_ACCEPT": "接受 npm 邀請", "audit.action.NPM_INVITE_REJECT": "拒絕 npm 邀請"
+    "audit.action.NPM_INVITE_ACCEPT": "接受 npm 邀請", "audit.action.NPM_INVITE_REJECT": "拒絕 npm 邀請",
+    "npm.reviewPending": "審核中"
 });

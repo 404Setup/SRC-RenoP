@@ -46,7 +46,7 @@ repositories:
 | `visibility` | `PUBLIC` | `PUBLIC`, `HIDDEN`, or `PRIVATE` |
 | `allow_redeployment` | `false` | Maven version redeployment or replacement in files/Docker, when supported |
 | `require_gpg_signature` | `false` | Require detached OpenPGP validation for Maven publication |
-| `publication_review` | `off` | Maven review policy: `off`, `new_packages`, or `every_version` |
+| `publication_review` | `off` | Maven/npm review policy: `off`, `new_packages`, or `every_version` |
 | `download_statistics` | Engine default | Enabled for Maven/npm/Cargo/Docker; unstructured `files` opts in |
 | `mirrors` | `[]` | Ordered upstream definitions |
 | `s3` | omitted | Repository-specific S3-compatible storage |
@@ -56,9 +56,10 @@ not generate checksums, POM files, or signature validation. Maven repositories c
 moving objects; returning to Maven rebuilds the catalog and restores saved Maven policy. Migration preserves the
 repository's effective download-statistics switch.
 
-Publication review is Maven-only in the current release. Enabling either review mode forces `allow_redeployment` to
-`false`. Local files remain hidden until a repository moderator or system administrator approves them; mirror content
-is never reviewed. Pending reviews prevent repository reconfiguration, deletion, or engine migration.
+Publication review supports Maven and npm. Maven review forces `allow_redeployment` to `false`; npm keeps its immutable
+version and dist-tag transaction. Local files remain hidden until a repository moderator or system administrator
+approves them, and mirror content is never reviewed. Pending reviews prevent repository reconfiguration, deletion, or
+engine migration.
 
 An `npm` repository requires package reservation before publication, stores immutable semantic versions and dist-tags,
 supports scoped private packages and L0-L4 teams, and can mirror exact package names or `@scope/*` patterns.

@@ -161,6 +161,7 @@ type StateDB interface {
 	ListReviewTasks(options ReviewTaskListOptions) ([]*ReviewTask, int, error)
 	GetReviewTask(id string) (*ReviewTask, error)
 	ListReviewTaskFiles(id string) ([]*ReviewFile, error)
+	GetReviewTaskPayload(id string) ([]byte, error)
 	ListPendingPublicationReviewFiles() ([]*ReviewFile, error)
 	IsPublicationReviewPathPending(repository, path string) (bool, error)
 	HasPendingPublicationReviews(repository string) (bool, error)
@@ -217,12 +218,15 @@ type StateDB interface {
 	CreateNPMPackage(repository, packageName, owner string, private bool, createdAt int64) (*NPMPackage, error)
 	CreateNPMPackageForTeam(repository, packageName, owner, superTeamPrefix string, private bool, createdAt int64) (*NPMPackage, error)
 	GetNPMPackage(repository, packageName string) (*NPMPackage, error)
+	NPMHasPublishedVersions(repository, packageName string) (bool, error)
 	GetNPMPackageAccess(repository, packageName, username string) (exists, private, publishEnabled, member bool, level int, err error)
 	GetNPMPackageDetails(repository, packageName, username string) (*NPMPackageDetails, error)
 	ListNPMPackages(repository, username string, administrator bool, limit, offset int) ([]*NPMPackage, int, error)
 	SearchNPMPackages(repository, query, username string, administrator bool, limit, offset int) ([]*NPMPackage, int, error)
 	HasNPMMembership(repository, username string) (bool, error)
 	RecordNPMPublication(pkg *NPMPackage, version *NPMVersion, tags map[string]string, username string) error
+	RollbackNPMPublicationReview(repository, packageName, version string, previous *NPMPackage,
+		previousTags map[string]string) error
 	RecordNPMMirrorPublication(pkg *NPMPackage, versions []*NPMVersion, tags map[string]string) error
 	UpdateNPMTarballSize(repository, tarballPath string, size int64) error
 	SetNPMDistTag(repository, packageName, tag, version, actor string, expectedRevision int64) error

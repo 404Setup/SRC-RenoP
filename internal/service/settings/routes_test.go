@@ -1137,6 +1137,7 @@ func TestMavenPublicationReviewSettingsDisableRedeployment(t *testing.T) {
 			Name: "releases", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC", AllowRedeployment: true,
 		},
 		"files": {Name: "files", Format: config.RepositoryFormatFiles, Visibility: "PUBLIC"},
+		"npm":   {Name: "npm", Format: config.RepositoryFormatNPM, Visibility: "PUBLIC"},
 	}
 	app, state := setupSettingsTestApp(t, cfg)
 
@@ -1190,6 +1191,15 @@ func TestMavenPublicationReviewSettingsDisableRedeployment(t *testing.T) {
 	assert.Equal(t, http.StatusConflict, response.StatusCode)
 	assert.Equal(t, "repository_pending_review", response.Header.Get("X-Renop-Error-Code"))
 	require.NoError(t, response.Body.Close())
+	request = httptest.NewRequest(http.MethodPut, "/repositories/npm/publication-review",
+		strings.NewReader(`{"policy":"new_packages"}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, config.PublicationReviewNewPackages,
+		state.Inner.Config.Load().Maven.Repositories["npm"].PublicationReviewPolicy())
 
 	request = httptest.NewRequest(http.MethodPut, "/repositories/files/publication-review",
 		strings.NewReader(`{"policy":"new_packages"}`))

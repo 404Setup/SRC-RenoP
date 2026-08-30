@@ -10,8 +10,10 @@ import "database/sql"
 
 func initReviewTables(db *sql.DB, mysql bool) error {
 	unique := "UNIQUE (active_key)"
+	payloadType := "TEXT"
 	if mysql {
 		unique = "UNIQUE KEY uq_review_tasks_active (active_key)"
+		payloadType = "MEDIUMTEXT"
 	}
 	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS review_tasks (
 		id CHAR(36) PRIMARY KEY,
@@ -44,6 +46,13 @@ func initReviewTables(db *sql.DB, mysql bool) error {
 		critical INT NOT NULL DEFAULT 0,
 		added_at BIGINT NOT NULL,
 		PRIMARY KEY (task_id, file_id)
+	);`)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS review_task_payloads (
+		task_id CHAR(36) PRIMARY KEY,
+		payload_json ` + payloadType + ` NOT NULL
 	);`)
 	return err
 }

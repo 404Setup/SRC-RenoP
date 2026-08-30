@@ -62,6 +62,10 @@ bun add @example/library
 RenoP validates the bounded gzip tarball, requires `package/package.json` to match the request, computes npm-compatible
 SHA-1 and SHA-512 integrity values, and commits the archive only after validation succeeds.
 
+If repository publication review is enabled, a successful `npm publish` returns an accepted response while the
+version remains absent from packuments and tarball routes. A repository moderator or system administrator reviews the
+same immutable manifest, dist-tags, and tarball in `/account/reviews`; approval publishes them together.
+
 ## Visibility and package teams
 
 Public packages follow repository visibility. Private packages must be scoped and require explicit package membership

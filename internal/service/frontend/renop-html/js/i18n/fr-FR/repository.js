@@ -222,7 +222,7 @@ export default Object.freeze({
     "repos.resetDownloadStatisticsConfirm": "Réinitialiser toutes les statistiques de téléchargement de {name} ? Cette action est irréversible.",
     "repos.resetDownloadStatisticsSuccess": "Statistiques de téléchargement réinitialisées",
     "repos.resetDownloadStatisticsFailed": "Impossible de réinitialiser les statistiques de téléchargement",
-    "repos.publicationReview": "Examen des publications", "repos.publicationReviewDesc": "Retenir les nouvelles publications Maven jusqu’à leur examen par un modérateur du dépôt ou un administrateur système. L’activation désactive aussi le redéploiement.",
+    "repos.publicationReview": "Examen des publications", "repos.publicationReviewDesc": "Retenir les versions locales jusqu’à leur examen par un modérateur du dépôt ou un administrateur système. Pour Maven, le redéploiement est aussi désactivé.",
     "repos.publicationReviewOff": "Désactivé", "repos.publicationReviewNewPackages": "Nouveaux paquets uniquement",
     "repos.publicationReviewEveryVersion": "Chaque version", "repos.publicationReviewSaved": "Paramètres d’examen enregistrés",
     "repos.publicationReviewUpdateFailed": "Impossible de modifier les paramètres d’examen",

@@ -27,13 +27,14 @@ test('repository settings expose localized download-statistics controls', () => 
     }
 });
 
-test('Maven repository settings expose publication review without extending the legacy protobuf', () => {
+test('Maven and npm settings expose publication review without extending the legacy protobuf', () => {
     const source = readFileSync(join(frontendRoot, 'js/repositories.js'), 'utf8');
     for (const required of [
         "apiRequest('/api/settings/repositories/publication-reviews')",
         '/publication-review',
         "value: 'new_packages'",
         "value: 'every_version'",
+        "format.protocol === 'maven' || format.protocol === 'npm'",
         "repo.allow_redeployment = false",
         "redeploymentToggle.setAttribute('disabled', '')",
     ]) {

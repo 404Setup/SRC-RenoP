@@ -45,7 +45,7 @@ repositories:
 | `visibility` | `PUBLIC` | `PUBLIC`、`HIDDEN`、`PRIVATE` |
 | `allow_redeployment` | `false` | 対応形式で Maven 再公開または files/Docker 上書き |
 | `require_gpg_signature` | `false` | Maven 公開時の OpenPGP 分離署名検証 |
-| `publication_review` | `off` | Maven 審査方針: `off`、`new_packages`、`every_version` |
+| `publication_review` | `off` | Maven/npm 審査方針: `off`、`new_packages`、`every_version` |
 | `download_statistics` | エンジン既定 | Maven/npm/Cargo/Docker は有効、`files` は明示的に有効化 |
 | `mirrors` | `[]` | 順序付き上流定義 |
 | `s3` | 省略 | リポジトリ固有 S3 storage |
@@ -54,9 +54,10 @@ repositories:
 チェックサムや POM の生成、署名検証を行いません。Maven と `files` の相互移行ではオブジェクトを移動せず、
 Maven へ戻す際にカタログと保存済みの方針を復元します。移行前のダウンロード統計設定も維持されます。
 
-このリリースで公開審査を利用できるのは Maven だけです。有効化すると `allow_redeployment` は `false` に
-固定されます。ローカルファイルはリポジトリモデレーターまたはシステム管理者の承認まで非公開となり、ミラーは
-審査されません。保留中の審査があるリポジトリは設定変更、削除、エンジン移行ができません。
+公開審査は Maven と npm に対応します。Maven では `allow_redeployment` を `false` に固定し、npm では不変
+バージョンと dist-tag のトランザクションを維持します。ローカルファイルはリポジトリモデレーターまたはシステム
+管理者の承認まで非公開となり、ミラーは審査されません。保留中の審査があるリポジトリは設定変更、削除、
+エンジン移行ができません。
 
 `npm` repository は publication 前の package 予約、不変 SemVer、dist-tag、scoped private package、L0-L4 team、
 完全名または `@scope/*` 規則の mirror を提供します。

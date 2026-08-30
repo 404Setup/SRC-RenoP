@@ -38,6 +38,10 @@ Maven 存储库可以关闭审核、仅审核新建制品的第一个版本，�
 会合并到同一任务。最后一个文件到达后的五秒静默期内不能处理任务，以免客户端仍在上传。版本批准后会
 被封存，不能继续添加文件。
 
+npm publish 本身就是一项完整事务。RenoP 会隐藏 tarball，并在批准前保存有界的 manifest 与 dist-tag 载荷，
+批准后再一并写入不可变版本和标签。在 `new_packages` 模式下，预留的软件包在第一个可见版本获批前仍视为新包。
+镜像 packument 和 tarball 不会创建审核任务。
+
 ## 查询任务
 
 GET /api/reviews 返回有界分页结果。`view` 可为 `reviewer` 或 `requested`；`status` 可为 `pending`、
@@ -70,7 +74,7 @@ GET /api/reviews/{id}/files 最多返回 256 个存储库相对路径，并包�
 
 POST /api/reviews/{id}/decision 接受 `approved` 或 `rejected`。拒绝转让时必须提供不超过 512 个字符的理由。
 拒绝发布时必须提供 `reason_code`，可选值为 `invalid_metadata`、`quality`、`policy_violation`、`copyright`、
-`malware` 或 `custom`；自定义理由最多 505 个字符。批准时会先写入 Maven 目录再开放文件，拒绝时会删除隐藏文件。
+`malware` 或 `custom`；自定义理由最多 505 个字符。批准时会先写入对应引擎的版本元数据再开放文件，拒绝时会删除隐藏文件。
 
 DELETE /api/reviews/{id} 仅允许申请人取消待审核的所有权转让；发布审核不能通过该接口取消。并发处理使用
 待审核状态的比较并更新，因此后续操作只会得到冲突响应，不能再次修改资源。

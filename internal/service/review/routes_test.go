@@ -25,6 +25,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/service/index"
+	npmservice "renop/internal/service/npm"
 )
 
 func setupReviewApp(t *testing.T) (*fiber.App, *core.AppState, *config.User, *string) {
@@ -56,6 +57,7 @@ func setupReviewApp(t *testing.T) (*fiber.App, *core.AppState, *config.User, *st
 	cfg.StoragePath = storagePath
 	cfg.Maven.Repositories = map[string]*config.Repository{
 		"releases": {Name: "releases", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC"},
+		"npm":      {Name: "npm", Format: config.RepositoryFormatNPM, Visibility: "PUBLIC"},
 	}
 	state.Inner.Config.Store(cfg)
 	state.Inner.FileIndex = index.NewFileIndexCustom(true)
@@ -279,6 +281,43 @@ func TestRepositoryModeratorApprovalPublishesMavenCatalogBeforeFiles(t *testing.
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, response.Body.Close())
 	details, err := state.GetDB().GetMavenArtifactDetails("releases", "org.example", "demo")
+	require.NoError(t, err)
+	require.Len(t, details.Versions, 1)
+	assert.Equal(t, "1.0.0", details.Versions[0].Version)
+	assert.False(t, state.Inner.FileIndex.IsBlocked(absolute))
+	assert.True(t, state.Inner.FileIndex.HasFile(absolute))
+}
+
+func TestRepositoryModeratorApprovalPublishesNPMVersionBeforeTarball(t *testing.T) {
+	app, state, current, _ := setupReviewApp(t)
+	require.NoError(t, state.GetDB().SaveToken(&core.AccessToken{
+		Name: "bob", CreatedAt: time.Now().Format(time.RFC3339),
+		Permissions: []string{"base", "canmoderate:npm"},
+	}))
+	now := time.Now().UnixMilli() - core.PublicationReviewSettleMillis - 1000
+	_, err := state.GetDB().CreateNPMPackage("npm", "reviewed", "alice", false, now)
+	require.NoError(t, err)
+	repo := state.Inner.Config.Load().Maven.Repositories["npm"]
+	repo.PublicationReview = config.PublicationReviewEveryVersion
+	tarballPath := "reviewed/-/reviewed-1.0.0.tgz"
+	absolute := filepath.Join(state.Inner.Config.Load().StoragePath, "npm", filepath.FromSlash(tarballPath))
+	require.NoError(t, os.MkdirAll(filepath.Dir(absolute), 0755))
+	require.NoError(t, os.WriteFile(absolute, []byte("npm tarball"), 0644))
+	result, err := npmservice.QueuePublicationReview(state, repo, &core.NPMPackage{
+		Repository: "npm", Name: "reviewed", Description: "Reviewed npm package", UpdatedAt: now,
+	}, &core.NPMVersion{
+		Repository: "npm", Package: "reviewed", Version: "1.0.0",
+		ManifestJSON: `{"name":"reviewed","version":"1.0.0"}`, Publisher: "alice",
+		TarballPath: tarballPath, Size: 11, CreatedAt: now,
+	}, map[string]string{"latest": "1.0.0"}, false)
+	require.NoError(t, err)
+	state.Inner.FileIndex.BlockFile(absolute)
+	*current = config.User{Username: "bob", Roles: []string{"base", "canmoderate:npm"}}
+	response := reviewRequest(t, app, http.MethodPost, "/api/reviews/"+result.TaskID+"/decision",
+		decisionRequest{Decision: core.ReviewStatusApproved})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	details, err := state.GetDB().GetNPMPackageDetails("npm", "reviewed", "alice")
 	require.NoError(t, err)
 	require.Len(t, details.Versions, 1)
 	assert.Equal(t, "1.0.0", details.Versions[0].Version)

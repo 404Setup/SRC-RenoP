@@ -296,6 +296,14 @@ func TestRepositoryPublicationReviewPolicyValidation(t *testing.T) {
 			}
 		})
 	}
+	var npmSettings MavenSettings
+	if err := json.Unmarshal([]byte(`{"repositories":{"npm":{"name":"npm","format":"npm","publication_review":"every_version"}}}`),
+		&npmSettings); err != nil {
+		t.Fatalf("valid npm publication-review configuration was rejected: %v", err)
+	}
+	if got := npmSettings.Repositories["npm"].PublicationReviewPolicy(); got != PublicationReviewEveryVersion {
+		t.Fatalf("npm publication-review policy = %q", got)
+	}
 }
 
 func TestMirrorCredentialsUnmarshaling(t *testing.T) {

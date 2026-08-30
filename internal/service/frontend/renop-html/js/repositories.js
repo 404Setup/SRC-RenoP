@@ -580,7 +580,7 @@ function buildRepoSection(container, data, repoKey, repo) {
     );
     fields.appendChild(makeFieldRow(t('repos.visibility'), t('repos.visibilityDesc'), visSelect));
 
-    if (format.protocol === 'maven') {
+    if (format.protocol === 'maven' || format.protocol === 'npm') {
         const layoutSelect = makeCustomSelect([
             {value: 'modern', label: t('repos.mavenLayoutModern')},
             {value: 'classic', label: t('repos.mavenLayoutClassic')}

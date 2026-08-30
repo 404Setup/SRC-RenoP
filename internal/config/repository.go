@@ -83,7 +83,7 @@ func NormalizePublicationReviewPolicy(value string) (string, bool) {
 
 // PublicationReviewPolicy returns the normalized review policy supported by this repository.
 func (r *Repository) PublicationReviewPolicy() string {
-	if r == nil || r.NormalizedFormat() != RepositoryFormatMaven {
+	if r == nil || !r.SupportsPublicationReview() {
 		return PublicationReviewOff
 	}
 	policy, valid := NormalizePublicationReviewPolicy(r.PublicationReview)
@@ -91,6 +91,19 @@ func (r *Repository) PublicationReviewPolicy() string {
 		return PublicationReviewOff
 	}
 	return policy
+}
+
+// SupportsPublicationReview reports whether this repository engine has an atomic moderated publication path.
+func (r *Repository) SupportsPublicationReview() bool {
+	if r == nil {
+		return false
+	}
+	switch r.NormalizedFormat() {
+	case RepositoryFormatMaven, RepositoryFormatNPM:
+		return true
+	default:
+		return false
+	}
 }
 
 // NormalizedFormat returns the protocol name while preserving the historical
@@ -142,7 +155,9 @@ func (r Repository) serialization() repositorySerialization {
 	if r.NormalizedFormat() == RepositoryFormatCargo || r.NormalizedFormat() == RepositoryFormatDocker ||
 		r.NormalizedFormat() == RepositoryFormatNPM ||
 		r.NormalizedFormat() == RepositoryFormatFiles {
-		serialized.PublicationReview = ""
+		if r.NormalizedFormat() != RepositoryFormatNPM {
+			serialized.PublicationReview = ""
+		}
 		if r.NormalizedFormat() == RepositoryFormatDocker || r.NormalizedFormat() == RepositoryFormatFiles {
 			serialized.AllowRedeployment = &r.AllowRedeployment
 		}
@@ -311,7 +326,7 @@ func (m *MavenSettings) validatePublicationReviewPolicies() error {
 		if !valid {
 			return fmt.Errorf("repository %q has an invalid publication review policy", name)
 		}
-		if policy != PublicationReviewOff && repo.NormalizedFormat() != RepositoryFormatMaven {
+		if policy != PublicationReviewOff && !repo.SupportsPublicationReview() {
 			return fmt.Errorf("repository %q does not support publication review", name)
 		}
 		if restore := repo.MavenRestore; restore != nil {
@@ -352,7 +367,7 @@ func (m *MavenSettings) setDefaults() {
 		} else if repo != nil {
 			repo.MavenRestore = nil
 			policy, valid := NormalizePublicationReviewPolicy(repo.PublicationReview)
-			if !valid || repo.NormalizedFormat() != RepositoryFormatMaven {
+			if !valid || !repo.SupportsPublicationReview() {
 				policy = PublicationReviewOff
 			}
 			repo.PublicationReview = policy

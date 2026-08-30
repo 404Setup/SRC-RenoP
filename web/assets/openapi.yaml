@@ -2070,6 +2070,13 @@ components:
           type: boolean
         mirrored:
           type: boolean
+        review_status:
+          type: string
+          enum: [pending]
+          description: Present only in authorized package-management responses; npm protocol packuments omit pending versions.
+        review_id:
+          type: string
+          format: uuid
         created_at:
           type: integer
           format: int64
@@ -4908,7 +4915,7 @@ paths:
     get:
       tags: [settings, reviews]
       summary: Read repository publication-review policies
-      description: Maven repositories return `off`, `new_packages`, or `every_version`; other engines currently return `off`.
+      description: Maven and npm repositories return `off`, `new_packages`, or `every_version`; unsupported engines return `off`.
       operationId: getRepositoryPublicationReviewSettings
       security:
         - sessionCookie: []
@@ -4930,8 +4937,8 @@ paths:
   /api/settings/repositories/{name}/publication-review:
     put:
       tags: [settings, reviews]
-      summary: Configure Maven publication review
-      description: Enabling review disables Maven redeployment. Existing pending reviews remain actionable when the policy changes.
+      summary: Configure repository publication review
+      description: Maven and npm are supported. Maven review disables redeployment. A pending task prevents policy changes.
       operationId: putRepositoryPublicationReviewSettings
       security:
         - sessionCookie: []

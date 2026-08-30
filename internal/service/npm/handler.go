@@ -18,6 +18,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/auth"
+	"renop/internal/service/repositorygate"
 )
 
 // Handler routes npm registry requests while package blobs remain in shared storage.
@@ -208,6 +209,10 @@ func (handler Handler) Handle(c fiber.Ctx, state *core.AppState, repo *config.Re
 	}
 	if npmBrowserRoute(c.Method(), c.Get(fiber.HeaderAccept), decoded) {
 		return false, nil
+	}
+	if c.Method() == fiber.MethodPut || c.Method() == fiber.MethodDelete || c.Method() == fiber.MethodPatch {
+		release := repositorygate.AcquireMutation(repo.Name)
+		defer release()
 	}
 	switch decoded {
 	case "-/ping":

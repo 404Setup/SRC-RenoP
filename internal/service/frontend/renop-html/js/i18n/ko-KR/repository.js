@@ -222,7 +222,7 @@ export default Object.freeze({
     "repos.resetDownloadStatisticsConfirm": "{name}의 모든 다운로드 통계를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
     "repos.resetDownloadStatisticsSuccess": "다운로드 통계를 초기화했습니다",
     "repos.resetDownloadStatisticsFailed": "다운로드 통계를 초기화하지 못했습니다",
-    "repos.publicationReview": "게시 검토", "repos.publicationReviewDesc": "새 Maven 게시물을 저장소 검토자 또는 시스템 관리자가 검토할 때까지 보류합니다. 검토를 사용하면 재배포도 비활성화됩니다.",
+    "repos.publicationReview": "게시 검토", "repos.publicationReviewDesc": "로컬 패키지 버전을 저장소 검토자 또는 시스템 관리자가 검토할 때까지 보류합니다. Maven에서는 재배포도 비활성화됩니다.",
     "repos.publicationReviewOff": "사용 안 함", "repos.publicationReviewNewPackages": "새 패키지만",
     "repos.publicationReviewEveryVersion": "모든 버전", "repos.publicationReviewSaved": "게시 검토 설정을 저장했습니다",
     "repos.publicationReviewUpdateFailed": "게시 검토 설정을 업데이트하지 못했습니다",

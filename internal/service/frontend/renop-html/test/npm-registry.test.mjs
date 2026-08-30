@@ -39,6 +39,8 @@ test('npm repository UI uses shared routing, errors, clipboard, and team control
         'readmeSection',
         'version.integrity',
         'version.shasum',
+        'version.review_status',
+        'npm.reviewPending',
     ]) {
         assert.ok(npmView.includes(required), `npm repository view is missing ${required}`);
     }

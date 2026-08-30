@@ -433,10 +433,10 @@ paths, credentials, query strings, or fragments in key server URLs are rejected 
 
 ## Publication Review
 
-Maven repositories can set `publication_review` to `off`, `new_packages`, or `every_version`. Review is disabled by
-default. Enabling it disables redeployment and keeps local files outside the public index until a repository-scoped
-moderator or system administrator approves them. Mirror downloads are never reviewed. When GPG signatures are required,
-signature verification completes before the version enters review.
+Maven and npm repositories can set `publication_review` to `off`, `new_packages`, or `every_version`. Review is
+disabled by default and keeps local files outside the public index until a repository-scoped moderator or system
+administrator approves them. Mirror downloads are never reviewed. Maven review disables redeployment and runs only
+after any required GPG signature verification; npm review preserves its immutable publish transaction and dist-tags.
 
 One durable task collects at most 256 files for a version, including checksum, signature, and Maven metadata companions.
 Reviewers wait for a five-second upload-settling interval, can download the complete file set from `/account/reviews`,

@@ -61,7 +61,7 @@ func putRepositoryPublicationReview(c fiber.Ctx, state *core.AppState) error {
 		state.Inner.ConfigWriteLock.Unlock()
 		return c.Status(fiber.StatusNotFound).SendString("Repository not found")
 	}
-	if existing.NormalizedFormat() != config.RepositoryFormatMaven {
+	if !existing.SupportsPublicationReview() {
 		state.Inner.ConfigWriteLock.Unlock()
 		return c.Status(fiber.StatusConflict).SendString("Publication review is not supported by this repository engine")
 	}

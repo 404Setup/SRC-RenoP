@@ -132,6 +132,11 @@ func packageDetailsAPI(c fiber.Ctx, state *core.AppState, repo *config.Repositor
 	if err != nil || details == nil || details.Package == nil {
 		return npmAPIError(c, fiber.StatusNotFound, "package_not_found", "Package not found")
 	}
+	if details.Member || user.CheckModeratePermission(repo.Name) {
+		if err := AddPendingPublicationVersions(state, details); err != nil {
+			return npmAPIError(c, fiber.StatusInternalServerError, "review_unavailable", "Publication review is unavailable")
+		}
+	}
 	enrichNPMProjectMetadata(details)
 	details.Administrator = user.IsManager() || user.CheckUpdatePermission(repo.Name)
 	if !details.Administrator && details.Package.PermissionLevel < core.NPMPermissionTeam {

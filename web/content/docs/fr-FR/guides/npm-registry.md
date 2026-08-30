@@ -62,6 +62,10 @@ bun add @example/library
 RenoP valide l'archive gzip bornée, vérifie que `package/package.json` correspond à la requête, calcule les valeurs
 d'intégrité SHA-1 et SHA-512 compatibles npm, puis valide le stockage uniquement après tous les contrôles.
 
+Si l’examen des publications est activé, un `npm publish` réussi renvoie une réponse acceptée, mais la version reste
+absente des packuments et des routes de tarball. Dans `/account/reviews`, un modérateur du dépôt ou un administrateur
+système examine le même manifeste immuable, les dist-tags et le tarball ; l’approbation les publie ensemble.
+
 ## Visibilité et équipes de paquet
 
 Les paquets publics suivent la visibilité du dépôt. Un paquet privé doit être scoped et exige une appartenance explicite

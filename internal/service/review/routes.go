@@ -362,17 +362,35 @@ func decidePublicationTask(c fiber.Ctx, state *core.AppState, username string,
 	if decision != core.ReviewStatusApproved {
 		return nil, core.ErrReviewInvalidRequest
 	}
+	var rollback func() error
 	switch current.ResourceType {
 	case core.ReviewResourceMavenArtifact:
 		if err := maven.ApprovePublicationReview(state, current); err != nil {
 			return nil, err
+		}
+		rollback = func() error { return maven.RemoveApprovedPublicationMetadata(state, current) }
+	case core.ReviewResourceNPMPackage:
+		previousDetails, err := state.GetDB().GetNPMPackageDetails(
+			current.Repository, current.ResourceKey, current.RequestedBy)
+		if err != nil || previousDetails == nil || previousDetails.Package == nil {
+			return nil, errors.Join(core.ErrReviewResourceConflict, err)
+		}
+		previousTags := make(map[string]string, len(previousDetails.DistTags))
+		for tag, version := range previousDetails.DistTags {
+			previousTags[tag] = version
+		}
+		if err := npm.ApprovePublicationReview(state, current); err != nil {
+			return nil, err
+		}
+		rollback = func() error {
+			return npm.RemoveApprovedPublicationMetadata(state, current, previousDetails.Package, previousTags)
 		}
 	default:
 		return nil, core.ErrReviewInvalidRequest
 	}
 	decided, err := state.GetDB().DecideReviewTask(current.ID, username, decision, "", now)
 	if err != nil {
-		return nil, errors.Join(err, maven.RemoveApprovedPublicationMetadata(state, current))
+		return nil, errors.Join(err, rollback())
 	}
 	if err := storage.UnblockPublicationReviewFiles(state, files); err != nil {
 		return nil, err

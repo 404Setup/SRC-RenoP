@@ -272,6 +272,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 			ResourceType: core.ReviewResourceMavenArtifact, Repository: mavenRepository,
 			ResourceKey: mavenDomain + ":reviewed", ResourceName: mavenDomain + ":reviewed",
 			Version: "1.0.0", RequestedBy: memberUsername, Policy: config.PublicationReviewEveryVersion,
+			Payload:   []byte(`{"driver":"contract"}`),
 			CreatedAt: now + 8, Files: []*core.ReviewFile{{
 				Path: strings.ReplaceAll(mavenDomain, ".", "/") + "/reviewed/1.0.0/reviewed-1.0.0.jar",
 				Size: 128, Critical: true,
@@ -279,6 +280,10 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		})
 		if err != nil || publication == nil || !publication.Pending {
 			return errorsOrMissing(err, "publication review creation")
+		}
+		payload, err := db.GetReviewTaskPayload(publication.TaskID)
+		if err != nil || string(payload) != `{"driver":"contract"}` {
+			return errorsOrMissing(err, "publication review payload")
 		}
 		files, err := db.ListReviewTaskFiles(publication.TaskID)
 		if err != nil || len(files) != 1 || !files[0].Critical {

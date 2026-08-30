@@ -72,6 +72,7 @@ test('review decisions are durable, administrator-aware, and compare-and-set', (
     const routes = repositorySource('internal', 'service', 'review', 'routes.go');
     assert.match(schema, /CREATE TABLE IF NOT EXISTS review_tasks/);
     assert.match(schema, /CREATE TABLE IF NOT EXISTS review_task_files/);
+    assert.match(schema, /CREATE TABLE IF NOT EXISTS review_task_payloads/);
     assert.match(schema, /UNIQUE \(active_key\)/);
     assert.match(clickhouse, /name: "review_tasks"/);
     assert.doesNotMatch(database, /task\.RequestedByID == actorID/);
@@ -96,6 +97,8 @@ test('publication reviews use bounded parallel downloads and preset rejection re
     assert.match(reviews, /reason_code: reasonCode/);
     assert.match(storage, /RestorePublicationReviewState/);
     assert.match(storage, /ServePublicationReviewFile/);
+    const npmReview = repositorySource('internal', 'service', 'npm', 'publication_review.go');
+    assert.match(npmReview, /RollbackNPMPublicationReview/);
     assert.match(chunked, /X-RenoP-Review-ID/);
     assert.match(upload, /browser\.uploadQueuedReview/);
 });

@@ -45,7 +45,7 @@ repositories:
 | `visibility` | `PUBLIC` | `PUBLIC`, `HIDDEN` ou `PRIVATE` |
 | `allow_redeployment` | `false` | Redéploiement Maven ou remplacement files/Docker si pris en charge |
 | `require_gpg_signature` | `false` | Validation OpenPGP détachée obligatoire pour Maven |
-| `publication_review` | `off` | Examen Maven : `off`, `new_packages` ou `every_version` |
+| `publication_review` | `off` | Examen Maven/npm : `off`, `new_packages` ou `every_version` |
 | `download_statistics` | Selon le moteur | Activé pour Maven/npm/Cargo/Docker ; `files` doit être activé explicitement |
 | `mirrors` | `[]` | Miroirs ordonnés |
 | `s3` | absent | Stockage S3 propre au dépôt |
@@ -54,9 +54,10 @@ repositories:
 signature. Maven peut migrer vers `files` puis revenir sans déplacer les objets ; le retour reconstruit le catalogue et
 restaure la politique Maven. La migration conserve l’état effectif des statistiques de téléchargement.
 
-L’examen des publications est réservé à Maven dans cette version. Son activation force `allow_redeployment` à
-`false`. Les fichiers locaux restent masqués jusqu’à l’approbation d’un modérateur du dépôt ou d’un administrateur
-système ; les miroirs ne sont jamais examinés. Une tâche en attente interdit la modification, la suppression ou la migration du dépôt.
+L’examen des publications prend en charge Maven et npm. Pour Maven, il force `allow_redeployment` à `false` ; npm
+conserve sa transaction de version et de dist-tags immuables. Les fichiers locaux restent masqués jusqu’à l’approbation
+d’un modérateur du dépôt ou d’un administrateur système, et les miroirs ne sont jamais examinés. Une tâche en attente
+interdit la modification, la suppression ou la migration du dépôt.
 
 Un dépôt `npm` exige la réservation avant publication, conserve versions SemVer immuables et dist-tags, gère les
 paquets privés scoped, les équipes L0-L4 et les miroirs par nom exact ou règle `@scope/*`.

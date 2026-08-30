@@ -171,5 +171,6 @@ export default Object.freeze({
     "audit.action.NPM_TEAM_LEVEL": "npm Team Permission Updated",
     "audit.action.NPM_TEAM_REMOVE": "npm Team Member Removed",
     "audit.action.NPM_INVITE_ACCEPT": "npm Invitation Accepted",
-    "audit.action.NPM_INVITE_REJECT": "npm Invitation Declined"
+    "audit.action.NPM_INVITE_REJECT": "npm Invitation Declined",
+    "npm.reviewPending": "Pending review"
 });

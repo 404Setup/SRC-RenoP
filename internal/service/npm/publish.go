@@ -369,18 +369,56 @@ func publish(c fiber.Ctx, state *core.AppState, repo *config.Repository, store S
 	if err != nil || len(manifestJSON) > maxStoredManifestJSON {
 		return npmError(c, fiber.StatusBadRequest, "manifest too large", "npm version metadata exceeds the server limit")
 	}
-	if err := staged.Commit(state); err != nil {
-		return npmError(c, fiber.StatusInternalServerError, "storage failure", "failed to store npm tarball")
-	}
 	now := time.Now().UnixMilli()
-	if err := state.GetDB().RecordNPMPublication(&core.NPMPackage{
+	packageMetadata := &core.NPMPackage{
 		Repository: repo.Name, Name: packageName, Description: manifestDescription(manifest, document.Description),
 		UpdatedAt: now,
-	}, &core.NPMVersion{
+	}
+	versionMetadata := &core.NPMVersion{
 		Repository: repo.Name, Package: packageName, Version: version, ManifestJSON: string(manifestJSON),
 		Publisher: user.Username, TarballPath: tarballPath, Shasum: shasum, Integrity: integrity,
 		Size: size, Deprecated: manifestDeprecated(manifest), CreatedAt: now,
-	}, document.DistTags, user.Username); err != nil {
+	}
+	reviewPolicy := repo.PublicationReviewPolicy()
+	publishedVersions := false
+	reviewRequired := reviewPolicy == config.PublicationReviewEveryVersion
+	if reviewPolicy == config.PublicationReviewNewPackages {
+		publishedVersions, err = state.GetDB().NPMHasPublishedVersions(repo.Name, packageName)
+		if err != nil {
+			return npmError(c, fiber.StatusServiceUnavailable, "database unavailable", "npm review state is unavailable")
+		}
+		reviewRequired = !publishedVersions
+	}
+	if reviewRequired {
+		state.Inner.FileIndex.BlockFile(targetPath)
+		state.InvalidateFileCache(targetPath)
+	}
+	if err := staged.Commit(state); err != nil {
+		if reviewRequired {
+			state.Inner.FileIndex.UnblockFile(targetPath)
+			state.InvalidateFileCache(targetPath)
+		}
+		return npmError(c, fiber.StatusInternalServerError, "storage failure", "failed to store npm tarball")
+	}
+	if reviewRequired {
+		review, reviewErr := QueuePublicationReview(state, repo, packageMetadata, versionMetadata,
+			document.DistTags, publishedVersions)
+		if reviewErr != nil || review == nil || !review.Pending {
+			if cleanupErr := store.Delete(state, targetPath); cleanupErr != nil {
+				state.Inner.FailuresCount.Add(1)
+			}
+			state.Inner.FileIndex.UnblockFile(targetPath)
+			state.InvalidateFileCache(targetPath)
+			return npmError(c, fiber.StatusInternalServerError, "review failure", "failed to create npm publication review")
+		}
+		succeeded = true
+		c.Set("X-RenoP-Review-ID", review.TaskID)
+		logNPMAudit(c, state, audit.ActionUploadQueuedReview,
+			fmt.Sprintf("Repository: %s, package: %s, version: %s", repo.Name, packageName, version))
+		return c.Status(fiber.StatusAccepted).JSON(operationResponse{OK: true, ID: packageName})
+	}
+	if err := state.GetDB().RecordNPMPublication(packageMetadata, versionMetadata,
+		document.DistTags, user.Username); err != nil {
 		if cleanupErr := store.Delete(state, targetPath); cleanupErr != nil {
 			state.Inner.FailuresCount.Add(1)
 		}

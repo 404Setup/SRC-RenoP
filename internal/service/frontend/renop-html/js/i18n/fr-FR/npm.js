@@ -100,5 +100,6 @@ export default Object.freeze({
     "audit.action.NPM_PACKAGE_DELETE": "Paquet npm supprimé", "audit.action.NPM_DIST_TAG": "Dist-Tag npm modifié",
     "audit.action.NPM_TEAM_ADD": "Membre npm ajouté", "audit.action.NPM_TEAM_INVITE": "Invitation npm envoyée",
     "audit.action.NPM_TEAM_LEVEL": "Droit de l’équipe npm modifié", "audit.action.NPM_TEAM_REMOVE": "Membre npm retiré",
-    "audit.action.NPM_INVITE_ACCEPT": "Invitation npm acceptée", "audit.action.NPM_INVITE_REJECT": "Invitation npm refusée"
+    "audit.action.NPM_INVITE_ACCEPT": "Invitation npm acceptée", "audit.action.NPM_INVITE_REJECT": "Invitation npm refusée",
+    "npm.reviewPending": "Examen en attente"
 });

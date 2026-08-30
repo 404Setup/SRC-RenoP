@@ -67,6 +67,8 @@ type NPMVersion struct {
 	Deprecated   string `json:"deprecated,omitempty"`
 	Unpublished  bool   `json:"unpublished"`
 	Mirrored     bool   `json:"mirrored"`
+	ReviewStatus string `json:"review_status,omitempty"`
+	ReviewID     string `json:"review_id,omitempty"`
 	CreatedAt    int64  `json:"created_at"`
 }
 

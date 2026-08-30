@@ -62,6 +62,7 @@ type PublicationReviewRequest struct {
 	Policy        string
 	PackageExists bool
 	Files         []*ReviewFile
+	Payload       []byte
 	CreatedAt     int64
 }
 

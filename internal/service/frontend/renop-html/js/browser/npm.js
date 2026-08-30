@@ -507,6 +507,7 @@ function packageHero(pkg) {
  * @returns {HTMLElement} Version card.
  */
 function npmVersionItem(version, tagsByVersion, canDelete) {
+	const pendingReview = version.review_status === 'pending';
     const tagNames = (tagsByVersion.get(version.version) || [])
         .sort((left, right) => left.localeCompare(right, undefined, {sensitivity: 'base'}));
     const states = el('div', {class: 'npm-version-states'});
@@ -514,6 +515,7 @@ function npmVersionItem(version, tagsByVersion, canDelete) {
     if (version.mirrored) states.appendChild(createRepositoryMirrorBadge(t('common.fromMirror')));
     if (version.deprecated) states.appendChild(statusBadge(t('npm.deprecated'), 'is-deprecated'));
     if (version.unpublished) states.appendChild(statusBadge(t('npm.unpublished'), 'is-archived'));
+	if (pendingReview) states.appendChild(statusBadge(t('npm.reviewPending'), 'is-deprecated'));
 
     const header = el('div', {class: 'npm-version-header'},
         el('div', {class: 'npm-version-title'}, el('strong', {}, `v${version.version}`), states),
@@ -524,7 +526,7 @@ function npmVersionItem(version, tagsByVersion, canDelete) {
         )
     );
     const actions = el('div', {class: 'npm-version-actions'});
-    if (!version.unpublished) {
+    if (!version.unpublished && !pendingReview) {
         actions.appendChild(el('a', {
             class: 'pill-btn pill-btn--soft pill-btn--sm', href: tarballURL(packageDetails.package.name, version.version),
             download: `${packageDetails.package.name.replace('/', '-')}-${version.version}.tgz`

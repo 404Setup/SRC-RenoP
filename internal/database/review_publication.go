@@ -25,6 +25,7 @@ const (
 	maxPublicationReviewFiles       = 256
 	maxPendingPublicationReviews    = 4096
 	maxPendingPublicationPerAccount = 64
+	maxPublicationReviewPayload     = 5 << 20
 )
 
 func publicationReviewKey(resourceKey, version string) string {
@@ -130,6 +131,32 @@ func savePublicationReviewFileTx(tx *Tx, taskID, repository string, file *core.R
 	return nil
 }
 
+func savePublicationReviewPayloadTx(tx *Tx, taskID string, payload []byte) error {
+	if len(payload) == 0 {
+		return nil
+	}
+	if len(payload) > maxPublicationReviewPayload {
+		return core.ErrReviewInvalidRequest
+	}
+	var exists int
+	err := tx.QueryRow(`SELECT 1 FROM review_task_payloads WHERE task_id = ?`, taskID).Scan(&exists)
+	if err == nil {
+		if _, err := tx.Exec(`UPDATE review_task_payloads SET payload_json = ? WHERE task_id = ?`,
+			string(payload), taskID); err != nil {
+			return fmt.Errorf("update publication review payload: %w", err)
+		}
+		return nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("inspect publication review payload: %w", err)
+	}
+	if _, err := tx.Exec(`INSERT INTO review_task_payloads (task_id, payload_json) VALUES (?, ?)`,
+		taskID, string(payload)); err != nil {
+		return fmt.Errorf("create publication review payload: %w", err)
+	}
+	return nil
+}
+
 // CreateOrUpdatePublicationReview creates one hidden publication review or appends committed files to it.
 func (db *DB) CreateOrUpdatePublicationReview(request core.PublicationReviewRequest) (*core.PublicationReviewResult, error) {
 	if db == nil || db.SQLDB == nil {
@@ -224,10 +251,36 @@ func (db *DB) CreateOrUpdatePublicationReview(request core.PublicationReviewRequ
 			return nil, err
 		}
 	}
+	if err := savePublicationReviewPayloadTx(tx, taskID, request.Payload); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit publication review: %w", err)
 	}
 	return &core.PublicationReviewResult{Pending: true, TaskID: taskID}, nil
+}
+
+// GetReviewTaskPayload returns one bounded engine-specific pending publication payload.
+func (db *DB) GetReviewTaskPayload(id string) ([]byte, error) {
+	if db == nil || db.SQLDB == nil {
+		return nil, core.ErrDatabaseUnavailable
+	}
+	id = SanitizeInputString(strings.TrimSpace(id), 64)
+	if id == "" {
+		return nil, core.ErrReviewTaskNotFound
+	}
+	var payload string
+	err := db.QueryRow(`SELECT payload_json FROM review_task_payloads WHERE task_id = ?`, id).Scan(&payload)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, core.ErrReviewTaskNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("load publication review payload: %w", err)
+	}
+	if len(payload) == 0 || len(payload) > maxPublicationReviewPayload {
+		return nil, core.ErrReviewInvalidRequest
+	}
+	return []byte(payload), nil
 }
 
 // ListReviewTaskFiles returns the bounded repository-relative file list attached to one task.

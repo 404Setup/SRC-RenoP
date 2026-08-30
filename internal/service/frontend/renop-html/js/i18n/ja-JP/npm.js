@@ -100,5 +100,6 @@ export default Object.freeze({
     "audit.action.NPM_PACKAGE_DELETE": "npm パッケージ削除", "audit.action.NPM_DIST_TAG": "npm Dist-Tag 更新",
     "audit.action.NPM_TEAM_ADD": "npm チームメンバー追加", "audit.action.NPM_TEAM_INVITE": "npm チーム招待送信",
     "audit.action.NPM_TEAM_LEVEL": "npm チーム権限更新", "audit.action.NPM_TEAM_REMOVE": "npm チームメンバー削除",
-    "audit.action.NPM_INVITE_ACCEPT": "npm 招待承認", "audit.action.NPM_INVITE_REJECT": "npm 招待辞退"
+    "audit.action.NPM_INVITE_ACCEPT": "npm 招待承認", "audit.action.NPM_INVITE_REJECT": "npm 招待辞退",
+    "npm.reviewPending": "審査待ち"
 });

@@ -222,7 +222,7 @@ export default Object.freeze({
     "repos.resetDownloadStatisticsConfirm": "重置 {name} 的全部下载统计？此操作无法撤销。",
     "repos.resetDownloadStatisticsSuccess": "下载统计已重置",
     "repos.resetDownloadStatisticsFailed": "无法重置下载统计",
-    "repos.publicationReview": "发布审核", "repos.publicationReviewDesc": "新的 Maven 发布需由存储库版主或系统管理员审核后才可见。启用审核后也会关闭重新部署。",
+    "repos.publicationReview": "发布审核", "repos.publicationReviewDesc": "本地软件包版本需由存储库版主或系统管理员审核后才可见；Maven 启用审核后也会关闭重新部署。",
     "repos.publicationReviewOff": "关闭", "repos.publicationReviewNewPackages": "仅新建包",
     "repos.publicationReviewEveryVersion": "每个版本", "repos.publicationReviewSaved": "发布审核设置已保存",
     "repos.publicationReviewUpdateFailed": "无法更新发布审核设置",

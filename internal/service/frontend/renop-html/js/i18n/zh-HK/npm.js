@@ -25,5 +25,6 @@ export default Object.freeze({
     "audit.action.NPM_TEAM_LEVEL": "更新 npm 團隊權限",
     "audit.action.NPM_TEAM_REMOVE": "移除 npm 團隊成員",
     "audit.action.NPM_INVITE_ACCEPT": "接受 npm 邀請",
-    "audit.action.NPM_INVITE_REJECT": "拒絕 npm 邀請"
+    "audit.action.NPM_INVITE_REJECT": "拒絕 npm 邀請",
+    "npm.reviewPending": "審核中"
 });
