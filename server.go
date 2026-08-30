@@ -41,6 +41,7 @@ import (
 	"renop/internal/service/statistics"
 	"renop/internal/service/status"
 	"renop/internal/service/storage"
+	"renop/internal/service/superteam"
 	"renop/internal/service/token"
 	"renop/internal/service/updater"
 	"renop/internal/service/upload"
@@ -157,6 +158,7 @@ func startServer() {
 	api.SetupAPIRoutes(apiGroup, state)
 	message.SetupRoutes(apiGroup, state)
 	statistics.SetupRoutes(apiGroup, state)
+	superteam.SetupRoutes(apiGroup, state)
 	maven.SetupRoutes(apiGroup, state)
 	npm.SetupRoutes(apiGroup, state, storage.NewPackageStore())
 	upload.SetupChunkedUploadRoutes(apiGroup, state)

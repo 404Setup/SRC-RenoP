@@ -142,6 +142,19 @@ type StateDB interface {
 	TransitionMessageAction(id, username, expectedStatus, newStatus string, actedAt int64) (bool, error)
 	DeleteUserMessage(id, username string) (bool, error)
 	DeleteUserMessages(username string) (int64, error)
+	GetSuperTeamLimitStatus(username string, globalCreateLimit, globalJoinLimit int) (*SuperTeamLimitStatus, error)
+	SetSuperTeamLimitOverride(username string, createLimit, joinLimit *int, updatedAt int64) error
+	CreateSuperTeam(team *SuperTeam, owner string, globalCreateLimit, globalJoinLimit int) error
+	ListSuperTeams(username string, administrator bool, limit, offset int) ([]*SuperTeam, int, error)
+	GetSuperTeamDetails(prefix, username string, administrator bool) (*SuperTeamDetails, error)
+	UpdateSuperTeam(prefix, actor, name, description string, administrator bool, updatedAt int64) error
+	DeleteSuperTeam(prefix, actor string, administrator bool, actedAt int64) error
+	CreateSuperTeamInvitations(invitations []*SuperTeamInvitation, messages []*UserMessage) error
+	ForceAddSuperTeamMembers(prefix, actor string, usernames []string, level, globalCreateLimit, globalJoinLimit int, actedAt int64) error
+	RespondSuperTeamInvitation(id, recipient string, accept bool, globalJoinLimit int, actedAt int64) error
+	SetSuperTeamMemberLevel(prefix, actor, target string, level int, administrator bool) error
+	RemoveSuperTeamMember(prefix, actor, target string, administrator bool, actedAt int64) error
+	CleanExpiredSuperTeamInvitations(now int64) error
 	CreateMavenDomain(domain *MavenDomain, owner string) error
 	ListMavenDomains(username string, includeAll bool) ([]*MavenDomain, error)
 	ListManagedMavenDomains(options MavenDomainListOptions) ([]*MavenDomain, int, error)

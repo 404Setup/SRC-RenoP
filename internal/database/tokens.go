@@ -453,6 +453,46 @@ func (db *DB) DeleteToken(name string) error {
 	if _, err := tx.Exec(`DELETE FROM docker_members WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete Docker memberships for token (%s): %w", lowerName, err)
 	}
+	var soleNPMOwnerships int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM npm_members current_member
+		WHERE current_member.user_id = ? AND current_member.permission_level = ? AND NOT EXISTS (
+			SELECT 1 FROM npm_members other_member
+			WHERE other_member.repository = current_member.repository
+			AND other_member.package_name = current_member.package_name
+			AND other_member.permission_level = ? AND other_member.user_id <> current_member.user_id
+		)`, userID, core.NPMPermissionOwner, core.NPMPermissionOwner).Scan(&soleNPMOwnerships); err != nil {
+		return fmt.Errorf("failed to inspect npm package ownership for token (%s): %w", lowerName, err)
+	}
+	if soleNPMOwnerships > 0 {
+		return fmt.Errorf("cannot delete token %s: user is the last L4 member of %d npm package(s)", lowerName, soleNPMOwnerships)
+	}
+	if err := cancelNPMInvitations(tx, `recipient = ? OR inviter = ?`, []any{lowerName, lowerName}, time.Now().UnixMilli()); err != nil {
+		return fmt.Errorf("failed to cancel npm invitations for token (%s): %w", lowerName, err)
+	}
+	if _, err := tx.Exec(`DELETE FROM npm_members WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("failed to delete npm memberships for token (%s): %w", lowerName, err)
+	}
+	var soleSuperTeamOwnerships int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM super_team_members current_member
+		WHERE current_member.user_id = ? AND current_member.role_level = ? AND NOT EXISTS (
+			SELECT 1 FROM super_team_members other_member
+			WHERE other_member.team_prefix = current_member.team_prefix
+			AND other_member.role_level = ? AND other_member.user_id <> current_member.user_id
+		)`, userID, core.SuperTeamRoleOwner, core.SuperTeamRoleOwner).Scan(&soleSuperTeamOwnerships); err != nil {
+		return fmt.Errorf("failed to inspect global team ownership for token (%s): %w", lowerName, err)
+	}
+	if soleSuperTeamOwnerships > 0 {
+		return fmt.Errorf("cannot delete token %s: user is the last T4 owner of %d global team(s)", lowerName, soleSuperTeamOwnerships)
+	}
+	if err := cancelSuperTeamInvitationsForUser(tx, userID, time.Now().UnixMilli()); err != nil {
+		return fmt.Errorf("failed to cancel global team invitations for token (%s): %w", lowerName, err)
+	}
+	if _, err := tx.Exec(`DELETE FROM super_team_members WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("failed to delete global team memberships for token (%s): %w", lowerName, err)
+	}
+	if _, err := tx.Exec(`DELETE FROM user_super_team_limits WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("failed to delete global team limits for token (%s): %w", lowerName, err)
+	}
 	if _, err := tx.Exec(`DELETE FROM github_principals WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete GitHub principals for token (%s): %w", lowerName, err)
 	}

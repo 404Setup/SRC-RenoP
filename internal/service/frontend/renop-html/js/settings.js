@@ -52,7 +52,7 @@ const DOMAIN_MESSAGE_TYPES = {
     index: IndexDomainSettings,
 };
 
-const SERVICE_DOMAINS = Object.freeze(['server', 'github_oauth', 'proxy', 'storage']);
+const SERVICE_DOMAINS = Object.freeze(['server', 'github_oauth', 'super_teams', 'proxy', 'storage']);
 
 let currentDomain = null;
 let currentConfig = null;
@@ -191,6 +191,15 @@ async function fetchGitHubOAuthSettings() {
 }
 
 /**
+ * Load global team limits from their JSON settings endpoint.
+ * @returns {Promise<{response: Response, data: object|null}>}
+ */
+async function fetchSuperTeamSettings() {
+    const response = await apiRequest('/api/settings/super-teams');
+    return {response, data: response.ok ? await response.json() : null};
+}
+
+/**
  * Loads configuration for a settings domain and renders its form with transition animation.
  * Uses a fetch id so stale responses are ignored when the user switches tabs quickly.
  * @param {string} domain - Domain key to load.
@@ -230,7 +239,9 @@ async function loadDomainSettings(domain, direction = 'next') {
                 name,
                 result: name === 'github_oauth'
                     ? await fetchGitHubOAuthSettings()
-                    : await fetchProto(`/api/settings/domain/${name}`, DOMAIN_MESSAGE_TYPES[name])
+                    : (name === 'super_teams'
+                        ? await fetchSuperTeamSettings()
+                        : await fetchProto(`/api/settings/domain/${name}`, DOMAIN_MESSAGE_TYPES[name]))
             })));
             const denied = results.find(({result}) => result.response.status === 401 || result.response.status === 403);
             if (denied) {
@@ -547,9 +558,49 @@ function renderServiceSettings(container, data) {
     const stack = el('div', {class: 'cfg-service-stack'});
     if (data.server) renderServerSettings(stack, data.server);
     if (data.github_oauth) renderGitHubOAuthSettings(stack, data.github_oauth);
+    if (data.super_teams) renderSuperTeamSettings(stack, data.super_teams);
     if (data.proxy) renderProxySettings(stack, data.proxy);
     if (data.storage) renderStorageSettings(stack, data.storage);
     container.appendChild(stack);
+}
+
+/**
+ * Render global per-account team creation and membership limits.
+ * @param {HTMLElement} container - Service settings stack.
+ * @param {{create_limit?: number, join_limit?: number}} data - Mutable global team limits.
+ * @returns {void}
+ */
+function renderSuperTeamSettings(container, data) {
+    const wrap = el('div', {class: 'cfg-layout'});
+    const section = createSection(
+        createIcon('identity'),
+        t('superTeam.settingsTitle'),
+        t('superTeam.settingsSubtitle'),
+        {defaultCollapsed: true}
+    );
+    const fields = section.querySelector('.cfg-fields');
+    const createLimit = buildInput('number', Number(data.create_limit) || 5, '5', event => {
+        const value = Number(event.target.value);
+        if (!Number.isInteger(value) || value < 1 || value > 1000) return;
+        data.create_limit = value;
+        enableSave();
+    });
+    createLimit.min = '1';
+    createLimit.max = '1000';
+    const joinLimit = buildInput('number', Number(data.join_limit) || 20, '20', event => {
+        const value = Number(event.target.value);
+        if (!Number.isInteger(value) || value < 1 || value > 1000) return;
+        data.join_limit = value;
+        enableSave();
+    });
+    joinLimit.min = '1';
+    joinLimit.max = '1000';
+    fields.append(
+        createFieldRow(t('superTeam.createLimit'), t('superTeam.createLimitHint'), createLimit),
+        createFieldRow(t('superTeam.joinLimit'), t('superTeam.joinLimitHint'), joinLimit)
+    );
+    wrap.appendChild(section);
+    container.appendChild(wrap);
 }
 
 /**
@@ -1727,6 +1778,13 @@ export async function saveDomainSettings() {
                         body: JSON.stringify(currentConfig[domain]),
                     });
                     if (response.ok) savedData = await response.json();
+                } else if (domain === 'super_teams') {
+                    response = await apiRequest('/api/settings/super-teams', {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(currentConfig[domain]),
+                    });
+                    if (response.ok) savedData = await response.json();
                 } else {
                     ({response} = await putProto(
                         `/api/settings/domain/${domain}`,
@@ -1737,7 +1795,7 @@ export async function saveDomainSettings() {
                 if (!response.ok) {
                     const fallbackKey = domain === 'github_oauth'
                         ? 'settings.githubOAuthSaveFailed'
-                        : 'settings.saveFailed';
+                        : (domain === 'super_teams' ? 'superTeam.settingsSaveFailed' : 'settings.saveFailed');
                     throw new LocalizedResponseError(
                         await responseErrorMessage(response, fallbackKey),
                         response.status
@@ -1751,6 +1809,8 @@ export async function saveDomainSettings() {
                     };
                     const secretInput = document.getElementById('settings-github-oauth-secret');
                     if (secretInput) secretInput.value = '';
+                } else if (domain === 'super_teams' && savedData) {
+                    currentConfig[domain] = savedData;
                 }
                 initialConfig[domain] = JSON.parse(JSON.stringify(currentConfig[domain]));
             }

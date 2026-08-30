@@ -61,6 +61,35 @@ func setupSettingsTestApp(t *testing.T, cfg *config.Config) (*fiber.App, *core.A
 	return app, appState
 }
 
+func TestSuperTeamGlobalLimitsPersist(t *testing.T) {
+	cfg := config.DefaultConfig()
+	app, state := setupSettingsTestApp(t, cfg)
+
+	request := httptest.NewRequest(http.MethodPut, "/super-teams",
+		strings.NewReader(`{"create_limit":7,"join_limit":24}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err := app.Test(request)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	response.Body.Close()
+	assert.Equal(t, 7, state.Inner.Config.Load().SuperTeams.CreateLimit)
+	assert.Equal(t, 24, state.Inner.Config.Load().SuperTeams.JoinLimit)
+
+	configBytes, err := os.ReadFile(os.Getenv("RENOP_CONFIG"))
+	require.NoError(t, err)
+	assert.Contains(t, string(configBytes), "super_teams:")
+	assert.Contains(t, string(configBytes), "create_limit: 7")
+	assert.Contains(t, string(configBytes), "join_limit: 24")
+
+	request = httptest.NewRequest(http.MethodPut, "/super-teams",
+		strings.NewReader(`{"create_limit":0,"join_limit":24}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+	response.Body.Close()
+}
+
 func protoBody(t *testing.T, m proto.Message) *bytes.Buffer {
 	t.Helper()
 	data, err := proto.Marshal(m)
@@ -764,9 +793,10 @@ func TestGetDomainsProtobuf(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected GET 200, got %d", resp.StatusCode)
 	}
-	if len(got.Domains) != 7 || !slices.Contains(got.Domains, "proxy") ||
-		!slices.Contains(got.Domains, "github_oauth") || slices.Contains(got.Domains, "gpg") {
-		t.Fatalf("expected 7 domains including proxy and GitHub OAuth while excluding gpg, got %v", got.Domains)
+	if len(got.Domains) != 8 || !slices.Contains(got.Domains, "proxy") ||
+		!slices.Contains(got.Domains, "github_oauth") || !slices.Contains(got.Domains, "super_teams") ||
+		slices.Contains(got.Domains, "gpg") {
+		t.Fatalf("expected 8 domains including proxy, GitHub OAuth, and global teams while excluding gpg, got %v", got.Domains)
 	}
 }
 

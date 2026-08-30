@@ -30,18 +30,19 @@ type userProfileUpdateRequest struct {
 }
 
 type userProfileResponse struct {
-	UserID                       string               `json:"user_id"`
-	Username                     string               `json:"username"`
-	Nickname                     string               `json:"nickname"`
-	CreatedAt                    string               `json:"created_at"`
-	OwnProfile                   bool                 `json:"own_profile"`
-	UsernameChangesRemaining     int                  `json:"username_changes_remaining"`
-	UsernameChangeWindowResetsAt int64                `json:"username_change_window_resets_at,omitempty"`
-	MavenDomainCount             int                  `json:"maven_domain_count"`
-	CargoPackageCount            int                  `json:"cargo_package_count"`
-	DockerImageCount             int                  `json:"docker_image_count"`
-	NPMPackageCount              int                  `json:"npm_package_count"`
-	GitHub                       *githubProfileStatus `json:"github,omitempty"`
+	UserID                       string                     `json:"user_id"`
+	Username                     string                     `json:"username"`
+	Nickname                     string                     `json:"nickname"`
+	CreatedAt                    string                     `json:"created_at"`
+	OwnProfile                   bool                       `json:"own_profile"`
+	UsernameChangesRemaining     int                        `json:"username_changes_remaining"`
+	UsernameChangeWindowResetsAt int64                      `json:"username_change_window_resets_at,omitempty"`
+	MavenDomainCount             int                        `json:"maven_domain_count"`
+	CargoPackageCount            int                        `json:"cargo_package_count"`
+	DockerImageCount             int                        `json:"docker_image_count"`
+	NPMPackageCount              int                        `json:"npm_package_count"`
+	GitHub                       *githubProfileStatus       `json:"github,omitempty"`
+	SuperTeamLimits              *core.SuperTeamLimitStatus `json:"super_team_limits,omitempty"`
 }
 
 func publicUserProfile(c fiber.Ctx, state *core.AppState) error {
@@ -311,6 +312,12 @@ func updateOwnUserProfile(c fiber.Ctx, state *core.AppState, opChan chan<- token
 	c.Set(fiber.HeaderCacheControl, "no-store")
 	response := profileResponse(updated, true, changedAt)
 	response.GitHub = &github
+	limits := state.Inner.Config.Load().SuperTeams
+	response.SuperTeamLimits, err = db.GetSuperTeamLimitStatus(
+		updated.Username, limits.CreateLimit, limits.JoinLimit)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Profile updated but team limits could not be loaded")
+	}
 	return c.JSON(response)
 }
 
@@ -325,6 +332,12 @@ func profileResponseWithConnections(state *core.AppState, profile *core.UserProf
 		return userProfileResponse{}, err
 	}
 	response.GitHub = &github
+	limits := state.Inner.Config.Load().SuperTeams
+	response.SuperTeamLimits, err = state.GetDB().GetSuperTeamLimitStatus(
+		profile.Username, limits.CreateLimit, limits.JoinLimit)
+	if err != nil {
+		return userProfileResponse{}, err
+	}
 	return response, nil
 }
 

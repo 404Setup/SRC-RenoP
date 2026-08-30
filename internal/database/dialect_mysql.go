@@ -55,6 +55,23 @@ func initMySQLNPMIndexes(db *sql.DB) error {
 	return nil
 }
 
+func initMySQLSuperTeamIndexes(db *sql.DB) error {
+	migrations := [...]SchemaMigration{
+		{Name: "idx_super_teams_creator", Query: "CREATE INDEX idx_super_teams_creator ON super_teams(created_by, prefix);"},
+		{Name: "idx_super_team_members_user", Query: "CREATE INDEX idx_super_team_members_user ON super_team_members(user_id, team_prefix);"},
+		{Name: "idx_super_team_invitations_recipient", Query: "CREATE INDEX idx_super_team_invitations_recipient ON super_team_invitations(recipient_id, expires_at);"},
+	}
+	for _, migration := range migrations {
+		if _, err := db.Exec(migration.Query); err != nil {
+			if strings.Contains(strings.ToLower(err.Error()), "duplicate key name") {
+				continue
+			}
+			return fmt.Errorf("failed to apply migration %s: %w", migration.Name, err)
+		}
+	}
+	return nil
+}
+
 func (d *MySQLDialect) Name() string {
 	return "mysql"
 }
@@ -479,6 +496,12 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 	if err := initMySQLDownloadStatisticsIndexes(db); err != nil {
+		return err
+	}
+	if err := initSuperTeamTables(db); err != nil {
+		return err
+	}
+	if err := initMySQLSuperTeamIndexes(db); err != nil {
 		return err
 	}
 

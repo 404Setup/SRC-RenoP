@@ -104,6 +104,49 @@ func initDownloadStatisticsTables(db *sql.DB) error {
 	return err
 }
 
+func initSuperTeamTables(db *sql.DB) error {
+	tables := [...]string{
+		`CREATE TABLE IF NOT EXISTS super_teams (
+			prefix VARCHAR(64) PRIMARY KEY,
+			name VARCHAR(320) NOT NULL,
+			description VARCHAR(2048) NOT NULL,
+			created_by VARCHAR(36) NOT NULL,
+			created_by_name VARCHAR(255) NOT NULL,
+			created_at BIGINT NOT NULL,
+			updated_at BIGINT NOT NULL
+		);`,
+		`CREATE TABLE IF NOT EXISTS super_team_members (
+			team_prefix VARCHAR(64) NOT NULL,
+			user_id VARCHAR(36) NOT NULL,
+			role_level INT NOT NULL,
+			added_at BIGINT NOT NULL,
+			PRIMARY KEY (team_prefix, user_id)
+		);`,
+		`CREATE TABLE IF NOT EXISTS super_team_invitations (
+			id CHAR(36) PRIMARY KEY,
+			team_prefix VARCHAR(64) NOT NULL,
+			inviter_id VARCHAR(36) NOT NULL,
+			recipient_id VARCHAR(36) NOT NULL,
+			role_level INT NOT NULL,
+			created_at BIGINT NOT NULL,
+			expires_at BIGINT NOT NULL,
+			UNIQUE (team_prefix, recipient_id)
+		);`,
+		`CREATE TABLE IF NOT EXISTS user_super_team_limits (
+			user_id VARCHAR(36) PRIMARY KEY,
+			create_limit INT NOT NULL DEFAULT -1,
+			join_limit INT NOT NULL DEFAULT -1,
+			updated_at BIGINT NOT NULL
+		);`,
+	}
+	for _, table := range tables {
+		if _, err := db.Exec(table); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func initNPMTables(db *sql.DB) error {
 	tables := [...]string{
 		`CREATE TABLE IF NOT EXISTS npm_packages (
@@ -305,6 +348,9 @@ var sharedIndexMigrations = []SchemaMigration{
 	{Name: "idx_download_statistics_repository", Query: "CREATE INDEX IF NOT EXISTS idx_download_statistics_repository ON download_statistics(repository, format);"},
 	{Name: "idx_download_statistics_namespace", Query: "CREATE INDEX IF NOT EXISTS idx_download_statistics_namespace ON download_statistics(repository, namespace);"},
 	{Name: "idx_download_statistics_package", Query: "CREATE INDEX IF NOT EXISTS idx_download_statistics_package ON download_statistics(repository, package_name);"},
+	{Name: "idx_super_teams_creator", Query: "CREATE INDEX IF NOT EXISTS idx_super_teams_creator ON super_teams(created_by, prefix);"},
+	{Name: "idx_super_team_members_user", Query: "CREATE INDEX IF NOT EXISTS idx_super_team_members_user ON super_team_members(user_id, team_prefix);"},
+	{Name: "idx_super_team_invitations_recipient", Query: "CREATE INDEX IF NOT EXISTS idx_super_team_invitations_recipient ON super_team_invitations(recipient_id, expires_at);"},
 }
 
 func applySharedIndexMigrations(db *sql.DB) error {

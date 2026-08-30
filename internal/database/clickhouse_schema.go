@@ -175,6 +175,20 @@ func clickHouseSchemas() []clickHouseTableSchema {
 			"`namespace` String", "`package_name` String", "`version` String", "`download_count` Int64 DEFAULT 0",
 			"`download_bytes` Int64 DEFAULT 0", "`updated_at` Int64",
 		}},
+		{name: "super_teams", keyColumns: []string{"prefix"}, columns: []string{
+			"`prefix` String", "`name` String", "`description` String", "`created_by` String", "`created_by_name` String",
+			"`created_at` Int64", "`updated_at` Int64",
+		}},
+		{name: "super_team_members", keyColumns: []string{"team_prefix", "user_id"}, columns: []string{
+			"`team_prefix` String", "`user_id` String", "`role_level` Int64", "`added_at` Int64",
+		}},
+		{name: "super_team_invitations", keyColumns: []string{"id"}, columns: []string{
+			"`id` String", "`team_prefix` String", "`inviter_id` String", "`recipient_id` String",
+			"`role_level` Int64", "`created_at` Int64", "`expires_at` Int64",
+		}},
+		{name: "user_super_team_limits", keyColumns: []string{"user_id"}, columns: []string{
+			"`user_id` String", "`create_limit` Int64 DEFAULT -1", "`join_limit` Int64 DEFAULT -1", "`updated_at` Int64",
+		}},
 		{name: "npm_packages", keyColumns: []string{"repository", "package_name"}, columns: []string{
 			"`repository` String", "`package_name` String", "`description` String", "`publisher` String",
 			"`latest_version` String", "`private` Int64 DEFAULT 0", "`archived` Int64 DEFAULT 0", "`mirrored` Int64 DEFAULT 0",

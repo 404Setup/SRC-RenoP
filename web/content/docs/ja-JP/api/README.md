@@ -64,6 +64,7 @@ Basic Auth で管理 API を呼び出すことはできません。URL クエリ
 - [Cargo API](./cargo.md)
 - [Docker / OCI API](./docker.md)
 - [npm Registry API](./npm.md)
+- [グローバルチーム API](./global-teams.md)
 - [メッセージセンター API](./messages.md)
 - [ストレージとアップロード API](./storage.md)
 - [設定 API](./settings.md)

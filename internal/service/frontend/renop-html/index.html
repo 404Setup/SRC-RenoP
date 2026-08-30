@@ -99,6 +99,10 @@
                             <renop-icon name="network" aria-hidden="true"></renop-icon>
                             <span data-i18n="maven.domainSettings">Domain settings</span>
                         </button>
+                        <button type="button" class="nav-profile-menu-item" role="menuitem" data-account-action="super-teams">
+                            <renop-icon name="identity" aria-hidden="true"></renop-icon>
+                            <span data-i18n="superTeam.nav">Global teams</span>
+                        </button>
                         <button id="message-center-btn" type="button" class="nav-profile-menu-item message-center-menu-item" role="menuitem" data-account-action="messages">
                             <renop-icon name="bell" aria-hidden="true"></renop-icon>
                             <span data-i18n="messages.title">Messages</span>
@@ -517,6 +521,23 @@
                     </div>
                 </header>
                 <div id="maven-domain-page-content" class="maven-domain-center"></div>
+            </section>
+        </div>
+
+        <div id="tab-content-super-teams" class="tab-content" style="display: none;">
+            <section class="super-team-page" aria-labelledby="super-team-page-title">
+                <header class="super-team-page-header">
+                    <button id="super-team-home" type="button" class="super-team-back">
+                        <renop-icon name="chevronLeft" aria-hidden="true"></renop-icon>
+                        <span data-i18n="nav.backHome">Back to home</span>
+                    </button>
+                    <div>
+                        <span class="super-team-kicker">RenoP</span>
+                        <h2 id="super-team-page-title" data-i18n="superTeam.title">Global teams</h2>
+                        <p data-i18n="superTeam.subtitle">Manage shared publishing identities and cross-engine namespaces.</p>
+                    </div>
+                </header>
+                <div id="super-team-page-content" class="super-team-center"></div>
             </section>
         </div>
 

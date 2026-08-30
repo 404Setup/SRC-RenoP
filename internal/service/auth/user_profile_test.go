@@ -143,6 +143,7 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.Equal(t, 1, publicProfile.DockerImageCount)
 	require.Equal(t, 1, publicProfile.NPMPackageCount)
 	require.Nil(t, publicProfile.GitHub)
+	require.Nil(t, publicProfile.SuperTeamLimits)
 	require.NoError(t, response.Body.Close())
 
 	response = profileRequest(t, app, http.MethodGet, "/users/alice/profile", "")
@@ -157,6 +158,9 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.True(t, ownProfile.GitHub.CanDisconnect)
 	require.Equal(t, "alice-github", ownProfile.GitHub.GitHubLogin)
 	require.Equal(t, 2, ownProfile.GitHub.PrincipalCount)
+	require.NotNil(t, ownProfile.SuperTeamLimits)
+	require.Equal(t, cfg.SuperTeams.CreateLimit, ownProfile.SuperTeamLimits.CreateLimit)
+	require.Equal(t, cfg.SuperTeams.JoinLimit, ownProfile.SuperTeamLimits.JoinLimit)
 	response = profileRequest(t, app, http.MethodGet, "/users/bobby/memberships?format=cargo", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var membershipResponse struct {
@@ -230,6 +234,7 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.Equal(t, 1, firstRename.UsernameChangesRemaining)
 	require.NotNil(t, firstRename.GitHub)
 	require.Equal(t, "alice-github", firstRename.GitHub.GitHubLogin)
+	require.NotNil(t, firstRename.SuperTeamLimits)
 	currentUsername = firstRename.Username
 
 	response = profileRequest(t, app, http.MethodPut, "/auth/profile", `{"username":"alice_two"}`)

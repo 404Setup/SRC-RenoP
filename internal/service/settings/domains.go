@@ -44,7 +44,7 @@ func GetDomains(c fiber.Ctx) error {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 	return protohttp.Write(c, &pb.SettingsDomainsResponse{
-		Domains: []string{"frontend", "server", "proxy", "storage", "github_oauth", "updater", "index"},
+		Domains: []string{"frontend", "server", "proxy", "storage", "github_oauth", "super_teams", "updater", "index"},
 	})
 }
 

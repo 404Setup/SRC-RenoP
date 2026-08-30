@@ -11,23 +11,32 @@
 package audit
 
 const (
-	ActionLogin                = "LOGIN"
-	ActionLogout               = "LOGOUT"
-	ActionUpload               = "UPLOAD"
-	ActionUploadQueuedGPG      = "UPLOAD_QUEUED_GPG"
-	ActionDelete               = "DELETE"
-	ActionPasswordUpdate       = "PASSWORD_UPDATE"
-	ActionFIDOUpdate           = "FIDO_UPDATE"
-	ActionSettingsUpdate       = "SETTINGS_UPDATE"
-	ActionSessionRevoke        = "SESSION_REVOKE"
-	ActionTokenGenerate        = "TOKEN_GENERATE"
-	ActionTokenRevoke          = "TOKEN_REVOKE"
-	ActionUserPermissionUpdate = "USER_PERMISSION_UPDATE"
-	ActionLogClear             = "LOG_CLEAR"
-	ActionGPGUpdate            = "GPG_UPDATE"
-	ActionProfileUpdate        = "PROFILE_UPDATE"
-	ActionMessageSend          = "MESSAGE_SEND"
-	ActionRepositoryMigrate    = "REPOSITORY_MIGRATE"
+	ActionLogin                 = "LOGIN"
+	ActionLogout                = "LOGOUT"
+	ActionUpload                = "UPLOAD"
+	ActionUploadQueuedGPG       = "UPLOAD_QUEUED_GPG"
+	ActionDelete                = "DELETE"
+	ActionPasswordUpdate        = "PASSWORD_UPDATE"
+	ActionFIDOUpdate            = "FIDO_UPDATE"
+	ActionSettingsUpdate        = "SETTINGS_UPDATE"
+	ActionSessionRevoke         = "SESSION_REVOKE"
+	ActionTokenGenerate         = "TOKEN_GENERATE"
+	ActionTokenRevoke           = "TOKEN_REVOKE"
+	ActionUserPermissionUpdate  = "USER_PERMISSION_UPDATE"
+	ActionLogClear              = "LOG_CLEAR"
+	ActionGPGUpdate             = "GPG_UPDATE"
+	ActionProfileUpdate         = "PROFILE_UPDATE"
+	ActionMessageSend           = "MESSAGE_SEND"
+	ActionRepositoryMigrate     = "REPOSITORY_MIGRATE"
+	ActionSuperTeamCreate       = "SUPER_TEAM_CREATE"
+	ActionSuperTeamUpdate       = "SUPER_TEAM_UPDATE"
+	ActionSuperTeamDelete       = "SUPER_TEAM_DELETE"
+	ActionSuperTeamInvite       = "SUPER_TEAM_INVITE"
+	ActionSuperTeamMemberAdd    = "SUPER_TEAM_MEMBER_ADD"
+	ActionSuperTeamMemberLevel  = "SUPER_TEAM_MEMBER_LEVEL"
+	ActionSuperTeamMemberRemove = "SUPER_TEAM_MEMBER_REMOVE"
+	ActionSuperTeamInvitation   = "SUPER_TEAM_INVITATION"
+	ActionSuperTeamLimit        = "SUPER_TEAM_LIMIT"
 
 	ActionCargoPublish        = "CARGO_PUBLISH"
 	ActionCargoDocsUpload     = "CARGO_DOCS_UPLOAD"
@@ -109,6 +118,15 @@ func KnownActions() []string {
 		ActionProfileUpdate,
 		ActionMessageSend,
 		ActionRepositoryMigrate,
+		ActionSuperTeamCreate,
+		ActionSuperTeamUpdate,
+		ActionSuperTeamDelete,
+		ActionSuperTeamInvite,
+		ActionSuperTeamMemberAdd,
+		ActionSuperTeamMemberLevel,
+		ActionSuperTeamMemberRemove,
+		ActionSuperTeamInvitation,
+		ActionSuperTeamLimit,
 		ActionCargoPublish,
 		ActionCargoDocsUpload,
 		ActionCargoDocsDelete,

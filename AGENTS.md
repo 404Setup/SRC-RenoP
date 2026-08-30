@@ -16,7 +16,7 @@
   as a raw RFC 7932 Brotli stream with `github.com/molecule-man/go-brrr`.
 - **`cmd/renop-dbtest/`**: Standalone destructive-on-isolated-data driver contract CLI. It requires
   `-confirm-isolated` and exercises account/session persistence, rollback, message deduplication, Cargo/Docker/Maven/npm
-  catalogs, and download statistics through the same database API used by the server.
+  catalogs, global-team invitation/role mutations, and download statistics through the same database API used by the server.
 - **`scripts/build-target.ps1` & `scripts/compress-target.ps1`**: Isolated release workers coordinated by `build.ps1`.
   Up to four compilations run independently from up to eight Brotli packaging tasks; a completed compilation releases
   its build slot immediately and queues compression without delaying the next architecture. The parent preserves
@@ -42,6 +42,9 @@
   npm package reservations, immutable versions, dist-tags, L0-L4 teams, and invitations use the same immutable
   identities across every supported SQL dialect. Catalog reads and writes derive a usable latest published version
   when the optional `latest` dist-tag is absent, including automatic repair of older empty summary rows.
+  Engine-independent global teams reserve an immutable prefix, store T1-T4 memberships and invitations exclusively by
+  immutable user ID, preserve creator display after account deletion, and enforce global or per-account creation and
+  membership limits on SQLite, PostgreSQL, MySQL, and native ClickHouse.
 - **`internal/service/auth/`**: Password, FIDO/Passkey, session, profile, and GitHub OAuth workflows. GitHub OAuth
   separates bounded single-use route state, constrained provider HTTP access, and collision-safe account linking into
   `github_routes.go`, `github_client.go`, and `github_account.go`; access tokens are never persisted. Account recovery
@@ -51,7 +54,7 @@
   gate repository reads/publication/deletion, package creation/metadata/lifecycle, team administration, and Maven-domain
   reading/creation/verification/deletion. Each target-aware scope can additionally carry bounded exact repository,
   package, team, or domain restrictions in the backward-compatible authorization JSON; legacy broad package/domain
-  scopes remain authentication-only compatibility.
+  scopes remain authentication-only compatibility. Team targets also accept bounded `global/<prefix>` restrictions.
   Token secrets are owner-managed from a browser session; administrators cannot mint credentials for another user.
   Browser session secrets are cookie-only, while Basic/password credentials are restricted to package protocols.
   Authentication-result invalidation is scoped to the changed account or revoked API token so unrelated hot entries
@@ -101,10 +104,16 @@
   administrator notices. Package-team removals create operator-neutral notifications localized by
   `internal/service/frontend/renop-html/js/team-messages.js`; scheduled and interactive system-update results are
   deduplicated per administrator and localized by `js/updater-messages.js` instead of transient dashboard prompts.
+- **`internal/service/superteam/`**: Authenticated global-team account APIs for creation, pagination, immutable-prefix
+  metadata, T1-T4 invitations and membership administration, effective account limits, and administrator overrides.
+  T3 may manage T1/T2 members, while only T4 or system administrators may grant or manage T3/T4 roles; at least one
+  T4 owner must remain. Administrators still enforce the target account's membership limit and receive no notification
+  when adding themselves.
 - **`internal/service/audit/`**: Durable behavior logging with a central registry of stable action identifiers.
   Frontend tests require every registered action to have a translation in every locale before changes can ship.
 - **`internal/service/tasks/`**: Process-wide non-reentrant scheduler for coalescible periodic maintenance, including
-  status snapshots, cache/session cleanup, index persistence, download-statistics flushing, upload cleanup, and update checks.
+  status snapshots, cache/session/global-team-invitation cleanup, index persistence, download-statistics flushing,
+  upload cleanup, and update checks.
   Event-driven workers such as audit persistence, GPG publication, token operations, and file watching remain
   dedicated and serial where ordering matters.
 - **`internal/service/statistics/`**: Application-scoped bounded download counter shared by Maven, npm, Cargo, Docker, and
@@ -179,6 +188,10 @@
   and filter shell and morphs only the bounded results/pagination region;
   repository clipboard feedback is centralized in `js/browser/copy-feedback.js`; repository package and namespace
   metadata grids and cross-format mirror-source badges are built by `js/browser/repository-view.js`.
+  The routed `/account/teams` center owns global-team pagination, immutable-prefix creation, responsive T1-T4 member
+  controls, shared username suggestions, invitation actions, and embedded profile usage limits. System settings load
+  global team defaults through a separate JSON domain without expanding the protobuf settings schema; all 12 frontend
+  locales include global-team UI, message, error, and audit text.
   Maven artifact versions, npm package versions, and Docker image tags use `@renop/ui/pagination` for bounded
   previous/next pages, responsive summaries, height-morphed page changes, and page clamping after deletions; the
   shared pager intentionally avoids dense numbered-button rows on mobile.

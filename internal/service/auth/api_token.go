@@ -222,6 +222,9 @@ func normalizeTeamTarget(value string) (string, bool) {
 	case strings.HasPrefix(value, "package/"):
 		pkg, ok := normalizePackageTarget(strings.TrimPrefix(value, "package/"))
 		return "package/" + pkg, ok
+	case strings.HasPrefix(value, "global/"):
+		prefix, ok := core.NormalizeSuperTeamPrefix(strings.TrimPrefix(value, "global/"))
+		return "global/" + prefix, ok
 	default:
 		return "", false
 	}

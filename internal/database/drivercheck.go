@@ -108,6 +108,62 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	}); err != nil {
 		return results, err
 	}
+	if err := run("global teams", func() error {
+		memberUsername := "dbmember-" + suffix
+		if err := db.SaveToken(&core.AccessToken{
+			Name: memberUsername, CreatedAt: time.Now().UTC().Format(time.RFC3339), Permissions: []string{"base"},
+		}); err != nil {
+			return err
+		}
+		team := &core.SuperTeam{
+			Prefix: "dbcheck-" + suffix, Name: "Driver Check Team", Description: "Database contract",
+			CreatedAt: now,
+		}
+		if err := db.CreateSuperTeam(team, username, 5, 20); err != nil {
+			return err
+		}
+		details, err := db.GetSuperTeamDetails(team.Prefix, username, false)
+		if err != nil || details == nil || details.Team == nil ||
+			details.Team.RoleLevel != core.SuperTeamRoleOwner || len(details.Members) != 1 {
+			return errorsOrMissing(err, "global team")
+		}
+		teams, total, err := db.ListSuperTeams(username, false, 10, 0)
+		if err != nil || total != 1 || len(teams) != 1 || teams[0].Prefix != team.Prefix {
+			return errorsOrMissing(err, "global team listing")
+		}
+		invitationID := uuid.NewString()
+		expiresAt := now + int64((time.Hour / time.Millisecond))
+		invitation := &core.SuperTeamInvitation{
+			ID: invitationID, TeamPrefix: team.Prefix, Inviter: username, Recipient: memberUsername,
+			Level: core.SuperTeamRoleWrite, CreatedAt: now, ExpiresAt: expiresAt,
+		}
+		message := &core.UserMessage{
+			ID: invitationID, Recipient: memberUsername, Sender: username, Kind: "super_team_invite", Severity: "info",
+			Title: "Global team invitation", Body: "Driver check invitation", Payload: []byte(`{"prefix":"` + team.Prefix + `"}`),
+			ActionKind: "super_team_invite", ActionStatus: core.MessageActionPending, CreatedAt: now, ExpiresAt: expiresAt,
+		}
+		if err := db.CreateSuperTeamInvitations(
+			[]*core.SuperTeamInvitation{invitation}, []*core.UserMessage{message}); err != nil {
+			return err
+		}
+		if err := db.RespondSuperTeamInvitation(invitationID, memberUsername, true, 20, now+1); err != nil {
+			return err
+		}
+		if err := db.SetSuperTeamMemberLevel(team.Prefix, username, memberUsername,
+			core.SuperTeamRoleManage, false); err != nil {
+			return err
+		}
+		if err := db.RemoveSuperTeamMember(team.Prefix, username, memberUsername, false, now+2); err != nil {
+			return err
+		}
+		memberTeams, memberTotal, err := db.ListSuperTeams(memberUsername, false, 10, 0)
+		if err != nil || memberTotal != 0 || len(memberTeams) != 0 {
+			return errorsOrMissing(err, "global team removal visibility")
+		}
+		return nil
+	}); err != nil {
+		return results, err
+	}
 	cargoRepository := "cargo-" + suffix
 	dockerRepository := "docker-" + suffix
 	mavenRepository := "maven-" + suffix

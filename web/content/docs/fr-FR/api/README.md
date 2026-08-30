@@ -64,6 +64,7 @@ Basic Auth ne peut pas appeler les API de gestion. Les identifiants dans les par
 - [API Cargo](./cargo.md)
 - [API Docker / OCI](./docker.md)
 - [API du registre npm](./npm.md)
+- [API des équipes globales](./global-teams.md)
 - [API du centre de messages](./messages.md)
 - [API de stockage et téléversement](./storage.md)
 - [API des paramètres](./settings.md)

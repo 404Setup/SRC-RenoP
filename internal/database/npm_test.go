@@ -108,6 +108,22 @@ func TestNPMPackageLifecycleVisibilityAndTeamOwnership(t *testing.T) {
 	assert.True(t, errors.Is(err, core.ErrNPMPackageNotFound))
 }
 
+func TestAccountDeletionCleansTransferredNPMMembership(t *testing.T) {
+	db := newMavenDB(t)
+	now := time.Now().UnixMilli()
+	_, err := db.CreateNPMPackage("npm", "owned-package", "alice", false, now)
+	require.NoError(t, err)
+	require.ErrorContains(t, db.DeleteToken("alice"), "last L4 member")
+	require.NoError(t, db.ForceAddNPMMembers("npm", "owned-package", "admin", []string{"bob"},
+		core.NPMPermissionOwner))
+	require.NoError(t, db.DeleteToken("alice"))
+	members, err := db.ListNPMMembers("npm", "owned-package")
+	require.NoError(t, err)
+	require.Len(t, members, 1)
+	assert.Equal(t, "bob", members[0].Username)
+	assert.Equal(t, core.NPMPermissionOwner, members[0].Level)
+}
+
 func TestNPMPackageLatestVersionFallsBackWithoutDistTag(t *testing.T) {
 	db := newMavenDB(t)
 	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "publisher", Permissions: []string{"base"}}))

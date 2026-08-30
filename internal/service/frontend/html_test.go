@@ -66,6 +66,10 @@ func TestOpenAPIDocumentIncludesFrontendRoutes(t *testing.T) {
 		"/api/maven/repositories/{repo_name}/packages",
 		"/api/docker/repositories/{repo_name}/images",
 		"/api/npm/repositories/{repo_name}/packages",
+		"/api/super-teams", "/api/super-teams/{prefix}",
+		"/api/super-teams/{prefix}/members", "/api/super-teams/{prefix}/members/{username}",
+		"/api/super-teams/invitations/{id}/{decision}", "/api/super-teams/limits",
+		"/api/super-teams/users/{username}/limits", "/api/settings/super-teams",
 	} {
 		if _, exists := document.Paths[path]; !exists {
 			t.Fatalf("OpenAPI document is missing %s", path)

@@ -22,6 +22,7 @@ binary with an embedded web UI and supports multiple registry protocols out of t
 - [Storage Backends](#storage-backends)
 - [GPG Signature Verification](#gpg-signature-verification)
 - [Outbound Proxy](#outbound-proxy)
+- [Global Teams](#global-teams)
 - [Message Center](#message-center)
 - [Audit Log](#audit-log)
 - [System Service Installation](#system-service-installation)
@@ -45,6 +46,7 @@ binary with an embedded web UI and supports multiple registry protocols out of t
 - **FIDO2 / WebAuthn** — Passwordless login and MFA with hardware security keys
 - **In-app message center** — Durable per-user inbox with admin broadcast notifications
 - **Activity audit log** — Immutable per-user action history with manager visibility
+- **Global teams** — Immutable shared prefixes, T1-T4 collaboration, invitations, and configurable account limits
 - **Javadoc and Cargo-doc preview** — In-browser viewing of extracted documentation jars and Cargo doc tarballs
 - **Embedded SVG badges** — Latest-version badges for Maven artifacts
 - **Online and offline updater** — One-click or automated binary updates without external tools
@@ -224,6 +226,10 @@ server:
   audit_log:
     retention_days: 14            # Delete entries older than this many days
     max_rows: 10000               # Delete oldest entries when total exceeds this count
+
+super_teams:
+  create_limit: 5                 # Default maximum teams created by one account
+  join_limit: 20                  # Default maximum memberships, including owned teams
 
 updater:
   channel: release                # release | nightly
@@ -423,6 +429,20 @@ a per-mirror basis using the `proxy` field.
 
 ---
 
+## Global Teams
+
+Global teams are instance-wide collaboration identities with immutable 2–64 character prefixes. Membership is stored
+against immutable account identities, while the UI and API expose usernames. T1 provides read access, T2 maps to
+publication and version maintenance, T3 manages members, and T4 owns team configuration. T3 can manage T1/T2 members;
+only T4 or a system administrator can grant or manage T3/T4.
+
+The account menu opens `/account/teams`. Creation and membership limits default to `super_teams.create_limit` and
+`super_teams.join_limit`; managers can set account-specific overrides through
+`PUT /api/super-teams/users/{username}/limits`. A value of `-1` restores inheritance and zero prevents the corresponding
+operation. Invitations are one-time message-center actions and expire after seven days.
+
+---
+
 ## Message Center
 
 RenoP includes a durable per-user inbox. Messages are persisted in the database and survive server restarts. Managers
@@ -569,6 +589,7 @@ prefer the HTTP status code over the body for programmatic handling.
 | `settings` | `GET/PUT /api/settings/domain/{name}`, `/api/settings/maven/repositories/...`       | Configuration management            |
 | `updater`  | `POST /api/updater/check`, `/api/updater/install`, `/api/updater/restart`           | Update management                   |
 | `messages` | `GET/POST/DELETE /api/messages/...`                                                 | User inbox and admin broadcast      |
+| `super-teams` | `GET/POST/PUT/DELETE /api/super-teams/...`                                      | Global teams, roles, invites, limits |
 | `audit`    | `GET /api/profile/audit-logs`, `GET/DELETE /api/users/{username}/audit-logs`        | Activity log                        |
 | `debug`    | `GET /api/debug/memory/...`                                                         | pprof dumps (requires `debug_mode`) |
 

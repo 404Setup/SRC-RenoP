@@ -24,12 +24,14 @@ import {fetchTokens} from './users.js';
 import {setupProfile} from './profile.js';
 import {loadDirectory} from './browser.js';
 import {loadMavenDomainCenterPage, mavenDomainRouteFromPath, openMavenDomainCenter} from './browser/maven.js';
+import {loadSuperTeamCenterPage, openSuperTeamCenter, superTeamRouteFromPath} from './super-teams.js';
 import {initMessageCenter, openMessageCenter, openNotificationComposer} from './messages.js';
 import './cargo-messages.js';
 import './docker-messages.js';
 import './maven-messages.js';
 import './npm-messages.js';
 import './team-messages.js';
+import './super-team-messages.js';
 import './updater-messages.js';
 import {navigateToUserProfile, profileRouteFromPath} from './user-profiles.js';
 import {installBackendAvailabilityMonitor} from './backend-availability.js';
@@ -42,14 +44,32 @@ initI18n();
 initConfiguredFont();
 const backendAvailability = installBackendAvailabilityMonitor();
 
+/**
+ * Return the account-center tab represented by a pathname.
+ * @param {string} [pathname=window.location.pathname] - Candidate route.
+ * @returns {string} Account tab identifier or an empty string.
+ */
+function accountTabFromPath(pathname = window.location.pathname) {
+    if (mavenDomainRouteFromPath(pathname)) return 'maven-domains';
+    if (superTeamRouteFromPath(pathname)) return 'super-teams';
+    return '';
+}
+
+/**
+ * Report whether a tab is routed through the signed-in account center.
+ * @param {string} tabId - Application tab identifier.
+ * @returns {boolean} Whether the tab owns an account route.
+ */
+function isAccountTab(tabId) {
+    return tabId === 'maven-domains' || tabId === 'super-teams';
+}
+
 $(window).on('languageChanged', async () => {
     updateCopyrightFooter();
 
     const currentTab = profileRouteFromPath(window.location.pathname)
         ? 'profile'
-        : (mavenDomainRouteFromPath(window.location.pathname)
-            ? 'maven-domains'
-            : (localStorage.getItem('selectedTab') || 'overview'));
+        : (accountTabFromPath() || localStorage.getItem('selectedTab') || 'overview');
     await switchTab(currentTab);
 
     if (currentTab === 'dashboard') {
@@ -221,7 +241,7 @@ function updateProfileMenuSelection(tabId) {
         const active = (menuTab === tabId && (menuTab !== 'overview' || window.location.pathname === '/'))
             || (tabId === 'profile' && action === 'view' && route?.section !== 'edit')
             || (tabId === 'profile' && action === 'edit' && route?.section === 'edit')
-            || (tabId === 'maven-domains' && accountAction === 'maven-domains');
+            || (isAccountTab(tabId) && accountAction === tabId);
         item.classList.toggle('is-active', active);
         if (active) item.setAttribute('aria-current', 'page');
         else item.removeAttribute('aria-current');
@@ -246,15 +266,15 @@ async function navigateHome() {
  */
 export async function switchTab(tabId) {
     if (isManagerTab(tabId) && !cachedIsManager) tabId = 'overview';
-    if (tabId === 'maven-domains' && !cachedIsLoggedIn) {
-        if (mavenDomainRouteFromPath(window.location.pathname)) window.history.replaceState(null, '', '/');
+    if (isAccountTab(tabId) && !cachedIsLoggedIn) {
+        if (accountTabFromPath()) window.history.replaceState(null, '', '/');
         tabId = 'overview';
     }
     if (tabId === 'overview' && profileRouteFromPath(window.location.pathname)) {
         tabId = 'profile';
     }
-    if (tabId === 'overview' && mavenDomainRouteFromPath(window.location.pathname)) {
-        tabId = 'maven-domains';
+    if (tabId === 'overview' && accountTabFromPath()) {
+        tabId = accountTabFromPath();
     }
     let activeTabElement = null;
     tabs.forEach(tab => {
@@ -284,7 +304,7 @@ export async function switchTab(tabId) {
         }
     });
 
-    if (tabId !== 'profile' && tabId !== 'maven-domains') localStorage.setItem('selectedTab', tabId);
+    if (tabId !== 'profile' && !isAccountTab(tabId)) localStorage.setItem('selectedTab', tabId);
 
     if (tabId === 'dashboard') {
         startDashboardRefresh();
@@ -311,6 +331,9 @@ export async function switchTab(tabId) {
     if (tabId === 'maven-domains') {
         await loadMavenDomainCenterPage();
     }
+    if (tabId === 'super-teams') {
+        await loadSuperTeamCenterPage();
+    }
     if (tabId === 'overview') {
         loadDirectory(window.location.pathname);
     }
@@ -323,7 +346,7 @@ tabs.forEach(tab => {
     tab.addEventListener('click', (e) => {
         e.preventDefault();
         if (tab.classList.contains('active')) return;
-        if (profileRouteFromPath(window.location.pathname) || mavenDomainRouteFromPath(window.location.pathname)) {
+        if (profileRouteFromPath(window.location.pathname) || accountTabFromPath()) {
             window.history.pushState(null, '', '/');
         }
         switchTab(tab.dataset.tab);
@@ -335,8 +358,9 @@ window.addEventListener('popstate', () => {
         void switchTab('profile');
         return;
     }
-    if (mavenDomainRouteFromPath(window.location.pathname)) {
-        void switchTab('maven-domains');
+    const accountTab = accountTabFromPath();
+    if (accountTab) {
+        void switchTab(accountTab);
         return;
     }
     void switchTab('overview');
@@ -441,17 +465,17 @@ async function initializeApplication() {
         }
 
         const profileRoute = profileRouteFromPath(window.location.pathname);
-        const mavenDomainRoute = mavenDomainRouteFromPath(window.location.pathname);
+        const accountTab = accountTabFromPath();
         let savedTab = profileRoute
             ? 'profile'
-            : (mavenDomainRoute ? 'maven-domains' : (localStorage.getItem('selectedTab') || 'overview'));
-        if (!profileRoute && !mavenDomainRoute && (savedTab === 'profile' || savedTab === 'maven-domains')) {
+            : (accountTab || localStorage.getItem('selectedTab') || 'overview');
+        if (!profileRoute && !accountTab && (savedTab === 'profile' || isAccountTab(savedTab))) {
             localStorage.setItem('selectedTab', 'overview');
             savedTab = 'overview';
         }
-        if ((!profileRoute && !mavenDomainRoute && !cachedIsLoggedIn) ||
-            (mavenDomainRoute && !cachedIsLoggedIn) || (isManagerTab(savedTab) && !cachedIsManager)) {
-            if (mavenDomainRoute && !cachedIsLoggedIn) window.history.replaceState(null, '', '/');
+        if ((!profileRoute && !accountTab && !cachedIsLoggedIn) ||
+            (accountTab && !cachedIsLoggedIn) || (isManagerTab(savedTab) && !cachedIsManager)) {
+            if (accountTab && !cachedIsLoggedIn) window.history.replaceState(null, '', '/');
             savedTab = 'overview';
         }
         await switchTab(savedTab);
@@ -476,6 +500,10 @@ async function initializeApplication() {
                     openMavenDomainCenter();
                     return;
                 }
+                if (accountAction === 'super-teams') {
+                    openSuperTeamCenter();
+                    return;
+                }
                 if (accountAction === 'messages') {
                     await openMessageCenter();
                     return;
@@ -496,7 +524,7 @@ async function initializeApplication() {
                     return;
                 }
                 if (!cachedIsManager) return;
-                if (profileRouteFromPath(window.location.pathname)) {
+                if (profileRouteFromPath(window.location.pathname) || accountTabFromPath()) {
                     window.history.pushState(null, '', '/');
                 }
                 await switchTab(targetTab);
@@ -547,6 +575,8 @@ async function initializeApplication() {
                 void navigateHome();
             });
         }
+
+        document.getElementById('super-team-home')?.addEventListener('click', () => void navigateHome());
 
         const headerLogo = document.getElementById('header-logo');
         if (headerLogo) {

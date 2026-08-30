@@ -249,6 +249,10 @@ func StartServices(state *core.AppState, bootstrapContext BootstrapContext) (*Se
 		{"security-cache-cleanup", securityCleanupInterval, securityCleanupInterval, func(context.Context) {
 			tasks.PruneAuthCache(state, time.Now())
 			state.Inner.AnomalyFailures.PruneExpired()
+			if err := state.GetDB().CleanExpiredSuperTeamInvitations(time.Now().UnixMilli()); err != nil {
+				state.Inner.FailuresCount.Add(1)
+				log.Printf("Failed to clean expired global team invitations: %v", err)
+			}
 		}},
 		{"fido-session-cleanup", fidoCleanupInterval, fidoCleanupInterval, func(context.Context) {
 			auth.PruneExpiredFidoSessions(time.Now())

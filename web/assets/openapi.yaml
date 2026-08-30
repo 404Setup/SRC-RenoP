@@ -32,7 +32,7 @@ info:
     Docker Distribution API errors follow `{"errors":[{"code":"...","message":"...","detail":"..."}]}`.
     Cargo errors follow `{"errors":[{"detail":"..."}]}`.
     npm protocol errors follow `{"error":"...","reason":"..."}`; npm browser-management errors expose
-    a stable `X-Renop-Error-Code` header.
+    a stable `X-Renop-Error-Code` header. Global-team management uses the same stable error header.
     Always prefer the HTTP status code for programmatic handling.
 
   license:
@@ -50,6 +50,8 @@ x-tagGroups:
     tags: [npm]
   - name: Docker / OCI Registry
     tags: [docker]
+  - name: Global Collaboration
+    tags: [super-teams]
   - name: Administration
     tags: [settings, messages, audit]
   - name: Operations
@@ -90,6 +92,8 @@ tags:
     description: npm-compatible package metadata, immutable version publication, dist-tags, package teams, and upstream mirrors mounted under each npm repository.
   - name: docker
     description: OCI Distribution Specification v1.1.0 and Docker Registry v2, mounted at `/v2/`; browser-management failures use `X-Renop-Error-Code` for localized presentation.
+  - name: super-teams
+    description: Engine-independent global teams, immutable namespace prefixes, T1-T4 membership, invitations, and account limits.
 
 # ---------------------------------------------------------------------------
 # Security
@@ -1409,6 +1413,85 @@ components:
             $ref: "#/components/schemas/Mirror"
         s3:
           $ref: "#/components/schemas/S3Config"
+
+    SuperTeam:
+      type: object
+      required: [prefix, name, description, created_by, role_level, member_count, created_at, updated_at]
+      properties:
+        prefix:
+          type: string
+          minLength: 2
+          maxLength: 64
+          pattern: "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])$"
+          description: Immutable namespace shared by every supported package engine.
+        name:
+          type: string
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 512
+        created_by:
+          type: string
+          description: Current creator username, or the retained creation-time name after account deletion.
+        role_level:
+          type: integer
+          minimum: 0
+          maximum: 4
+          description: Current account role. Zero is returned only for a system administrator who is not a member.
+        member_count:
+          type: integer
+          minimum: 1
+        created_at:
+          type: integer
+          format: int64
+        updated_at:
+          type: integer
+          format: int64
+
+    SuperTeamMember:
+      type: object
+      required: [username, level, added_at]
+      properties:
+        username:
+          type: string
+        level:
+          type: integer
+          minimum: 1
+          maximum: 4
+        added_at:
+          type: integer
+          format: int64
+
+    SuperTeamDetails:
+      type: object
+      required: [team, members, administrator]
+      properties:
+        team:
+          $ref: "#/components/schemas/SuperTeam"
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/SuperTeamMember"
+        administrator:
+          type: boolean
+
+    SuperTeamLimitStatus:
+      type: object
+      required: [create_limit, join_limit, created_count, joined_count, create_limit_inherited, join_limit_inherited]
+      properties:
+        create_limit: { type: integer, minimum: 0, maximum: 1000 }
+        join_limit: { type: integer, minimum: 0, maximum: 1000 }
+        created_count: { type: integer, minimum: 0 }
+        joined_count: { type: integer, minimum: 0 }
+        create_limit_inherited: { type: boolean }
+        join_limit_inherited: { type: boolean }
+
+    SuperTeamConfig:
+      type: object
+      required: [create_limit, join_limit]
+      properties:
+        create_limit: { type: integer, minimum: 1, maximum: 1000, default: 5 }
+        join_limit: { type: integer, minimum: 1, maximum: 1000, default: 20 }
 
     MavenDomain:
       type: object
@@ -3264,6 +3347,287 @@ paths:
                 $ref: "#/components/schemas/RuntimeMemoryBreakdown"
         "403":
           description: Not a manager or debug mode is not active.
+
+  # ========== Global teams ==========
+  /api/super-teams:
+    get:
+      tags: [super-teams]
+      summary: List visible global teams
+      description: Returns the caller's teams in immutable-prefix order. System administrators see every team.
+      operationId: listSuperTeams
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 12 } }
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+      responses:
+        "200":
+          description: Bounded team page.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [teams, total, limit, offset, administrator]
+                properties:
+                  teams: { type: array, items: { $ref: "#/components/schemas/SuperTeam" } }
+                  total: { type: integer, minimum: 0 }
+                  limit: { type: integer }
+                  offset: { type: integer }
+                  administrator: { type: boolean }
+    post:
+      tags: [super-teams]
+      summary: Create a global team
+      description: Reserves an immutable cross-engine prefix and assigns the caller T4 ownership.
+      operationId: createSuperTeam
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prefix, name, description]
+              properties:
+                prefix: { type: string, minLength: 2, maxLength: 64 }
+                name: { type: string, maxLength: 80 }
+                description: { type: string, maxLength: 512 }
+      responses:
+        "201":
+          description: Team created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuperTeam" }
+        "409":
+          description: Prefix already exists or the caller reached a creation/membership limit.
+
+  /api/super-teams/{prefix}:
+    parameters:
+      - name: prefix
+        in: path
+        required: true
+        schema: { type: string, minLength: 2, maxLength: 64 }
+    get:
+      tags: [super-teams]
+      summary: Get a global team
+      operationId: getSuperTeam
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Team metadata and username-only member list.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuperTeamDetails" }
+        "404": { $ref: "#/components/responses/PlainNotFound" }
+    put:
+      tags: [super-teams]
+      summary: Update mutable global-team metadata
+      description: T4 owners and system administrators may change the name and description; the prefix is immutable.
+      operationId: updateSuperTeam
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, description]
+              properties:
+                name: { type: string, maxLength: 80 }
+                description: { type: string, maxLength: 512 }
+      responses:
+        "200":
+          description: Updated team details.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuperTeamDetails" }
+    delete:
+      tags: [super-teams]
+      summary: Delete a global team
+      description: T4 owners and system administrators may delete a team. Pending invitations are cancelled atomically.
+      operationId: deleteSuperTeam
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      responses:
+        "204": { description: Team deleted. }
+
+  /api/super-teams/{prefix}/members:
+    post:
+      tags: [super-teams]
+      summary: Invite or administratively add members
+      description: T3 can invite T1/T2; T4 can invite T1-T4. System administrators add immediately and still enforce account membership limits.
+      operationId: addSuperTeamMembers
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      parameters:
+        - name: prefix
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [users, level]
+              properties:
+                users:
+                  type: array
+                  minItems: 1
+                  maxItems: 20
+                  items: { type: string }
+                level: { type: integer, minimum: 1, maximum: 4 }
+      responses:
+        "201": { description: Invitations sent or members added. }
+        "409": { description: Existing membership/invitation or target membership limit reached. }
+
+  /api/super-teams/{prefix}/members/{username}:
+    parameters:
+      - { name: prefix, in: path, required: true, schema: { type: string } }
+      - { name: username, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [super-teams]
+      summary: Change a global-team role
+      description: T3 can manage only T1/T2. T4 and system administrators may manage T1-T4. The last T4 cannot be demoted.
+      operationId: updateSuperTeamMember
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [level]
+              properties:
+                level: { type: integer, minimum: 1, maximum: 4 }
+      responses:
+        "200": { description: Role updated. }
+        "409": { description: The operation would remove the last T4 owner. }
+    delete:
+      tags: [super-teams]
+      summary: Remove a member or leave a global team
+      operationId: removeSuperTeamMember
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      responses:
+        "204": { description: Member removed. }
+        "409": { description: The operation would remove the last T4 owner. }
+
+  /api/super-teams/invitations/{id}/{decision}:
+    post:
+      tags: [super-teams]
+      summary: Respond to a global-team invitation
+      operationId: respondSuperTeamInvitation
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: decision, in: path, required: true, schema: { type: string, enum: [accept, reject] } }
+      responses:
+        "200": { description: Invitation answered exactly once. }
+        "409": { description: Invitation expired, was already answered, or membership limit was reached. }
+
+  /api/super-teams/limits:
+    get:
+      tags: [super-teams]
+      summary: Get current account global-team limits
+      operationId: getOwnSuperTeamLimits
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Effective limits, inheritance flags, and usage.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuperTeamLimitStatus" }
+
+  /api/super-teams/users/{username}/limits:
+    parameters:
+      - { name: username, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [super-teams]
+      summary: Get one account's effective global-team limits
+      operationId: getUserSuperTeamLimits
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Effective account limits.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuperTeamLimitStatus" }
+    put:
+      tags: [super-teams]
+      summary: Override one account's global-team limits
+      description: Manager-only. Use `-1` to inherit the corresponding global value; zero prevents the operation.
+      operationId: updateUserSuperTeamLimits
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [create_limit, join_limit]
+              properties:
+                create_limit: { type: integer, minimum: -1, maximum: 1000 }
+                join_limit: { type: integer, minimum: -1, maximum: 1000 }
+      responses:
+        "200":
+          description: Updated effective account limits.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuperTeamLimitStatus" }
+
+  /api/settings/super-teams:
+    get:
+      tags: [settings, super-teams]
+      summary: Get global team defaults
+      operationId: getSuperTeamSettings
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Global defaults.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuperTeamConfig" }
+    put:
+      tags: [settings, super-teams]
+      summary: Update global team defaults
+      operationId: updateSuperTeamSettings
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SuperTeamConfig" }
+      responses:
+        "200":
+          description: Updated global defaults.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuperTeamConfig" }
 
   # ========== Maven domain registry ==========
   /api/maven/domains:

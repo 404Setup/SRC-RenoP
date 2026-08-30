@@ -338,6 +338,11 @@ func TestRequiredAPITokenScopeMatchesEndpointCapability(t *testing.T) {
 		{http.MethodPut, "/api/maven/domains/example.com/members/alice", core.APITokenScopeTeamManage},
 		{http.MethodGet, "/api/statistics/users/alice", core.APITokenScopeStatisticsRead},
 		{http.MethodGet, "/api/statistics/system/repositories", core.APITokenScopeAdminStatistics},
+		{http.MethodGet, "/api/super-teams", core.APITokenScopeTeamManage},
+		{http.MethodPost, "/api/super-teams", core.APITokenScopeTeamManage},
+		{http.MethodGet, "/api/super-teams/platform", core.APITokenScopeTeamManage},
+		{http.MethodGet, "/api/super-teams/limits", core.APITokenScopeAccountRead},
+		{http.MethodPut, "/api/super-teams/users/alice/limits", core.APITokenScopeAdminUsers},
 		{http.MethodPut, "/api/settings/service", core.APITokenScopeAdminSettings},
 		{http.MethodPut, "/api/settings/repositories/releases", core.APITokenScopeAdminRepositories},
 		{http.MethodPost, "/api/settings/index/rebuild", core.APITokenScopeAdminRepositories},
@@ -375,4 +380,7 @@ func TestRequiredAPITokenScopeMatchesEndpointCapability(t *testing.T) {
 		allows([]string{core.APITokenScopeRepositoryPublish}, restricted))
 	assert.True(t, requireAPITokenTarget(core.APITokenScopeRepositoryPublish, "snapshots").
 		allows([]string{core.APITokenScopeRepositoryPublish}, nil))
+	globalTarget, valid := normalizeTeamTarget("global/Platform_Team")
+	assert.True(t, valid)
+	assert.Equal(t, "global/platform_team", globalTarget)
 }

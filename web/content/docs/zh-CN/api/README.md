@@ -60,6 +60,7 @@ Basic Auth 不可调用管理 API。URL 查询参数凭据与 `Authorization: Se
 - [Cargo API](./cargo.md)
 - [Docker / OCI API](./docker.md)
 - [npm 存储库 API](./npm.md)
+- [超级团队 API](./global-teams.md)
 - [消息中心 API](./messages.md)
 - [存储与上传 API](./storage.md)
 - [设置 API](./settings.md)

@@ -17,6 +17,19 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
+func TestDefaultSuperTeamConfigAndDeepCopy(t *testing.T) {
+	t.Parallel()
+	cfg := DefaultConfig()
+	if cfg.SuperTeams.CreateLimit != 5 || cfg.SuperTeams.JoinLimit != 20 {
+		t.Fatalf("unexpected global team defaults: %+v", cfg.SuperTeams)
+	}
+	copy := cfg.DeepCopy()
+	copy.SuperTeams.CreateLimit = 9
+	if cfg.SuperTeams.CreateLimit != 5 {
+		t.Fatal("global team config was not copied independently")
+	}
+}
+
 func TestMirrorDefaultsJson(t *testing.T) {
 	var m Mirror
 	err := json.Unmarshal([]byte(`{}`), &m)

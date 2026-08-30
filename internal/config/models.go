@@ -47,19 +47,20 @@ func (a *AuditLogConfig) setDefaults() {
 }
 
 type Config struct {
-	StoragePath           string         `json:"storage_path" yaml:"storage_path"`
-	EnableJavadocPreview  bool           `json:"enable_javadoc_preview" yaml:"enable_javadoc_preview"`
-	JavadocExtractPath    string         `json:"javadoc_extract_path" yaml:"javadoc_extract_path"`
-	MaxJavadocSizeMb      int64          `json:"max_javadoc_size_mb" yaml:"max_javadoc_size_mb"`
-	EnableCargodocPreview bool           `json:"enable_cargodoc_preview" yaml:"enable_cargodoc_preview"`
-	CargodocExtractPath   string         `json:"cargodoc_extract_path" yaml:"cargodoc_extract_path"`
-	MaxCargodocSizeMb     int64          `json:"max_cargodoc_size_mb" yaml:"max_cargodoc_size_mb"`
-	Frontend              FrontendConfig `json:"frontend" yaml:"frontend"`
-	Maven                 MavenSettings  `json:"-" yaml:"-"`
-	Server                ServerConfig   `json:"server" yaml:"server"`
-	Updater               UpdaterConfig  `json:"updater" yaml:"updater"`
-	Database              DatabaseConfig `json:"database" yaml:"database"`
-	AuditLog              AuditLogConfig `json:"audit_log" yaml:"audit_log"`
+	StoragePath           string          `json:"storage_path" yaml:"storage_path"`
+	EnableJavadocPreview  bool            `json:"enable_javadoc_preview" yaml:"enable_javadoc_preview"`
+	JavadocExtractPath    string          `json:"javadoc_extract_path" yaml:"javadoc_extract_path"`
+	MaxJavadocSizeMb      int64           `json:"max_javadoc_size_mb" yaml:"max_javadoc_size_mb"`
+	EnableCargodocPreview bool            `json:"enable_cargodoc_preview" yaml:"enable_cargodoc_preview"`
+	CargodocExtractPath   string          `json:"cargodoc_extract_path" yaml:"cargodoc_extract_path"`
+	MaxCargodocSizeMb     int64           `json:"max_cargodoc_size_mb" yaml:"max_cargodoc_size_mb"`
+	Frontend              FrontendConfig  `json:"frontend" yaml:"frontend"`
+	Maven                 MavenSettings   `json:"-" yaml:"-"`
+	Server                ServerConfig    `json:"server" yaml:"server"`
+	Updater               UpdaterConfig   `json:"updater" yaml:"updater"`
+	Database              DatabaseConfig  `json:"database" yaml:"database"`
+	AuditLog              AuditLogConfig  `json:"audit_log" yaml:"audit_log"`
+	SuperTeams            SuperTeamConfig `json:"super_teams" yaml:"super_teams"`
 	// GPG is retained as a source-compatibility alias for integrations that
 	// still access the old top-level field. It is never serialized; Server.GPG
 	// is the canonical configuration location.
@@ -92,6 +93,7 @@ func (c *Config) setDefaults() {
 	c.Updater.setDefaults()
 	c.Database.setDefaults()
 	c.AuditLog.setDefaults()
+	c.SuperTeams.setDefaults()
 	c.Server.GPG.setDefaults()
 	c.GPG = c.Server.GPG.DeepCopy()
 }
@@ -235,6 +237,7 @@ func (c *Config) DeepCopy() *Config {
 		Updater:              c.Updater.DeepCopy(),
 		Database:             c.Database,
 		AuditLog:             c.AuditLog,
+		SuperTeams:           c.SuperTeams.DeepCopy(),
 		GPG:                  c.Server.GPG.DeepCopy(),
 		Proxy:                c.Proxy.DeepCopy(),
 	}
