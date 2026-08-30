@@ -57,7 +57,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$nightlyPackageRetention = 3
+$nightlyPackageRetention = 9
 
 $token = $env:RENOP_PUBLISH_TOKEN
 if ([string]::IsNullOrWhiteSpace($token)) {
