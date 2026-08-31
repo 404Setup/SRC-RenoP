@@ -12,10 +12,30 @@ import {t} from './i18n.js';
 import {LocalizedResponseError, localizedResponseError} from './response-errors.js';
 
 const PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
+const PROFILE_CACHE_MAX_ENTRIES = 256;
 const profileCache = new Map();
 const profileRequests = new Map();
 const profileBatchQueue = new Map();
 let profileBatchScheduled = false;
+let profileCacheGeneration = 0;
+
+/**
+ * Store one profile while pruning expired and oldest entries.
+ * @param {string} username - Normalized username.
+ * @param {object} profile - Profile payload.
+ * @returns {void}
+ */
+function cacheUserProfile(username, profile) {
+    const now = Date.now();
+    profileCache.delete(username);
+    for (const [cachedUsername, cached] of profileCache) {
+        if (cached.expiresAt <= now) profileCache.delete(cachedUsername);
+    }
+    if (profileCache.size >= PROFILE_CACHE_MAX_ENTRIES) {
+        profileCache.delete(profileCache.keys().next().value);
+    }
+    profileCache.set(username, {profile, expiresAt: now + PROFILE_CACHE_TTL_MS});
+}
 
 /**
  * Fetch one profile without batching, used for route refreshes.
@@ -93,20 +113,29 @@ export async function getUserProfile(username, {refresh = false} = {}) {
     const now = Date.now();
     const cached = profileCache.get(normalized);
     if (!refresh && cached && cached.expiresAt > now) return cached.profile;
+    if (cached) profileCache.delete(normalized);
     if (!refresh && profileRequests.has(normalized)) return profileRequests.get(normalized);
+    const generation = profileCacheGeneration;
     const request = (async () => {
         const profile = refresh
             ? await fetchUserProfile(normalized)
             : await queueUserProfile(normalized);
-        profileCache.set(normalized, {profile, expiresAt: Date.now() + PROFILE_CACHE_TTL_MS});
+        if (generation === profileCacheGeneration) cacheUserProfile(normalized, profile);
         return profile;
     })();
     profileRequests.set(normalized, request);
     try {
         return await request;
     } finally {
-        profileRequests.delete(normalized);
+        if (profileRequests.get(normalized) === request) profileRequests.delete(normalized);
     }
+}
+
+/** Clear all cached profile payloads when the authenticated account changes. */
+export function clearUserProfileCache() {
+    profileCacheGeneration++;
+    profileCache.clear();
+    profileRequests.clear();
 }
 
 /**

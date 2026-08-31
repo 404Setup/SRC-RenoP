@@ -233,8 +233,11 @@
 - **`internal/testutil/`**: Shared test-only helpers, including retrying temporary-directory cleanup that runs before
   Go's parent `testing.TempDir` cleanup so transient Windows `ERROR_DIR_NOT_EMPTY` results do not fail SQLite tests.
 - **`web/` & `internal/service/frontend/`**: Embedded SPA with username-based `/user/<username>` profile, edit, and
-  package-membership routes plus shared nickname-first identity components. Maven repositories use a domain catalog
-  by default and can switch to the classic file-tree presentation. Repository catalogs list only domains containing
+  package-membership routes plus shared nickname-first identity components. The five-minute profile cache retains at
+  most 256 accounts, prunes expired/oldest entries, and is generation-cleared on logout so private responses cannot be
+  restored by an in-flight request. Directory prefetch keeps at most 128 URLs and removes completed or evicted link
+  nodes. Maven repositories use a domain catalog by default and can switch to the classic file-tree presentation.
+  Repository catalogs list only domains containing
   artifacts in that repository, while global Maven domain and team configuration lives in the signed-in account menu.
   The account menu opens the routed `/account/maven-domains` subpage, whose server-backed multi-select permission/source
   filters and pagination keep large domain registries bounded.

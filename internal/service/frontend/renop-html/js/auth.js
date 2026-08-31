@@ -17,7 +17,7 @@ import {loadDirectory} from './browser.js';
 import {stopDashboardRefresh} from './dashboard.js';
 import {LoginRequest, SessionDetails} from './proto/index.js';
 import {base64urlToBuffer, bufferToBase64url} from './fido-utils.js';
-import {getUserProfile, profileDisplayName} from './user-profiles.js';
+import {clearUserProfileCache, getUserProfile, profileDisplayName} from './user-profiles.js';
 import {responseErrorMessage} from './response-errors.js';
 import {runButtonAction} from './components/button.js';
 import {requestProtectedRouteExit} from './protected-route.js';
@@ -408,6 +408,8 @@ async function performLogout(reason) {
     localStorage.removeItem('token-secret');
     document.cookie = 'renop_session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     document.cookie = 'renop_session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure';
+    navProfileLoadSequence++;
+    clearUserProfileCache();
     updateAuthUI(false);
 
     if (wasLoggedIn && (reason === 'expired' || reason === 'kicked')) {

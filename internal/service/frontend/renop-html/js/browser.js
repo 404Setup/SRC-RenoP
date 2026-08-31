@@ -49,7 +49,8 @@ let currentRepoDetailsPromise = null;
 let currentRepoDetails = null;
 let currentRepositoryName = '';
 
-const prefetchCache = new Set();
+const MAX_PREFETCH_CACHE_ENTRIES = 128;
+const prefetchCache = new Map();
 
 /**
  * Drop repository-detail reuse after settings change a mutable policy or Maven layout.
@@ -72,10 +73,23 @@ window.addEventListener('repositorySettingsChanged', handleRepositorySettingsCha
  */
 function prefetchUrl(url) {
     if (!url || prefetchCache.has(url)) return;
-    prefetchCache.add(url);
+    if (prefetchCache.size >= MAX_PREFETCH_CACHE_ENTRIES) {
+        const oldest = prefetchCache.keys().next().value;
+        prefetchCache.get(oldest)?.remove();
+        prefetchCache.delete(oldest);
+    }
     const link = document.createElement('link');
     link.rel = 'prefetch';
     link.href = url;
+    prefetchCache.set(url, link);
+    link.addEventListener('load', () => {
+        link.remove();
+        if (prefetchCache.get(url) === link) prefetchCache.set(url, null);
+    }, {once: true});
+    link.addEventListener('error', () => {
+        link.remove();
+        if (prefetchCache.get(url) === link) prefetchCache.delete(url);
+    }, {once: true});
     document.head.appendChild(link);
 }
 
