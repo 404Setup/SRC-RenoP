@@ -24,6 +24,8 @@ import (
 	"renop/internal/utils"
 )
 
+const maxCachedMetadataSize = 32 << 10
+
 func serveLocalFile(c fiber.Ctx, state *core.AppState, localFilePath, pathStr, contentDisposition string, fileSize int64, isDir bool, etagHeader, lastModifiedHeader *string) error {
 	if isDir {
 		var files strings.Builder
@@ -90,10 +92,10 @@ func serveLocalFile(c fiber.Ctx, state *core.AppState, localFilePath, pathStr, c
 			c.Status(fiber.StatusPartialContent)
 			return c.SendStream(rc, int(end-start+1))
 		}
-		if state.Inner.FileCache != nil && fileSize > 0 && fileSize <= 32*1024 && isCacheableMetadata(pathStr) {
+		if state.Inner.FileCache != nil && fileSize > 0 && fileSize <= maxCachedMetadataSize && isCacheableMetadata(pathStr) {
 			rc, _, err := DownloadFromS3(s3Key)
 			if err == nil {
-				data, readErr := io.ReadAll(io.LimitReader(rc, fileSize+1))
+				data, readErr := utils.ReadAllLimited(rc, fileSize)
 				_ = rc.Close()
 				if readErr == nil && int64(len(data)) == fileSize {
 					var etagVal, lmVal string
@@ -117,18 +119,22 @@ func serveLocalFile(c fiber.Ctx, state *core.AppState, localFilePath, pathStr, c
 		}
 	}
 
-	if state.Inner.FileCache != nil && fileSize > 0 && fileSize <= 32*1024 && isCacheableMetadata(pathStr) {
-		data, err := os.ReadFile(localFilePath)
-		if err == nil && int64(len(data)) == fileSize {
-			var etagVal, lmVal string
-			if etagHeader != nil {
-				etagVal = *etagHeader
+	if state.Inner.FileCache != nil && fileSize > 0 && fileSize <= maxCachedMetadataSize && isCacheableMetadata(pathStr) {
+		file, err := os.Open(localFilePath)
+		if err == nil {
+			data, readErr := utils.ReadAllLimited(file, fileSize)
+			_ = file.Close()
+			if readErr == nil && int64(len(data)) == fileSize {
+				var etagVal, lmVal string
+				if etagHeader != nil {
+					etagVal = *etagHeader
+				}
+				if lastModifiedHeader != nil {
+					lmVal = *lastModifiedHeader
+				}
+				state.Inner.FileCache.Set(pathStr, encodeCacheEntry(etagVal, lmVal, data))
+				return c.Send(data)
 			}
-			if lastModifiedHeader != nil {
-				lmVal = *lastModifiedHeader
-			}
-			state.Inner.FileCache.Set(pathStr, encodeCacheEntry(etagVal, lmVal, data))
-			return c.Send(data)
 		}
 	}
 

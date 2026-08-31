@@ -143,6 +143,8 @@
 - **`internal/service/storage/` & `internal/service/gpg/`**: Multi-backend storage (Disk/S3), OpenPGP signature
   verification, and quarantined publication queue (`.renop.tmp.gpg`). The independent `files` repository format
   provides unstructured replaceable file storage and mirrors without checksum generation or signature processing.
+  Small metadata cache fills use exact-size bounded streams on both Disk and S3 so stale index sizes cannot turn a
+  cache lookup into an unbounded file read.
   Browser navigation classifies indexed artifacts before format and authorization SPA branches, so a known file path
   never receives the SPA shell; Brotli, gzip, Zstandard, and the other supported compressed formats receive explicit
   binary MIME types without HTTP content-encoding labels. Maven files awaiting publication review are committed but
