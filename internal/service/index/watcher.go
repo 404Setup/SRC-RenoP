@@ -15,11 +15,78 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 
 	"github.com/fsnotify/fsnotify"
 )
 
 var OnStorageUpdated func()
+
+const directoryScanQueueSize = 64
+
+func queueDirectoryScan(requests chan<- string, scanAll *atomic.Bool, path string) {
+	select {
+	case requests <- path:
+	default:
+		scanAll.Store(true)
+	}
+}
+
+func runDirectoryScanWorker(basePath string, requests <-chan string, scanAll *atomic.Bool,
+	done <-chan struct{}, scan func(string),
+) {
+	for {
+		select {
+		case <-done:
+			return
+		default:
+		}
+		select {
+		case <-done:
+			return
+		case path := <-requests:
+			if scanAll.Swap(false) {
+				path = basePath
+			drain:
+				for {
+					select {
+					case <-requests:
+					default:
+						break drain
+					}
+				}
+			}
+			scan(path)
+		}
+	}
+}
+
+func scanWatchedDirectory(pathCleaned string, watcher *fsnotify.Watcher, idx *FileIndex, done <-chan struct{}) {
+	_ = filepath.WalkDir(pathCleaned, func(path string, d fs.DirEntry, err error) error {
+		select {
+		case <-done:
+			return fs.SkipAll
+		default:
+		}
+		if err != nil {
+			return nil
+		}
+		pathNorm := filepath.ToSlash(filepath.Clean(path))
+		if isTemporaryPath(pathNorm) {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if d.IsDir() {
+			idx.InsertDir(pathNorm)
+			_ = watcher.Add(pathNorm)
+		} else if info, err := d.Info(); err == nil {
+			idx.InsertFile(pathNorm, FileInfo{Size: info.Size(), ModTime: info.ModTime().UnixNano()})
+		}
+		return nil
+	})
+}
 
 func StartFileWatcher(basePath string, idx *FileIndex) (*fsnotify.Watcher, error) {
 	watcher, err := fsnotify.NewWatcher()
@@ -28,8 +95,15 @@ func StartFileWatcher(basePath string, idx *FileIndex) (*fsnotify.Watcher, error
 	}
 
 	baseCleaned := filepath.ToSlash(filepath.Clean(basePath))
+	directoryScans := make(chan string, directoryScanQueueSize)
+	var scanAll atomic.Bool
+	done := make(chan struct{})
+	go runDirectoryScanWorker(baseCleaned, directoryScans, &scanAll, done, func(path string) {
+		scanWatchedDirectory(path, watcher, idx, done)
+	})
 
 	go func() {
+		defer close(done)
 		for {
 			select {
 			case event, ok := <-watcher.Events:
@@ -53,28 +127,7 @@ func StartFileWatcher(basePath string, idx *FileIndex) (*fsnotify.Watcher, error
 						if info.IsDir() {
 							idx.InsertDir(pathCleaned)
 							if event.Has(fsnotify.Create) {
-								go func() {
-									_ = filepath.WalkDir(pathCleaned, func(path string, d fs.DirEntry, err error) error {
-										if err == nil {
-											pathNorm := filepath.ToSlash(filepath.Clean(path))
-											if isTemporaryPath(pathNorm) {
-												if d.IsDir() {
-													return filepath.SkipDir
-												}
-												return nil
-											}
-											if d.IsDir() {
-												idx.InsertDir(pathNorm)
-												_ = watcher.Add(pathNorm)
-											} else {
-												if info, err := d.Info(); err == nil {
-													idx.InsertFile(pathNorm, FileInfo{Size: info.Size(), ModTime: info.ModTime().UnixNano()})
-												}
-											}
-										}
-										return nil
-									})
-								}()
+								queueDirectoryScan(directoryScans, &scanAll, pathCleaned)
 							}
 						} else {
 							parentCleaned := filepath.ToSlash(filepath.Dir(pathCleaned))

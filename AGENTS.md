@@ -201,7 +201,9 @@
   counts are updated from the same transaction for compatibility.
 - **`internal/service/index/`**: Concurrent Disk/S3 repository index with deterministic children, snapshots, and
   negative-cache state. A normalized path is exclusively a file or a directory; authoritative file insertion removes
-  stale directory state and descendants so API traversal cannot expose a file as an empty folder.
+  stale directory state and descendants so API traversal cannot expose a file as an empty folder. Directory-create
+  watcher events use one bounded scan worker; queue overflow coalesces into a full storage scan instead of spawning
+  per-event goroutines or dropping index updates.
 - **`internal/service/updater/`**: Authenticated update checking and installation with SHA-256 verification, bounded
   streaming decode of new raw `.br` executable packages, compatibility decode for legacy `.zip` packages, and
   deduplicated administrator result notifications. Download-start and imminent-restart progress remain transient
