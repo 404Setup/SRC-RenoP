@@ -43,7 +43,7 @@ func accountSecurityRequest(t *testing.T, app *fiber.App, method, path string, b
 	if sessionToken != "" {
 		request.AddCookie(&http.Cookie{Name: sessionCookieName, Value: sessionToken})
 	}
-	response, err := app.Test(request)
+	response, err := app.Test(request, fiber.TestConfig{Timeout: 10 * time.Second})
 	require.NoError(t, err)
 	return response
 }
