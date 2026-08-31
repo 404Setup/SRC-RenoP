@@ -13,6 +13,7 @@ package middleware
 import (
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
@@ -36,6 +37,20 @@ func TestIPLimiterCleanupRemovesInactiveEntries(t *testing.T) {
 	}
 	if got := limiter.count.Load(); got != 0 {
 		t.Fatalf("limiter count = %d, want 0", got)
+	}
+}
+
+func TestIPLimiterBoundsFreshEntries(t *testing.T) {
+	limiter := NewIPLimiter(rate.Every(time.Second), 1)
+	for n := range maxIPLimiterEntries {
+		limiter.GetLimiter(strconv.Itoa(n))
+	}
+
+	if got := limiter.GetLimiter("overflow"); got != limiter.overflow {
+		t.Fatal("overflow client received a retained per-IP limiter")
+	}
+	if got := limiter.count.Load(); got != maxIPLimiterEntries {
+		t.Fatalf("limiter count = %d, want %d", got, maxIPLimiterEntries)
 	}
 }
 

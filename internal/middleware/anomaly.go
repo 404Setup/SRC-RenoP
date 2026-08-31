@@ -31,6 +31,7 @@ const (
 	MaxFailuresPerMinute = 5
 	MaxRequestsPerMinute = 100
 	MaxRequestsBurst     = 60
+	maxIPLimiterEntries  = 10_000
 )
 
 type limiterEntry struct {
@@ -39,17 +40,18 @@ type limiterEntry struct {
 }
 
 type IPLimiter struct {
-	limiters   pb.MapOf[string, *limiterEntry]
-	r          rate.Limit
-	b          int
-	count      atomic.Int64
-	isCleaning atomic.Bool
+	limiters pb.MapOf[string, *limiterEntry]
+	overflow *rate.Limiter
+	r        rate.Limit
+	b        int
+	count    atomic.Int64
 }
 
 func NewIPLimiter(r rate.Limit, b int) *IPLimiter {
 	return &IPLimiter{
-		r: r,
-		b: b,
+		overflow: rate.NewLimiter(r, b),
+		r:        r,
+		b:        b,
 	}
 }
 
@@ -91,13 +93,11 @@ func (i *IPLimiter) GetLimiter(ip string) *rate.Limiter {
 	value, loaded := i.limiters.LoadOrStore(ip, newEntry)
 
 	if !loaded {
-		if i.count.Add(1) > 10000 {
-			if i.isCleaning.CompareAndSwap(false, true) {
-				go func() {
-					defer i.isCleaning.Store(false)
-					i.cleanup()
-				}()
+		if i.count.Add(1) > maxIPLimiterEntries {
+			if _, deleted := i.limiters.LoadAndDelete(ip); deleted {
+				i.count.Add(-1)
 			}
+			return i.overflow
 		}
 	} else {
 		value.lastSeen.Store(nowUnix)

@@ -219,6 +219,8 @@
   version labels or older hosted records are unavailable.
 - **`internal/middleware/` & `internal/api/`**: Format-aware search (modern Maven domain/artifact catalog,
   classic Maven/files index, and npm/Cargo/Docker package catalogs), anomaly detection, and brute-force mitigation.
+  Anonymous request limiting retains at most 10,000 per-IP entries; additional fresh IPs share a conservative
+  overflow limiter until scheduled expiry cleanup releases capacity.
   The optional privacy policy is cached only after a streaming-bounded 512 KiB regular-file read validates UTF-8 plain
   text; missing or invalid files keep both HEAD and GET unavailable without buffering arbitrary local content.
 - **`internal/daemon/`**: Cross-platform system service installation and lifecycle management (`--install`,
