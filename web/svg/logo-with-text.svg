@@ -9,65 +9,65 @@
   -->
 
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 120" width="100%" height="100%">
-  <defs>
-    <linearGradient id="renop-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#6366F1" />
-      <stop offset="40%" stop-color="#3B82F6" />
-      <stop offset="100%" stop-color="#06B6D4" />
-    </linearGradient>
+    <defs>
+        <linearGradient id="renop-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#6366F1"/>
+            <stop offset="40%" stop-color="#3B82F6"/>
+            <stop offset="100%" stop-color="#06B6D4"/>
+        </linearGradient>
 
-    <radialGradient id="core-glow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#00F2FE" stop-opacity="1" />
-      <stop offset="35%" stop-color="#00F2FE" stop-opacity="0.6" />
-      <stop offset="100%" stop-color="#00F2FE" stop-opacity="0" />
-    </radialGradient>
+        <radialGradient id="core-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#00F2FE" stop-opacity="1"/>
+            <stop offset="35%" stop-color="#00F2FE" stop-opacity="0.6"/>
+            <stop offset="100%" stop-color="#00F2FE" stop-opacity="0"/>
+        </radialGradient>
 
-    <filter id="neon-glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="10" result="blur" />
-      <feMerge>
-        <feMergeNode in="blur" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
-  </defs>
+        <filter id="neon-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="10" result="blur"/>
+            <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+    </defs>
 
-  <style>
-    .text-title {
-    font-family: 'Open Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 44px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    fill: #111827;
-    }
-    @media (prefers-color-scheme: dark) {
-    .text-title {
-    fill: #F9FAF5;
-    }
-    }
-  </style>
+    <style>
+        .text-title {
+        font-family: 'Open Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 44px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        fill: #111827;
+        }
+        @media (prefers-color-scheme: dark) {
+        .text-title {
+        fill: #F9FAF5;
+        }
+        }
+    </style>
 
-  <g transform="translate(15, 15) scale(0.17578)">
-    <circle cx="256" cy="256" r="160" fill="url(#core-glow)" opacity="0.3" filter="url(#neon-glow)" />
+    <g transform="translate(15, 15) scale(0.17578)">
+        <circle cx="256" cy="256" r="160" fill="url(#core-glow)" opacity="0.3" filter="url(#neon-glow)"/>
 
-    <circle cx="256" cy="256" r="32" fill="url(#core-glow)" />
-    <circle cx="256" cy="256" r="8" fill="#FFFFFF" opacity="0.9" />
+        <circle cx="256" cy="256" r="32" fill="url(#core-glow)"/>
+        <circle cx="256" cy="256" r="8" fill="#FFFFFF" opacity="0.9"/>
 
-    <path d="M 156 356 L 256 406 L 356 356 M 256 206 L 256 406 M 256 106 L 256 206"
-          stroke="#3B82F6"
-          stroke-width="8"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          fill="none"
-          opacity="0.35" />
+        <path d="M 156 356 L 256 406 L 356 356 M 256 206 L 256 406 M 256 106 L 256 206"
+              stroke="#3B82F6"
+              stroke-width="8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              fill="none"
+              opacity="0.35"/>
 
-    <path d="M 156 356 L 156 156 L 256 106 L 356 156 L 356 256 L 256 206 L 156 256 M 256 206 L 356 356"
-          stroke="url(#renop-grad)"
-          stroke-width="24"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          fill="none"
-          filter="url(#neon-glow)" />
-  </g>
+        <path d="M 156 356 L 156 156 L 256 106 L 356 156 L 356 256 L 256 206 L 156 256 M 256 206 L 356 356"
+              stroke="url(#renop-grad)"
+              stroke-width="24"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              fill="none"
+              filter="url(#neon-glow)"/>
+    </g>
 
-  <text x="125" y="74" class="text-title">RenoP</text>
+    <text x="125" y="74" class="text-title">RenoP</text>
 </svg>

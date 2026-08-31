@@ -3,37 +3,41 @@ info:
   title: RenoP HTTP API
   version: "2.0"
   contact:
-    url: https://github.com/404Setup/RenoP
+    url: https://github.com/404Setup/SRC-RenoP
   description: |
-    Management and registry APIs for RenoP, a self-hosted artifact repository server
-    supporting Maven, unstructured file storage, npm, Cargo (Rust sparse index), and Docker/OCI registries.
+    RenoP exposes its management API and its package-compatible repository endpoints from one self-hosted service.
+    It supports Maven, generic files, Cargo sparse registries, npm registries, and Docker/OCI Distribution clients.
+    The default listener is `0.0.0.0:3000`; production deployments should normally publish it through HTTPS.
 
-    Default listen address: `0.0.0.0:3000`.
+    **API families:**
+    - Management and browser API: `/api/...`
+    - Maven and generic-file repositories: `/{repo}/{path}`
+    - Cargo sparse index and publication API: `/{repo}/config.json` and `/{repo}/api/v1/...`
+    - npm registry protocol: `/{repo}/{package}` and `/{repo}/-/...`
+    - Docker/OCI Distribution API and token exchange: `/v2/...` and `/v2/token`
+    - Sandboxed documentation viewers: `/javadoc/{repo}/{path}` and `/cargodoc/{repo}/{path}`
 
-    **Route layout:**
-    - Management API: `/api/...`
-    - Maven artifact storage: `/{repo}/{path}` (Maven 2 layout)
-    - Unstructured file storage: `/{repo}/{path}`
-    - Docker/OCI Distribution API: `/v2/...`
-    - Cargo sparse registry: `/{repo}/config.json` and `/{repo}/api/v1/...`
-    - npm registry: `/{repo}/{package}` and `/{repo}/-/...`
-    - Javadoc preview: `/javadoc/{repo}/{path}`
-    - Cargo-doc preview: `/cargodoc/{repo}/{path}`
+    **Representations:**
+    Most management endpoints use `application/x-protobuf`. OpenAPI schemas describe their logical snake_case fields;
+    they do not imply that those endpoints accept JSON. Generate or reuse protobuf types from
+    `proto/api/v1/api.proto` and set `Content-Type` and `Accept` explicitly. Cargo, npm, and Docker/OCI protocol routes
+    use the JSON and binary representations required by their respective clients.
 
-    **Wire format:**
-    Most management endpoints use `application/x-protobuf`. Schemas here describe the
-    logical fields (snake_case) for documentation and client stub generation.
-    See `proto/api/v1/api.proto` for canonical protobuf definitions.
-    Docker/OCI, npm, and Cargo endpoints use JSON.
+    **Authentication boundaries:**
+    Browser security operations use the HttpOnly `renop_session` cookie. Automation uses scoped Bearer API tokens whose
+    effective access is intersected with the account's current permissions and package-team membership. HTTP Basic is
+    limited to package-client and upload flows. Docker clients exchange accepted credentials for a short-lived Bearer
+    token. Session secrets in headers or query strings are rejected.
 
-    **Error bodies:**
-    Management errors are plain text (`Unauthorized`, `Forbidden`, `Not found`).
-    Docker browser-management errors additionally expose a stable `X-Renop-Error-Code` header for localization.
-    Docker Distribution API errors follow `{"errors":[{"code":"...","message":"...","detail":"..."}]}`.
-    Cargo errors follow `{"errors":[{"detail":"..."}]}`.
-    npm protocol errors follow `{"error":"...","reason":"..."}`; npm browser-management errors expose
-    a stable `X-Renop-Error-Code` header. Global-team and publication-quota management use the same stable error header.
-    Always prefer the HTTP status code for programmatic handling.
+    **Error handling:**
+    Treat the HTTP status as the primary machine-readable result. Management errors may use short plain-text bodies.
+    When present, `X-Renop-Error-Code` is a stable code for localized browser-management failures. Docker Distribution,
+    Cargo, and npm protocol endpoints retain their native structured error shapes. Clients must not depend on an English
+    error sentence remaining unchanged.
+
+    Keep this contract and `proto/api/v1/api.proto` from the same RenoP release when generating clients. Package-protocol
+    compatibility is defined by the implemented protocol routes; this document also covers RenoP-specific management
+    and extension endpoints that generic registry clients do not call directly.
 
   license:
     name: MPL-2.0

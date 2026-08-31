@@ -4,11 +4,13 @@
 
 # RenoP
 
-RenoP is a lightweight, self-hosted artifact repository server for individuals and small teams. It ships as a single
-binary with an embedded web UI and supports multiple registry protocols out of the box.
+RenoP is a self-hosted artifact repository for small teams and controlled internal services. One executable serves the
+management interface together with native Maven, Cargo, npm, Docker/OCI, and generic-file endpoints. Repositories can
+use local disk or per-repository S3-compatible storage and can proxy selected upstream sources with local caching.
 
 ## Table of Contents
 
+- [Scope and Deployment Model](#scope-and-deployment-model)
 - [Features](#features)
 - [Supported Registry Protocols](#supported-registry-protocols)
 - [Quick Start](#quick-start)
@@ -30,6 +32,26 @@ binary with an embedded web UI and supports multiple registry protocols out of t
 - [HTTP API Reference](#http-api-reference)
 - [Price and Contribution](#price-and-contribution)
 - [License](#license)
+
+---
+
+## Scope and Deployment Model
+
+RenoP is an integrated repository service rather than a protocol translation layer around another registry. A RenoP
+process owns the HTTP listener, management UI, package-protocol routes, authorization checks, and repository policy.
+The database is authoritative for accounts, permissions, sessions, API-token metadata, teams, reviews, audit records,
+and messages. Artifact bytes are stored on local disk or in the S3-compatible backend selected for each repository.
+
+Package clients and the management API deliberately use different authentication flows. Browser security operations
+require the HttpOnly session cookie; automation normally uses a scoped Bearer API token; Maven, Cargo, npm, and Docker
+use the credential conventions expected by those clients. Do not expose a session secret in a header, query string, or
+configuration file.
+
+Treat each deployment as one coordinated service. Moving the database or artifact data to external systems improves
+operability, but does not by itself provide request coordination or safe active-active operation. Before exposing RenoP,
+read the [production checklist](web/content/docs/en-US/deployment/production-checklist.md), configure a
+[reverse proxy](web/content/docs/en-US/deployment/reverse-proxy.md), and prepare a tested
+[backup and recovery procedure](web/content/docs/en-US/deployment/backup-and-recovery.md).
 
 ---
 

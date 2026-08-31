@@ -16,11 +16,7 @@ import {fileURLToPath} from 'node:url';
 import {brotliCompressSync} from 'node:zlib';
 import {unzipSync} from 'fflate';
 
-import {
-    chooseUpdateDownloadWorkers,
-    isBrotliUpdateTarget,
-    legacyZipFilename,
-} from '../js/lib/update-package.js';
+import {chooseUpdateDownloadWorkers, isBrotliUpdateTarget, legacyZipFilename,} from '../js/lib/update-package.js';
 import {brotliExecutableToZip} from '../js/lib/brotli-zip.js';
 
 test('Brotli update targets are recognized from metadata or extension', () => {
