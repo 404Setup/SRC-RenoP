@@ -196,10 +196,13 @@ type FileIndex struct {
 	NotFoundCount atomic.Uint64                           `json:"-"`
 	IsDirty       atomic.Bool                             `json:"-"`
 
-	isSync       bool                        `json:"-"`
-	OpChan       chan IndexOp                `json:"-"`
-	SnapChan     chan chan FileIndexSnapshot `json:"-"`
-	metadataLock sync.Mutex                  `json:"-"`
+	isSync         bool                        `json:"-"`
+	OpChan         chan IndexOp                `json:"-"`
+	SnapChan       chan chan FileIndexSnapshot `json:"-"`
+	metadataLock   sync.Mutex                  `json:"-"`
+	rebuildMu      sync.Mutex                  `json:"-"`
+	rebuildRunning bool                        `json:"-"`
+	rebuildNext    *indexRebuildRequest        `json:"-"`
 }
 
 func internString(s string) string {

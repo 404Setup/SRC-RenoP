@@ -14,8 +14,63 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
+	"sync/atomic"
 	"testing"
+	"time"
 )
+
+type blockingScanSink struct {
+	started chan struct{}
+	release <-chan struct{}
+	seen    atomic.Int32
+}
+
+func (sink *blockingScanSink) addFile(string, FileInfo) {
+	sink.seen.Add(1)
+	sink.started <- struct{}{}
+	<-sink.release
+}
+
+func (*blockingScanSink) addDir(string) {}
+
+func TestScanLocalDirBoundsTopLevelWorkers(t *testing.T) {
+	root := t.TempDir()
+	const directoryCount = 32
+	for index := range directoryCount {
+		directory := filepath.Join(root, "repo-"+strconv.Itoa(index))
+		if err := os.Mkdir(directory, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(directory, "artifact.txt"), []byte("data"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	release := make(chan struct{})
+	sink := &blockingScanSink{started: make(chan struct{}, directoryCount), release: release}
+	done := make(chan struct{})
+	go func() {
+		scanLocalDir(root, sink, true)
+		close(done)
+	}()
+	for range maxLocalScanWorkers {
+		<-sink.started
+	}
+	select {
+	case <-sink.started:
+		t.Fatalf("more than %d directory scans ran concurrently", maxLocalScanWorkers)
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(release)
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("bounded directory scan did not finish")
+	}
+	if seen := sink.seen.Load(); seen != directoryCount {
+		t.Fatalf("scanned files = %d, want %d", seen, directoryCount)
+	}
+}
 
 func TestReplaceIndexFromScanAddsAndRemoves(t *testing.T) {
 	root := t.TempDir()
@@ -104,6 +159,71 @@ func TestReplaceIndexFromSuccessfulS3ScanPublishesSnapshot(t *testing.T) {
 	}
 	if !idx.HasFile(fresh) {
 		t.Fatal("successful S3 scan did not publish the new index entry")
+	}
+}
+
+func TestAsyncIndexRebuildCoalescesBurst(t *testing.T) {
+	originalBuilder := S3IndexBuilder
+	t.Cleanup(func() { S3IndexBuilder = originalBuilder })
+
+	started := make(chan string, 3)
+	release := make(chan struct{}, 3)
+	finished := make(chan string, 3)
+	var calls atomic.Int32
+	S3IndexBuilder = func(basePath string, _ *FileIndex) error {
+		calls.Add(1)
+		started <- basePath
+		<-release
+		finished <- basePath
+		return nil
+	}
+	receive := func(channel <-chan string) string {
+		t.Helper()
+		select {
+		case value := <-channel:
+			return value
+		case <-time.After(2 * time.Second):
+			t.Fatal("timed out waiting for index rebuild")
+			return ""
+		}
+	}
+
+	idx := NewFileIndex()
+	RebuildIndexAsync("first", idx)
+	if path := receive(started); path != "first" {
+		t.Fatalf("first rebuild path = %q", path)
+	}
+	latest := ""
+	for request := range 64 {
+		latest = "next-" + strconv.Itoa(request)
+		RebuildIndexDiff(latest, idx)
+	}
+	release <- struct{}{}
+	_ = receive(finished)
+	if path := receive(started); path != latest {
+		t.Fatalf("coalesced rebuild path = %q, want %q", path, latest)
+	}
+	release <- struct{}{}
+	_ = receive(finished)
+
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		idx.rebuildMu.Lock()
+		running := idx.rebuildRunning
+		idx.rebuildMu.Unlock()
+		if !running {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("coalesced index rebuild worker did not stop")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	if calls.Load() != 2 {
+		t.Fatalf("rebuild calls = %d, want 2", calls.Load())
+	}
+	if !idx.IsDirty.Load() {
+		t.Fatal("coalesced diff rebuild did not mark the index dirty")
 	}
 }
 

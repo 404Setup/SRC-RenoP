@@ -18,7 +18,10 @@ import (
 	"sync"
 )
 
+// S3IndexBuilder replaces local directory scans when the active storage backend is S3.
 var S3IndexBuilder func(basePath string, idx *FileIndex) error
+
+const maxLocalScanWorkers = 8
 
 func isTemporaryPath(pathStr string) bool {
 	pathSlash := filepath.ToSlash(pathStr)
@@ -97,7 +100,8 @@ func scanLocalDir(dirPath string, sink scanSink, skipRootFiles bool) {
 		return
 	}
 
-	var subdirs []string
+	var wg sync.WaitGroup
+	slots := make(chan struct{}, maxLocalScanWorkers)
 	for _, entry := range entries {
 		if isTemporaryPath(entry.Name()) {
 			continue
@@ -105,24 +109,16 @@ func scanLocalDir(dirPath string, sink scanSink, skipRootFiles bool) {
 		fullPath := dirCleaned + "/" + entry.Name()
 		if entry.IsDir() {
 			sink.addDir(fullPath)
-			subdirs = append(subdirs, fullPath)
+			slots <- struct{}{}
+			wg.Add(1)
+			go func(path string) {
+				defer wg.Done()
+				defer func() { <-slots }()
+				scanSingleDirTree(path, sink)
+			}(fullPath)
 		} else if !skipRootFiles {
 			sink.addFile(fullPath, entryFileInfo(entry))
 		}
-	}
-
-	if len(subdirs) == 0 {
-		return
-	}
-
-	var wg sync.WaitGroup
-	for _, subdir := range subdirs {
-		wg.Add(1)
-		sd := subdir
-		go func() {
-			defer wg.Done()
-			scanSingleDirTree(sd, sink)
-		}()
 	}
 	wg.Wait()
 }
@@ -135,6 +131,7 @@ func ScanLocalDir(dirPath string, idx *FileIndex, skipRootFiles bool) {
 	scanLocalDir(dirPath, fileIndexScanSink{index: idx}, skipRootFiles)
 }
 
+// BuildIndexSync scans one storage root before returning.
 func BuildIndexSync(basePath string, idx *FileIndex) error {
 	if S3IndexBuilder != nil {
 		return S3IndexBuilder(basePath, idx)
@@ -268,20 +265,57 @@ func replaceIndexFromScan(basePath string, idx *FileIndex) error {
 	return nil
 }
 
-func RebuildIndexAsync(basePath string, idx *FileIndex) {
-	go func() {
-		if err := replaceIndexFromScan(basePath, idx); err != nil {
-			log.Printf("Failed to rebuild artifact index: %v", err)
-		}
-	}()
+type indexRebuildRequest struct {
+	basePath string
+	dirty    bool
 }
 
-func RebuildIndexDiff(basePath string, idx *FileIndex) {
-	go func() {
-		if err := replaceIndexFromScan(basePath, idx); err != nil {
-			log.Printf("Failed to rebuild artifact index: %v", err)
+func runIndexRebuilds(idx *FileIndex) {
+	for {
+		idx.rebuildMu.Lock()
+		request := idx.rebuildNext
+		idx.rebuildNext = nil
+		if request == nil {
+			idx.rebuildRunning = false
+			idx.rebuildMu.Unlock()
 			return
 		}
-		idx.IsDirty.Store(true)
-	}()
+		idx.rebuildMu.Unlock()
+
+		if err := replaceIndexFromScan(request.basePath, idx); err != nil {
+			log.Printf("Failed to rebuild artifact index: %v", err)
+		} else if request.dirty {
+			idx.IsDirty.Store(true)
+		}
+	}
+}
+
+func queueIndexRebuild(basePath string, idx *FileIndex, dirty bool) {
+	if idx == nil {
+		return
+	}
+	idx.rebuildMu.Lock()
+	if idx.rebuildNext == nil {
+		idx.rebuildNext = &indexRebuildRequest{basePath: basePath, dirty: dirty}
+	} else {
+		idx.rebuildNext.basePath = basePath
+		idx.rebuildNext.dirty = idx.rebuildNext.dirty || dirty
+	}
+	if idx.rebuildRunning {
+		idx.rebuildMu.Unlock()
+		return
+	}
+	idx.rebuildRunning = true
+	idx.rebuildMu.Unlock()
+	go runIndexRebuilds(idx)
+}
+
+// RebuildIndexAsync queues a coalesced full index rebuild.
+func RebuildIndexAsync(basePath string, idx *FileIndex) {
+	queueIndexRebuild(basePath, idx, false)
+}
+
+// RebuildIndexDiff queues a coalesced rebuild and marks the resulting index dirty.
+func RebuildIndexDiff(basePath string, idx *FileIndex) {
+	queueIndexRebuild(basePath, idx, true)
 }
