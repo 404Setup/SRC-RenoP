@@ -28,7 +28,7 @@ func TestCompressFileProducesRawBrotliStream(t *testing.T) {
 	if err := os.WriteFile(inputPath, want, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := compressFile(inputPath, outputPath, brrr.BestCompression); err != nil {
+	if err := compressFile(inputPath, outputPath, 9); err != nil {
 		t.Fatal(err)
 	}
 	compressed, err := os.Open(outputPath)

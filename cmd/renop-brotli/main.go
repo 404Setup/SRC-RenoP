@@ -102,7 +102,7 @@ func compressFile(inputPath, outputPath string, quality int) (returnErr error) {
 func run() error {
 	input := flag.String("input", "", "path to the executable to compress")
 	output := flag.String("output", "", "path to the raw .br output")
-	quality := flag.Int("quality", brrr.BestCompression, "Brotli quality from 0 to 11")
+	quality := flag.Int("quality", 9, "Brotli quality from 0 to 11")
 	flag.Parse()
 	if *input == "" || *output == "" {
 		return errors.New("both -input and -output are required")
