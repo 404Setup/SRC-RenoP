@@ -11,6 +11,7 @@
 package storage
 
 import (
+	"errors"
 	"net/http"
 	"testing"
 
@@ -35,11 +36,15 @@ func TestTryHTMLFallback(t *testing.T) {
 	}
 	t.Cleanup(func() { HTMLFallback = prev })
 
-	app := fiber.New()
+	var handledErr error
+	app := fiber.New(fiber.Config{ErrorHandler: func(c fiber.Ctx, err error) error {
+		handledErr = err
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}})
 
 	app.Get("/test-html-fallback/*", func(c fiber.Ctx) error {
-		if TryHTMLFallback(state, c) {
-			return nil
+		if handled, err := TryHTMLFallback(state, c); handled {
+			return err
 		}
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	})
@@ -62,5 +67,20 @@ func TestTryHTMLFallback(t *testing.T) {
 	}
 	if respNonHTML.StatusCode != http.StatusNotFound {
 		t.Fatalf("expected status 404 for non-HTML client, got %d", respNonHTML.StatusCode)
+	}
+
+	expectedErr := errors.New("fallback failed")
+	HTMLFallback = func(fiber.Ctx, *core.AppState) error { return expectedErr }
+	reqError, _ := http.NewRequest("GET", "/test-html-fallback/missing.jar", nil)
+	reqError.Header.Set("Accept", "text/html")
+	respError, err := app.Test(reqError)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if respError.StatusCode != http.StatusInternalServerError {
+		t.Fatalf("expected status 500 for a fallback error, got %d", respError.StatusCode)
+	}
+	if !errors.Is(handledErr, expectedErr) {
+		t.Fatalf("handled fallback error = %v, want %v", handledErr, expectedErr)
 	}
 }

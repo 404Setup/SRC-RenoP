@@ -84,8 +84,8 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 
 	sanitized, ok := utils.SanitizePath(path)
 	if !ok {
-		if TryHTMLFallback(state, c) {
-			return nil
+		if handled, err := TryHTMLFallback(state, c); handled {
+			return err
 		}
 		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
 	}
@@ -114,13 +114,17 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 				strings.EqualFold(repo.Visibility, "PRIVATE") && user.Username == "guest" {
 				return cargo.SendAuthChallenge(c)
 			}
-			if !isConcreteArtifact && TryHTMLFallback(state, c) {
-				return nil
+			if !isConcreteArtifact {
+				if handled, fallbackErr := TryHTMLFallback(state, c); handled {
+					return fallbackErr
+				}
 			}
 			return c.Status(fiber.StatusNotFound).SendString("Not found")
 		}
-		if isDirOnDisk && TryHTMLFallback(state, c) {
-			return nil
+		if isDirOnDisk {
+			if handled, fallbackErr := TryHTMLFallback(state, c); handled {
+				return fallbackErr
+			}
 		}
 	} else if isMaven {
 		if MavenMutationAuthorizer == nil {
@@ -145,8 +149,10 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 
 	path = sanitized
 	if isDocker {
-		if !isConcreteArtifact && TryHTMLFallback(state, c) {
-			return nil
+		if !isConcreteArtifact {
+			if handled, err := TryHTMLFallback(state, c); handled {
+				return err
+			}
 		}
 		if isRead {
 			return c.Status(fiber.StatusOK).SendString("Docker repository must be accessed via Docker client or /v2/ API")
@@ -164,15 +170,15 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	if !isIndexed && isNotFound && c.Method() != fiber.MethodPut && c.Method() != fiber.MethodPost {
-		if TryHTMLFallback(state, c) {
-			return nil
+		if handled, err := TryHTMLFallback(state, c); handled {
+			return err
 		}
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
 
 	if !isIndexed && len(repo.Mirrors) == 0 && c.Method() != fiber.MethodPut && c.Method() != fiber.MethodPost {
-		if TryHTMLFallback(state, c) {
-			return nil
+		if handled, err := TryHTMLFallback(state, c); handled {
+			return err
 		}
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
@@ -195,18 +201,17 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 	}
 }
 
-func TryHTMLFallback(state *core.AppState, c fiber.Ctx) bool {
+func TryHTMLFallback(state *core.AppState, c fiber.Ctx) (bool, error) {
 	if HTMLFallback == nil {
-		return false
+		return false, nil
 	}
 	if c.Method() != fiber.MethodGet && c.Method() != fiber.MethodHead {
-		return false
+		return false, nil
 	}
 	if !strings.Contains(c.Get(fiber.HeaderAccept), "text/html") {
-		return false
+		return false, nil
 	}
-	_ = HTMLFallback(c, state)
-	return true
+	return true, HTMLFallback(c, state)
 }
 
 func serveHTMLFallback(c fiber.Ctx, state *core.AppState) error {

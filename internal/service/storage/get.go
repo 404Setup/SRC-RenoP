@@ -114,8 +114,8 @@ func HandleGet(c fiber.Ctx, state *core.AppState, repo *config.Repository, stora
 
 	isDir, info, exists, isNotFound := state.Inner.FileIndex.GetPathState(pathStr)
 	if isNotFound {
-		if TryHTMLFallback(state, c) {
-			return nil
+		if handled, err := TryHTMLFallback(state, c); handled {
+			return err
 		}
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
@@ -123,8 +123,10 @@ func HandleGet(c fiber.Ctx, state *core.AppState, repo *config.Repository, stora
 	isIndexed := exists
 	anyPersist, baseMaxTTL := CheckIndexAndCacheConfig(repoName, path, repo)
 
-	if isDir && TryHTMLFallback(state, c) {
-		return nil
+	if isDir {
+		if handled, err := TryHTMLFallback(state, c); handled {
+			return err
+		}
 	}
 
 	contentDisposition := "attachment"
@@ -181,8 +183,8 @@ func HandleGet(c fiber.Ctx, state *core.AppState, repo *config.Repository, stora
 
 	state.Inner.FailuresCount.Add(1)
 
-	if TryHTMLFallback(state, c) {
-		return nil
+	if handled, err := TryHTMLFallback(state, c); handled {
+		return err
 	}
 
 	return c.Status(fiber.StatusNotFound).SendString("Not found")
