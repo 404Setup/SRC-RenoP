@@ -235,6 +235,8 @@
   Explicit paths and offline `--skip-reload` operation remain available for nonstandard service layouts.
 - **`internal/utils/`**: Runtime memory/GC tuning (`InitMemoryTuning` for Linux/Windows), process-wide string interning
   (`unique.Make`), and the shared unknown-length request-body bound used by JSON and protobuf control-plane decoders.
+  Shared renames use the platform's native replacement operation and never delete an existing destination after a
+  failed source rename.
 - **`internal/testutil/`**: Shared test-only helpers, including retrying temporary-directory cleanup that runs before
   Go's parent `testing.TempDir` cleanup so transient Windows `ERROR_DIR_NOT_EMPTY` results do not fail SQLite tests.
 - **`web/` & `internal/service/frontend/`**: Embedded SPA with username-based `/user/<username>` profile, edit, and

@@ -41,19 +41,9 @@ func RemoveAll(path string) error {
 	return err
 }
 
+// SafeRename uses the platform's native replacement semantics without deleting
+// an existing destination when the rename itself fails.
 func SafeRename(oldpath, newpath string) error {
-	// Unix can atomically replace the destination. Windows cannot, so only
-	// fall back to removing the destination after the atomic attempt fails.
-	renameErr := os.Rename(oldpath, newpath)
-	if renameErr == nil {
-		return nil
-	}
-	if runtime.GOOS != "windows" {
-		return renameErr
-	}
-	if err := os.Remove(newpath); err != nil {
-		return renameErr
-	}
 	return os.Rename(oldpath, newpath)
 }
 

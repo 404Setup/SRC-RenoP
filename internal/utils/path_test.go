@@ -11,6 +11,8 @@
 package utils
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -22,6 +24,25 @@ type sanitizePathTestCase struct {
 type isImageFileTestCase struct {
 	input    string
 	expected bool
+}
+
+func TestSafeRenamePreservesDestinationWhenSourceIsMissing(t *testing.T) {
+	directory := t.TempDir()
+	destination := filepath.Join(directory, "destination")
+	if err := os.WriteFile(destination, []byte("keep"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := SafeRename(filepath.Join(directory, "missing"), destination); err == nil {
+		t.Fatal("SafeRename succeeded with a missing source")
+	}
+	contents, err := os.ReadFile(destination)
+	if err != nil {
+		t.Fatalf("destination was removed after rename failure: %v", err)
+	}
+	if string(contents) != "keep" {
+		t.Fatalf("destination contents = %q, want %q", contents, "keep")
+	}
 }
 
 func TestSanitizePathValid(t *testing.T) {
