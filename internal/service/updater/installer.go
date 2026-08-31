@@ -734,13 +734,6 @@ func moveOrCopyFile(src, dst string) error {
 	dstDir := filepath.Dir(dst)
 	tmpDst, err := os.CreateTemp(dstDir, ".renop-new-*")
 	if err != nil {
-		out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
-		if err != nil {
-			return err
-		}
-		defer out.Close()
-		_, err = io.Copy(out, in)
-		_ = os.Remove(src)
 		return err
 	}
 
@@ -756,7 +749,10 @@ func moveOrCopyFile(src, dst string) error {
 		_ = os.Remove(tmpDstPath)
 		return err
 	}
-	_ = tmpDst.Close()
+	if err := tmpDst.Close(); err != nil {
+		_ = os.Remove(tmpDstPath)
+		return err
+	}
 
 	if runtime.GOOS != "windows" {
 		_ = os.Chmod(tmpDstPath, 0755)
@@ -767,8 +763,10 @@ func moveOrCopyFile(src, dst string) error {
 		return err
 	}
 
-	_ = os.Remove(src)
-	return nil
+	if err := in.Close(); err != nil {
+		return err
+	}
+	return os.Remove(src)
 }
 
 func CleanOldExecutables() {

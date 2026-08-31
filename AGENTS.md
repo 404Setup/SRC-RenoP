@@ -216,6 +216,8 @@
   streaming decode of new raw `.br` executable packages, compatibility decode for legacy `.zip` packages, and
   deduplicated administrator result notifications. Download-start and imminent-restart progress remain transient
   frontend toasts; stable updater error codes localize online and offline failures without exposing filesystem details.
+  Cross-filesystem executable replacement always stages and closes a temporary file in the destination directory;
+  staging failure never truncates the installed executable or removes the verified source package.
   Update results aggregate every retained release note between the
   running build and target; embedded full commit IDs and each stable record's `previous_commit` preserve ordering when
   version labels or older hosted records are unavailable.

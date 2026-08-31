@@ -368,6 +368,45 @@ func TestEstimateUploadedPackageDiskSpace(t *testing.T) {
 	}
 }
 
+func TestMoveOrCopyFileAcrossFilesystems(t *testing.T) {
+	sourceDirectory := t.TempDir()
+	destinationDirectory, err := os.MkdirTemp(".", ".renop-move-test-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(destinationDirectory) })
+
+	probeSource := filepath.Join(sourceDirectory, "probe")
+	if err := os.WriteFile(probeSource, []byte("probe"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(probeSource, filepath.Join(destinationDirectory, "probe")); err == nil {
+		t.Skip("temporary and checkout directories use the same filesystem")
+	}
+
+	source := filepath.Join(sourceDirectory, "source")
+	destination := filepath.Join(destinationDirectory, "destination")
+	if err := os.WriteFile(source, []byte("new"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(destination, []byte("old"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := moveOrCopyFile(source, destination); err != nil {
+		t.Fatal(err)
+	}
+	contents, err := os.ReadFile(destination)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(contents) != "new" {
+		t.Fatalf("destination contents = %q, want %q", contents, "new")
+	}
+	if _, err := os.Stat(source); !os.IsNotExist(err) {
+		t.Fatalf("source remains after successful move: %v", err)
+	}
+}
+
 func TestExternalBrotliReleasePackage(t *testing.T) {
 	packagePath := os.Getenv("RENOP_TEST_BROTLI_PACKAGE")
 	if packagePath == "" {
