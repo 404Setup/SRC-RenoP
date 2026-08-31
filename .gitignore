@@ -98,6 +98,7 @@ run/
 renop
 ./tmp-*
 .tmp-*
+.codex-*
 storage/private
 storage/releases
 storage/snapshots
