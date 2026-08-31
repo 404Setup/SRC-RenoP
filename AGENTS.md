@@ -155,8 +155,9 @@
 - **`internal/service/superteam/`**: Authenticated global-team account APIs for creation, pagination, immutable-prefix
   metadata, T1-T4 invitations and membership administration, effective account limits, and administrator overrides.
   T3 may manage T1/T2 members, while only T4 or system administrators may grant or manage T3/T4 roles; at least one
-  T4 owner must remain. Administrators still enforce the target account's membership limit and receive no notification
-  when adding themselves.
+  T4 owner must remain, and owners cannot leave through either membership-removal route until ownership is transferred.
+  Non-owner self-removal uses a dedicated membership exit route. Administrators still enforce the target account's
+  membership limit and receive no notification when adding themselves.
 - **`internal/service/review/`**: Session-only, message-center-integrated review APIs for bounded reviewer/requester
   pages and global-team ownership transfers. Docker images, npm packages, Cargo crates, Maven artifacts, and Maven
   publishing domains share one stable resource model. An L4 owner or authorized administrator submits a request, a
@@ -373,7 +374,8 @@
 - **Go**: Go 1.28+ (`404Setup/go` fork)
 - **Frontend**: Node.js 18+ with **pnpm**
 - **Shell**: PowerShell 7 (`pwsh`)
-- **Protobuf**: `protoc` with `protoc-gen-go`
+- **Protobuf**: `protoc` with `protoc-gen-go`; `build.ps1` generates both the management API and durable session
+  storage bindings before compiling.
 - **Release packaging**: `build.ps1` automatically installs `cmd/renop-brotli` into the active Go binary directory;
   packaged builds emit raw `.br` executable streams while `nb` builds remain unpackaged binaries. Target
   compilation is bounded by `-BuildConcurrency` (default and maximum 4), while independent packaging is bounded by
@@ -392,7 +394,7 @@
 | **Frontend Build & Embed**                          | `pnpm install --frozen-lockfile && pnpm run build:frontend && go generate ./...` |
 | **Frontend Unit Tests**                             | `pnpm run test:frontend`                                                         |
 | **Frontend i18n Validation**                        | `pnpm run check:i18n`                                                            |
-| **Protobuf Generation**                             | `protoc -I proto --go_out=. --go_opt=module=renop proto/api/v1/api.proto`        |
+| **Protobuf Generation**                             | `protoc -I proto --go_out=. --go_opt=module=renop proto/api/v1/api.proto proto/storage/v1/session.proto` |
 | **Run All Tests**                                   | `go test ./...`                                                                  |
 | **Run Package Tests**                               | `go test -v ./internal/...`                                                      |
 | **Database Driver Contract**                       | `go run ./cmd/renop-dbtest -driver <driver> -dsn <isolated-dsn> -confirm-isolated` |

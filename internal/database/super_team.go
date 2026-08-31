@@ -991,7 +991,7 @@ func (db *DB) SetSuperTeamMemberLevel(prefix, actor, target string, level int, a
 	return nil
 }
 
-// RemoveSuperTeamMember removes or leaves one team while preserving a T4 owner.
+// RemoveSuperTeamMember removes a managed member or lets a non-owner leave.
 func (db *DB) RemoveSuperTeamMember(prefix, actor, target string, administrator bool, actedAt int64) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
@@ -1030,15 +1030,15 @@ func (db *DB) RemoveSuperTeamMember(prefix, actor, target string, administrator 
 		return fmt.Errorf("inspect global team removal target: %w", err)
 	}
 	self := actorID == targetID
+	if self && targetLevel == core.SuperTeamRoleOwner {
+		return core.ErrSuperTeamOwnerCannotLeave
+	}
 	if !self && !administrator && (actorLevel < core.SuperTeamRoleManage ||
 		actorLevel < core.SuperTeamRoleOwner && targetLevel >= core.SuperTeamRoleManage) {
 		return core.ErrSuperTeamPermissionDenied
 	}
 	if targetLevel == core.SuperTeamRoleOwner {
 		if err := requireAnotherSuperTeamOwner(tx, prefix, targetID); err != nil {
-			if self {
-				return core.ErrSuperTeamOwnerCannotLeave
-			}
 			return err
 		}
 	}

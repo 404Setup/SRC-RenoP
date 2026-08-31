@@ -174,6 +174,25 @@ func TestSuperTeamRoutesLifecycleInvitationAndVisibility(t *testing.T) {
 	response = superTeamRequest(t, app, http.MethodGet, "/api/super-teams/platform/users/search?q=a", "bob", nil)
 	assert.Equal(t, http.StatusForbidden, response.StatusCode)
 	response.Body.Close()
+
+	response = superTeamRequest(t, app, http.MethodPut, "/api/super-teams/platform/members/bob", "alice",
+		map[string]any{"level": core.SuperTeamRoleOwner})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	response.Body.Close()
+	response = superTeamRequest(t, app, http.MethodDelete, "/api/super-teams/platform/membership", "alice", nil)
+	require.Equal(t, http.StatusConflict, response.StatusCode)
+	assert.Equal(t, "owner_cannot_leave", response.Header.Get("X-Renop-Error-Code"))
+	response.Body.Close()
+	response = superTeamRequest(t, app, http.MethodPut, "/api/super-teams/platform/members/alice", "alice",
+		map[string]any{"level": core.SuperTeamRoleManage})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	response.Body.Close()
+	response = superTeamRequest(t, app, http.MethodDelete, "/api/super-teams/platform/members/alice", "alice", nil)
+	require.Equal(t, http.StatusBadRequest, response.StatusCode)
+	response.Body.Close()
+	response = superTeamRequest(t, app, http.MethodDelete, "/api/super-teams/platform/membership", "alice", nil)
+	require.Equal(t, http.StatusNoContent, response.StatusCode)
+	response.Body.Close()
 }
 
 func TestSuperTeamAdministratorLimitOverrides(t *testing.T) {

@@ -79,3 +79,14 @@ test('release tooling decouples bounded compilation from raw Brotli packaging', 
     assert.match(publish, /for \(\$i = \$nightlyPackageRetention; \$i -lt \$updatedReleases\.Count; \$i\+\+\)/);
     assert.match(publish, /\[Math\]::Min\(\$updatedReleases\.Count, \$nightlyPackageRetention\)/);
 });
+
+test('Go protobuf generation includes API and durable session schemas', () => {
+    const repositoryRoot = resolve(fileURLToPath(new URL('../..', import.meta.url)));
+    const build = readFileSync(resolve(repositoryRoot, 'build.ps1'), 'utf8');
+    for (const path of [
+        'proto/api/v1/api.proto',
+        'proto/storage/v1/session.proto',
+        'pkg/pb/api.pb.go',
+        'pkg/pb/session.pb.go',
+    ]) assert.ok(build.includes(path), `build.ps1 is missing ${path}`);
+});

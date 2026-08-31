@@ -78,6 +78,7 @@ func SetupRoutes(router fiber.Router, state *core.AppState) {
 	base.Post("/:prefix/members", func(c fiber.Ctx) error { return addMembers(c, state) })
 	base.Put("/:prefix/members/:username", func(c fiber.Ctx) error { return setMemberLevel(c, state) })
 	base.Delete("/:prefix/members/:username", func(c fiber.Ctx) error { return removeMember(c, state) })
+	base.Delete("/:prefix/membership", func(c fiber.Ctx) error { return leaveTeam(c, state) })
 }
 
 func authenticated(c fiber.Ctx) (*config.User, error) {
@@ -114,8 +115,10 @@ func apiError(c fiber.Ctx, err error) error {
 		status, code = fiber.StatusConflict, "invitation_pending"
 	case errors.Is(err, core.ErrSuperTeamInvitationInvalid):
 		status, code = fiber.StatusConflict, "invitation_invalid"
-	case errors.Is(err, core.ErrSuperTeamLastOwner), errors.Is(err, core.ErrSuperTeamOwnerCannotLeave):
+	case errors.Is(err, core.ErrSuperTeamLastOwner):
 		status, code = fiber.StatusConflict, "last_owner"
+	case errors.Is(err, core.ErrSuperTeamOwnerCannotLeave):
+		status, code = fiber.StatusConflict, "owner_cannot_leave"
 	case errors.Is(err, core.ErrSuperTeamCreateLimit):
 		status, code = fiber.StatusConflict, "create_limit"
 	case errors.Is(err, core.ErrSuperTeamJoinLimit):
@@ -392,12 +395,30 @@ func removeMember(c fiber.Ctx, state *core.AppState) error {
 	if target == "" || len(target) > 255 {
 		return apiError(c, fiber.ErrBadRequest)
 	}
+	if strings.EqualFold(target, user.Username) {
+		return apiError(c, fiber.ErrBadRequest)
+	}
 	if err := state.GetDB().RemoveSuperTeamMember(prefix, user.Username, target, user.IsManager(),
 		time.Now().UnixMilli()); err != nil {
 		return apiError(c, err)
 	}
 	auditAction(c, state, audit.ActionSuperTeamMemberRemove,
 		"Prefix: "+strings.ToLower(prefix)+", member: "+target)
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func leaveTeam(c fiber.Ctx, state *core.AppState) error {
+	user, err := authenticated(c)
+	if err != nil {
+		return apiError(c, err)
+	}
+	prefix := c.Params("prefix")
+	if err := state.GetDB().RemoveSuperTeamMember(prefix, user.Username, user.Username, user.IsManager(),
+		time.Now().UnixMilli()); err != nil {
+		return apiError(c, err)
+	}
+	auditAction(c, state, audit.ActionSuperTeamMemberRemove,
+		"Prefix: "+strings.ToLower(prefix)+", member left: "+strings.ToLower(user.Username))
 	return c.SendStatus(fiber.StatusNoContent)
 }
 

@@ -45,6 +45,9 @@ test('global team controls share bounded dialogs, user suggestions, errors, and 
     assert.match(script, /new RepositoryUserSuggestions/);
     assert.match(script, /makeCustomSelect\(roleOptions/);
     assert.match(script, /RenopDialog\.show/);
+    assert.match(script, /id: 'super-team-leave-dialog'/);
+    assert.match(script, /\/membership`, \{method: 'DELETE'\}/);
+    assert.doesNotMatch(script, /own \|\| canManage/);
     assert.match(script, /SUPER_TEAM_ERROR_KEYS/);
     assert.match(script, /morphElementHeight/);
     assert.match(messages, /registerMessageActionHandler\('super_team_invite'/);
@@ -52,6 +55,7 @@ test('global team controls share bounded dialogs, user suggestions, errors, and 
     assert.match(styles, /\.super-team-member-row\s*\{[\s\S]*?grid-template-columns/);
     assert.match(styles, /\.super-team-member-controls \.custom-select-wrapper/);
     assert.match(styles, /\.super-team-member-controls \.icon-btn\.is-danger\s*\{[\s\S]*?width:\s*2rem[\s\S]*?border-radius:\s*50%/);
+    assert.match(styles, /\.super-team-detail-hero \+ \.publication-quota-panel\s*\{[^}]*margin-top:/s);
 });
 
 test('global teams persist independently from package membership tables', () => {

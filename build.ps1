@@ -206,17 +206,27 @@ function Invoke-ProtobufGenerate {
             $env:PATH = (Join-Path $goBin 'bin') + [IO.Path]::PathSeparator + $env:PATH
         }
     }
-    $protoFile = Join-Path $repositoryRoot 'proto/api/v1/api.proto'
-    if (-not (Test-Path -LiteralPath $protoFile)) {
-        throw "Proto schema not found at $protoFile"
+    $protoFiles = @(
+        (Join-Path $repositoryRoot 'proto/api/v1/api.proto')
+        (Join-Path $repositoryRoot 'proto/storage/v1/session.proto')
+    )
+    foreach ($protoFile in $protoFiles) {
+        if (-not (Test-Path -LiteralPath $protoFile)) {
+            throw "Proto schema not found at $protoFile"
+        }
     }
-    & protoc -I (Join-Path $repositoryRoot 'proto') --go_out=$repositoryRoot --go_opt=module=renop $protoFile
+    & protoc -I (Join-Path $repositoryRoot 'proto') --go_out=$repositoryRoot --go_opt=module=renop $protoFiles
     if ($LASTEXITCODE -ne 0) {
         throw "protoc (Go) failed with exit code $LASTEXITCODE."
     }
-    $generated = Join-Path $repositoryRoot 'pkg/pb/api.pb.go'
-    if (-not (Test-Path -LiteralPath $generated)) {
-        throw "protoc did not produce $generated"
+    $generatedFiles = @(
+        (Join-Path $repositoryRoot 'pkg/pb/api.pb.go')
+        (Join-Path $repositoryRoot 'pkg/pb/session.pb.go')
+    )
+    foreach ($generated in $generatedFiles) {
+        if (-not (Test-Path -LiteralPath $generated)) {
+            throw "protoc did not produce $generated"
+        }
     }
 }
 

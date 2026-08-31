@@ -37,7 +37,7 @@ var (
 	ErrSuperTeamInvitationExists  = errors.New("global team invitation is already pending")
 	ErrSuperTeamInvitationInvalid = errors.New("global team invitation is no longer valid")
 	ErrSuperTeamLastOwner         = errors.New("global team must retain at least one T4 owner")
-	ErrSuperTeamOwnerCannotLeave  = errors.New("global team T4 owner must retain another owner before leaving")
+	ErrSuperTeamOwnerCannotLeave  = errors.New("global team T4 owner must transfer ownership before leaving")
 	ErrSuperTeamCreateLimit       = errors.New("global team creation limit reached")
 	ErrSuperTeamJoinLimit         = errors.New("global team membership limit reached")
 	ErrSuperTeamBindingRequired   = errors.New("a global team is required for this package namespace")

@@ -17,6 +17,7 @@ export const SUPER_TEAM_ERROR_KEYS = Object.freeze({
     join_limit: 'superTeam.joinLimitReached',
     last_owner: 'superTeam.lastOwner',
     member_exists: 'superTeam.memberExists',
+    owner_cannot_leave: 'superTeam.ownerCannotLeave',
     operation_failed: 'superTeam.operationFailed',
     permission_denied: 'superTeam.permissionDenied',
     service_unavailable: 'superTeam.serviceUnavailable',

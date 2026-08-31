@@ -437,7 +437,7 @@ async function changeMemberLevel(details, member, level) {
 }
 
 /**
- * Confirm and remove one member or leave the team.
+ * Confirm and remove one managed member.
  * @param {object} details - Team details response.
  * @param {object} member - Target member.
  * @returns {Promise<void>}
@@ -451,12 +451,45 @@ async function removeTeamMember(details, member) {
         );
         if (!response.ok) throw await localizedResponseError(response, 'superTeam.memberRemoveFailed', {}, SUPER_TEAM_ERROR_KEYS);
         showAlert(t('superTeam.memberRemoved'), 'success');
-        const currentUsername = String(localStorage.getItem('username') || '').toLowerCase();
-        if (member.username.toLowerCase() === currentUsername && !details.administrator) navigate('');
-        else await loadDetails(details.team.prefix);
+        await loadDetails(details.team.prefix);
     } catch (error) {
         showAlert(caughtErrorMessage(error, 'superTeam.memberRemoveFailed'), 'error');
     }
+}
+
+/**
+ * Open the current member's dedicated team exit dialog.
+ * @param {object} details - Team details response.
+ * @returns {void}
+ */
+function openLeaveTeamDialog(details) {
+    const prefix = details.team.prefix;
+    RenopDialog.show({
+        id: 'super-team-leave-dialog', maxWidth: '460px', icon: 'logout',
+        title: t('superTeam.leave'),
+        body: el('p', {class: 'super-team-leave-copy'}, t('team.leaveConfirm')),
+        footer: [
+            {text: t('common.cancel'), className: 'action-btn', onClick: (event, current) => current.close(false)},
+            {
+                text: t('superTeam.leave'), className: 'action-btn primary-btn btn-danger',
+                onClick: async (event, current) => runButtonAction(event.currentTarget, async () => {
+                    try {
+                        const response = await apiRequest(
+                            `/api/super-teams/${encodeURIComponent(prefix)}/membership`, {method: 'DELETE'}
+                        );
+                        if (!response.ok) throw await localizedResponseError(
+                            response, 'superTeam.leaveFailed', {}, SUPER_TEAM_ERROR_KEYS
+                        );
+                        current.close(true);
+                        showAlert(t('team.left'), 'success');
+                        navigate('');
+                    } catch (error) {
+                        showAlert(caughtErrorMessage(error, 'superTeam.leaveFailed'), 'error');
+                    }
+                })
+            }
+        ]
+    });
 }
 
 /**
@@ -480,10 +513,10 @@ function memberRow(details, member) {
     } else {
         controls.appendChild(el('span', {class: 'super-team-role-badge'}, roleLabel(memberLevel)));
     }
-    if (own || canManage) {
+    if (canManage && !own) {
         controls.appendChild(el('button', {
-            type: 'button', class: 'icon-btn is-danger', title: t(own ? 'superTeam.leave' : 'common.remove'),
-            ariaLabel: t(own ? 'superTeam.leave' : 'common.remove'),
+            type: 'button', class: 'icon-btn is-danger', title: t('common.remove'),
+            ariaLabel: t('common.remove'),
             onclick: () => void removeTeamMember(details, member)
         }, createIcon('delete')));
     }
@@ -543,6 +576,10 @@ async function loadDetails(prefix) {
         const canOwn = details.administrator || actorLevel >= 4;
         const canManage = details.administrator || actorLevel >= 3;
         const actions = el('div', {class: 'super-team-detail-actions'});
+        if (actorLevel > 0 && actorLevel < 4) actions.appendChild(el('button', {
+            type: 'button', class: 'pill-btn pill-btn--ghost-danger pill-btn--sm',
+            onclick: () => openLeaveTeamDialog(details)
+        }, createIcon('logout'), el('span', {}, t('superTeam.leave'))));
         if (canManage) actions.appendChild(el('button', {
             type: 'button', class: 'pill-btn pill-btn--primary pill-btn--sm', onclick: () => openInviteDialog(details)
         }, createIcon('userPlus'), el('span', {}, t('superTeam.invite'))));

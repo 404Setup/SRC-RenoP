@@ -330,6 +330,16 @@
     margin-top: 0.8rem;
 }
 
+.super-team-detail-hero + .publication-quota-panel {
+    margin-top: 0.8rem;
+}
+
+.super-team-leave-copy {
+    margin: 0;
+    color: var(--muted-text);
+    line-height: 1.6;
+}
+
 .super-team-members-section > header h3,
 .super-team-members-section > header p {
     margin: 0;

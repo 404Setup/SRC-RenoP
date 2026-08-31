@@ -108,9 +108,12 @@ func TestSuperTeamInvitationAndOwnerInvariants(t *testing.T) {
 		core.SuperTeamRoleManage, true), core.ErrSuperTeamLastOwner)
 	require.NoError(t, db.SetSuperTeamMemberLevel("release", "admin", "charlie",
 		core.SuperTeamRoleOwner, true))
+	require.ErrorIs(t, db.RemoveSuperTeamMember("release", "alice", "alice", false, now+3),
+		core.ErrSuperTeamOwnerCannotLeave)
 	require.NoError(t, db.SetSuperTeamMemberLevel("release", "alice", "alice",
 		core.SuperTeamRoleManage, false))
-	require.ErrorIs(t, db.RemoveSuperTeamMember("release", "charlie", "charlie", false, now+3),
+	require.NoError(t, db.RemoveSuperTeamMember("release", "alice", "alice", false, now+4))
+	require.ErrorIs(t, db.RemoveSuperTeamMember("release", "charlie", "charlie", false, now+5),
 		core.ErrSuperTeamOwnerCannotLeave)
 }
 
