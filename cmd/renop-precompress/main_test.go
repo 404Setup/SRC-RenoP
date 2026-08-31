@@ -21,7 +21,9 @@ import (
 	"testing"
 
 	"github.com/klauspost/compress/zstd"
-	brrr "github.com/molecule-man/go-brrr"
+	"github.com/molecule-man/go-brrr"
+
+	"renop/internal/testutil"
 )
 
 func decodeSidecar(t *testing.T, path, encoding string) []byte {
@@ -70,7 +72,7 @@ func TestPrecompressCreatesFourBalancedSidecarsWithoutRecursion(t *testing.T) {
 	if balancedBrotliQuality != 9 {
 		t.Fatalf("Brotli quality = %d, want 9", balancedBrotliQuality)
 	}
-	root := t.TempDir()
+	root := testutil.TempDir(t)
 	source := filepath.Join(root, "app.js")
 	want := bytes.Repeat([]byte("const renop = 'precompressed';\n"), 2048)
 	if err := os.WriteFile(source, want, 0o644); err != nil {
@@ -83,7 +85,7 @@ func TestPrecompressCreatesFourBalancedSidecarsWithoutRecursion(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for run := 0; run < 2; run++ {
+	for range 2 {
 		variants, err := precompress(root)
 		if err != nil {
 			t.Fatal(err)

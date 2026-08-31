@@ -218,6 +218,7 @@ func TestPruneExpiredFidoSessions(t *testing.T) {
 type webAuthnEngineTestCase struct {
 	name       string
 	headers    map[string]string
+	wantStatus int
 	expectRpID string
 }
 
@@ -231,31 +232,35 @@ func TestGetWebAuthnEngine(t *testing.T) {
 		{
 			name:       "Standard Localhost",
 			headers:    map[string]string{"Host": "localhost:3000"},
+			wantStatus: http.StatusOK,
 			expectRpID: "localhost",
 		},
 		{
-			name:       "Standard 127.0.0.1",
+			name:       "Rejects IPv4 RP ID",
 			headers:    map[string]string{"Host": "127.0.0.1:3000"},
-			expectRpID: "127.0.0.1",
+			wantStatus: http.StatusInternalServerError,
 		},
 		{
-			name:       "IPv6 Host",
+			name:       "Rejects IPv6 RP ID",
 			headers:    map[string]string{"Host": "[::1]:8080"},
-			expectRpID: "::1",
+			wantStatus: http.StatusInternalServerError,
 		},
 		{
 			name:       "0.0.0.0 Host Falls back to primary domain",
 			headers:    map[string]string{"Host": "0.0.0.0:3000"},
+			wantStatus: http.StatusOK,
 			expectRpID: "renop.example.com",
 		},
 		{
 			name:       "Origin Header Present",
 			headers:    map[string]string{"Origin": "https://mvnc.pkg.one:8443", "Host": "127.0.0.1:3000"},
+			wantStatus: http.StatusOK,
 			expectRpID: "mvnc.pkg.one",
 		},
 		{
 			name:       "X-Forwarded-Host Header",
 			headers:    map[string]string{"X-Forwarded-Host": "proxy.example.com:443", "Host": "127.0.0.1:3000"},
+			wantStatus: http.StatusOK,
 			expectRpID: "proxy.example.com",
 		},
 	}
@@ -283,7 +288,7 @@ func TestGetWebAuthnEngine(t *testing.T) {
 			}
 			resp, err := app.Test(req)
 			assert.NoError(t, err)
-			assert.Equal(t, http.StatusOK, resp.StatusCode)
+			assert.Equal(t, tc.wantStatus, resp.StatusCode)
 			assert.Equal(t, tc.expectRpID, capturedRpID)
 		})
 	}
