@@ -31,11 +31,12 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/testutil"
 )
 
 func writeTestTarGzDoc(t *testing.T, entries map[string]string) string {
 	t.Helper()
-	file, err := os.CreateTemp(t.TempDir(), "cargodoc-*.tar.gz")
+	file, err := os.CreateTemp(testutil.TempDir(t), "cargodoc-*.tar.gz")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +72,7 @@ func writeTestTarGzDoc(t *testing.T, entries map[string]string) string {
 
 func writeTestZipDoc(t *testing.T, entries map[string]string) string {
 	t.Helper()
-	file, err := os.CreateTemp(t.TempDir(), "cargodoc-*.zip")
+	file, err := os.CreateTemp(testutil.TempDir(t), "cargodoc-*.zip")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +97,7 @@ func writeTestZipDoc(t *testing.T, entries map[string]string) string {
 func withIsolatedCargodocConfig(t *testing.T, mutate func(cfg *config.Config)) *config.Config {
 	t.Helper()
 	cfg := config.DefaultConfig()
-	cfg.CargodocExtractPath = t.TempDir()
+	cfg.CargodocExtractPath = testutil.TempDir(t)
 	cfg.EnableCargodocPreview = true
 	cfg.MaxCargodocSizeMb = 32
 	if mutate != nil {
@@ -115,7 +116,7 @@ func TestExtractCargodocRejectsUnsafeEntry(t *testing.T) {
 		"../escape.txt": "must not be written",
 		"index.html":    "<html></html>",
 	})
-	cacheDir := filepath.Join(t.TempDir(), "cache")
+	cacheDir := filepath.Join(testutil.TempDir(t), "cache")
 	if err := extractCargodocArchive(archivePath, cacheDir, "test_crate"); err == nil {
 		t.Fatal("expected unsafe archive entry to be rejected")
 	}
@@ -130,7 +131,7 @@ func TestExtractCargodocAutoGeneratesRootIndex(t *testing.T) {
 		"my_crate/index.html": "<html><body>Rustdoc My Crate</body></html>",
 		"my_crate/all.html":   "<html><body>All items</body></html>",
 	})
-	cacheDir := filepath.Join(t.TempDir(), "cache")
+	cacheDir := filepath.Join(testutil.TempDir(t), "cache")
 	if err := extractCargodocArchive(archivePath, cacheDir, "my-crate"); err != nil {
 		t.Fatalf("unexpected extraction error: %v", err)
 	}
@@ -150,7 +151,7 @@ func TestExtractZipCargodoc(t *testing.T) {
 		"index.html":      "<html><body>Zip Docs</body></html>",
 		"search-index.js": "var R = [];",
 	})
-	cacheDir := filepath.Join(t.TempDir(), "cache")
+	cacheDir := filepath.Join(testutil.TempDir(t), "cache")
 	if err := extractCargodocArchive(archivePath, cacheDir, "zip-crate"); err != nil {
 		t.Fatalf("unexpected extraction error for zip doc: %v", err)
 	}
@@ -160,7 +161,7 @@ func TestExtractZipCargodoc(t *testing.T) {
 }
 
 func TestCargodocHTMLInsertionScansOnlyBoundedTail(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "large.html")
+	path := filepath.Join(testutil.TempDir(t), "large.html")
 	content := strings.Repeat("x", cargodocHTMLTailScanSize*2) + "</body>" + strings.Repeat("y", 64)
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatal(err)
@@ -191,7 +192,7 @@ func TestCargodocHTMLInsertionScansOnlyBoundedTail(t *testing.T) {
 }
 
 func TestHandleCargodocPageAndServeRaw(t *testing.T) {
-	tempStorage := t.TempDir()
+	tempStorage := testutil.TempDir(t)
 	cfg := withIsolatedCargodocConfig(t, func(c *config.Config) {
 		c.StoragePath = tempStorage
 		c.Maven.Repositories = map[string]*config.Repository{

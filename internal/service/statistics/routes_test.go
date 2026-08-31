@@ -28,6 +28,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/service/auth"
+	"renop/internal/testutil"
 )
 
 func statisticsTestToken(t *testing.T, db *database.DB, username string, scopes []string) string {
@@ -53,7 +54,7 @@ func statisticsRequest(t *testing.T, app *fiber.App, path, secret string) *http.
 
 func TestStatisticsRoutesRequireScopedAPITokensAndStableUserBoundaries(t *testing.T) {
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "statistics-routes.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "statistics-routes.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })

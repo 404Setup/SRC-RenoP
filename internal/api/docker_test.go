@@ -32,6 +32,7 @@ import (
 	"renop/internal/service/auth"
 	"renop/internal/service/docker"
 	"renop/internal/service/index"
+	"renop/internal/testutil"
 )
 
 func saveDockerAPITestAccount(t *testing.T, db core.StateDB, name, secret string,
@@ -50,7 +51,7 @@ func saveDockerAPITestAccount(t *testing.T, db core.StateDB, name, secret string
 
 func setupTestAPIDockerApp(t *testing.T) (*fiber.App, *core.AppState) {
 	t.Helper()
-	dir := t.TempDir()
+	dir := testutil.TempDir(t)
 
 	db, err := database.InitDB(config.DatabaseConfig{
 		Driver: "sqlite",

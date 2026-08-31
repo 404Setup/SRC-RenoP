@@ -27,6 +27,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/service/token"
+	"renop/internal/testutil"
 )
 
 func TestGitHubOAuthCreatesAccountAndSingleUseSession(t *testing.T) {
@@ -64,7 +65,7 @@ func TestGitHubOAuthCreatesAccountAndSingleUseSession(t *testing.T) {
 	state := core.NewAppState()
 	state.Inner.Config.Store(cfg)
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "github-auth.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "github-auth.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })

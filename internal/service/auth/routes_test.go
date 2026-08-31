@@ -27,12 +27,13 @@ import (
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/service/token"
+	"renop/internal/testutil"
 	"renop/internal/utils/protohttp"
 	"renop/pkg/pb"
 )
 
 func TestPostAuthLogin(t *testing.T) {
-	dbFile := t.TempDir() + "/auth_routes_test.db"
+	dbFile := testutil.TempDir(t) + "/auth_routes_test.db"
 	dbCfg := config.DatabaseConfig{
 		Driver:       "sqlite3",
 		Dsn:          dbFile,

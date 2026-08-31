@@ -21,10 +21,11 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/testutil"
 )
 
 func TestMavenDomainsMigrateToGlobalOwnership(t *testing.T) {
-	databasePath := filepath.Join(t.TempDir(), "global-maven.db")
+	databasePath := filepath.Join(testutil.TempDir(t), "global-maven.db")
 	databaseConfig := config.DatabaseConfig{Driver: "sqlite", Dsn: databasePath, MaxOpenConns: 1, MaxIdleConns: 1}
 	db, err := database.InitDB(databaseConfig)
 	require.NoError(t, err)

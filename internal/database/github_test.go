@@ -21,11 +21,12 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/testutil"
 )
 
 func TestGitHubIdentityLifecycleAndPrincipalRefresh(t *testing.T) {
 	db, err := InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "github.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "github.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })

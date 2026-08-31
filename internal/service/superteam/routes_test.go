@@ -27,12 +27,13 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/testutil"
 )
 
 func setupSuperTeamApp(t *testing.T) (*fiber.App, *core.AppState) {
 	t.Helper()
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "super-teams.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "super-teams.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })

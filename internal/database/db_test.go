@@ -24,6 +24,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/testutil"
 )
 
 func TestDialects(t *testing.T) {
@@ -96,7 +97,7 @@ func TestSQLiteMigrationsAddPackageReadmeColumns(t *testing.T) {
 }
 
 func TestInitDB_SQLite(t *testing.T) {
-	dbFile := filepath.Join(t.TempDir(), "test_renop.db")
+	dbFile := filepath.Join(testutil.TempDir(t), "test_renop.db")
 
 	cfg := config.DatabaseConfig{
 		Driver:       "sqlite3",
@@ -396,7 +397,7 @@ func TestInitDB_SQLite(t *testing.T) {
 }
 
 func TestSQLiteCloseLeavesNoWALSidecars(t *testing.T) {
-	directory := t.TempDir()
+	directory := testutil.TempDir(t)
 	path := filepath.Join(directory, "close.db")
 	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: path, MaxOpenConns: 2})
 	require.NoError(t, err)

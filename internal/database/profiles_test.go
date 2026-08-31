@@ -21,10 +21,11 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/testutil"
 )
 
 func TestLegacyUserProfileSchemaMigratesImmutableID(t *testing.T) {
-	databasePath := filepath.Join(t.TempDir(), "legacy-profile.db")
+	databasePath := filepath.Join(testutil.TempDir(t), "legacy-profile.db")
 	rawDB, err := sql.Open("sqlite", databasePath)
 	require.NoError(t, err)
 	_, err = rawDB.Exec(`CREATE TABLE user_profiles (
@@ -60,7 +61,7 @@ func TestLegacyUserProfileSchemaMigratesImmutableID(t *testing.T) {
 }
 
 func TestUserProfileRenameIsDurableAndPreservesReferences(t *testing.T) {
-	databasePath := filepath.Join(t.TempDir(), "profiles.db")
+	databasePath := filepath.Join(testutil.TempDir(t), "profiles.db")
 	openDatabase := func() *database.DB {
 		db, err := database.InitDB(config.DatabaseConfig{
 			Driver: "sqlite", Dsn: databasePath, MaxOpenConns: 1, MaxIdleConns: 1,
@@ -213,7 +214,7 @@ func TestUserProfileRenameIsDurableAndPreservesReferences(t *testing.T) {
 }
 
 func TestStableMembershipIDsAreBackfilledOnRestart(t *testing.T) {
-	databasePath := filepath.Join(t.TempDir(), "identity-backfill.db")
+	databasePath := filepath.Join(testutil.TempDir(t), "identity-backfill.db")
 	openDatabase := func() *database.DB {
 		db, err := database.InitDB(config.DatabaseConfig{
 			Driver: "sqlite", Dsn: databasePath, MaxOpenConns: 1, MaxIdleConns: 1,

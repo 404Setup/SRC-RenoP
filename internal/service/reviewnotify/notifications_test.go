@@ -22,12 +22,13 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/testutil"
 )
 
 func setupNotificationState(t *testing.T) *core.AppState {
 	t.Helper()
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "review-notifications.db"),
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "review-notifications.db"),
 		MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)

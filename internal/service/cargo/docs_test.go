@@ -32,6 +32,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/testutil"
 )
 
 func createTestDocTarGz(t *testing.T, files map[string]string) []byte {
@@ -88,7 +89,7 @@ func createTestDocZip(t *testing.T, files map[string]string) []byte {
 
 func setupCargoDocsTestApp(t *testing.T) (*fiber.App, *core.AppState, *config.Repository, string) {
 	t.Helper()
-	storagePath := t.TempDir()
+	storagePath := testutil.TempDir(t)
 	repo := &config.Repository{
 		Name:       "test-repo",
 		Visibility: "PUBLIC",
@@ -101,7 +102,7 @@ func setupCargoDocsTestApp(t *testing.T) (*fiber.App, *core.AppState, *config.Re
 		"test-repo": repo,
 	}
 
-	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "test.db")})
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "test.db")})
 	if err != nil {
 		t.Fatal(err)
 	}

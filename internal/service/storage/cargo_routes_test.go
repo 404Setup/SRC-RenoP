@@ -24,6 +24,7 @@ import (
 	"renop/internal/database"
 	"renop/internal/service/index"
 	"renop/internal/service/statistics"
+	"renop/internal/testutil"
 )
 
 func newCargoRouteTestApp(t *testing.T, visibility string) *fiber.App {
@@ -94,7 +95,7 @@ func TestCargoMirrorDownloadRecordsPackageProvenance(t *testing.T) {
 	state.Inner.FileIndex = index.NewFileIndex()
 	state.Inner.FileCache = core.NewFileByteCache(1 << 20)
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo-mirror.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "cargo-mirror.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	if err != nil {
 		t.Fatal(err)

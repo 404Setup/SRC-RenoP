@@ -18,10 +18,11 @@ import (
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/service/index"
+	"renop/internal/testutil"
 )
 
 func TestSearchClassicMavenRepositoryUsesIndexAndOmitsBlockedFiles(t *testing.T) {
-	storagePath := t.TempDir()
+	storagePath := testutil.TempDir(t)
 	repo := &config.Repository{Name: "releases", Format: config.RepositoryFormatMavenClassic, Visibility: "PUBLIC"}
 	state := core.NewAppState()
 	state.Inner.FileIndex = index.NewFileIndexCustom(true)
@@ -55,7 +56,7 @@ func TestSearchClassicMavenRepositoryUsesIndexAndOmitsBlockedFiles(t *testing.T)
 
 func TestSearchModernMavenRepositoryReturnsDomainAndArtifactRoutes(t *testing.T) {
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "maven-search.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "maven-search.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -101,7 +102,7 @@ func TestSearchModernMavenRepositoryReturnsDomainAndArtifactRoutes(t *testing.T)
 
 func TestSearchCargoRepositoryReturnsNavigablePublicPackage(t *testing.T) {
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "search.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "search.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -135,7 +136,7 @@ func TestSearchCargoRepositoryReturnsNavigablePublicPackage(t *testing.T) {
 
 func TestSearchNPMRepositoryFiltersPrivatePackagesAndBuildsPackageRoutes(t *testing.T) {
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "npm-search.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "npm-search.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	if err != nil {
 		t.Fatal(err)

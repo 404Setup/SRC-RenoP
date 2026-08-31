@@ -25,6 +25,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/service/token"
+	"renop/internal/testutil"
 )
 
 func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
@@ -54,7 +55,7 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	}
 	state.Inner.Config.Store(cfg)
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "profile-routes.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "profile-routes.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })

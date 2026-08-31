@@ -17,10 +17,11 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/testutil"
 )
 
 func TestPrivateCargoMembershipGrantsRegistryReadAccess(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := testutil.TempDir(t)
 	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(tempDir, "cargo-access.db")})
 	if err != nil {
 		t.Fatal(err)

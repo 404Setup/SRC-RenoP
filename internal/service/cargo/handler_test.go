@@ -36,6 +36,7 @@ import (
 	"renop/internal/database"
 	"renop/internal/service/auth"
 	"renop/internal/service/index"
+	"renop/internal/testutil"
 )
 
 type memoryStore struct {
@@ -158,7 +159,7 @@ func makePublishBody(t *testing.T, metadata PublishMetadata, crate []byte) []byt
 func TestHandlerServesSparseConfig(t *testing.T) {
 	store := newMemoryStore()
 	repo := &config.Repository{Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PRIVATE"}
-	app := cargoTestApp(t, Handler{Store: store}, core.NewAppState(), repo, t.TempDir())
+	app := cargoTestApp(t, Handler{Store: store}, core.NewAppState(), repo, testutil.TempDir(t))
 
 	req := httptest.NewRequest("GET", "http://registry.example/cargo/config.json", nil)
 	resp, err := app.Test(req)
@@ -208,11 +209,11 @@ func TestPublicProtocolTrustsForwardedHTTPSOnlyFromConfiguredProxy(t *testing.T)
 }
 
 func TestHandlerPublishesCrateAndRejectsDuplicate(t *testing.T) {
-	storagePath := t.TempDir()
+	storagePath := testutil.TempDir(t)
 	store := newMemoryStore()
 	repo := &config.Repository{Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"}
 	state := core.NewAppState()
-	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo.db")})
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "cargo.db")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -279,11 +280,11 @@ func TestHandlerPublishesCrateAndRejectsDuplicate(t *testing.T) {
 }
 
 func TestCargoPublishEnforcesPublicationQuotaBeforeStorageCommit(t *testing.T) {
-	storagePath := t.TempDir()
+	storagePath := testutil.TempDir(t)
 	store := newMemoryStore()
 	repo := &config.Repository{Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"}
 	state := core.NewAppState()
-	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo-quota.db")})
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "cargo-quota.db")})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
 	state.Inner.DB = db
@@ -311,7 +312,7 @@ func TestCargoPublishEnforcesPublicationQuotaBeforeStorageCommit(t *testing.T) {
 }
 
 func TestCargoPublicationReviewDefersSparseIndexAndCatalog(t *testing.T) {
-	storagePath := t.TempDir()
+	storagePath := testutil.TempDir(t)
 	store := newMemoryStore()
 	repo := &config.Repository{
 		Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC",
@@ -324,7 +325,7 @@ func TestCargoPublicationReviewDefersSparseIndexAndCatalog(t *testing.T) {
 	state.Inner.Config.Store(cfg)
 	state.Inner.FileIndex = index.NewFileIndexCustom(true)
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo-review.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "cargo-review.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
@@ -419,7 +420,7 @@ func TestCargoPublicationReviewDefersSparseIndexAndCatalog(t *testing.T) {
 }
 
 func TestNewCargoPackageRequiresCreateScope(t *testing.T) {
-	storagePath := t.TempDir()
+	storagePath := testutil.TempDir(t)
 	store := newMemoryStore()
 	repo := &config.Repository{Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"}
 	state := core.NewAppState()
@@ -428,7 +429,7 @@ func TestNewCargoPackageRequiresCreateScope(t *testing.T) {
 	cfg.Maven.Repositories = map[string]*config.Repository{"cargo": repo}
 	state.Inner.Config.Store(cfg)
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo-api-token.db"), MaxOpenConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "cargo-api-token.db"), MaxOpenConns: 1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -504,14 +505,14 @@ func TestNewCargoPackageRequiresAvailableUpstreamName(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			storagePath := t.TempDir()
+			storagePath := testutil.TempDir(t)
 			store := newMemoryStore()
 			repo := &config.Repository{
 				Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC",
 				Mirrors: []config.Mirror{{URL: "https://upstream.example"}},
 			}
 			state := core.NewAppState()
-			db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo.db")})
+			db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "cargo.db")})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -557,11 +558,11 @@ func TestNewCargoPackageRequiresAvailableUpstreamName(t *testing.T) {
 }
 
 func TestConcurrentNormalizedCargoNamesCannotCreateSplitPackages(t *testing.T) {
-	storagePath := t.TempDir()
+	storagePath := testutil.TempDir(t)
 	store := newMemoryStore()
 	repo := &config.Repository{Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"}
 	state := core.NewAppState()
-	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo-name-race.db")})
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "cargo-name-race.db")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -627,11 +628,11 @@ func TestConcurrentNormalizedCargoNamesCannotCreateSplitPackages(t *testing.T) {
 }
 
 func TestCargoInvitationGrantsOnlyRequestedPackageLevel(t *testing.T) {
-	storagePath := t.TempDir()
+	storagePath := testutil.TempDir(t)
 	store := newMemoryStore()
 	repo := &config.Repository{Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"}
 	state := core.NewAppState()
-	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo-team.db")})
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "cargo-team.db")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -705,7 +706,7 @@ func TestCargoInvitationGrantsOnlyRequestedPackageLevel(t *testing.T) {
 
 func TestCargoAdministratorCannotPublish(t *testing.T) {
 	state := core.NewAppState()
-	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo-admin.db")})
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "cargo-admin.db")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -713,7 +714,7 @@ func TestCargoAdministratorCannotPublish(t *testing.T) {
 	state.Inner.DB = db
 	store := newMemoryStore()
 	repo := &config.Repository{Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"}
-	storagePath := t.TempDir()
+	storagePath := testutil.TempDir(t)
 	admin := &config.User{Username: "admin", Roles: []string{"manager"}}
 	adminApp := cargoTestApp(t, Handler{Store: store}, state, repo, storagePath, admin)
 
@@ -735,11 +736,11 @@ func TestCargoAdministratorCannotPublish(t *testing.T) {
 }
 
 func TestCargoPackageInfoIsPublicAndHidesTeamFromNonMembers(t *testing.T) {
-	storagePath := t.TempDir()
+	storagePath := testutil.TempDir(t)
 	store := newMemoryStore()
 	repo := &config.Repository{Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"}
 	state := core.NewAppState()
-	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo-public-info.db")})
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "cargo-public-info.db")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -790,11 +791,11 @@ func TestCargoPackageInfoIsPublicAndHidesTeamFromNonMembers(t *testing.T) {
 }
 
 func TestCargoAdministratorLifecycleLocksCannotBeRestoredByOwner(t *testing.T) {
-	storagePath := t.TempDir()
+	storagePath := testutil.TempDir(t)
 	store := newMemoryStore()
 	repo := &config.Repository{Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"}
 	state := core.NewAppState()
-	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo-admin-locks.db")})
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "cargo-admin-locks.db")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -883,11 +884,11 @@ func TestCargoAdministratorLifecycleLocksCannotBeRestoredByOwner(t *testing.T) {
 }
 
 func TestCargoAdministratorWithL3CanManageTeam(t *testing.T) {
-	storagePath := t.TempDir()
+	storagePath := testutil.TempDir(t)
 	store := newMemoryStore()
 	repo := &config.Repository{Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"}
 	state := core.NewAppState()
-	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo-admin-l3.db")})
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "cargo-admin-l3.db")})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -36,14 +36,15 @@ import (
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
 	"renop/internal/service/statistics"
+	"renop/internal/testutil"
 	"renop/internal/utils/protohttp"
 	"renop/pkg/pb"
 )
 
 func setupSettingsTestApp(t *testing.T, cfg *config.Config) (*fiber.App, *core.AppState) {
 	t.Helper()
-	t.Setenv("RENOP_CONFIG", filepath.Join(t.TempDir(), "config.yaml"))
-	t.Setenv("RENOP_REPOSITORIES", filepath.Join(t.TempDir(), "repositories.yaml"))
+	t.Setenv("RENOP_CONFIG", filepath.Join(testutil.TempDir(t), "config.yaml"))
+	t.Setenv("RENOP_REPOSITORIES", filepath.Join(testutil.TempDir(t), "repositories.yaml"))
 
 	appState := core.NewAppState()
 	appState.Inner.FileIndex = index.NewFileIndex()
@@ -171,8 +172,8 @@ func protoGET(t *testing.T, app *fiber.App, path string, into proto.Message) *ht
 }
 
 func TestRebuildIndexFullClearsJavadocCache(t *testing.T) {
-	tempDir := t.TempDir()
-	extractPath := t.TempDir()
+	tempDir := testutil.TempDir(t)
+	extractPath := testutil.TempDir(t)
 	testCacheDir := filepath.Join(extractPath, "renop-javadoc-test-rebuild")
 	if err := os.MkdirAll(testCacheDir, 0755); err != nil {
 		t.Fatal(err)
@@ -198,7 +199,7 @@ func TestRebuildIndexFullClearsJavadocCache(t *testing.T) {
 }
 
 func TestUpdaterDomainSettings(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := testutil.TempDir(t)
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = tempDir
 	app, appState := setupSettingsTestApp(t, cfg)
@@ -225,7 +226,7 @@ func TestUpdaterDomainSettings(t *testing.T) {
 
 func TestGPGDomainSettings(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = testutil.TempDir(t)
 	app, appState := setupSettingsTestApp(t, cfg)
 
 	var got pb.ServerConfig
@@ -264,7 +265,7 @@ func TestGPGDomainSettings(t *testing.T) {
 
 func TestProxyDomainSettings(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = testutil.TempDir(t)
 	app, appState := setupSettingsTestApp(t, cfg)
 
 	var initial pb.ProxyConfig
@@ -328,7 +329,7 @@ func TestProxyDomainSettings(t *testing.T) {
 
 func TestDomainSettingsRejectsOversizedControlPlaneBody(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = testutil.TempDir(t)
 	app, _ := setupSettingsTestApp(t, cfg)
 
 	resp := protoPUT(t, app, "/domain/frontend", &pb.FrontendConfig{
@@ -341,7 +342,7 @@ func TestDomainSettingsRejectsOversizedControlPlaneBody(t *testing.T) {
 }
 
 func TestFullDomainUpdateReplacesUpdater(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := testutil.TempDir(t)
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = tempDir
 	cfg.Updater.Channel = "nightly"
@@ -366,7 +367,7 @@ func TestFullDomainUpdateReplacesUpdater(t *testing.T) {
 }
 
 func TestFullRepoUpdate(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := testutil.TempDir(t)
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = tempDir
 	cfg.Maven.Repositories = map[string]*config.Repository{
@@ -415,7 +416,7 @@ func TestFullRepoUpdate(t *testing.T) {
 
 func TestRepositoryUpdateNormalizesS3KeyPrefix(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = testutil.TempDir(t)
 	app, appState := setupSettingsTestApp(t, cfg)
 
 	resp := protoPUT(t, app, "/maven/repositories/releases", &pb.Repository{
@@ -447,7 +448,7 @@ func TestRepositoryUpdateNormalizesS3KeyPrefix(t *testing.T) {
 
 func TestRepositoryUpdateRejectsInvalidS3KeyPrefix(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = testutil.TempDir(t)
 	app, appState := setupSettingsTestApp(t, cfg)
 
 	resp := protoPUT(t, app, "/maven/repositories/releases", &pb.Repository{
@@ -466,7 +467,7 @@ func TestRepositoryUpdateRejectsInvalidS3KeyPrefix(t *testing.T) {
 }
 
 func TestFullFrontendUpdate(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := testutil.TempDir(t)
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = tempDir
 	cfg.Frontend.Title = "Custom Server Title"
@@ -519,7 +520,7 @@ func TestFullFrontendUpdate(t *testing.T) {
 }
 
 func TestFrontendUpdateRejectsUnsafeLegalNoticeURL(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := testutil.TempDir(t)
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = tempDir
 	app, _ := setupSettingsTestApp(t, cfg)
@@ -533,7 +534,7 @@ func TestFrontendUpdateRejectsUnsafeLegalNoticeURL(t *testing.T) {
 }
 
 func TestFrontendUpdateRejectsUnsafeCustomFont(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := testutil.TempDir(t)
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = tempDir
 	app, _ := setupSettingsTestApp(t, cfg)
@@ -563,7 +564,7 @@ func TestFrontendUpdateRejectsUnsafeCustomFont(t *testing.T) {
 }
 
 func TestFullServerUpdate(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := testutil.TempDir(t)
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = tempDir
 	cfg.Server.Port = 8080
@@ -605,7 +606,7 @@ func TestFullServerUpdate(t *testing.T) {
 }
 
 func TestFullRepoMirrorUpdate(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := testutil.TempDir(t)
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = tempDir
 	cfg.Maven.Repositories = map[string]*config.Repository{
@@ -664,7 +665,7 @@ func TestFullRepoMirrorUpdate(t *testing.T) {
 }
 
 func TestZeroCopyMemorySafetyOnUpdate(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := testutil.TempDir(t)
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = tempDir
 	app, appState := setupSettingsTestApp(t, cfg)
@@ -751,7 +752,7 @@ func TestZeroCopyMemorySafetyOnUpdate(t *testing.T) {
 }
 
 func TestStorageDomainUpdate(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := testutil.TempDir(t)
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = tempDir
 	app, appState := setupSettingsTestApp(t, cfg)
@@ -937,8 +938,8 @@ func TestGetAndUpdateDatabaseSettingsProtobuf(t *testing.T) {
 }
 
 func TestStoragePathChangeRebuildsIndex(t *testing.T) {
-	oldDir := t.TempDir()
-	newDir := t.TempDir()
+	oldDir := testutil.TempDir(t)
+	newDir := testutil.TempDir(t)
 
 	oldFile := filepath.Join(oldDir, "releases", "old-artifact.txt")
 	if err := os.MkdirAll(filepath.Dir(oldFile), 0755); err != nil {
@@ -1003,13 +1004,13 @@ func TestStoragePathChangeRebuildsIndex(t *testing.T) {
 }
 
 func TestStoragePathChangeRejectedWhileGPGPublicationPending(t *testing.T) {
-	oldDir := t.TempDir()
-	newDir := t.TempDir()
+	oldDir := testutil.TempDir(t)
+	newDir := testutil.TempDir(t)
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = oldDir
 	cfg.Database = config.DatabaseConfig{
 		Driver:       "sqlite",
-		Dsn:          filepath.Join(t.TempDir(), "settings-gpg.db"),
+		Dsn:          filepath.Join(testutil.TempDir(t), "settings-gpg.db"),
 		MaxOpenConns: 1,
 		MaxIdleConns: 1,
 	}
@@ -1053,14 +1054,14 @@ func TestStoragePathChangeRejectedWhileGPGPublicationPending(t *testing.T) {
 }
 
 func TestSameStoragePathNormalization(t *testing.T) {
-	dir := t.TempDir()
+	dir := testutil.TempDir(t)
 	if !sameStoragePath(dir, dir) {
 		t.Fatal("expected path equal to itself")
 	}
 	if !sameStoragePath(dir, filepath.Clean(dir+string(filepath.Separator))) {
 		t.Fatal("expected trailing-separator path to match")
 	}
-	other := t.TempDir()
+	other := testutil.TempDir(t)
 	if sameStoragePath(dir, other) {
 		t.Fatal("expected different temp dirs to not match")
 	}
@@ -1068,7 +1069,7 @@ func TestSameStoragePathNormalization(t *testing.T) {
 
 func TestServerDomainRejectsInvalidPort(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = testutil.TempDir(t)
 	app, appState := setupSettingsTestApp(t, cfg)
 
 	resp := protoPUT(t, app, "/domain/server", &pb.ServerConfig{
@@ -1093,7 +1094,7 @@ func TestServerDomainRejectsInvalidPort(t *testing.T) {
 
 func TestStorageDomainRejectsEmptyPath(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = testutil.TempDir(t)
 	app, _ := setupSettingsTestApp(t, cfg)
 
 	resp := protoPUT(t, app, "/domain/storage", &pb.StorageConfig{
@@ -1109,14 +1110,14 @@ func TestStorageDomainRejectsEmptyPath(t *testing.T) {
 
 func TestRepositoryDownloadStatisticsSettingsAndReset(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = testutil.TempDir(t)
 	cfg.Maven.Repositories = map[string]*config.Repository{
 		"releases": {Name: "releases", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC"},
 		"files":    {Name: "files", Format: config.RepositoryFormatFiles, Visibility: "PUBLIC"},
 	}
 	app, state := setupSettingsTestApp(t, cfg)
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "statistics-settings.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "statistics-settings.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
@@ -1161,7 +1162,7 @@ func TestRepositoryDownloadStatisticsSettingsAndReset(t *testing.T) {
 
 func TestRepositoryPublicationReviewSettingsSupportPackageEngines(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = testutil.TempDir(t)
 	cfg.Maven.Repositories = map[string]*config.Repository{
 		"releases": {
 			Name: "releases", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC", AllowRedeployment: true,
@@ -1195,7 +1196,7 @@ func TestRepositoryPublicationReviewSettingsSupportPackageEngines(t *testing.T) 
 	assert.Equal(t, config.PublicationReviewEveryVersion, releases.PublicationReviewPolicy())
 	assert.False(t, releases.AllowRedeployment)
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "publication-review-settings.db"),
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "publication-review-settings.db"),
 		MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
@@ -1268,7 +1269,7 @@ func TestRepositoryEngineMigrationPreservesEffectiveDownloadStatisticsDefault(t 
 }
 
 func TestPutMavenRepositoryCreatesStorageDir(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := testutil.TempDir(t)
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = tempDir
 	cfg.Maven.Repositories = map[string]*config.Repository{}
@@ -1309,7 +1310,7 @@ func TestPutMavenRepositoryCreatesStorageDir(t *testing.T) {
 
 func TestRepositoryCreationRequiresStableFormatAndSlug(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = testutil.TempDir(t)
 	cfg.Maven.Repositories = map[string]*config.Repository{
 		"existing": {Name: "existing", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC", Mirrors: []config.Mirror{}},
 	}
@@ -1375,7 +1376,7 @@ func TestRepositoryCreationRequiresStableFormatAndSlug(t *testing.T) {
 
 func TestMavenLayoutCanChangeAndFilePolicyIsForced(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = testutil.TempDir(t)
 	cfg.Maven.Repositories = map[string]*config.Repository{
 		"existing": {
 			Name: "existing", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC", Mirrors: []config.Mirror{},
@@ -1413,7 +1414,7 @@ func TestMavenLayoutCanChangeAndFilePolicyIsForced(t *testing.T) {
 }
 
 func TestRepositoryEngineMigrationPreservesFilesAndMavenPolicy(t *testing.T) {
-	storagePath := t.TempDir()
+	storagePath := testutil.TempDir(t)
 	repository := "migration"
 	repositoryRoot := filepath.Join(storagePath, repository)
 	versionOne := filepath.Join(repositoryRoot, "com", "example", "demo", "1.0", "demo-1.0.jar")
@@ -1434,7 +1435,7 @@ func TestRepositoryEngineMigrationPreservesFilesAndMavenPolicy(t *testing.T) {
 	}
 	app, state := setupSettingsTestApp(t, cfg)
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "migration.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "migration.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -1529,13 +1530,13 @@ func TestRepositoryEngineMigrationPreservesFilesAndMavenPolicy(t *testing.T) {
 
 func TestRepositoryEngineMigrationRejectsUnsupportedFormats(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = testutil.TempDir(t)
 	cfg.Maven.Repositories = map[string]*config.Repository{
 		"cargo": {Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"},
 	}
 	app, state := setupSettingsTestApp(t, cfg)
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "unsupported.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "unsupported.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -1558,13 +1559,13 @@ func TestRepositoryEngineMigrationRejectsUnsupportedFormats(t *testing.T) {
 
 func TestRepositoryEngineMigrationRejectsPendingGPGPublication(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = testutil.TempDir(t)
 	cfg.Maven.Repositories = map[string]*config.Repository{
 		"releases": {Name: "releases", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC"},
 	}
 	app, state := setupSettingsTestApp(t, cfg)
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "pending-migration.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "pending-migration.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -1595,7 +1596,7 @@ func TestRepositoryEngineMigrationRejectsPendingGPGPublication(t *testing.T) {
 
 func TestCargoMirrorAllowsIndexURLWithoutArtifactTemplate(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = testutil.TempDir(t)
 	cfg.Maven.Repositories = map[string]*config.Repository{}
 	app, _ := setupSettingsTestApp(t, cfg)
 
@@ -1609,7 +1610,7 @@ func TestCargoMirrorAllowsIndexURLWithoutArtifactTemplate(t *testing.T) {
 }
 
 func TestDeleteMavenRepositoryRemovesStorageAndIndex(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := testutil.TempDir(t)
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = tempDir
 	repoName := "to-delete"
@@ -1670,7 +1671,7 @@ func TestDeleteMavenRepositoryRemovesStorageAndIndex(t *testing.T) {
 
 func TestRepoVisibilityValidationAndDeleteNotFound(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = testutil.TempDir(t)
 	cfg.Maven.Repositories = map[string]*config.Repository{
 		"releases": {Name: "releases", Visibility: "PUBLIC", Mirrors: []config.Mirror{}},
 	}
@@ -1714,10 +1715,10 @@ func TestRepoVisibilityValidationAndDeleteNotFound(t *testing.T) {
 
 func TestDomainUpdateDoesNotPublishOnWriteFailure(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = testutil.TempDir(t)
 	app, appState := setupSettingsTestApp(t, cfg)
 
-	badDir := filepath.Join(t.TempDir(), "missing-parent", "nested")
+	badDir := filepath.Join(testutil.TempDir(t), "missing-parent", "nested")
 	t.Setenv("RENOP_CONFIG", filepath.Join(badDir, "config.yaml"))
 
 	before := appState.Inner.Config.Load().Updater.Channel

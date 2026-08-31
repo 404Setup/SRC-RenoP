@@ -8,15 +8,23 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-package storage
+// Package testutil provides shared test-only helpers.
+package testutil
 
 import (
 	"testing"
 
-	"renop/internal/testutil"
+	"renop/internal/utils"
 )
 
-func storageTestTempDir(t *testing.T) string {
+// TempDir creates a test directory with retrying cleanup on Windows.
+func TempDir(t testing.TB) string {
 	t.Helper()
-	return testutil.TempDir(t)
+	directory := t.TempDir()
+	t.Cleanup(func() {
+		if err := utils.RemoveAll(directory); err != nil {
+			t.Errorf("TempDir retry cleanup: %v", err)
+		}
+	})
+	return directory
 }

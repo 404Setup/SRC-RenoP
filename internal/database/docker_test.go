@@ -19,11 +19,12 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/testutil"
 )
 
 func newTestDockerDB(t *testing.T) *database.DB {
 	t.Helper()
-	dir := t.TempDir()
+	dir := testutil.TempDir(t)
 	db, err := database.InitDB(config.DatabaseConfig{
 		Driver: "sqlite",
 		Dsn:    filepath.Join(dir, "docker_test.db"),

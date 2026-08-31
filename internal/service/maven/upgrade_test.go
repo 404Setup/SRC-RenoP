@@ -23,10 +23,11 @@ import (
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/service/index"
+	"renop/internal/testutil"
 )
 
 func TestUpgradeLegacyRepositoryImportsCatalogWithoutGrantingTeamAccess(t *testing.T) {
-	storagePath := t.TempDir()
+	storagePath := testutil.TempDir(t)
 	repositoryRoot := filepath.Join(storagePath, "legacy")
 	artifactPath := filepath.Join(repositoryRoot, "com", "example", "demo", "1.0", "demo-1.0.jar")
 	require.NoError(t, os.MkdirAll(filepath.Dir(artifactPath), 0o755))
@@ -41,7 +42,7 @@ func TestUpgradeLegacyRepositoryImportsCatalogWithoutGrantingTeamAccess(t *testi
 	state.Inner.Config.Store(cfg)
 	state.Inner.FileIndex = index.NewFileIndex()
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "legacy.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "legacy.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
@@ -63,7 +64,7 @@ func TestUpgradeLegacyRepositoryImportsCatalogWithoutGrantingTeamAccess(t *testi
 }
 
 func TestRebuildRepositoryCatalogStreamsS3IndexAndIgnoresArbitraryFiles(t *testing.T) {
-	storagePath := t.TempDir()
+	storagePath := testutil.TempDir(t)
 	repositoryRoot := filepath.Join(storagePath, "files")
 	artifactPath := filepath.Join(repositoryRoot, "org", "example", "demo", "2.0", "demo-2.0.jar")
 	arbitraryPath := filepath.Join(repositoryRoot, "notes", "readme.txt")
@@ -85,7 +86,7 @@ func TestRebuildRepositoryCatalogStreamsS3IndexAndIgnoresArbitraryFiles(t *testi
 	state.Inner.FileIndex.EnsureParentDirs(arbitraryPath)
 	state.Inner.FileIndex.InsertFile(arbitraryPath, index.FileInfo{Size: 7, ModTime: time.Now().UnixNano()})
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "rebuild.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "rebuild.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = db.Close() })

@@ -29,6 +29,7 @@ import (
 	"renop/internal/database"
 	"renop/internal/service/index"
 	"renop/internal/service/statistics"
+	"renop/internal/testutil"
 )
 
 func npmStorageTestTarball(t *testing.T, packageName, version string) []byte {
@@ -103,7 +104,7 @@ func TestNPMMirrorTarballRecordsProvenanceAndDownloadStatistics(t *testing.T) {
 	state.Inner.FileIndex = index.NewFileIndex()
 	state.Inner.FileCache = core.NewFileByteCache(1 << 20)
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "npm-mirror.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "npm-mirror.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -171,7 +172,7 @@ func TestNPMScopedPublishUsesDecodedPathThroughStorageRouter(t *testing.T) {
 	state.Inner.FileIndex = index.NewFileIndex()
 	state.Inner.FileCache = core.NewFileByteCache(1 << 20)
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "npm-scoped-publish.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "npm-scoped-publish.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	if err != nil {
 		t.Fatal(err)

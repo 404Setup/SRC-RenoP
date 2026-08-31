@@ -32,6 +32,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/testutil"
 	"renop/internal/utils"
 )
 
@@ -40,7 +41,7 @@ func testGPGState(t *testing.T) (*core.AppState, *database.DB) {
 	cfg := config.DefaultConfig()
 	cfg.Database = config.DatabaseConfig{
 		Driver:       "sqlite",
-		Dsn:          filepath.Join(t.TempDir(), "gpg.db"),
+		Dsn:          filepath.Join(testutil.TempDir(t), "gpg.db"),
 		MaxOpenConns: 1,
 		MaxIdleConns: 1,
 	}

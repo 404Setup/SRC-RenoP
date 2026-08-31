@@ -28,6 +28,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/service/token"
+	"renop/internal/testutil"
 )
 
 func accountSecurityRequest(t *testing.T, app *fiber.App, method, path string, body any,
@@ -49,7 +50,7 @@ func accountSecurityRequest(t *testing.T, app *fiber.App, method, path string, b
 
 func TestPasswordCredentialAcceptsExistingLegacyShortUsername(t *testing.T) {
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "legacy-password.db"),
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "legacy-password.db"),
 		MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
@@ -99,7 +100,7 @@ func TestPrivateEmailPasswordPolicyAndRecoveryRoutes(t *testing.T) {
 	state := core.NewAppState()
 	state.Inner.Config.Store(cfg)
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "account-routes.db"),
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "account-routes.db"),
 		MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)

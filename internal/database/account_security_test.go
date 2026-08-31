@@ -22,6 +22,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/testutil"
 )
 
 func testRecoveryHashes(createdAt int64) []core.RecoveryCodeHash {
@@ -38,7 +39,7 @@ func testRecoveryHashes(createdAt int64) []core.RecoveryCodeHash {
 
 func TestPasswordLoginPolicyAcceptsExistingLegacyShortUsername(t *testing.T) {
 	db, err := InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "legacy-username.db"),
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "legacy-username.db"),
 		MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
@@ -56,7 +57,7 @@ func TestPasswordLoginPolicyAcceptsExistingLegacyShortUsername(t *testing.T) {
 
 func TestPrivateAccountSecurityAndRecoveryLifecycle(t *testing.T) {
 	db, err := InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "account-security.db"),
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "account-security.db"),
 		MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
@@ -142,7 +143,7 @@ func TestPrivateAccountSecurityAndRecoveryLifecycle(t *testing.T) {
 
 func TestRecoveryCodesCanOnlyWinOneConcurrentReset(t *testing.T) {
 	db, err := InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "recovery-race.db"),
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "recovery-race.db"),
 		MaxOpenConns: 4, MaxIdleConns: 2,
 	})
 	require.NoError(t, err)
@@ -189,7 +190,7 @@ func TestRecoveryCodesCanOnlyWinOneConcurrentReset(t *testing.T) {
 
 func TestConcurrentLoginMethodChangesCannotLockAccount(t *testing.T) {
 	db, err := InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "login-method-race.db"),
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "login-method-race.db"),
 		MaxOpenConns: 4, MaxIdleConns: 2,
 	})
 	require.NoError(t, err)
@@ -238,7 +239,7 @@ func TestConcurrentLoginMethodChangesCannotLockAccount(t *testing.T) {
 
 func TestTokenMutationsPreserveConcurrentCredentialChanges(t *testing.T) {
 	db, err := InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "credential-mutations.db"),
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "credential-mutations.db"),
 		MaxOpenConns: 4, MaxIdleConns: 2,
 	})
 	require.NoError(t, err)

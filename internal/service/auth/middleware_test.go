@@ -24,11 +24,12 @@ import (
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/service/token"
+	"renop/internal/testutil"
 )
 
 func newTestAuthDB(t *testing.T) *database.DB {
 	t.Helper()
-	dbFile := t.TempDir() + "/auth_test.db"
+	dbFile := testutil.TempDir(t) + "/auth_test.db"
 	cfg := config.DatabaseConfig{
 		Driver:       "sqlite3",
 		Dsn:          dbFile,

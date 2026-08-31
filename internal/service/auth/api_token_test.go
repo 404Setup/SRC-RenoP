@@ -30,6 +30,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/service/token"
+	"renop/internal/testutil"
 )
 
 func apiTokenJSONRequest(t *testing.T, app *fiber.App, method, path, sessionToken string, body any) *http.Response {
@@ -57,7 +58,7 @@ func TestFineGrainedAPITokenRoutesAndAuthorizationBoundaries(t *testing.T) {
 	state := core.NewAppState()
 	state.Inner.Config.Store(cfg)
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "fine-grained-api-tokens.db"),
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "fine-grained-api-tokens.db"),
 		MaxOpenConns: 2, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
@@ -237,7 +238,7 @@ func TestExpiredAPITokenIsRejected(t *testing.T) {
 	state := core.NewAppState()
 	state.Inner.Config.Store(config.DefaultConfig())
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "expired-api-token.db"), MaxOpenConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "expired-api-token.db"), MaxOpenConns: 1,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
@@ -266,7 +267,7 @@ func TestAPITokenScopesRemainCappedByCurrentAccountPermissions(t *testing.T) {
 	state := core.NewAppState()
 	state.Inner.Config.Store(config.DefaultConfig())
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "api-token-account-cap.db"), MaxOpenConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "api-token-account-cap.db"), MaxOpenConns: 1,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })

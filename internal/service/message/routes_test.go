@@ -25,13 +25,14 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/testutil"
 	"renop/internal/utils/protohttp"
 	"renop/pkg/pb"
 )
 
 func messageTestState(t *testing.T) (*core.AppState, *database.DB) {
 	t.Helper()
-	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "messages.db")})
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "messages.db")})
 	require.NoError(t, err)
 	state := core.NewAppState()
 	state.Inner.DB = db

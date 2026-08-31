@@ -33,13 +33,14 @@ import (
 	"renop/internal/service/index"
 	npmservice "renop/internal/service/npm"
 	"renop/internal/service/storage"
+	"renop/internal/testutil"
 )
 
 func setupReviewApp(t *testing.T) (*fiber.App, *core.AppState, *config.User, *string) {
 	t.Helper()
-	storagePath := t.TempDir()
+	storagePath := testutil.TempDir(t)
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "reviews.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "reviews.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })

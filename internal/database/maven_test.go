@@ -23,11 +23,12 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/testutil"
 )
 
 func newMavenDB(t *testing.T) *database.DB {
 	t.Helper()
-	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "maven.db")})
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "maven.db")})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = db.Close() })
 	for _, username := range []string{"alice", "bob", "admin"} {

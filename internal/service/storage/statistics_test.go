@@ -26,6 +26,7 @@ import (
 	"renop/internal/database"
 	"renop/internal/service/index"
 	"renop/internal/service/statistics"
+	"renop/internal/testutil"
 )
 
 func insertDownloadFixture(t *testing.T, state *core.AppState, storagePath, relativePath string, contents []byte) {
@@ -58,7 +59,7 @@ func TestMavenAndFilesDownloadsRecordOnlyPrimaryTransfers(t *testing.T) {
 	state.Inner.FileIndex = index.NewFileIndexCustom(true)
 	state.Inner.FileCache = core.NewFileByteCache(1 << 20)
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "storage-statistics.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "storage-statistics.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	if err != nil {
 		t.Fatal(err)

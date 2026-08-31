@@ -26,11 +26,12 @@ import (
 	"renop/internal/database"
 	"renop/internal/service/gpg"
 	"renop/internal/service/index"
+	"renop/internal/testutil"
 	"renop/pkg/pb"
 )
 
 func TestHiddenRepositoryIsNotDiscoverableButDirectFileRemainsReadable(t *testing.T) {
-	storagePath := t.TempDir()
+	storagePath := testutil.TempDir(t)
 	hiddenFile := filepath.Join(storagePath, "hidden", "known", "artifact.txt")
 	publicFile := filepath.Join(storagePath, "public", "artifact.txt")
 	state := core.NewAppState()
@@ -120,7 +121,7 @@ func TestHiddenRepositoryIsNotDiscoverableButDirectFileRemainsReadable(t *testin
 }
 
 func TestCreateFileDetailsDoesNotExposeBlockedPhysicalFile(t *testing.T) {
-	artifactPath := filepath.Join(t.TempDir(), "releases", "org", "example", "demo.jar")
+	artifactPath := filepath.Join(testutil.TempDir(t), "releases", "org", "example", "demo.jar")
 	if err := os.MkdirAll(filepath.Dir(artifactPath), 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +142,7 @@ func TestCreateFileDetailsDoesNotExposeBlockedPhysicalFile(t *testing.T) {
 func TestAnnotateGPGSignaturesMarksVerifiedArtifacts(t *testing.T) {
 	db, err := database.InitDB(config.DatabaseConfig{
 		Driver:       "sqlite",
-		Dsn:          filepath.Join(t.TempDir(), "details.db"),
+		Dsn:          filepath.Join(testutil.TempDir(t), "details.db"),
 		MaxOpenConns: 1,
 		MaxIdleConns: 1,
 	})

@@ -221,6 +221,8 @@
   Explicit paths and offline `--skip-reload` operation remain available for nonstandard service layouts.
 - **`internal/utils/`**: Runtime memory/GC tuning (`InitMemoryTuning` for Linux/Windows) and process-wide string
   interning (`unique.Make`).
+- **`internal/testutil/`**: Shared test-only helpers, including retrying temporary-directory cleanup that runs before
+  Go's parent `testing.TempDir` cleanup so transient Windows `ERROR_DIR_NOT_EMPTY` results do not fail SQLite tests.
 - **`web/` & `internal/service/frontend/`**: Embedded SPA with username-based `/user/<username>` profile, edit, and
   package-membership routes plus shared nickname-first identity components. Maven repositories use a domain catalog
   by default and can switch to the classic file-tree presentation. Repository catalogs list only domains containing

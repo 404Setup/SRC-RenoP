@@ -26,6 +26,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/testutil"
 )
 
 func TestAutoRegisterAdminRejectsNilOperationChannel(t *testing.T) {
@@ -148,7 +149,7 @@ func TestTokenConsumerRejectsInvalidOperationPayloads(t *testing.T) {
 
 func newTestDB(t *testing.T) *database.DB {
 	t.Helper()
-	dbFile := t.TempDir() + "/test_tokens.db"
+	dbFile := testutil.TempDir(t) + "/test_tokens.db"
 	cfg := config.DatabaseConfig{
 		Driver:       "sqlite3",
 		Dsn:          dbFile,

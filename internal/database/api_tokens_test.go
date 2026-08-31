@@ -24,6 +24,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/testutil"
 )
 
 func apiTokenDigest(secret string) string {
@@ -32,7 +33,7 @@ func apiTokenDigest(secret string) string {
 }
 
 func TestAPITokenLifecycleAndLegacyMigration(t *testing.T) {
-	databasePath := filepath.Join(t.TempDir(), "api-tokens.db")
+	databasePath := filepath.Join(testutil.TempDir(t), "api-tokens.db")
 	openDatabase := func() *DB {
 		db, err := InitDB(config.DatabaseConfig{
 			Driver: "sqlite", Dsn: databasePath, MaxOpenConns: 2, MaxIdleConns: 1,
@@ -111,7 +112,7 @@ func TestAPITokenLifecycleAndLegacyMigration(t *testing.T) {
 
 func TestAPITokenLimitIsEnforced(t *testing.T) {
 	db, err := InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "api-token-limit.db"), MaxOpenConns: 2,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "api-token-limit.db"), MaxOpenConns: 2,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })

@@ -31,6 +31,7 @@ import (
 	"renop/internal/service/auth"
 	"renop/internal/service/index"
 	"renop/internal/service/statistics"
+	"renop/internal/testutil"
 )
 
 type memoryDockerStore struct {
@@ -160,7 +161,7 @@ func (s *memoryDockerStore) DeleteManifest(state *core.AppState, repository, ima
 
 func setupTestDockerApp(t *testing.T) (*fiber.App, *core.AppState, Store) {
 	t.Helper()
-	dir := t.TempDir()
+	dir := testutil.TempDir(t)
 
 	db, err := database.InitDB(config.DatabaseConfig{
 		Driver: "sqlite",

@@ -30,11 +30,12 @@ import (
 	"renop/internal/database"
 	"renop/internal/service/index"
 	"renop/internal/service/storage"
+	"renop/internal/testutil"
 )
 
 func newMavenRouteState(t *testing.T) (*core.AppState, *config.User) {
 	t.Helper()
-	storagePath := t.TempDir()
+	storagePath := testutil.TempDir(t)
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = storagePath
 	cfg.Maven.Repositories = map[string]*config.Repository{
@@ -50,7 +51,7 @@ func newMavenRouteState(t *testing.T) (*core.AppState, *config.User) {
 	state.Inner.Config.Store(cfg)
 	state.Inner.FileIndex = index.NewFileIndex()
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "maven-routes.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "maven-routes.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })

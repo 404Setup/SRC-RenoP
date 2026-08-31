@@ -33,6 +33,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/service/index"
+	"renop/internal/testutil"
 )
 
 type memoryStore struct {
@@ -132,7 +133,7 @@ func npmTestTarball(t *testing.T, packageName, version string) []byte {
 func setupNPMTestApp(t *testing.T) (*fiber.App, *core.AppState, *memoryStore) {
 	t.Helper()
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "npm-handler.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "npm-handler.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
@@ -141,7 +142,7 @@ func setupNPMTestApp(t *testing.T) (*fiber.App, *core.AppState, *memoryStore) {
 	state.Inner.DB = db
 	state.Inner.FileIndex = index.NewFileIndexCustom(true)
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = testutil.TempDir(t)
 	cfg.Maven.Repositories = map[string]*config.Repository{
 		"npm": {Name: "npm", Format: config.RepositoryFormatNPM, Visibility: "PUBLIC", Mirrors: []config.Mirror{}},
 	}
@@ -610,7 +611,7 @@ func TestNPMMirrorImportsPackumentOnceAndRewritesTarballOrigin(t *testing.T) {
 	t.Cleanup(upstream.Close)
 
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "npm-mirror.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "npm-mirror.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })

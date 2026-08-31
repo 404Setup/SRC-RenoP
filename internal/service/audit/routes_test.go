@@ -23,13 +23,14 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/testutil"
 	"renop/internal/utils/protohttp"
 	"renop/pkg/pb"
 )
 
 func newTestAuditDB(t *testing.T) *database.DB {
 	t.Helper()
-	dbFile := t.TempDir() + "/audit_test.db"
+	dbFile := testutil.TempDir(t) + "/audit_test.db"
 	cfg := config.DatabaseConfig{
 		Driver:       "sqlite3",
 		Dsn:          dbFile,
