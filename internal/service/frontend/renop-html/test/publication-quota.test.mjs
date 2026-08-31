@@ -33,12 +33,18 @@ test('publication quotas share one responsive account and global-team component'
     const teams = frontendSource('js/super-teams.js');
     const settings = frontendSource('js/settings.js');
     const css = frontendSource('css/manager/publication-quota.css');
+    const settingsCSS = frontendSource('css/manager/settings.css');
+    const toggleCSS = readFileSync(join(repositoryRoot, 'packages/renop-ui/css/components/toggle.css'), 'utf8');
     assert.match(quota, /makeCustomSelect/);
     assert.match(quota, /createToggle/);
     assert.match(quota, /formatBytes/);
     assert.match(quota, /\/api\/publication-quota\/\$\{segment}/);
     assert.match(quota, /inherited \? \{\} :/);
     assert.match(quota, /unlimited/);
+    assert.match(quota, /const disabled = unlimited;/);
+    assert.match(quota, /input\.addEventListener\('input', activateOverride\)/);
+    assert.match(quota, /inheritToggle\.checked = false/);
+    assert.doesNotMatch(quota, /inherited \|\| unlimited/);
     assert.doesNotMatch(quota, /innerHTML|\.text\(\)/);
     assert.match(profile, /renderProfilePublicationQuota\(profile\.publication_quota\)/);
     assert.match(users, /ownerType: 'user'/);
@@ -47,6 +53,10 @@ test('publication quotas share one responsive account and global-team component'
     assert.match(settings, /renderPublicationQuotaSettings/);
     assert.match(css, /@media \(max-width: 680px\)/);
     assert.match(css, /grid-template-columns: 1fr/);
+    assert.match(css, /\.publication-quota-toggle-row\s*\{[^}]*padding:/s);
+    assert.match(toggleCSS, /\.cfg-toggle-track\s*\{[^}]*overflow: hidden;[^}]*border:/s);
+    assert.match(toggleCSS, /renop-toggle\[disabled] \.cfg-toggle/);
+    assert.doesNotMatch(settingsCSS, /\.cfg-toggle-track/);
 });
 
 test('publication quota persistence and every local publication engine use the shared reservation boundary', () => {

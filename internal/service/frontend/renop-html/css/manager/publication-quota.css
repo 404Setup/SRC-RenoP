@@ -126,6 +126,19 @@
     font-size: .78rem;
 }
 
+.publication-quota-toggle-row {
+    min-height: 3.4rem;
+    padding: .75rem .9rem;
+    box-sizing: border-box;
+    border: 1px solid color-mix(in srgb, var(--border-color) 82%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--text-color) 2.5%, transparent);
+}
+
+.publication-quota-toggle-row > renop-toggle {
+    margin-inline: .35rem .15rem;
+}
+
 .publication-quota-form-fields .custom-select-wrapper.is-disabled {
     opacity: .55;
     pointer-events: none;

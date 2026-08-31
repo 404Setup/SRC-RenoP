@@ -345,8 +345,9 @@
   delimited codecs, service classes, or type-URL helpers. `@renop/ui/disclosure` composes the height-animation layer with accessible details/summary semantics
   and supports rapid direction reversal. Unstructured files repositories suppress the protocol-specific repository
   snippet card while retaining storage and mirror statistics. Shared
-  select controls pair `@renop/ui/custom-select` with its canonical package stylesheet; native
-  option popups are not used for styled application dialogs. The i18n runtime incrementally translates asynchronously inserted declarative UI nodes, while
+  select controls pair `@renop/ui/custom-select` with its canonical package stylesheet; `@renop/ui/toggle` likewise
+  owns the shared bounded switch track, focus, and disabled states. Native option popups are not used for styled
+  application dialogs. The i18n runtime incrementally translates asynchronously inserted declarative UI nodes, while
   shared modal CSS clamps dialogs to the dynamic viewport and device safe areas. Shared asynchronous actions use the
   button-state helper exported by `js/components/button.js`, which restores controls after both successful and failed
   requests. `js/backend-availability.js` confirms same-origin request failures with foreground health probes so browser

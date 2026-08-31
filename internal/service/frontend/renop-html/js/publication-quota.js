@@ -141,6 +141,7 @@ export async function openPublicationQuotaDialog({ownerType, ownerKey, onSaved =
         {value: 'month', label: periodLabel('month')},
     ], period, value => {
         period = value;
+        activateOverride();
     });
     const fields = el('div', {class: 'publication-quota-form-fields'},
         el('label', {}, el('span', {}, t('publicationQuota.filesLimit')), fileInput),
@@ -149,26 +150,42 @@ export async function openPublicationQuotaDialog({ownerType, ownerKey, onSaved =
         el('label', {}, el('span', {}, t('publicationQuota.period')), periodSelect)
     );
     /**
-     * Synchronize inherited and unlimited state across mutable controls.
+     * Switch from inherited defaults to an explicit owner override.
      * @returns {void}
      */
-    const syncDisabled = () => {
-        const disabled = inherited || unlimited;
+    function activateOverride() {
+        if (!inherited) return;
+        inherited = false;
+        if (inheritToggle) inheritToggle.checked = false;
+    }
+    /**
+     * Synchronize unlimited state across mutable limit controls.
+     * @returns {void}
+     */
+    function syncDisabled() {
+        const disabled = unlimited;
         for (const input of [fileInput, byteInput, publicationInput]) input.disabled = disabled;
         periodSelect.classList.toggle('is-disabled', disabled);
         periodSelect.setAttribute('aria-disabled', String(disabled));
         const periodButton = periodSelect.querySelector('button');
         if (periodButton) periodButton.disabled = disabled;
-        unlimitedToggle.toggleAttribute('disabled', inherited);
-    };
+    }
     const inheritToggle = createToggle(inherited, checked => {
         inherited = checked;
+        if (checked) {
+            unlimited = false;
+            unlimitedToggle.checked = false;
+        }
         syncDisabled();
     });
     const unlimitedToggle = createToggle(unlimited, checked => {
+        activateOverride();
         unlimited = checked;
         syncDisabled();
     });
+    for (const input of [fileInput, byteInput, publicationInput]) {
+        input.addEventListener('input', activateOverride);
+    }
     syncDisabled();
 
     RenopDialog.show({

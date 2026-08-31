@@ -12,6 +12,7 @@
 @import "./components/badge.css";
 @import "./components/skeleton.css";
 @import "./components/button.css";
+@import "@renop/ui/css/components/toggle.css";
 @import "./components/dialog.css";
 @import "./components/field-row.css";
 @import "@renop/ui/css/components/custom-select.css";
