@@ -199,6 +199,76 @@ func (db *DB) GetDockerImageAccess(repository, imageName, username string) (exis
 	return true, privateValue != 0, pushEnabledValue != 0, member, level, nil
 }
 
+// DockerImageMemberLevels returns effective memberships for a bounded image batch.
+func (db *DB) DockerImageMemberLevels(repository, username string, imageNames []string) (map[string]int, error) {
+	levels := make(map[string]int, len(imageNames))
+	if db == nil || db.SQLDB == nil {
+		return nil, core.ErrDatabaseUnavailable
+	}
+	if len(imageNames) == 0 {
+		return levels, nil
+	}
+	if len(imageNames) > 100 {
+		return nil, core.ErrDockerInvalidName
+	}
+	repository, _ = sanitizeDockerKey(repository, "")
+	username = sanitizeDockerUsername(username)
+	if repository == "" || username == "" || username == "guest" {
+		return levels, nil
+	}
+	userID, err := db.userIDForUsername(username)
+	if errors.Is(err, core.ErrUserProfileNotFound) {
+		return levels, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, 0, len(imageNames))
+	for _, imageName := range imageNames {
+		_, imageName = sanitizeDockerKey("", imageName)
+		if imageName == "" {
+			return nil, core.ErrDockerInvalidName
+		}
+		names = append(names, imageName)
+	}
+	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(names)), ",")
+	arguments := make([]any, 0, len(names)+3)
+	arguments = append(arguments, userID, userID, repository)
+	for _, imageName := range names {
+		arguments = append(arguments, imageName)
+	}
+	rows, err := db.Query(`SELECT i.image_name, COALESCE(m.permission_level, 0),
+		CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END, COALESCE(stm.role_level, 0),
+		CASE WHEN stm.user_id IS NULL THEN 0 ELSE 1 END
+		FROM docker_images i LEFT JOIN docker_members m ON m.repository = i.repository
+		AND m.image_name = i.image_name AND m.user_id = ?
+		LEFT JOIN super_team_members stm ON stm.team_prefix = i.super_team_prefix AND stm.user_id = ?
+		WHERE i.repository = ? AND i.image_name IN (`+placeholders+`)`, arguments...)
+	if err != nil {
+		return nil, fmt.Errorf("list Docker image memberships: %w", err)
+	}
+	for rows.Next() {
+		var imageName string
+		var explicitLevel, explicitMember, superRole, superMember int
+		if err := rows.Scan(&imageName, &explicitLevel, &explicitMember, &superRole, &superMember); err != nil {
+			_ = rows.Close()
+			return nil, fmt.Errorf("scan Docker image membership: %w", err)
+		}
+		level, member := effectiveBoundPermission(explicitLevel, explicitMember != 0, superRole, superMember != 0)
+		if member {
+			levels[imageName] = level
+		}
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return nil, fmt.Errorf("iterate Docker image memberships: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("close Docker image memberships: %w", err)
+	}
+	return levels, nil
+}
+
 func (db *DB) GetDockerImage(repository, imageName string) (*core.DockerRepositoryImage, error) {
 	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
@@ -220,36 +290,136 @@ func (db *DB) GetDockerImage(repository, imageName string) (*core.DockerReposito
 	}
 	setDockerImageFlags(img, privateValue, pushEnabledValue)
 	boundDockerImageDescription(img, false)
+	if err := db.hydrateDockerImageMetadata([]*core.DockerRepositoryImage{img}); err != nil {
+		return nil, err
+	}
+	return img, nil
+}
 
-	if img.Publisher == "" {
-		var tagPub string
-		_ = db.QueryRow(`SELECT publisher FROM docker_tags WHERE repository = ? AND image_name = ? AND publisher != '' ORDER BY updated_at DESC LIMIT 1`, repository, imageName).Scan(&tagPub)
-		if tagPub != "" {
-			img.Publisher = tagPub
-		} else {
-			var manPub string
-			_ = db.QueryRow(`SELECT publisher FROM docker_manifests WHERE repository = ? AND image_name = ? AND publisher != '' ORDER BY created_at DESC LIMIT 1`, repository, imageName).Scan(&manPub)
-			img.Publisher = manPub
+func (db *DB) hydrateDockerImageMetadata(images []*core.DockerRepositoryImage) error {
+	if len(images) == 0 {
+		return nil
+	}
+	repository := ""
+	byName := make(map[string]*core.DockerRepositoryImage, len(images))
+	names := make([]string, 0, len(images))
+	for _, image := range images {
+		if image == nil {
+			continue
+		}
+		if repository == "" {
+			repository = image.Repository
+		} else if image.Repository != repository {
+			return errors.New("docker image metadata batch spans repositories")
+		}
+		names = append(names, image.ImageName)
+		byName[image.ImageName] = image
+	}
+	if len(names) == 0 {
+		return nil
+	}
+	queryArguments := func(batch []string, prefix ...any) (string, []any) {
+		arguments := make([]any, 0, len(prefix)+len(batch))
+		arguments = append(arguments, prefix...)
+		for _, name := range batch {
+			arguments = append(arguments, name)
+		}
+		return strings.TrimSuffix(strings.Repeat("?,", len(batch)), ","), arguments
+	}
+
+	placeholders, arguments := queryArguments(names, repository, core.DockerPermissionOwner)
+	ownerRows, err := db.Query(`SELECT m.image_name, COALESCE(p.username, m.username) FROM docker_members m
+		LEFT JOIN user_profiles p ON p.user_id = m.user_id
+		WHERE m.repository = ? AND m.permission_level = ? AND m.image_name IN (`+placeholders+`)`, arguments...)
+	if err != nil {
+		return fmt.Errorf("list Docker image owners: %w", err)
+	}
+	for ownerRows.Next() {
+		var imageName, owner string
+		if err := ownerRows.Scan(&imageName, &owner); err != nil {
+			_ = ownerRows.Close()
+			return fmt.Errorf("scan Docker image owner: %w", err)
+		}
+		if image := byName[imageName]; image != nil && owner != "" {
+			image.Publisher = owner
 		}
 	}
-
-	var ownerUser string
-	_ = db.QueryRow(`SELECT COALESCE(p.username, m.username) FROM docker_members m
-		LEFT JOIN user_profiles p ON p.user_id = m.user_id
-		WHERE m.repository = ? AND m.image_name = ? AND m.permission_level = ? LIMIT 1`, repository, imageName, core.DockerPermissionOwner).Scan(&ownerUser)
-	if ownerUser != "" {
-		img.Publisher = ownerUser
+	if err := ownerRows.Err(); err != nil {
+		_ = ownerRows.Close()
+		return fmt.Errorf("iterate Docker image owners: %w", err)
+	}
+	if err := ownerRows.Close(); err != nil {
+		return fmt.Errorf("close Docker image owners: %w", err)
 	}
 
-	var count int
-	_ = db.QueryRow(`SELECT COUNT(*) FROM docker_tags WHERE repository = ? AND image_name = ?`, repository, imageName).Scan(&count)
-	img.TagCount = count
+	placeholders, arguments = queryArguments(names, repository)
+	tagRows, err := db.Query(`SELECT image_name, tag, publisher, tag_count FROM (
+		SELECT image_name, tag, publisher, COUNT(*) OVER (PARTITION BY image_name) AS tag_count,
+			ROW_NUMBER() OVER (PARTITION BY image_name ORDER BY updated_at DESC, tag ASC) AS tag_rank
+		FROM docker_tags WHERE repository = ? AND image_name IN (`+placeholders+`)) ranked
+		WHERE tag_rank = 1`, arguments...)
+	if err != nil {
+		return fmt.Errorf("list Docker image tag metadata: %w", err)
+	}
+	for tagRows.Next() {
+		var imageName, tag, publisher string
+		var tagCount int
+		if err := tagRows.Scan(&imageName, &tag, &publisher, &tagCount); err != nil {
+			_ = tagRows.Close()
+			return fmt.Errorf("scan Docker image tag metadata: %w", err)
+		}
+		if image := byName[imageName]; image != nil {
+			image.TagCount = tagCount
+			image.LatestTag = tag
+			if image.Publisher == "" {
+				image.Publisher = publisher
+			}
+		}
+	}
+	if err := tagRows.Err(); err != nil {
+		_ = tagRows.Close()
+		return fmt.Errorf("iterate Docker image tag metadata: %w", err)
+	}
+	if err := tagRows.Close(); err != nil {
+		return fmt.Errorf("close Docker image tag metadata: %w", err)
+	}
 
-	var latestTag string
-	_ = db.QueryRow(`SELECT tag FROM docker_tags WHERE repository = ? AND image_name = ? ORDER BY updated_at DESC LIMIT 1`, repository, imageName).Scan(&latestTag)
-	img.LatestTag = latestTag
-
-	return img, nil
+	missingPublishers := make([]string, 0, len(names))
+	for _, name := range names {
+		if byName[name].Publisher == "" {
+			missingPublishers = append(missingPublishers, name)
+		}
+	}
+	if len(missingPublishers) == 0 {
+		return nil
+	}
+	placeholders, arguments = queryArguments(missingPublishers, repository)
+	manifestRows, err := db.Query(`SELECT image_name, publisher FROM (
+		SELECT image_name, publisher, ROW_NUMBER() OVER (
+			PARTITION BY image_name ORDER BY created_at DESC, digest ASC) AS manifest_rank
+		FROM docker_manifests WHERE repository = ? AND publisher != '' AND image_name IN (`+placeholders+`)) ranked
+		WHERE manifest_rank = 1`, arguments...)
+	if err != nil {
+		return fmt.Errorf("list Docker image manifest publishers: %w", err)
+	}
+	for manifestRows.Next() {
+		var imageName, publisher string
+		if err := manifestRows.Scan(&imageName, &publisher); err != nil {
+			_ = manifestRows.Close()
+			return fmt.Errorf("scan Docker image manifest publisher: %w", err)
+		}
+		if image := byName[imageName]; image != nil {
+			image.Publisher = publisher
+		}
+	}
+	if err := manifestRows.Err(); err != nil {
+		_ = manifestRows.Close()
+		return fmt.Errorf("iterate Docker image manifest publishers: %w", err)
+	}
+	if err := manifestRows.Close(); err != nil {
+		return fmt.Errorf("close Docker image manifest publishers: %w", err)
+	}
+	return nil
 }
 
 func (db *DB) IncrementDockerPullCount(repository, imageName string) error {
@@ -343,36 +513,9 @@ func (db *DB) ListDockerImages(repository, last string, limit int) ([]*core.Dock
 		return nil, fmt.Errorf("iterate Docker images: %w", err)
 	}
 
-	for _, img := range images {
-		if img.Publisher == "" {
-			var tagPub string
-			_ = db.QueryRow(`SELECT publisher FROM docker_tags WHERE repository = ? AND image_name = ? AND publisher != '' ORDER BY updated_at DESC LIMIT 1`, img.Repository, img.ImageName).Scan(&tagPub)
-			if tagPub != "" {
-				img.Publisher = tagPub
-			} else {
-				var manPub string
-				_ = db.QueryRow(`SELECT publisher FROM docker_manifests WHERE repository = ? AND image_name = ? AND publisher != '' ORDER BY created_at DESC LIMIT 1`, img.Repository, img.ImageName).Scan(&manPub)
-				img.Publisher = manPub
-			}
-		}
-
-		var ownerUser string
-		_ = db.QueryRow(`SELECT COALESCE(p.username, m.username) FROM docker_members m
-			LEFT JOIN user_profiles p ON p.user_id = m.user_id
-			WHERE m.repository = ? AND m.image_name = ? AND m.permission_level = ? LIMIT 1`, img.Repository, img.ImageName, core.DockerPermissionOwner).Scan(&ownerUser)
-		if ownerUser != "" {
-			img.Publisher = ownerUser
-		}
-
-		var count int
-		_ = db.QueryRow(`SELECT COUNT(*) FROM docker_tags WHERE repository = ? AND image_name = ?`, img.Repository, img.ImageName).Scan(&count)
-		img.TagCount = count
-
-		var latestTag string
-		_ = db.QueryRow(`SELECT tag FROM docker_tags WHERE repository = ? AND image_name = ? ORDER BY updated_at DESC LIMIT 1`, img.Repository, img.ImageName).Scan(&latestTag)
-		img.LatestTag = latestTag
+	if err := db.hydrateDockerImageMetadata(images); err != nil {
+		return nil, err
 	}
-
 	return images, nil
 }
 
@@ -424,32 +567,9 @@ func (db *DB) SearchDockerImages(repository, query string, limit, offset int) ([
 		return nil, 0, fmt.Errorf("iterate Docker search results: %w", err)
 	}
 
-	for _, img := range images {
-		if img.Publisher == "" {
-			var tagPub string
-			_ = db.QueryRow(`SELECT publisher FROM docker_tags WHERE repository = ? AND image_name = ? AND publisher != '' ORDER BY updated_at DESC LIMIT 1`, img.Repository, img.ImageName).Scan(&tagPub)
-			if tagPub != "" {
-				img.Publisher = tagPub
-			}
-		}
-
-		var ownerUser string
-		_ = db.QueryRow(`SELECT COALESCE(p.username, m.username) FROM docker_members m
-			LEFT JOIN user_profiles p ON p.user_id = m.user_id
-			WHERE m.repository = ? AND m.image_name = ? AND m.permission_level = ? LIMIT 1`, img.Repository, img.ImageName, core.DockerPermissionOwner).Scan(&ownerUser)
-		if ownerUser != "" {
-			img.Publisher = ownerUser
-		}
-
-		var count int
-		_ = db.QueryRow(`SELECT COUNT(*) FROM docker_tags WHERE repository = ? AND image_name = ?`, img.Repository, img.ImageName).Scan(&count)
-		img.TagCount = count
-
-		var latestTag string
-		_ = db.QueryRow(`SELECT tag FROM docker_tags WHERE repository = ? AND image_name = ? ORDER BY updated_at DESC LIMIT 1`, img.Repository, img.ImageName).Scan(&latestTag)
-		img.LatestTag = latestTag
+	if err := db.hydrateDockerImageMetadata(images); err != nil {
+		return nil, 0, err
 	}
-
 	return images, total, nil
 }
 

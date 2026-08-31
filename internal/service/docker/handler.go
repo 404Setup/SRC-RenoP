@@ -255,13 +255,15 @@ func (h *Handler) HandleCatalog(c fiber.Ctx, state *core.AppState) error {
 			continue
 		}
 		images, err := db.ListDockerImages(repoName, last, n)
-		if err == nil {
-			for _, img := range images {
-				if !CanReadDocker(state, user, repo, repoName+"/"+img.ImageName) {
-					continue
-				}
-				allRepos = append(allRepos, fmt.Sprintf("%s/%s", repoName, img.ImageName))
-			}
+		if err != nil {
+			continue
+		}
+		images, err = FilterReadableDockerImages(state, user, repo, images)
+		if err != nil {
+			return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported, "database unavailable", nil)
+		}
+		for _, img := range images {
+			allRepos = append(allRepos, fmt.Sprintf("%s/%s", repoName, img.ImageName))
 		}
 	}
 

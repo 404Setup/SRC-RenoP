@@ -261,6 +261,7 @@ type StateDB interface {
 	CreateDockerImage(repository, imageName, owner string, private bool, createdAt int64) (*DockerRepositoryImage, error)
 	CreateDockerImageForTeam(repository, imageName, owner, superTeamPrefix string, private bool, createdAt int64) (*DockerRepositoryImage, error)
 	GetDockerImageAccess(repository, imageName, username string) (exists, private, pushEnabled, member bool, level int, err error)
+	DockerImageMemberLevels(repository, username string, imageNames []string) (map[string]int, error)
 	UpdateDockerImageDescription(repository, imageName, description string) error
 	ListDockerImages(repository, last string, limit int) ([]*DockerRepositoryImage, error)
 	SearchDockerImages(repository, query string, limit, offset int) ([]*DockerRepositoryImage, int, error)

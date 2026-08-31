@@ -392,13 +392,16 @@ func GetRepoDetails(c fiber.Ctx, state *core.AppState) error {
 					artifactSize = blobSize
 				}
 			} else if images, err := db.ListDockerImages(repoName, "", 100); err == nil {
+				images, err = docker.FilterReadableDockerImages(state, user, repo, images)
+				if err != nil {
+					return c.Status(fiber.StatusServiceUnavailable).SendString("Repository metadata is unavailable")
+				}
 				for _, image := range images {
-					if image == nil || !docker.CanReadDocker(state, user, repo, repoName+"/"+image.ImageName) {
+					if image == nil {
 						continue
 					}
 					artifactCount++
-					tags, _ := db.ListDockerTags(repoName, image.ImageName, "", 100)
-					metadataCount += int64(len(tags))
+					metadataCount += int64(image.TagCount)
 				}
 				totalFiles = artifactCount + metadataCount
 			}

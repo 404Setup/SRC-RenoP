@@ -36,6 +36,57 @@ func newTestDockerDB(t *testing.T) *database.DB {
 	return db
 }
 
+func TestDockerListsHydrateMetadataInBatches(t *testing.T) {
+	db := newTestDockerDB(t)
+	for _, imageName := range []string{"alpha", "bravo"} {
+		_, err := db.CreateDockerImage("docker-local", imageName, "admin", false, 1_700_000_000_000)
+		require.NoError(t, err)
+	}
+	alphaManifest := &core.DockerManifest{
+		Repository: "docker-local", ImageName: "alpha",
+		Digest:    "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+		MediaType: "application/vnd.docker.distribution.manifest.v2+json", RawJSON: []byte(`{"schemaVersion":2}`),
+	}
+	require.NoError(t, db.PutDockerManifest(alphaManifest, "v1", "admin"))
+	alphaManifest.Digest = "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+	require.NoError(t, db.PutDockerManifest(alphaManifest, "v2", "admin"))
+	bravoManifest := &core.DockerManifest{
+		Repository: "docker-local", ImageName: "bravo",
+		Digest:    "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+		MediaType: "application/vnd.docker.distribution.manifest.v2+json", RawJSON: []byte(`{"schemaVersion":2}`),
+	}
+	require.NoError(t, db.PutDockerManifest(bravoManifest, "stable", "admin"))
+	_, err := db.Exec(`UPDATE docker_tags SET updated_at = CASE tag WHEN 'v2' THEN 2 ELSE 1 END
+		WHERE repository = 'docker-local' AND image_name = 'alpha'`)
+	require.NoError(t, err)
+	_, err = db.Exec(`UPDATE docker_images SET publisher = '' WHERE repository = 'docker-local'`)
+	require.NoError(t, err)
+	_, err = db.Exec(`DELETE FROM docker_members WHERE repository = 'docker-local'`)
+	require.NoError(t, err)
+	_, err = db.Exec(`DELETE FROM docker_tags WHERE repository = 'docker-local' AND image_name = 'bravo'`)
+	require.NoError(t, err)
+
+	assertMetadata := func(images []*core.DockerRepositoryImage) {
+		t.Helper()
+		require.Len(t, images, 2)
+		require.Equal(t, "alpha", images[0].ImageName)
+		require.Equal(t, 2, images[0].TagCount)
+		require.Equal(t, "v2", images[0].LatestTag)
+		require.Equal(t, "admin", images[0].Publisher)
+		require.Equal(t, "bravo", images[1].ImageName)
+		require.Zero(t, images[1].TagCount)
+		require.Empty(t, images[1].LatestTag)
+		require.Equal(t, "admin", images[1].Publisher)
+	}
+	images, err := db.ListDockerImages("docker-local", "", 10)
+	require.NoError(t, err)
+	assertMetadata(images)
+	images, total, err := db.SearchDockerImages("docker-local", "a", 10, 0)
+	require.NoError(t, err)
+	require.Equal(t, 2, total)
+	assertMetadata(images)
+}
+
 func TestDockerDatabaseOperations(t *testing.T) {
 	db := newTestDockerDB(t)
 	_, err := db.CreateDockerImage("docker-local", "ubuntu", "admin", false, 1_700_000_000_000)

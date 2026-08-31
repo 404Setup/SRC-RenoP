@@ -97,22 +97,10 @@ func ListDockerImagesAPI(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to list images")
 	}
 
-	visible := images[:0]
-	for _, img := range images {
-		if !docker.CanReadDocker(state, user, repo, repoName+"/"+img.ImageName) {
-			continue
-		}
-		tags, err := db.ListDockerTags(repoName, img.ImageName, "", 100)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).SendString("Failed to list image tags")
-		}
-		img.TagCount = len(tags)
-		if len(tags) > 0 {
-			img.LatestTag = tags[0].Tag
-		}
-		visible = append(visible, img)
+	images, err = docker.FilterReadableDockerImages(state, user, repo, images)
+	if err != nil {
+		return c.Status(fiber.StatusServiceUnavailable).SendString("Database unavailable")
 	}
-	images = visible
 
 	c.Set(fiber.HeaderContentType, "application/json; charset=utf-8")
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{

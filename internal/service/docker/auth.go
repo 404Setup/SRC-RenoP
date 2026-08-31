@@ -103,6 +103,52 @@ func CanReadDocker(state *core.AppState, user *config.User, repo *config.Reposit
 	return false
 }
 
+// FilterReadableDockerImages removes private images the current user cannot read with one membership query.
+func FilterReadableDockerImages(state *core.AppState, user *config.User, repo *config.Repository,
+	images []*core.DockerRepositoryImage,
+) ([]*core.DockerRepositoryImage, error) {
+	if repo == nil {
+		return nil, core.ErrDockerPermissionDenied
+	}
+	if len(images) == 0 {
+		return images, nil
+	}
+	if user != nil && (user.IsManager() || user.CheckUpdatePermission(repo.Name)) {
+		return images, nil
+	}
+	var privateNames []string
+	for _, image := range images {
+		if image != nil && image.Private {
+			privateNames = append(privateNames, image.ImageName)
+		}
+	}
+	var memberLevels map[string]int
+	if len(privateNames) > 0 && user != nil && user.Username != "" && !strings.EqualFold(user.Username, "guest") {
+		if state == nil {
+			return nil, core.ErrDatabaseUnavailable
+		}
+		db := state.GetDB()
+		if db == nil {
+			return nil, core.ErrDatabaseUnavailable
+		}
+		var err error
+		memberLevels, err = db.DockerImageMemberLevels(repo.Name, user.Username, privateNames)
+		if err != nil {
+			return nil, err
+		}
+	}
+	visible := images[:0]
+	for _, image := range images {
+		if image == nil {
+			continue
+		}
+		if _, member := memberLevels[image.ImageName]; !image.Private || member {
+			visible = append(visible, image)
+		}
+	}
+	return visible, nil
+}
+
 // CanWriteDocker checks whether a user has push/mutate access to a Docker repository or specific image.
 func CanWriteDocker(state *core.AppState, user *config.User, repo *config.Repository, repoFullName string) bool {
 	if repo == nil || user == nil || user.Username == "" || strings.EqualFold(user.Username, "guest") {

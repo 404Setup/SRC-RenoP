@@ -266,6 +266,14 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 			dockerRepository, dockerImage, username, globalTeamPrefix, false, now); err != nil {
 			return err
 		}
+		if err := db.PutDockerManifest(&core.DockerManifest{
+			Repository: dockerRepository, ImageName: dockerImage,
+			Digest:    "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+			MediaType: "application/vnd.docker.distribution.manifest.v2+json",
+			RawJSON:   []byte(`{"schemaVersion":2}`), CreatedAt: now,
+		}, "latest", username); err != nil {
+			return err
+		}
 		domain := &core.MavenDomain{
 			Domain: mavenDomain, VerificationType: core.MavenVerificationDNS,
 			VerificationHost: "example.test", VerificationCode: "driver-check-" + suffix,
@@ -341,6 +349,26 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		image, err := db.GetDockerImage(dockerRepository, reviewImage)
 		if err != nil || image == nil || image.SuperTeamPrefix != globalTeamPrefix {
 			return errorsOrMissing(err, "review ownership transfer")
+		}
+		images, err := db.ListDockerImages(dockerRepository, "", 100)
+		if err != nil {
+			return err
+		}
+		listed := false
+		for _, candidate := range images {
+			listed = listed || candidate != nil && candidate.ImageName == reviewImage
+		}
+		if !listed {
+			return errors.New("docker batch list omitted reviewed image")
+		}
+		images, total, err := db.SearchDockerImages(dockerRepository, reviewImage, 10, 0)
+		if err != nil || total != 1 || len(images) != 1 || images[0].ImageName != reviewImage {
+			return errorsOrMissing(err, "Docker batch search")
+		}
+		memberLevels, err := db.DockerImageMemberLevels(
+			dockerRepository, memberUsername, []string{reviewImage})
+		if _, member := memberLevels[reviewImage]; err != nil || !member {
+			return errorsOrMissing(err, "Docker batch membership")
 		}
 		if err := db.SaveToken(&core.AccessToken{
 			Name: username, CreatedAt: time.Now().UTC().Format(time.RFC3339),

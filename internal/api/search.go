@@ -129,9 +129,13 @@ func searchDockerRepository(state *core.AppState, repo *config.Repository, user 
 	if err != nil {
 		return nil, err
 	}
+	images, err = docker.FilterReadableDockerImages(state, user, repo, images)
+	if err != nil {
+		return nil, err
+	}
 	results := make([]*pb.RepositorySearchResult, 0, len(images))
 	for _, img := range images {
-		if img == nil || !docker.CanReadDocker(state, user, repo, repo.Name+"/"+img.ImageName) {
+		if img == nil {
 			continue
 		}
 		results = append(results, &pb.RepositorySearchResult{

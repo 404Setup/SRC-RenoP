@@ -50,7 +50,9 @@
   durable GitHub identity/principal snapshots and username-change throttling remain bound to immutable user IDs.
   npm package reservations, immutable versions, dist-tags, L0-L4 teams, and invitations use the same immutable
   identities across every supported SQL dialect. Catalog reads and writes derive a usable latest published version
-  when the optional `latest` dist-tag is absent, including automatic repair of older empty summary rows.
+  when the optional `latest` dist-tag is absent, including automatic repair of older empty summary rows. Docker list
+  and search results hydrate owners, tag counts, latest tags, legacy publisher fallbacks, and private-image membership
+  through bounded batch queries rather than per-image metadata or authorization lookups.
   Engine-independent global teams reserve an immutable prefix, store T1-T4 memberships and invitations exclusively by
   immutable user ID, preserve creator display after account deletion, and enforce global or per-account creation and
   membership limits on SQLite, PostgreSQL, MySQL, and native ClickHouse. Cargo crates, Docker images, npm packages,
