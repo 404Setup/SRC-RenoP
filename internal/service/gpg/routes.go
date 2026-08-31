@@ -35,9 +35,9 @@ func SetupProfileRoutes(router fiber.Router, state *core.AppState) {
 }
 
 func ListProfileReleases(c fiber.Ctx, state *core.AppState) error {
-	username, err := profileUser(c)
+	username, err := profileReadUser(c)
 	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).SendString("Unauthorized")
+		return err
 	}
 	limit, _ := strconv.Atoi(c.Query("limit", "20"))
 	offset, _ := strconv.Atoi(c.Query("offset", "0"))
@@ -51,22 +51,42 @@ func ListProfileReleases(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load GPG releases")
 	}
+	c.Set(fiber.HeaderCacheControl, "no-store")
 	return protohttp.Write(c, pb.FromGPGReleases(releases, total, limit, offset))
 }
 
 func profileUser(c fiber.Ctx) (*string, error) {
 	user := auth.GetUser(c)
-	if user == nil || user.Username == "" || user.Username == "guest" {
+	if user == nil || user.Username == "" || strings.EqualFold(user.Username, "guest") {
 		return nil, fiber.ErrUnauthorized
 	}
 	username := user.Username
 	return &username, nil
 }
 
-func ListProfileKeys(c fiber.Ctx, state *core.AppState) error {
+func profileReadUser(c fiber.Ctx) (*string, error) {
 	username, err := profileUser(c)
 	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).SendString("Unauthorized")
+		return nil, err
+	}
+	target := strings.TrimSpace(c.Query("username"))
+	if target == "" || strings.EqualFold(target, *username) {
+		return username, nil
+	}
+	target, valid := core.NormalizeUsername(target)
+	if !valid {
+		return nil, fiber.ErrBadRequest
+	}
+	if !auth.GetUser(c).IsManager() {
+		return nil, fiber.ErrForbidden
+	}
+	return &target, nil
+}
+
+func ListProfileKeys(c fiber.Ctx, state *core.AppState) error {
+	username, err := profileReadUser(c)
+	if err != nil {
+		return err
 	}
 	db := state.GetDB()
 	if db == nil {
@@ -76,6 +96,7 @@ func ListProfileKeys(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load GPG keys")
 	}
+	c.Set(fiber.HeaderCacheControl, "no-store")
 	return protohttp.Write(c, pb.FromUserGPGKeys(keys))
 }
 

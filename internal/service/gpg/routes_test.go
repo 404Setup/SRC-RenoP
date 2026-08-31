@@ -77,7 +77,11 @@ func TestProfileReleaseHistoryIsScopedToAuthenticatedUser(t *testing.T) {
 	app := fiber.New()
 	app.Use(func(c fiber.Ctx) error {
 		if username := c.Get("X-Test-User"); username != "" {
-			c.Locals("user", &config.User{Username: username})
+			roles := []string{"base"}
+			if c.Get("X-Test-Manager") == "true" {
+				roles = append(roles, "manager")
+			}
+			c.Locals("user", &config.User{Username: username, Roles: roles})
 		}
 		return c.Next()
 	})
@@ -103,4 +107,35 @@ func TestProfileReleaseHistoryIsScopedToAuthenticatedUser(t *testing.T) {
 	assert.Equal(t, int32(0), history.Offset)
 	require.Len(t, history.Releases, 1)
 	assert.Equal(t, "org/example/demo-1.jar", history.Releases[0].ArtifactPath)
+
+	request = httptest.NewRequest(http.MethodGet, "/api/auth/profile/gpg/releases?username=alice", nil)
+	request.Header.Set("X-Test-User", "bob")
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusForbidden, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+
+	request = httptest.NewRequest(http.MethodGet, "/api/auth/profile/gpg/releases?username=alice", nil)
+	request.Header.Set("X-Test-User", "bob")
+	request.Header.Set("X-Test-Manager", "true")
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	defer response.Body.Close()
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	require.Equal(t, "no-store", response.Header.Get("Cache-Control"))
+	body, err = io.ReadAll(response.Body)
+	require.NoError(t, err)
+	history = pb.GpgReleaseList{}
+	require.NoError(t, proto.Unmarshal(body, &history))
+	require.Len(t, history.Releases, 1)
+	assert.Equal(t, "org/example/demo-1.jar", history.Releases[0].ArtifactPath)
+
+	request = httptest.NewRequest(http.MethodGet, "/api/auth/profile/gpg?username=alice", nil)
+	request.Header.Set("X-Test-User", "bob")
+	request.Header.Set("X-Test-Manager", "true")
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	require.Equal(t, "no-store", response.Header.Get("Cache-Control"))
+	require.NoError(t, response.Body.Close())
 }

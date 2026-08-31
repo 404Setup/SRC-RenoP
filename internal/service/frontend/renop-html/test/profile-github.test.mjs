@@ -23,7 +23,7 @@ test('own profile payload renders GitHub state without a delayed profile request
     const backend = readFileSync(join(repositoryRoot, 'internal/service/auth/user_profile.go'), 'utf8');
 
     assert.match(backend, /GitHub\s+\*githubProfileStatus\s+`json:"github,omitempty"`/);
-    assert.match(backend, /profileResponseWithConnections/);
+    assert.match(backend, /profileResponseWithPrivateDetails/);
     assert.match(profile, /renderGitHubConnection\(profile\.github\)/);
     assert.ok(profile.indexOf('renderGitHubConnection(profile.github)') <
         profile.indexOf('void refreshAccountSecurity()', profile.indexOf('function showProfileEdit')));
@@ -45,9 +45,30 @@ test('profile edit cards use a compact responsive grid', () => {
 
 test('password controls live inside the account security card', () => {
     const page = readFileSync(join(frontendRoot, 'index.html'), 'utf8');
+    const security = readFileSync(join(frontendRoot, 'js/account-security.js'), 'utf8');
     const securityStart = page.indexOf('id="profile-account-security-section"');
     const securityEnd = page.indexOf('id="profile-api-token-section"');
     assert.ok(securityStart >= 0 && securityEnd > securityStart);
     assert.match(page.slice(securityStart, securityEnd), /id="profile-password-form"/);
     assert.equal(page.indexOf('id="profile-password-form"'), page.lastIndexOf('id="profile-password-form"'));
+    assert.doesNotMatch(page.slice(securityStart - 120, securityStart), /hidden/);
+    assert.match(security, /\$\(section\)\.prop\('hidden', false\)/);
+    assert.doesNotMatch(security, /catch[\s\S]*?\$\(section\)\.prop\('hidden', true\)/);
+});
+
+test('authorized private panels render on the profile home instead of the editor', () => {
+    const page = readFileSync(join(frontendRoot, 'index.html'), 'utf8');
+    const profile = readFileSync(join(frontendRoot, 'js/profile.js'), 'utf8');
+    const styles = readFileSync(join(frontendRoot, 'css/manager/profile.css'), 'utf8');
+    const backend = readFileSync(join(repositoryRoot, 'internal/service/auth/user_profile.go'), 'utf8');
+    assert.match(backend, /PrivateDetails\s+bool\s+`json:"private_details,omitempty"`/);
+    assert.match(backend, /own \|\| administrator/);
+    assert.match(profile, /if \(profile\.private_details\)/);
+    assert.match(profile, /class: 'profile-private-grid'/);
+    assert.match(profile, /createPublicationQuotaPanel\(profile\.publication_quota/);
+    assert.match(profile, /createProfileSuperTeamLimits\(profile\.super_team_limits/);
+    assert.match(profile, /query\.set\('username', view\.username\)/);
+    assert.match(styles, /\.profile-private-grid\s*\{[^}]*grid-template-columns: repeat\(2,/s);
+    assert.match(styles, /@media \(max-width: 820px\)[\s\S]*?\.profile-private-grid\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
+    assert.doesNotMatch(page, /id="btn-profile-gpg(?:-releases)?"/);
 });

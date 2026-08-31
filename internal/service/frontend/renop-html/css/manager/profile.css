@@ -197,6 +197,18 @@
     transform: translateX(0.15rem);
 }
 
+.profile-private-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.profile-private-grid > .publication-quota-panel,
+.profile-private-grid > .profile-super-team-limits {
+    grid-column: 1 / -1;
+}
+
 .profile-route-loading,
 .profile-route-error {
     display: flex;
@@ -1077,6 +1089,10 @@
 
 @media (max-width: 820px) {
     .profile-settings-card {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .profile-private-grid {
         grid-template-columns: minmax(0, 1fr);
     }
 

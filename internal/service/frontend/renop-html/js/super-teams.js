@@ -647,16 +647,21 @@ export async function loadSuperTeamCenterPage() {
 }
 
 /**
- * Render effective global-team limits inside the own-profile editor without another request.
- * @param {object|null|undefined} limits - Limits embedded in the own-profile response.
- * @returns {void}
+ * Build effective global-team limits for an authorized profile view.
+ * @param {object|null|undefined} limits - Limits embedded in an authorized singular profile response.
+ * @param {{showManage?: boolean}} [options] - Optional self-service action.
+ * @returns {HTMLElement|null} Limits card or null when private limits are unavailable.
  */
-export function renderProfileSuperTeamLimits(limits) {
-    const settings = document.querySelector('#profile-edit-view .profile-settings-card');
-    if (!settings) return;
-    settings.querySelector('.profile-super-team-limits')?.remove();
-    if (!limits) return;
-    const section = el('div', {class: 'profile-settings-section profile-super-team-limits'},
+export function createProfileSuperTeamLimits(limits, {showManage = false} = {}) {
+    if (!limits) return null;
+    const body = [
+        limitCard(t('superTeam.createUsage'), limits.created_count, limits.create_limit, limits.create_limit_inherited),
+        limitCard(t('superTeam.joinUsage'), limits.joined_count, limits.join_limit, limits.join_limit_inherited),
+    ];
+    if (showManage) body.push(el('button', {
+        type: 'button', class: 'pill-btn pill-btn--soft', onclick: openSuperTeamCenter
+    }, t('superTeam.openTeams')));
+    return el('div', {class: 'profile-settings-section profile-super-team-limits'},
         el('div', {class: 'profile-section-card-header'},
             el('div', {class: 'profile-section-icon', 'aria-hidden': 'true'}, createIcon('identity')),
             el('div', {class: 'profile-section-meta'},
@@ -664,14 +669,6 @@ export function renderProfileSuperTeamLimits(limits) {
                 el('p', {class: 'profile-section-desc'}, t('superTeam.profileLimitsDesc'))
             )
         ),
-        el('div', {class: 'profile-section-body super-team-profile-limit-body'},
-            limitCard(t('superTeam.createUsage'), limits.created_count, limits.create_limit, limits.create_limit_inherited),
-            limitCard(t('superTeam.joinUsage'), limits.joined_count, limits.join_limit, limits.join_limit_inherited),
-            el('button', {type: 'button', class: 'pill-btn pill-btn--soft', onclick: openSuperTeamCenter},
-                t('superTeam.openTeams'))
-        )
+        el('div', {class: 'profile-section-body super-team-profile-limit-body'}, ...body)
     );
-    const identity = settings.querySelector('.profile-identity-card');
-    if (identity?.nextSibling) settings.insertBefore(section, identity.nextSibling);
-    else settings.prepend(section);
 }

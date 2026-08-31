@@ -499,9 +499,14 @@
 
 .super-team-profile-limit-body {
     display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: center !important;
     gap: 0.7rem !important;
+}
+
+.super-team-profile-limit-body > .pill-btn {
+    grid-column: 1 / -1;
+    justify-self: start;
 }
 
 @media (max-width: 760px) {

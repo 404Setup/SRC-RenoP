@@ -245,10 +245,12 @@
   profile linking request account/organization read access, persist immutable provider IDs without access tokens, and
   allow recently authorized account or organization identities to verify matching `io.github` Maven domains.
   Database ownership uses immutable user IDs, which remain hidden from the visible interface.
-  Singular own-profile responses embed the private GitHub connection snapshot so the responsive two-column profile
-  editor can render authorization state with the identity payload instead of issuing a delayed follow-up request;
-  public and batched profile responses omit that connection data. OAuth redirects refresh the same snapshot, while
-  disconnects update the visible state immediately and retain the server-side alternate-login invariant.
+  Singular profile responses embed publication-quota and global-team-limit status only for the account itself or a
+  system administrator; public and batched responses omit those private fields. The private panels live on the profile
+  home, while manager-targeted GPG key and publication-history reads remain session-only and read-only. The private
+  GitHub connection snapshot remains own-profile-only so the editor can render authorization state without a delayed
+  follow-up request. OAuth redirects refresh the same snapshot, while disconnects update the visible state immediately
+  and retain the server-side alternate-login invariant.
   Administrator account creation and editing use the responsive two-column `js/users/modal.js` dialog, with account
   identity and password semantics separated from the asynchronously loaded repository permission editor in
   `js/users/permissions.js`. Per-repository view, moderate, and deploy chips map to distinct permissions; moderator
@@ -256,8 +258,9 @@
   dynamic viewport. The legacy protobuf `secret` field remains a transport-only compatibility detail and is not exposed as
   account-token terminology in the interface.
   Private email, password-login policy, and one-time recovery-code controls are isolated in
-  `js/account-security.js` inside a default-collapsed, width-contained security card, while the public four-code reset
-  workflow lives in `js/password-recovery.js`. The login dialog keeps password recovery as a secondary link and groups
+  `js/account-security.js` inside a default-collapsed, width-contained security card that remains visible when a state
+  refresh fails, while the public four-code reset workflow lives in `js/password-recovery.js`. The login dialog keeps
+  password recovery as a secondary link and groups
   Passkey and optional GitHub controls in one provider section below the `or` divider; visible copy uses Passkey while
   stable FIDO/WebAuthn routes and audit identifiers remain unchanged.
   `js/api-tokens.js` owns the bounded token manager, scope selection, expiration, one-time secret display, shared

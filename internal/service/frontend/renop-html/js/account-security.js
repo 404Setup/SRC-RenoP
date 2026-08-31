@@ -119,6 +119,7 @@ export async function refreshAccountSecurity() {
     const sequence = ++accountSecuritySequence;
     const section = $('#profile-account-security-section').get(0);
     if (!section) return;
+    $(section).prop('hidden', false);
     try {
         const response = await apiRequest('/api/auth/profile/security');
         if (!response.ok) throw new Error('Account security request failed');
@@ -128,7 +129,6 @@ export async function refreshAccountSecurity() {
     } catch (error) {
         if (sequence !== accountSecuritySequence) return;
         console.error('Failed to load account security', error);
-        $(section).prop('hidden', true);
     }
 }
 

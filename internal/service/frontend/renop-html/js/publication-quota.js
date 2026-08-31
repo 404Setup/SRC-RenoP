@@ -239,18 +239,3 @@ export async function openPublicationQuotaDialog({ownerType, ownerKey, onSaved =
         ]
     });
 }
-
-/**
- * Add own-account publication quota usage to the profile editor.
- * @param {object|null|undefined} status - Embedded own-profile quota status.
- * @returns {void}
- */
-export function renderProfilePublicationQuota(status) {
-    const settings = document.querySelector('#profile-edit-view .profile-settings-card');
-    if (!settings) return;
-    settings.querySelector('.profile-publication-quota')?.remove();
-    const panel = createPublicationQuotaPanel(status);
-    if (!panel) return;
-    panel.classList.add('profile-publication-quota');
-    settings.appendChild(panel);
-}

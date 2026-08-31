@@ -139,6 +139,8 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.Equal(t, "bobby", publicProfile.Username)
 	require.Equal(t, bobbyProfile.UserID, publicProfile.UserID)
 	require.False(t, publicProfile.OwnProfile)
+	require.False(t, publicProfile.PrivateDetails)
+	require.False(t, publicProfile.AdministratorView)
 	require.Equal(t, 1, publicProfile.MavenDomainCount)
 	require.Equal(t, 1, publicProfile.CargoPackageCount)
 	require.Equal(t, 1, publicProfile.DockerImageCount)
@@ -154,6 +156,8 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&ownProfile))
 	require.NoError(t, response.Body.Close())
 	require.True(t, ownProfile.OwnProfile)
+	require.True(t, ownProfile.PrivateDetails)
+	require.False(t, ownProfile.AdministratorView)
 	require.NotNil(t, ownProfile.GitHub)
 	require.True(t, ownProfile.GitHub.Configured)
 	require.True(t, ownProfile.GitHub.Linked)
@@ -198,6 +202,17 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.Len(t, membershipResponse.Memberships, 2)
 	currentUsername = "alice"
 	currentRoles = []string{"base", "manager"}
+	response = profileRequest(t, app, http.MethodGet, "/users/bobby/profile", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var administratorProfile userProfileResponse
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&administratorProfile))
+	require.NoError(t, response.Body.Close())
+	require.False(t, administratorProfile.OwnProfile)
+	require.True(t, administratorProfile.PrivateDetails)
+	require.True(t, administratorProfile.AdministratorView)
+	require.Nil(t, administratorProfile.GitHub)
+	require.NotNil(t, administratorProfile.SuperTeamLimits)
+	require.NotNil(t, administratorProfile.PublicationQuota)
 	response = profileRequest(t, app, http.MethodGet, "/users/bobby/memberships?format=cargo", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&membershipResponse))
@@ -215,6 +230,7 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.Len(t, batch.Profiles, 2)
 	for _, profile := range batch.Profiles {
 		require.Nil(t, profile.GitHub)
+		require.False(t, profile.PrivateDetails)
 	}
 
 	response = profileRequest(t, app, http.MethodPut, "/auth/profile", `{"username":"bad-name"}`)

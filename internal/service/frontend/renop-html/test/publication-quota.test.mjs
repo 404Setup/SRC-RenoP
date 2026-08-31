@@ -46,7 +46,7 @@ test('publication quotas share one responsive account and global-team component'
     assert.match(quota, /inheritToggle\.checked = false/);
     assert.doesNotMatch(quota, /inherited \|\| unlimited/);
     assert.doesNotMatch(quota, /innerHTML|\.text\(\)/);
-    assert.match(profile, /renderProfilePublicationQuota\(profile\.publication_quota\)/);
+    assert.match(profile, /createPublicationQuotaPanel\(profile\.publication_quota/);
     assert.match(users, /ownerType: 'user'/);
     assert.match(teams, /ownerType: 'super_team'/);
     assert.match(settings, /'publication_quota'/);

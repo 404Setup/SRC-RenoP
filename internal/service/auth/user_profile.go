@@ -35,6 +35,8 @@ type userProfileResponse struct {
 	Nickname                     string                       `json:"nickname"`
 	CreatedAt                    string                       `json:"created_at"`
 	OwnProfile                   bool                         `json:"own_profile"`
+	PrivateDetails               bool                         `json:"private_details,omitempty"`
+	AdministratorView            bool                         `json:"administrator_view,omitempty"`
 	UsernameChangesRemaining     int                          `json:"username_changes_remaining"`
 	UsernameChangeWindowResetsAt int64                        `json:"username_change_window_resets_at,omitempty"`
 	MavenDomainCount             int                          `json:"maven_domain_count"`
@@ -61,6 +63,7 @@ func publicUserProfile(c fiber.Ctx, state *core.AppState) error {
 	}
 	current := GetUser(c)
 	own := current != nil && strings.EqualFold(current.Username, profile.Username)
+	administrator := current != nil && current.IsManager()
 	mavenMemberships, err := visibleUserPackageMemberships(c, state, profile, config.RepositoryFormatMaven)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load Maven memberships")
@@ -77,10 +80,11 @@ func publicUserProfile(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load npm memberships")
 	}
-	response, err := profileResponseWithConnections(state, profile, own, time.Now().UnixMilli())
+	response, err := profileResponseWithPrivateDetails(state, profile, own, own || administrator, time.Now().UnixMilli())
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load account connections")
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load private profile details")
 	}
+	response.AdministratorView = administrator
 	response.MavenDomainCount = len(mavenMemberships)
 	response.CargoPackageCount = len(cargoMemberships)
 	response.DockerImageCount = len(dockerMemberships)
@@ -231,10 +235,11 @@ func ownUserProfile(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load user profile")
 	}
 	c.Set(fiber.HeaderCacheControl, "no-store")
-	response, err := profileResponseWithConnections(state, profile, true, time.Now().UnixMilli())
+	response, err := profileResponseWithPrivateDetails(state, profile, true, true, time.Now().UnixMilli())
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load account connections")
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load private profile details")
 	}
+	response.AdministratorView = user.IsManager()
 	return c.JSON(response)
 }
 
@@ -284,6 +289,8 @@ func updateOwnUserProfile(c fiber.Ctx, state *core.AppState, opChan chan<- token
 	}
 	if newUsername == current.Username && nickname == current.Nickname {
 		response := profileResponse(current, true, time.Now().UnixMilli())
+		response.PrivateDetails = true
+		response.AdministratorView = user.IsManager()
 		response.GitHub = &github
 		c.Set(fiber.HeaderCacheControl, "no-store")
 		return c.JSON(response)
@@ -312,6 +319,8 @@ func updateOwnUserProfile(c fiber.Ctx, state *core.AppState, opChan chan<- token
 	logProfileUpdate(c, state, current, updated)
 	c.Set(fiber.HeaderCacheControl, "no-store")
 	response := profileResponse(updated, true, changedAt)
+	response.PrivateDetails = true
+	response.AdministratorView = user.IsManager()
 	response.GitHub = &github
 	limits := state.Inner.Config.Load().SuperTeams
 	response.SuperTeamLimits, err = db.GetSuperTeamLimitStatus(
@@ -326,18 +335,22 @@ func updateOwnUserProfile(c fiber.Ctx, state *core.AppState, opChan chan<- token
 	return c.JSON(response)
 }
 
-func profileResponseWithConnections(state *core.AppState, profile *core.UserProfile, own bool,
+func profileResponseWithPrivateDetails(state *core.AppState, profile *core.UserProfile, own, private bool,
 	now int64) (userProfileResponse, error) {
 	response := profileResponse(profile, own, now)
-	if !own {
+	if own {
+		github, err := githubProfileStatusForAccount(state, profile.Username)
+		if err != nil {
+			return userProfileResponse{}, err
+		}
+		response.GitHub = &github
+	}
+	if !private {
 		return response, nil
 	}
-	github, err := githubProfileStatusForAccount(state, profile.Username)
-	if err != nil {
-		return userProfileResponse{}, err
-	}
-	response.GitHub = &github
+	response.PrivateDetails = true
 	limits := state.Inner.Config.Load().SuperTeams
+	var err error
 	response.SuperTeamLimits, err = state.GetDB().GetSuperTeamLimitStatus(
 		profile.Username, limits.CreateLimit, limits.JoinLimit)
 	if err != nil {

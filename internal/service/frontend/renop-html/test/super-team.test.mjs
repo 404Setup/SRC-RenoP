@@ -35,7 +35,7 @@ test('global teams use a routed account center and embedded profile limits', () 
     assert.match(main, /superTeamRouteFromPath/);
     assert.match(main, /loadSuperTeamCenterPage/);
     assert.match(main, /isAccountTab\(tabId\)/);
-    assert.match(profile, /renderProfileSuperTeamLimits\(profile\.super_team_limits\)/);
+    assert.match(profile, /createProfileSuperTeamLimits\(profile\.super_team_limits/);
 });
 
 test('global team controls share bounded dialogs, user suggestions, errors, and mobile layout', () => {

@@ -32,8 +32,8 @@ import {getRepositoryFormat} from './repository-formats.js';
 import {renderGitHubConnection} from './github-auth.js';
 import {refreshAccountSecurity} from './account-security.js';
 import {refreshAPITokenSummary} from './api-tokens.js';
-import {renderProfileSuperTeamLimits} from './super-teams.js';
-import {renderProfilePublicationQuota} from './publication-quota.js';
+import {createProfileSuperTeamLimits} from './super-teams.js';
+import {createPublicationQuotaPanel, openPublicationQuotaDialog} from './publication-quota.js';
 import {
     caughtErrorMessage,
     LocalizedResponseError,
@@ -65,11 +65,12 @@ function formatGPGDate(value) {
  * Load and render registered GPG keys inside the profile dialog.
  * @param {HTMLElement} list
  * @param {HTMLElement} count
- * @param {HTMLInputElement} input
- * @param {HTMLButtonElement} addButton
+ * @param {HTMLInputElement|null} input
+ * @param {HTMLButtonElement|null} addButton
+ * @param {object} profile - Authorized profile payload.
  * @returns {Promise<void>}
  */
-async function loadProfileGPGKeys(list, count, input, addButton) {
+async function loadProfileGPGKeys(list, count, input, addButton, profile) {
     await morphElementHeight(list, () => {
         list.replaceChildren(el('div', {class: 'sessions-loading'},
             el('div', {class: 'sessions-loading-spinner', 'aria-hidden': 'true'}),
@@ -77,14 +78,15 @@ async function loadProfileGPGKeys(list, count, input, addButton) {
         ));
     }, {duration: 280});
     try {
-        const {response, data} = await fetchProto('/api/auth/profile/gpg', GpgKeyList);
+        const target = profile.own_profile ? '' : `?username=${encodeURIComponent(profile.username)}`;
+        const {response, data} = await fetchProto(`/api/auth/profile/gpg${target}`, GpgKeyList);
         if (!response.ok || !data) {
             throw await localizedResponseError(response, 'profile.gpgLoadFailed');
         }
         const keys = Array.isArray(data.keys) ? data.keys : [];
         count.textContent = t('profile.gpgKeyCount', {count: keys.length});
-        input.disabled = keys.length >= 10;
-        addButton.disabled = keys.length >= 10;
+        if (input) input.disabled = keys.length >= 10;
+        if (addButton) addButton.disabled = keys.length >= 10;
         await morphElementHeight(list, () => {
             list.replaceChildren();
             if (keys.length === 0) {
@@ -100,22 +102,25 @@ async function loadProfileGPGKeys(list, count, input, addButton) {
                         expires: formatGPGDate(key.key_expires_at)
                     })
                 );
-                const remove = el('button', {
-                    type: 'button',
-                    class: 'file-action-btn file-action-btn--delete',
-                    title: t('profile.gpgDeleteKey'),
-                    ariaLabel: t('profile.gpgDeleteKey')
-                }, createIcon('delete'));
-                remove.addEventListener('click', async () => {
-                    if (!(await window.showConfirm(t('profile.gpgConfirmDelete')))) return;
-                    const deleteResponse = await apiRequest(`/api/auth/profile/gpg/${encodeURIComponent(key.fingerprint)}`, {method: 'DELETE'});
-                    if (!deleteResponse.ok) {
-                        showAlert(t('profile.gpgDeleteFailed'), 'error');
-                        return;
-                    }
-                    showAlert(t('profile.gpgDeleted'), 'success');
-                    await loadProfileGPGKeys(list, count, input, addButton);
-                });
+                let remove = null;
+                if (profile.own_profile) {
+                    remove = el('button', {
+                        type: 'button',
+                        class: 'file-action-btn file-action-btn--delete',
+                        title: t('profile.gpgDeleteKey'),
+                        ariaLabel: t('profile.gpgDeleteKey')
+                    }, createIcon('delete'));
+                    remove.addEventListener('click', async () => {
+                        if (!(await window.showConfirm(t('profile.gpgConfirmDelete')))) return;
+                        const deleteResponse = await apiRequest(`/api/auth/profile/gpg/${encodeURIComponent(key.fingerprint)}`, {method: 'DELETE'});
+                        if (!deleteResponse.ok) {
+                            showAlert(t('profile.gpgDeleteFailed'), 'error');
+                            return;
+                        }
+                        showAlert(t('profile.gpgDeleted'), 'success');
+                        await loadProfileGPGKeys(list, count, input, addButton, profile);
+                    });
+                }
                 list.appendChild(el('div', {class: 'gpg-key-item'},
                     el('div', {class: 'gpg-key-info'}, identity, fingerprint, dates),
                     remove
@@ -131,61 +136,67 @@ async function loadProfileGPGKeys(list, count, input, addButton) {
 }
 
 /**
- * Open the profile dialog used to register and remove GPG public-key IDs.
+ * Open registered GPG keys with mutations available only on the own profile.
+ * @param {object} profile - Authorized profile payload.
  * @returns {void}
  */
-function openProfileGPGDialog() {
-    const input = el('input', {
-        type: 'text',
-        class: 'profile-input',
-        placeholder: t('profile.gpgKeyPlaceholder'),
-        autocomplete: 'off',
-        spellcheck: 'false',
-        maxlength: '66'
-    });
-    const addButton = el('button', {
-        type: 'submit',
-        class: 'pill-btn pill-btn--primary'
-    }, createIcon('plus'), el('span', {}, t('profile.gpgAddKey')));
+function openProfileGPGDialog(profile) {
+    let input = null;
+    let addButton = null;
+    let form = null;
     const count = el('span', {class: 'gpg-key-count'}, t('profile.gpgKeyCount', {count: 0}));
     const list = el('div', {class: 'gpg-key-list'});
-    const form = el('form', {class: 'gpg-key-add-form', action: 'javascript:void(0);'}, input, addButton);
-    form.addEventListener('submit', async event => {
-        event.preventDefault();
-        let reference = input.value.trim().replace(/^0x/i, '').replace(/\s+/g, '');
-        if (!/^(?:[0-9a-fA-F]{16}|[0-9a-fA-F]{40}|[0-9a-fA-F]{64})$/.test(reference)) {
-            showAlert(t('profile.gpgInvalidKey'), 'error');
-            return;
-        }
-        addButton.disabled = true;
-        try {
-            const {response} = await postProto(
-                '/api/auth/profile/gpg',
-                GpgKeyReferenceRequest,
-                {key_id: reference},
-                GpgKeyDto
-            );
-            if (!response.ok) {
-                showAlert(await responseErrorMessage(response, 'profile.gpgAddFailed'), 'error');
+    if (profile.own_profile) {
+        input = el('input', {
+            type: 'text',
+            class: 'profile-input',
+            placeholder: t('profile.gpgKeyPlaceholder'),
+            autocomplete: 'off',
+            spellcheck: 'false',
+            maxlength: '66'
+        });
+        addButton = el('button', {
+            type: 'submit',
+            class: 'pill-btn pill-btn--primary'
+        }, createIcon('plus'), el('span', {}, t('profile.gpgAddKey')));
+        form = el('form', {class: 'gpg-key-add-form', action: 'javascript:void(0);'}, input, addButton);
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
+            const reference = input.value.trim().replace(/^0x/i, '').replace(/\s+/g, '');
+            if (!/^(?:[0-9a-fA-F]{16}|[0-9a-fA-F]{40}|[0-9a-fA-F]{64})$/.test(reference)) {
+                showAlert(t('profile.gpgInvalidKey'), 'error');
                 return;
             }
-            input.value = '';
-            showAlert(t('profile.gpgAdded'), 'success');
-            await loadProfileGPGKeys(list, count, input, addButton);
-        } catch (error) {
-            console.error('Failed to register GPG key', error);
-            showAlert(t('profile.gpgAddFailed'), 'error');
-        } finally {
-            if (!input.disabled) addButton.disabled = false;
-        }
-    });
+            addButton.disabled = true;
+            try {
+                const {response} = await postProto(
+                    '/api/auth/profile/gpg',
+                    GpgKeyReferenceRequest,
+                    {key_id: reference},
+                    GpgKeyDto
+                );
+                if (!response.ok) {
+                    showAlert(await responseErrorMessage(response, 'profile.gpgAddFailed'), 'error');
+                    return;
+                }
+                input.value = '';
+                showAlert(t('profile.gpgAdded'), 'success');
+                await loadProfileGPGKeys(list, count, input, addButton, profile);
+            } catch (error) {
+                console.error('Failed to register GPG key', error);
+                showAlert(t('profile.gpgAddFailed'), 'error');
+            } finally {
+                if (!input.disabled) addButton.disabled = false;
+            }
+        });
+    }
     const body = el('div', {class: 'gpg-key-dialog-body'}, form, count, list);
     void RenopDialog.show({
         id: 'profile-gpg-dialog',
         maxWidth: '680px',
         icon: 'fileKey',
         title: t('profile.gpgTitle'),
-        subtitle: t('profile.gpgDialogDesc'),
+        subtitle: t(profile.own_profile ? 'profile.gpgDialogDesc' : 'profile.gpgDesc'),
         body,
         footer: [{
             text: t('common.close'),
@@ -193,7 +204,7 @@ function openProfileGPGDialog() {
             onClick: (event, dialog) => dialog.close(true)
         }]
     });
-    void loadProfileGPGKeys(list, count, input, addButton);
+    void loadProfileGPGKeys(list, count, input, addButton, profile);
 }
 
 /**
@@ -247,6 +258,7 @@ function createProfileGPGReleaseItem(release) {
  * @property {number} limit
  * @property {boolean} loading
  * @property {boolean} hasActive
+ * @property {string} username
  */
 
 /**
@@ -268,6 +280,7 @@ async function loadProfileGPGReleases(view, showLoading = false) {
     }
     try {
         const query = new URLSearchParams({limit: String(view.limit), offset: String(view.offset)});
+        if (view.username) query.set('username', view.username);
         const {response, data} = await fetchProto(`/api/auth/profile/gpg/releases?${query}`, GpgReleaseList);
         if (!response.ok || !data) {
             throw await localizedResponseError(response, 'profile.gpgReleasesLoadFailed');
@@ -308,10 +321,11 @@ async function loadProfileGPGReleases(view, showLoading = false) {
 }
 
 /**
- * Open the paginated GPG publication-history dialog and poll active records.
+ * Open an authorized paginated GPG publication history and poll active records.
+ * @param {object} profile - Authorized profile payload.
  * @returns {void}
  */
-function openProfileGPGReleasesDialog() {
+function openProfileGPGReleasesDialog(profile) {
     const list = el('div', {class: 'gpg-release-list'});
     const summary = el('span', {class: 'gpg-release-summary'}, t('profile.gpgReleasesLoading'));
     const previous = el('button', {
@@ -333,7 +347,10 @@ function openProfileGPGReleasesDialog() {
         ariaLabel: t('profile.gpgReleasesRefresh')
     }, createIcon('refresh'));
     /** @type {GPGReleaseView} */
-    const view = {list, summary, previous, next, offset: 0, limit: 20, loading: false, hasActive: true};
+    const view = {
+        list, summary, previous, next, offset: 0, limit: 20, loading: false, hasActive: true,
+        username: profile.own_profile ? '' : profile.username
+    };
 
     previous.addEventListener('click', () => {
         view.offset = Math.max(0, view.offset - view.limit);
@@ -757,6 +774,32 @@ async function renderProfileMemberships(profile, format, sequence) {
 }
 
 /**
+ * Build one private profile action card from existing profile copy and icons.
+ * @param {string} icon - Canonical icon name.
+ * @param {string} modifier - Profile icon modifier.
+ * @param {string} titleKey - Localized title key.
+ * @param {string} descriptionKey - Localized description key.
+ * @param {string} buttonKey - Localized action key.
+ * @param {() => void} action - Button action.
+ * @returns {HTMLElement} Private action card.
+ */
+function profilePrivateActionCard(icon, modifier, titleKey, descriptionKey, buttonKey, action) {
+    return el('div', {class: 'profile-settings-section profile-private-action-card'},
+        el('div', {class: 'profile-section-card-header'},
+            el('div', {class: `profile-section-icon profile-section-icon--${modifier}`, 'aria-hidden': 'true'},
+                createIcon(icon)),
+            el('div', {class: 'profile-section-meta'},
+                el('h3', {class: 'profile-section-title'}, t(titleKey)),
+                el('p', {class: 'profile-section-desc'}, t(descriptionKey))
+            )
+        ),
+        el('div', {class: 'profile-section-body'},
+            el('button', {type: 'button', class: 'pill-btn pill-btn--primary', onclick: action}, t(buttonKey))
+        )
+    );
+}
+
+/**
  * Render the default public-facing profile page.
  * @param {object} profile - Public profile payload.
  * @returns {void}
@@ -776,7 +819,7 @@ function renderPublicProfile(profile) {
             onclick: () => navigateToUserProfile(profile.username, 'edit')
         }, createIcon('edit'), el('span', {}, t('common.edit'))));
     }
-    publicView.replaceChildren(
+    const children = [
         el('button', {
             type: 'button', class: 'profile-route-back', onclick: leaveUserProfileRoute
         }, createIcon('chevronLeft'), el('span', {}, t('profile.back'))),
@@ -848,7 +891,35 @@ function renderPublicProfile(profile) {
                 )
             )
         )
-    );
+    ];
+    if (profile.private_details) {
+        const administrator = profile.administrator_view === true;
+        const quotaPanel = createPublicationQuotaPanel(profile.publication_quota, {
+            editable: administrator,
+            onEdit: administrator ? () => void openPublicationQuotaDialog({
+                ownerType: 'user',
+                ownerKey: profile.username,
+                onSaved: saved => {
+                    profile.publication_quota = saved;
+                    renderPublicProfile(profile);
+                }
+            }) : null
+        });
+        const teamLimits = createProfileSuperTeamLimits(profile.super_team_limits, {
+            showManage: profile.own_profile === true
+        });
+        children.push(el('div', {class: 'profile-private-grid'},
+            quotaPanel,
+            teamLimits,
+            profilePrivateActionCard('fileKey', 'gpg', 'profile.gpgTitle', 'profile.gpgDesc',
+                profile.own_profile ? 'profile.gpgBtn' : 'profile.gpgTitle',
+                () => openProfileGPGDialog(profile)),
+            profilePrivateActionCard('clock', 'gpg-releases', 'profile.gpgReleasesTitle',
+                'profile.gpgReleasesDesc', 'profile.gpgReleasesBtn',
+                () => openProfileGPGReleasesDialog(profile))
+        ));
+    }
+    publicView.replaceChildren(...children);
 }
 
 /**
@@ -1040,8 +1111,6 @@ function showProfileEdit(profile) {
     editView.hidden = false;
     updateProfileEditHeading(profile);
     buildProfileIdentityEditor(profile);
-    renderProfileSuperTeamLimits(profile.super_team_limits);
-    renderProfilePublicationQuota(profile.publication_quota);
     editView.querySelectorAll('details.profile-collapsible-card').forEach(card => {
         resetProfileDisclosure(card);
         wireProfileDisclosure(card);
@@ -1186,18 +1255,6 @@ function wireProfileEditActions(profile) {
         btnProfileFido.addEventListener('click', () => {
             openProfileFidoDialog();
         });
-    }
-
-    const btnProfileGPG = document.getElementById('btn-profile-gpg');
-    if (btnProfileGPG && !btnProfileGPG.dataset.listenerAttached) {
-        btnProfileGPG.dataset.listenerAttached = 'true';
-        btnProfileGPG.addEventListener('click', openProfileGPGDialog);
-    }
-
-    const btnProfileGPGReleases = document.getElementById('btn-profile-gpg-releases');
-    if (btnProfileGPGReleases && !btnProfileGPGReleases.dataset.listenerAttached) {
-        btnProfileGPGReleases.dataset.listenerAttached = 'true';
-        btnProfileGPGReleases.addEventListener('click', openProfileGPGReleasesDialog);
     }
 
     const btnAddFido = document.getElementById('btn-add-fido-device');
