@@ -99,6 +99,10 @@ renop
 ./tmp-*
 .tmp-*
 .codex-*
+internal/service/frontend/renop-html/js/i18n/catalog.generated.js
+internal/service/frontend/renop-html/js/i18n/catalog.*.*.js
+internal/service/frontend/renop-html/js/proto/api.js
+pkg/pb/*.pb.go
 storage/private
 storage/releases
 storage/snapshots
