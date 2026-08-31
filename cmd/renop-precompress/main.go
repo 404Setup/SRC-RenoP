@@ -25,7 +25,7 @@ import (
 	"strings"
 
 	"github.com/klauspost/compress/zstd"
-	brrr "github.com/molecule-man/go-brrr"
+	"github.com/molecule-man/go-brrr"
 )
 
 const (

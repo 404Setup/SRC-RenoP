@@ -17,7 +17,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	brrr "github.com/molecule-man/go-brrr"
+	"github.com/molecule-man/go-brrr"
 )
 
 func TestCompressFileProducesRawBrotliStream(t *testing.T) {

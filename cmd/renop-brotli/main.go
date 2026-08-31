@@ -20,7 +20,7 @@ import (
 	"os"
 	"path/filepath"
 
-	brrr "github.com/molecule-man/go-brrr"
+	"github.com/molecule-man/go-brrr"
 )
 
 const copyBufferSize = 256 << 10
