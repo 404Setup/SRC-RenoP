@@ -12,10 +12,10 @@
 package protohttp
 
 import (
-	"io"
-
 	"github.com/gofiber/fiber/v3"
 	"google.golang.org/protobuf/proto"
+
+	"renop/internal/utils"
 )
 
 // ContentType is the MIME type used for protobuf request/response bodies.
@@ -42,28 +42,9 @@ func WriteStatus(c fiber.Ctx, status int, m proto.Message) error {
 
 // Read unmarshals a size-limited request body into m as protobuf.
 func Read(c fiber.Ctx, m proto.Message) error {
-	req := c.Request()
-	if contentLength := req.Header.ContentLength(); contentLength > MaxRequestBodySize {
-		return fiber.ErrRequestEntityTooLarge
-	}
-
-	var body []byte
-	if stream := req.BodyStream(); stream != nil {
-		var err error
-		body, err = io.ReadAll(io.LimitReader(stream, MaxRequestBodySize+1))
-		if err != nil {
-			return err
-		}
-		if len(body) > MaxRequestBodySize {
-			return fiber.ErrRequestEntityTooLarge
-		}
-		// Preserve the bounded body for endpoints that support JSON fallback.
-		req.SetBodyRaw(body)
-	} else {
-		body = req.Body()
-	}
-	if len(body) > MaxRequestBodySize {
-		return fiber.ErrRequestEntityTooLarge
+	body, err := utils.ReadRequestBodyLimited(c, MaxRequestBodySize)
+	if err != nil {
+		return err
 	}
 	return proto.Unmarshal(body, m)
 }

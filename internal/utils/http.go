@@ -12,7 +12,7 @@ package utils
 
 import (
 	"encoding/base64"
-	"io"
+	"errors"
 	"net"
 	"strconv"
 	"strings"
@@ -25,35 +25,41 @@ import (
 
 const MaxJSONBodySize int64 = 1 << 20
 
-// ReadJSONLimited decodes a JSON request without allowing an unknown-length
-// stream to grow beyond the endpoint's control-plane body budget.
-func ReadJSONLimited(c fiber.Ctx, dst any, maxSize int64) error {
+// ReadRequestBodyLimited returns a bounded request body and preserves streamed
+// bytes for any later decoder fallback on the same request.
+func ReadRequestBodyLimited(c fiber.Ctx, maxSize int64) ([]byte, error) {
 	if maxSize <= 0 {
-		return fiber.ErrRequestEntityTooLarge
+		return nil, fiber.ErrRequestEntityTooLarge
 	}
 	req := c.Request()
 	if contentLength := req.Header.ContentLength(); int64(contentLength) > maxSize {
-		return fiber.ErrRequestEntityTooLarge
+		return nil, fiber.ErrRequestEntityTooLarge
 	}
-
-	var body []byte
 	if stream := req.BodyStream(); stream != nil {
-		var err error
-		body, err = io.ReadAll(io.LimitReader(stream, maxSize+1))
-		if err != nil {
-			return err
+		body, err := ReadAllLimited(stream, maxSize)
+		if errors.Is(err, ErrResponseTooLarge) {
+			return nil, fiber.ErrRequestEntityTooLarge
 		}
-		if int64(len(body)) > maxSize {
-			return fiber.ErrRequestEntityTooLarge
+		if err != nil {
+			return nil, err
 		}
 		req.SetBodyRaw(body)
-	} else {
-		body = req.Body()
-		if int64(len(body)) > maxSize {
-			return fiber.ErrRequestEntityTooLarge
-		}
+		return body, nil
 	}
+	body := req.Body()
+	if int64(len(body)) > maxSize {
+		return nil, fiber.ErrRequestEntityTooLarge
+	}
+	return body, nil
+}
 
+// ReadJSONLimited decodes a JSON request without allowing an unknown-length
+// stream to grow beyond the endpoint's control-plane body budget.
+func ReadJSONLimited(c fiber.Ctx, dst any, maxSize int64) error {
+	body, err := ReadRequestBodyLimited(c, maxSize)
+	if err != nil {
+		return err
+	}
 	return json.Unmarshal(body, dst)
 }
 

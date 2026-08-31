@@ -22,6 +22,7 @@ import {InstanceStatus} from './proto/index.js';
 import {writeClipboardText} from './clipboard.js';
 import {formatTimestamp} from './time.js';
 import {updaterErrorMessage} from './updater-errors.js';
+import {formatBytes} from './browser/utils.js';
 
 /**
  * Show a transient toast alert that auto-dismisses after 5 seconds.
@@ -143,21 +144,6 @@ export function showPrompt(message, defaultValue = '', readOnly = false, options
 }
 
 window.showPrompt = showPrompt;
-
-/**
- * Format a byte count as a human-readable size string (B, KB, MB, GB, TB).
- * @param {number} bytes - Size in bytes.
- * @param {number} [decimals=2] - Fractional digits (clamped to >= 0).
- * @returns {string} Formatted size, e.g. "1.5 MB".
- */
-export function formatBytes(bytes, decimals = 2) {
-    if (bytes === 0 || !bytes) return '0 B';
-    const k = 1024;
-    const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-}
 
 /**
  * Escape HTML special characters in a string for safe text insertion.

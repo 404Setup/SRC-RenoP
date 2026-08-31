@@ -20,6 +20,7 @@ test('profile and prefetch caches have explicit lifecycle and capacity bounds', 
     const profiles = readFileSync(join(frontendRoot, 'js/user-profiles.js'), 'utf8');
     const auth = readFileSync(join(frontendRoot, 'js/auth.js'), 'utf8');
     const browser = readFileSync(join(frontendRoot, 'js/browser.js'), 'utf8');
+    const alert = readFileSync(join(frontendRoot, 'js/alert.js'), 'utf8');
 
     assert.match(profiles, /PROFILE_CACHE_MAX_ENTRIES = 256/);
     assert.match(profiles, /cached\.expiresAt <= now/);
@@ -35,4 +36,6 @@ test('profile and prefetch caches have explicit lifecycle and capacity bounds', 
     assert.match(browser, /prefetchCache\.get\(oldest\)\?\.remove\(\)/);
     assert.match(browser, /link\.addEventListener\('load',[\s\S]*?link\.remove\(\)/);
     assert.match(browser, /link\.addEventListener\('error',[\s\S]*?prefetchCache\.delete\(url\)/);
+    assert.match(alert, /import \{formatBytes} from '\.\/browser\/utils\.js'/);
+    assert.doesNotMatch(alert, /export function formatBytes/);
 });

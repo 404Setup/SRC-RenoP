@@ -11,13 +11,32 @@
 package utils
 
 import (
+	"bytes"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/valyala/fasthttp"
 
 	"renop/internal/config"
 )
+
+func TestReadRequestBodyLimitedPreservesBoundedStream(t *testing.T) {
+	payload := []byte(`{"name":"renop"}`)
+	fastCtx := &fasthttp.RequestCtx{}
+	fastCtx.Request.SetBodyStream(bytes.NewReader(payload), -1)
+	app := fiber.New()
+	ctx := app.AcquireCtx(fastCtx)
+	defer app.ReleaseCtx(ctx)
+
+	body, err := ReadRequestBodyLimited(ctx, int64(len(payload)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(body, payload) || !bytes.Equal(ctx.Request().Body(), payload) {
+		t.Fatal("bounded stream was not preserved for decoder fallback")
+	}
+}
 
 type parseRangeTestCase struct {
 	rangeStr  string
