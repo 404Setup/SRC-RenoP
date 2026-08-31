@@ -457,10 +457,6 @@ html.dark .dashboard-section-badge {
     height: 18px;
 }
 
-.profile-section-icon--password {
-    --section-accent: #6366f1;
-}
-
 .profile-section-icon--token {
     --section-accent: #3b82f6;
 }
@@ -735,19 +731,6 @@ html.dark .dashboard-section-badge {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-}
-
-.profile-form-group {
-    margin-bottom: 0;
-}
-
-.profile-form-group label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--text-color);
-    opacity: 0.85;
-    margin-bottom: 0.4rem;
-    display: block;
 }
 
 .profile-input {

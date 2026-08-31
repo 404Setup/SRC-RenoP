@@ -29,6 +29,20 @@ import (
 	"renop/internal/service/audit"
 )
 
+func htmlTagContaining(t *testing.T, source, marker string) string {
+	t.Helper()
+	markerIndex := strings.Index(source, marker)
+	if markerIndex < 0 {
+		t.Fatalf("HTML is missing %q", marker)
+	}
+	start := strings.LastIndex(source[:markerIndex], "<")
+	end := strings.Index(source[markerIndex:], ">")
+	if start < 0 || end < 0 {
+		t.Fatalf("HTML tag containing %q is incomplete", marker)
+	}
+	return source[start : markerIndex+end+1]
+}
+
 func TestBundledAssetsEmbedded(t *testing.T) {
 	files := []string{
 		"index.html",
@@ -627,7 +641,7 @@ func TestAccountMenuOwnsMessagesLogoutAndNotificationComposer(t *testing.T) {
 	}
 	messagesText := string(messagesSource)
 	for _, required := range []string{
-		"export function openNotificationComposer", "messages.length > 0 && nextCursor !== ''",
+		"messages.length > 0 && nextCursor !== ''",
 		"document.getElementById('profile-message-unread-badge')",
 		"button.disabled = loading || !hasMore", "button.hidden = !hasMore",
 	} {
@@ -637,6 +651,13 @@ func TestAccountMenuOwnsMessagesLogoutAndNotificationComposer(t *testing.T) {
 	}
 	if strings.Contains(messagesText, "loadMore.disabled = false") {
 		t.Fatal("message pagination still enables load-more without a server cursor")
+	}
+	composerSource, err := os.ReadFile(filepath.Join("renop-html", "js", "notification-composer.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(composerSource), "export function openNotificationComposer") {
+		t.Fatal("notification composer is missing its public entry point")
 	}
 }
 
@@ -751,11 +772,19 @@ func TestFineGrainedAPITokenProfileUI(t *testing.T) {
 	indexText := string(indexSource)
 	for _, required := range []string{
 		`id="profile-api-token-section"`, `id="profile-api-token-status"`, `id="btn-manage-api-tokens"`,
-		`id="profile-account-security-section" class="profile-settings-section profile-account-security-section profile-collapsible-card"`,
-		`id="profile-private-email" class="profile-input" type="email" maxlength="254" autocomplete="email" required`,
 	} {
 		if !strings.Contains(indexText, required) {
 			t.Fatalf("fine-grained API token profile UI is missing %q", required)
+		}
+	}
+	securityTag := htmlTagContaining(t, indexText, `id="profile-account-security-section"`)
+	if !strings.Contains(securityTag, `class="profile-settings-section profile-account-security-section profile-collapsible-card"`) {
+		t.Fatal("account security section is missing its responsive card classes")
+	}
+	emailTag := htmlTagContaining(t, indexText, `id="profile-private-email"`)
+	for _, required := range []string{`class="profile-input"`, `type="email"`, `maxlength="254"`, `autocomplete="email"`, `required`} {
+		if !strings.Contains(emailTag, required) {
+			t.Fatalf("private email input is missing %q", required)
 		}
 	}
 	if strings.Contains(indexText, `id="btn-generate-upload-token"`) {
@@ -818,7 +847,8 @@ func TestSharedShellRoutingAvatarCodeAndSearchAnimations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(indexSource), `id="home-link" href="/"`) {
+	homeLink := htmlTagContaining(t, string(indexSource), `id="home-link"`)
+	if !strings.Contains(homeLink, `href="/"`) {
 		t.Fatal("navigation title is missing the explicit home control")
 	}
 	mainSource, err := os.ReadFile(filepath.Join("renop-html", "js", "main.js"))

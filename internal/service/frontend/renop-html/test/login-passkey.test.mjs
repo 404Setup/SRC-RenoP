@@ -18,12 +18,12 @@ const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 test('login alternatives place Passkey before optional GitHub below the divider', () => {
     const index = readFileSync(join(frontendRoot, 'index.html'), 'utf8');
-    const submit = index.indexOf('type="submit" class="submit-btn"');
+    const submit = index.indexOf('class="submit-btn"');
     const divider = index.indexOf('class="login-provider-divider"');
     const passkey = index.indexOf('id="btn-fido-login"');
     const github = index.indexOf('id="btn-github-login"');
     assert.ok(submit >= 0 && divider > submit && passkey > divider && github > passkey);
-    assert.match(index, /<button[^>]+id="btn-fido-login"[^>]+login-provider-btn/);
+    assert.match(index, /<button(?=[^>]*id="btn-fido-login")(?=[^>]*class="[^"]*\blogin-provider-btn\b[^"]*")[^>]*>/);
     assert.doesNotMatch(index, /Username, email, or token name|Password \/ Secret|password or secret/i);
 
     const auth = readFileSync(join(frontendRoot, 'js/auth.js'), 'utf8');

@@ -37,7 +37,17 @@ test('own profile payload renders GitHub state without a delayed profile request
 test('profile edit cards use a compact responsive grid', () => {
     const styles = readFileSync(join(frontendRoot, 'css/manager/profile.css'), 'utf8');
     assert.match(styles, /\.profile-settings-card\s*\{[^}]*display: grid;[^}]*grid-template-columns: repeat\(2,/s);
+    assert.match(styles, /\.profile-settings-card\s*\{[^}]*grid-auto-flow: dense;/s);
     assert.match(styles, /\.profile-identity-card,[\s\S]*?#profile-github-section\s*\{[^}]*grid-column: 1 \/ -1;/);
     assert.match(styles, /@media \(max-width: 820px\)[\s\S]*?\.profile-settings-card\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
     assert.match(styles, /#profile-edit-view \.profile-hero\s*\{[^}]*margin-bottom: 1\.25rem;/s);
+});
+
+test('password controls live inside the account security card', () => {
+    const page = readFileSync(join(frontendRoot, 'index.html'), 'utf8');
+    const securityStart = page.indexOf('id="profile-account-security-section"');
+    const securityEnd = page.indexOf('id="profile-api-token-section"');
+    assert.ok(securityStart >= 0 && securityEnd > securityStart);
+    assert.match(page.slice(securityStart, securityEnd), /id="profile-password-form"/);
+    assert.equal(page.indexOf('id="profile-password-form"'), page.lastIndexOf('id="profile-password-form"'));
 });

@@ -748,45 +748,6 @@
                 </div>
 
                 <div class="profile-settings-card">
-                    <details class="profile-settings-section profile-collapsible-card">
-                        <summary class="profile-section-card-header profile-collapsible-summary">
-                            <div aria-hidden="true" class="profile-section-icon profile-section-icon--password">
-                                <svg fill="none" stroke="currentColor" stroke-linecap="round"
-                                     stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"
-                                     xmlns="http://www.w3.org/2000/svg">
-                                    <rect height="11" rx="2" ry="2" width="18" x="3" y="11"/>
-                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                                </svg>
-                            </div>
-                            <div class="profile-section-meta">
-                                <h3 class="profile-section-title" data-i18n="profile.changePasswordTitle">Change
-                                    Password</h3>
-                                <p class="profile-section-desc" data-i18n="profile.changePasswordDesc">Update your
-                                    account password below.</p>
-                            </div>
-                            <renop-icon aria-hidden="true" class="profile-collapse-chevron"
-                                        name="chevronDown"></renop-icon>
-                        </summary>
-                        <div class="profile-collapsible-content" hidden>
-                            <form action="javascript:void(0);" class="profile-section-body" id="profile-password-form">
-                                <input autocomplete="username" id="profile-username-hidden" name="username" readonly
-                                       style="display: none;" type="text">
-                                <div class="form-group profile-form-group">
-                                    <label data-i18n="profile.newPasswordLabel" for="profile-new-password">New
-                                        Password</label>
-                                    <input autocomplete="new-password" class="profile-input" data-i18n-placeholder="profile.newPasswordPlaceholder"
-                                           id="profile-new-password"
-                                           placeholder="Enter new password"
-                                           type="password">
-                                </div>
-                                <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.updatePasswordBtn"
-                                        id="btn-update-password"
-                                        type="submit">Update Password
-                                </button>
-                            </form>
-                        </div>
-                    </details>
-
                     <details class="profile-settings-section profile-account-security-section profile-collapsible-card"
                              hidden
                              id="profile-account-security-section">
@@ -809,6 +770,26 @@
                         </summary>
                         <div class="profile-collapsible-content" hidden>
                             <div class="profile-section-body profile-account-security-body">
+                                <form action="javascript:void(0);" class="profile-security-password-form"
+                                      id="profile-password-form">
+                                    <input autocomplete="username" id="profile-username-hidden" name="username"
+                                           readonly style="display: none;" type="text">
+                                    <strong data-i18n="profile.changePasswordTitle">Change Password</strong>
+                                    <label data-i18n="profile.newPasswordLabel" for="profile-new-password">New
+                                        Password</label>
+                                    <div class="profile-security-inline">
+                                        <input autocomplete="new-password" class="profile-input"
+                                               data-i18n-placeholder="profile.newPasswordPlaceholder"
+                                               id="profile-new-password" placeholder="Enter new password"
+                                               type="password">
+                                        <button class="pill-btn pill-btn--primary profile-action-btn"
+                                                data-i18n="profile.updatePasswordBtn" id="btn-update-password"
+                                                type="submit">Update Password
+                                        </button>
+                                    </div>
+                                    <p class="profile-security-hint" data-i18n="profile.changePasswordDesc">Update
+                                        your account password below.</p>
+                                </form>
                                 <form action="javascript:void(0);" class="profile-security-email-form"
                                       id="profile-private-email-form">
                                     <label data-i18n="profile.privateEmailLabel"

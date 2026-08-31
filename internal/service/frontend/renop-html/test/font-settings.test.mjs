@@ -54,6 +54,6 @@ test('the system font baseline is shared and the H5 shell carries only inert fon
     assert.ok(base.includes('font-family: var(--font-sans'));
     assert.doesNotMatch(base, /font-family:\s*['"]Open Sans/);
     assert.ok(index.includes('data-font-preset="{{RENOP.FONT_PRESET}}"'));
-    assert.ok(index.includes('meta name="renop-font-url" content="{{RENOP.FONT_URL}}"'));
+    assert.match(index, /<meta(?=[^>]*name="renop-font-url")(?=[^>]*content="{{RENOP\.FONT_URL}}")/);
     assert.doesNotMatch(index, /RENOP\.FONT_URL[^>]+(?:stylesheet|preload)/);
 });
