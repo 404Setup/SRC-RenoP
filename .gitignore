@@ -59,6 +59,9 @@ dist/
 nbdist/
 .nb-gradle/
 
+# Generated frontend bundles, including precompressed HTTP sidecars
+internal/service/frontend/renop-html/dist/
+
 ### Windows ###
 # Windows thumbnail cache files
 Thumbs.db

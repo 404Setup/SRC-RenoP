@@ -14,6 +14,9 @@
 - **`server.go`**: Application entry point and server lifecycle.
 - **`cmd/renop-brotli/`**: Streaming Go CLI installed automatically by `build.ps1` to encode each release executable
   as a raw RFC 7932 Brotli stream with `github.com/molecule-man/go-brrr`.
+- **`cmd/renop-precompress/`**: Streaming frontend build helper that writes ignored `.deflate`, `.gz`, `.zst`, and
+  `.br` sidecars with deflate/gzip level 6, default Zstandard, and Brotli quality 9. It processes only compressible
+  source extensions and explicitly skips every sidecar suffix so repeated builds never recompress generated output.
 - **`cmd/renop-dbtest/`**: Standalone destructive-on-isolated-data driver contract CLI. It requires
   `-confirm-isolated` and exercises account/session persistence, rollback, message deduplication, Cargo/Docker/Maven/npm
   catalogs, global-team invitation/role mutations, cross-engine team bindings, and download statistics through the same
@@ -303,6 +306,9 @@
   and filter shell and morphs only the bounded results/pagination region;
   repository clipboard feedback is centralized in `js/browser/copy-feedback.js`; repository package and namespace
   metadata grids and cross-format mirror-source badges are built by `js/browser/repository-view.js`.
+  Production frontend builds invoke `cmd/renop-precompress` after bundling. Embedded static routes negotiate Brotli,
+  Zstandard, gzip, or deflate sidecars by quality-aware `Accept-Encoding`, return representation-specific ETags and
+  `Vary: Accept-Encoding`, and fall back to the identity file without enabling runtime response compression.
   The routed `/account/teams` center owns global-team pagination, immutable-prefix creation, responsive T1-T4 member
   controls, shared username suggestions, invitation actions, and embedded profile usage limits. System settings load
   global team defaults through a separate JSON domain without expanding the protobuf settings schema; all 12 frontend

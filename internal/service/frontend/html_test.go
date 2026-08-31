@@ -47,6 +47,10 @@ func TestBundledAssetsEmbedded(t *testing.T) {
 	files := []string{
 		"index.html",
 		"js/main.js",
+		"js/main.js.deflate",
+		"js/main.js.gz",
+		"js/main.js.zst",
+		"js/main.js.br",
 		"css/style.css",
 		"svg/logo.svg",
 	}

@@ -56,43 +56,22 @@ func readAsset(path string) ([]byte, error) {
 	return Asset.ReadFile(resolveAssetPath(path))
 }
 
-type assetHashEntry struct {
-	embedPath  string
-	publicPath string // empty = hash only (not cached for HTTP)
-}
-
 func GetAssetsHash() string {
 	onceHash.Do(func() {
-		// Hash cache-busting entrypoints via Open+Copy (streaming). Warm the
-		// HTTP embed cache for js/css in the same pass so ServeJs does not
-		// re-read the bundle — one buffer per served asset, not two.
 		hasher := sha256.New()
-		for _, e := range []assetHashEntry{
-			{embedPath: assetRoot + "/index.html"},
-			{embedPath: assetRoot + "/dist/js/main.js", publicPath: "js/main.js"},
-			{embedPath: assetRoot + "/dist/css/style.css", publicPath: "css/style.css"},
+		for _, embedPath := range []string{
+			assetRoot + "/index.html",
+			assetRoot + "/dist/js/main.js",
+			assetRoot + "/dist/css/style.css",
 		} {
-			f, err := Asset.Open(e.embedPath)
+			f, err := Asset.Open(embedPath)
 			if err != nil {
 				continue
 			}
-			_, _ = io.WriteString(hasher, e.embedPath)
-			if e.publicPath != "" {
-				// Need body for HTTP cache: tee into a single buffer while hashing.
-				data, err := io.ReadAll(f)
-				_ = f.Close()
-				if err != nil {
-					continue
-				}
-				hasher.Write(data)
-				cacheEmbeddedFile(e.publicPath, data)
-			} else {
-				_, _ = io.Copy(hasher, f)
-				_ = f.Close()
-			}
+			_, _ = io.WriteString(hasher, embedPath)
+			_, _ = io.Copy(hasher, f)
+			_ = f.Close()
 		}
-		// Include svg names so logo changes still bust the index cache without
-		// reading full image payloads when unnecessary.
 		if entries, err := Asset.ReadDir(assetRoot + "/svg"); err == nil {
 			for _, entry := range entries {
 				if entry.IsDir() {

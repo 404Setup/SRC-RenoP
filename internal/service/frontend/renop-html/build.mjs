@@ -99,6 +99,33 @@ function generateProtobuf() {
     }
 }
 
+/** Generate HTTP content-coding sidecars with the host Go toolchain. */
+function precompressAssets() {
+    const host = spawnSync('go', ['env', 'GOHOSTOS', 'GOHOSTARCH'], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+    });
+    const [goos, goarch] = String(host.stdout || '').trim().split(/\r?\n/);
+    if (host.status !== 0 || !goos || !goarch) {
+        throw new Error(`go env failed with exit code ${host.status ?? 'unknown'}`);
+    }
+    const env = {...process.env, GOOS: goos, GOARCH: goarch};
+    delete env.GOAMD64;
+    const result = spawnSync('go', ['run', './cmd/renop-precompress', '-root', outDir], {
+        cwd: repoRoot,
+        env,
+        stdio: 'inherit',
+    });
+    if (result.status !== 0) {
+        throw new Error(`frontend precompression failed with exit code ${result.status ?? 'unknown'}`);
+    }
+}
+
+/** @param {string} path Built asset path. */
+function isPrecompressedAsset(path) {
+    return ['.br', '.gz', '.zst', '.deflate'].some(suffix => path.endsWith(suffix));
+}
+
 const protoOnly = process.argv.includes('--proto-only');
 const i18nOnly = process.argv.includes('--i18n-only');
 
@@ -175,8 +202,10 @@ if (warnings && warnings.length) {
 
 writeFileSync(join(cssDir, 'style.css'), code);
 
+precompressAssets();
 const all = walk(outDir);
-console.log(`Frontend build OK (${all.length} files):`);
-for (const f of all) {
+const sourceAssets = all.filter(file => !isPrecompressedAsset(file));
+console.log(`Frontend build OK (${sourceAssets.length} files, ${all.length - sourceAssets.length} precompressed variants):`);
+for (const f of sourceAssets) {
     console.log('  ' + f.slice(outDir.length + 1).replaceAll('\\', '/'));
 }

@@ -114,8 +114,9 @@ pwsh ./build.ps1 c nb
 go test -count=1 -p 1 ./...
 ```
 
-`build.ps1 c nb` regenerates both Go protobuf bindings and the embedded frontend before producing an unpackaged binary
-for the current platform. Other build modes are:
+`build.ps1 c nb` regenerates both Go protobuf bindings and the embedded frontend, including ignored Brotli, Zstandard,
+gzip, and deflate static-asset sidecars, before producing an unpackaged binary for the current platform. Other build
+modes are:
 
 | Command | Output |
 |---------|--------|

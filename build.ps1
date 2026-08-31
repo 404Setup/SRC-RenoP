@@ -236,7 +236,7 @@ function Build-FrontendAssets {
         throw "Frontend package.json not found at $frontendDir"
     }
 
-    Write-Host 'Building frontend assets (protobuf + Rolldown JS + CSS)...'
+    Write-Host 'Building frontend assets (protobuf + Rolldown JS + CSS + precompression)...'
     if (-not (Test-Path -LiteralPath (Join-Path $frontendDir 'node_modules'))) {
         Push-Location $repositoryRoot
         try {
