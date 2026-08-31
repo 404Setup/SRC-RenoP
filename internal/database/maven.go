@@ -463,7 +463,7 @@ func (db *DB) SearchMavenRepositoryDomains(repository, query string, limit int) 
 	repository = sanitizeMavenRepository(repository)
 	query = SanitizeInputString(strings.ToLower(strings.TrimSpace(query)), 128)
 	if repository == "" || query == "" || limit < 1 || limit > 100 {
-		return nil, 0, errors.New("Maven repository domain search is invalid")
+		return nil, 0, errors.New("maven repository domain search is invalid")
 	}
 	pattern := "%" + query + "%"
 	var total int

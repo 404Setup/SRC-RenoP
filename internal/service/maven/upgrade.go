@@ -67,7 +67,7 @@ func importLegacyMavenPath(state *core.AppState, repository, path string, info i
 	}
 	if _, imported := importedDomains[domainName]; !imported {
 		if len(importedDomains) >= maxImportedMavenDomains {
-			return errors.New("Maven catalog import domain limit exceeded")
+			return errors.New("maven catalog import domain limit exceeded")
 		}
 		domain := &core.MavenDomain{
 			Repository: repository, Domain: domainName, VerificationType: core.MavenVerificationLegacy,

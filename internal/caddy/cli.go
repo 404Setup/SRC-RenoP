@@ -81,7 +81,7 @@ func RunCLI(args []string, input io.Reader, output io.Writer) error {
 			}
 			selection, err := strconv.Atoi(answer)
 			if err != nil || selection < 1 || selection > len(candidates) {
-				return errors.New("Caddyfile selection is invalid")
+				return errors.New("caddyfile selection is invalid")
 			}
 			caddyfile = candidates[selection-1]
 		}

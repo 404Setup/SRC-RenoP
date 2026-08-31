@@ -136,7 +136,7 @@ func Install(options Options) (Result, error) {
 		return result, err
 	}
 	if binaryPath == "" && !options.SkipReload {
-		return result, errors.New("Caddy executable was not found; pass --caddy-binary or use --skip-reload for an offline configuration")
+		return result, errors.New("caddy executable was not found; pass --caddy-binary or use --skip-reload for an offline configuration")
 	}
 	runner := options.CommandRunner
 	if runner == nil {

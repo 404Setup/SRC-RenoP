@@ -462,10 +462,6 @@ func findReleaseIndexForBuild(releases []ChannelInfoRelease, currentVersion, cur
 	return -1
 }
 
-func findReleaseIndex(releases []ChannelInfoRelease, currentVersion string) int {
-	return findReleaseIndexForBuild(releases, currentVersion, "")
-}
-
 func releaseRangeBoundary(releases []ChannelInfoRelease, currentVersion, currentCommit string) (int, bool) {
 	if index := findReleaseIndexForBuild(releases, currentVersion, currentCommit); index >= 0 {
 		return index, true

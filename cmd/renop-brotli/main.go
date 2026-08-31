@@ -27,7 +27,7 @@ const copyBufferSize = 256 << 10
 
 func compressFile(inputPath, outputPath string, quality int) (returnErr error) {
 	if quality < brrr.BestSpeed || quality > brrr.BestCompression {
-		return fmt.Errorf("Brotli quality must be between %d and %d", brrr.BestSpeed, brrr.BestCompression)
+		return fmt.Errorf("brotli quality must be between %d and %d", brrr.BestSpeed, brrr.BestCompression)
 	}
 	inputPath, err := filepath.Abs(inputPath)
 	if err != nil {

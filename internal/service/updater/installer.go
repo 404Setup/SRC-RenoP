@@ -200,7 +200,7 @@ func ExtractExecutableFromZip(zipTempFile *os.File) (string, error) {
 // ExtractExecutableFromBrotli decompresses a raw Brotli executable with a strict output bound.
 func ExtractExecutableFromBrotli(packageFile *os.File) (string, error) {
 	if packageFile == nil {
-		return "", errors.New("Brotli update package is missing")
+		return "", errors.New("brotli update package is missing")
 	}
 	info, err := packageFile.Stat()
 	if err != nil {

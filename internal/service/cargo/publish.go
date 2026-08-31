@@ -407,7 +407,7 @@ func rollbackCargoIndexVersion(state *core.AppState, store Store, indexPath, ver
 		return err
 	}
 	if !found {
-		return errors.New("Cargo index is missing during publication rollback")
+		return errors.New("cargo index is missing during publication rollback")
 	}
 	stage, err := store.Stage(indexPath)
 	if err != nil {
@@ -421,7 +421,7 @@ func rollbackCargoIndexVersion(state *core.AppState, store Store, indexPath, ver
 		return errors.Join(rewriteErr, closeErr)
 	}
 	if !removed {
-		return errors.New("Cargo version is missing during publication rollback")
+		return errors.New("cargo version is missing during publication rollback")
 	}
 	if err := stage.Close(); err != nil {
 		return err

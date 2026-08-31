@@ -47,6 +47,7 @@ const (
 	maxPackageManifestSize   = 2 << 20
 	maxStoredManifestJSON    = 4 << 20
 	maxPublishAttachmentData = ((maxTarballSize + 2) / 3) * 4
+	tarTypeRegularAlt        = byte(0)
 )
 
 var (
@@ -185,7 +186,7 @@ func validateTarball(staged StagedFile, packageName, version string) error {
 			strings.HasPrefix(cleanName, "../") || cleanName != "package" && !strings.HasPrefix(cleanName, "package/") {
 			return errors.New("npm tarball contains an unsafe path")
 		}
-		if cleanName != "package/package.json" || header.Typeflag != tar.TypeReg && header.Typeflag != tar.TypeRegA {
+		if cleanName != "package/package.json" || header.Typeflag != tar.TypeReg && header.Typeflag != tarTypeRegularAlt {
 			continue
 		}
 		if header.Size > maxPackageManifestSize {
