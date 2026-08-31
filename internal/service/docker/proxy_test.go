@@ -65,6 +65,41 @@ func TestParseChallengeParams(t *testing.T) {
 	}
 }
 
+func TestUpstreamTokenCacheBoundsAndExpires(t *testing.T) {
+	now := time.Unix(1_800_000_000, 0)
+	cache := &dockerTokenCache{}
+	for index := range maxUpstreamTokenCacheEntries + 64 {
+		cache.store(fmt.Sprintf("token-%d", index), cachedToken{
+			token: "value", expiresAt: now.Add(time.Hour),
+		}, now)
+	}
+	cache.mu.Lock()
+	size := len(cache.entries)
+	cache.mu.Unlock()
+	if size != maxUpstreamTokenCacheEntries {
+		t.Fatalf("token cache size = %d, want %d", size, maxUpstreamTokenCacheEntries)
+	}
+
+	cache.store("expired", cachedToken{token: "old", expiresAt: now.Add(-time.Second)}, now)
+	if _, ok := cache.load("expired", now); ok {
+		t.Fatal("expired upstream token remained available")
+	}
+	cache.store("fresh", cachedToken{token: "new", expiresAt: now.Add(time.Minute)}, now)
+	if token, ok := cache.load("fresh", now); !ok || token.token != "new" {
+		t.Fatal("fresh upstream token was not retained")
+	}
+
+	if got := upstreamTokenCacheLifetime(300); got != 270*time.Second {
+		t.Fatalf("300-second token cache lifetime = %s", got)
+	}
+	if got := upstreamTokenCacheLifetime(1); got != 500*time.Millisecond {
+		t.Fatalf("one-second token cache lifetime = %s", got)
+	}
+	if got := upstreamTokenCacheLifetime(int(^uint(0) >> 1)); got != 24*time.Hour-30*time.Second {
+		t.Fatalf("oversized token cache lifetime = %s", got)
+	}
+}
+
 func TestUpstreamMirrorProxyLifecycle(t *testing.T) {
 	var tokenHitCount int
 	var manifestHitCount int

@@ -114,7 +114,8 @@
   blob references, chunked uploads, authorized cross-repository mounting, upstream mirror proxying, and catalog
   management. Client pushes cannot create images implicitly; administrators reserve public or private images through
   the frontend first. Local reservations are unique and cannot claim names exposed by an enabled upstream mirror;
-  mirror-discovered images remain permanently pull-only. Manifest JSON is limited to 4 MiB before request buffering;
+  mirror-discovered images remain permanently pull-only. Upstream Bearer challenges use a 1,024-entry expiring token
+  cache with bounded lifetimes and expired-first eviction. Manifest JSON is limited to 4 MiB before request buffering;
   the same explicit overflow check and SHA-256 identity check protect upstream responses and Disk/S3 reads so
   truncated, mislabeled, or corrupt manifests are never parsed, cached, or served. Image README content is editable by package managers and
   bounded to 512 KiB at both the HTTP and database boundaries. Both review policies hold explicit image creation

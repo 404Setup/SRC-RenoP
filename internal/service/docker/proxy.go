@@ -31,21 +31,64 @@ import (
 	"renop/internal/utils"
 )
 
-var (
-	upstreamTokenCache pbMapOfTokens
-)
+var upstreamTokenCache dockerTokenCache
+
+const maxUpstreamTokenCacheEntries = 1024
 
 // ErrUpstreamImageProbeUnavailable indicates that at least one applicable
 // Docker mirror could not provide an authoritative image-name result.
 var ErrUpstreamImageProbeUnavailable = errors.New("upstream Docker image availability check failed")
 
-type pbMapOfTokens struct {
-	sync.Map
+type dockerTokenCache struct {
+	mu      sync.Mutex
+	entries map[string]cachedToken
 }
 
 type cachedToken struct {
 	token     string
 	expiresAt time.Time
+}
+
+func (cache *dockerTokenCache) load(key string, now time.Time) (cachedToken, bool) {
+	cache.mu.Lock()
+	defer cache.mu.Unlock()
+	token, ok := cache.entries[key]
+	if ok && !now.Before(token.expiresAt) {
+		delete(cache.entries, key)
+		ok = false
+	}
+	return token, ok
+}
+
+func (cache *dockerTokenCache) store(key string, token cachedToken, now time.Time) {
+	cache.mu.Lock()
+	defer cache.mu.Unlock()
+	if cache.entries == nil {
+		cache.entries = make(map[string]cachedToken, 64)
+	}
+	if _, exists := cache.entries[key]; !exists && len(cache.entries) >= maxUpstreamTokenCacheEntries {
+		for cachedKey, cached := range cache.entries {
+			if !now.Before(cached.expiresAt) {
+				delete(cache.entries, cachedKey)
+			}
+		}
+		if len(cache.entries) >= maxUpstreamTokenCacheEntries {
+			for cachedKey := range cache.entries {
+				delete(cache.entries, cachedKey)
+				break
+			}
+		}
+	}
+	cache.entries[key] = token
+}
+
+func upstreamTokenCacheLifetime(ttl int) time.Duration {
+	ttl = min(max(ttl, 1), 24*60*60)
+	lifetime := time.Duration(ttl) * time.Second
+	if lifetime > 30*time.Second {
+		return lifetime - 30*time.Second
+	}
+	return lifetime / 2
 }
 
 // UpstreamImageExists checks whether an image name is already occupied by any
@@ -344,13 +387,10 @@ func applyDockerMirrorAuth(
 		return mirror.Authorization.Apply(req)
 	}
 
-	cacheKey := fmt.Sprintf("%s|%s|%s", mirror.URL, imageName, action)
-	if val, ok := upstreamTokenCache.Load(cacheKey); ok {
-		tok := val.(cachedToken)
-		if time.Now().Before(tok.expiresAt) {
-			req.Header.Set("Authorization", "Bearer "+tok.token)
-			return nil
-		}
+	cacheKey := mirror.URL + "\x00" + imageName + "\x00" + action
+	if token, ok := upstreamTokenCache.load(cacheKey, time.Now()); ok {
+		req.Header.Set("Authorization", "Bearer "+token.token)
+		return nil
 	}
 
 	// Probe upstream for auth challenge
@@ -394,10 +434,11 @@ func applyDockerMirrorAuth(
 	}
 
 	if token != "" {
-		upstreamTokenCache.Store(cacheKey, cachedToken{
+		now := time.Now()
+		upstreamTokenCache.store(cacheKey, cachedToken{
 			token:     token,
-			expiresAt: time.Now().Add(time.Duration(ttl-30) * time.Second),
-		})
+			expiresAt: now.Add(upstreamTokenCacheLifetime(ttl)),
+		}, now)
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
