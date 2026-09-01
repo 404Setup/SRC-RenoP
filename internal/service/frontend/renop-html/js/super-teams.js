@@ -21,6 +21,7 @@ import {SUPER_TEAM_ERROR_KEYS} from './super-team-errors.js';
 import {exitProtectedRouteOnDenial} from './protected-route.js';
 import {createPublicationQuotaPanel, openPublicationQuotaDialog} from './publication-quota.js';
 import {createPublicProfileLinks, createPublicProfileLinksEditor} from './profile-links.js';
+import {createSuperTeamResourcesSection} from './super-team-resources.js';
 
 const routeRoot = '/account/teams';
 const publicRouteRoot = '/team';
@@ -716,7 +717,7 @@ function teamDetailContent(details, prefix, {publicView = false, quotaStatus = n
             onSaved: () => void loadDetails(prefix),
         }),
     }) : null;
-    return [hero, quotaPanel, memberSection];
+    return [hero, quotaPanel, createSuperTeamResourcesSection(team.prefix || prefix), memberSection];
 }
 
 /**

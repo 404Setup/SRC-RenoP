@@ -276,3 +276,49 @@ func TestSuperTeamAdministratorLimitOverrides(t *testing.T) {
 	assert.True(t, status.CreateLimitInherited)
 	assert.True(t, status.JoinLimitInherited)
 }
+
+func TestSuperTeamResourceRoutesFilterPrivatePackages(t *testing.T) {
+	app, state := setupSuperTeamApp(t)
+	cfg := state.Inner.Config.Load().DeepCopy()
+	cfg.Maven.Repositories["npm-public"] = &config.Repository{
+		Name: "npm-public", Format: config.RepositoryFormatNPM, Visibility: "PUBLIC",
+	}
+	state.Inner.Config.Store(cfg)
+	now := time.Now().UnixMilli()
+	require.NoError(t, state.GetDB().CreateSuperTeam(&core.SuperTeam{
+		Prefix: "platform", Name: "Platform", CreatedAt: now,
+	}, "alice", cfg.SuperTeams.CreateLimit, cfg.SuperTeams.JoinLimit))
+	_, err := state.GetDB().CreateNPMPackageForTeam(
+		"npm-public", "@platform/public", "alice", "platform", false, now)
+	require.NoError(t, err)
+	_, err = state.GetDB().CreateNPMPackageForTeam(
+		"npm-public", "@platform/private", "alice", "platform", true, now+1)
+	require.NoError(t, err)
+
+	response := superTeamRequest(t, app, http.MethodGet,
+		"/api/super-teams/platform/resources?format=npm&limit=10&offset=0", "", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var page struct {
+		Resources []*core.SuperTeamResource `json:"resources"`
+		Total     int                       `json:"total"`
+	}
+	decodeSuperTeamResponse(t, response, &page)
+	require.Equal(t, 1, page.Total)
+	require.Len(t, page.Resources, 1)
+	require.Equal(t, "@platform/public", page.Resources[0].Name)
+
+	response = superTeamRequest(t, app, http.MethodGet,
+		"/api/super-teams/platform/resources?format=npm&limit=10&offset=0", "alice", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	decodeSuperTeamResponse(t, response, &page)
+	require.Equal(t, 2, page.Total)
+	require.Len(t, page.Resources, 2)
+	response = superTeamRequest(t, app, http.MethodGet,
+		"/api/super-teams/missing/resources?format=npm", "", nil)
+	require.Equal(t, http.StatusNotFound, response.StatusCode)
+	response.Body.Close()
+	response = superTeamRequest(t, app, http.MethodGet,
+		"/api/super-teams/platform/resources?format=unknown", "", nil)
+	require.Equal(t, http.StatusBadRequest, response.StatusCode)
+	response.Body.Close()
+}

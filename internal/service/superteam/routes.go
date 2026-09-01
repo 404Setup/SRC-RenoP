@@ -77,6 +77,7 @@ func SetupRoutes(router fiber.Router, state *core.AppState) {
 	base.Post("/invitations/:id/:decision", func(c fiber.Ctx) error { return respondInvitation(c, state) })
 	base.Get("", func(c fiber.Ctx) error { return listTeams(c, state) })
 	base.Post("", func(c fiber.Ctx) error { return createTeam(c, state) })
+	base.Get("/:prefix/resources", func(c fiber.Ctx) error { return listTeamResources(c, state) })
 	base.Get("/:prefix/users/search", func(c fiber.Ctx) error { return searchUsers(c, state) })
 	base.Get("/:prefix", func(c fiber.Ctx) error { return getTeam(c, state) })
 	base.Put("/:prefix", func(c fiber.Ctx) error { return updateTeam(c, state) })
@@ -198,6 +199,55 @@ func listEligibleTeams(c fiber.Ctx, state *core.AppState) error {
 	}
 	c.Set(fiber.HeaderCacheControl, "no-store")
 	return c.JSON(fiber.Map{"teams": teams, "total": total, "limit": limit, "offset": offset})
+}
+
+func listTeamResources(c fiber.Ctx, state *core.AppState) error {
+	format := strings.ToLower(strings.TrimSpace(c.Query("format")))
+	if format != config.RepositoryFormatMaven && format != config.RepositoryFormatCargo &&
+		format != config.RepositoryFormatDocker && format != config.RepositoryFormatNPM {
+		return apiError(c, fiber.ErrBadRequest)
+	}
+	limit, offset, err := parsePage(c)
+	if err != nil {
+		return apiError(c, err)
+	}
+	limit = min(limit, 50)
+	viewer := auth.GetUser(c)
+	if viewer == nil || auth.CurrentCredentialIsAPIToken(c) {
+		viewer = &config.User{Username: "guest"}
+	}
+	visibleRepositories := make([]string, 0)
+	privateRepositories := make([]string, 0)
+	cfg := state.Inner.Config.Load()
+	if cfg == nil {
+		return apiError(c, core.ErrDatabaseUnavailable)
+	}
+	for name, repository := range cfg.Maven.Repositories {
+		if repository == nil || repository.NormalizedFormat() != format {
+			continue
+		}
+		if viewer.CheckReadPermission(name, "", repository.Visibility, true) {
+			visibleRepositories = append(visibleRepositories, name)
+		}
+		if viewer.IsManager() || viewer.CheckUpdatePermission(name) ||
+			format == config.RepositoryFormatNPM && viewer.CheckReadPermission(name, "", "PRIVATE", false) {
+			privateRepositories = append(privateRepositories, name)
+		}
+	}
+	viewerName := viewer.Username
+	if strings.EqualFold(viewerName, "guest") {
+		viewerName = ""
+	}
+	resources, total, err := state.GetDB().ListSuperTeamResources(core.SuperTeamResourceListOptions{
+		Prefix: c.Params("prefix"), Format: format, Viewer: viewerName,
+		VisibleRepositories: visibleRepositories, PrivateRepositories: privateRepositories,
+		Limit: limit, Offset: offset,
+	})
+	if err != nil {
+		return apiError(c, err)
+	}
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return c.JSON(fiber.Map{"resources": resources, "total": total, "limit": limit, "offset": offset})
 }
 
 func createTeam(c fiber.Ctx, state *core.AppState) error {

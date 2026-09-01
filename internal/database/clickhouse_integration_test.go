@@ -253,6 +253,15 @@ func TestClickHouseNativeSecurityIdentityAndGPGMatrix(t *testing.T) {
 	require.Len(t, visibleTeams, 1)
 	require.Equal(t, 1, visibleTotal)
 	require.False(t, visibleTeams[0].Visible)
+	_, err = db.CreateNPMPackageForTeam(
+		"npm", "@clickhouse-team/private", "alice", team.Prefix, true, time.Now().UnixMilli())
+	require.NoError(t, err)
+	teamResources, resourceTotal, err := db.ListSuperTeamResources(core.SuperTeamResourceListOptions{
+		Prefix: team.Prefix, Format: config.RepositoryFormatNPM, Viewer: "alice", Limit: 10,
+	})
+	require.NoError(t, err)
+	require.Len(t, teamResources, 1)
+	require.Equal(t, 1, resourceTotal)
 	require.NoError(t, db.StoreGitHubIdentity(profile.UserID, 101, "alice-gh", []core.GitHubPrincipal{
 		{Type: core.GitHubPrincipalUser, GitHubID: 101, Login: "alice-gh"},
 		{Type: core.GitHubPrincipalOrganization, GitHubID: 202, Login: "example-org"},

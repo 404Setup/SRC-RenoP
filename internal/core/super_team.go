@@ -77,6 +77,26 @@ type UserSuperTeamMembership struct {
 	Visible     bool   `json:"visible"`
 }
 
+// SuperTeamResource is one package or publishing domain shown on a global-team profile.
+type SuperTeamResource struct {
+	Format      string `json:"format"`
+	Repository  string `json:"repository,omitempty"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Archived    bool   `json:"archived,omitempty"`
+}
+
+// SuperTeamResourceListOptions bounds and authorizes one global-team resource page.
+type SuperTeamResourceListOptions struct {
+	Prefix              string
+	Format              string
+	Viewer              string
+	VisibleRepositories []string
+	PrivateRepositories []string
+	Limit               int
+	Offset              int
+}
+
 // SuperTeamDetails combines one team with the members visible to its managers.
 type SuperTeamDetails struct {
 	Team          *SuperTeam         `json:"team"`

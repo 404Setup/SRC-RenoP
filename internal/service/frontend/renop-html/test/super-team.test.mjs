@@ -111,6 +111,28 @@ test('global-team membership visibility is self-managed and manager-aware', () =
     assert.match(routes, /SetSuperTeamMemberVisibility\(prefix, user\.Username/);
 });
 
+test('global-team profiles use a separate bounded cross-format resource module', () => {
+    const teams = source('js', 'super-teams.js');
+    const resources = source('js', 'super-team-resources.js');
+    const links = source('js', 'profile-links.js');
+    const database = readFileSync(join(repoRoot, 'internal', 'database', 'super_team_resources.go'), 'utf8');
+    const routes = readFileSync(join(repoRoot, 'internal', 'service', 'superteam', 'routes.go'), 'utf8');
+    assert.match(teams, /createSuperTeamResourcesSection\(team\.prefix \|\| prefix\)/);
+    assert.match(resources, /const resourcePageSize = 8/);
+    for (const format of ['maven', 'cargo', 'docker', 'npm']) {
+        assert.match(resources, new RegExp(`\\['${format}'`));
+    }
+    assert.match(resources, /api\/super-teams\/\$\{encodeURIComponent\(prefix\)\}\/resources/);
+    assert.match(resources, /panel\.remove\(\)/);
+    assert.match(resources, /packageResourceTarget\(resource\)/);
+    assert.match(links, /export function packageResourceTarget/);
+    assert.match(database, /options\.Limit > 50/);
+    assert.match(database, /resource\.private = 1/);
+    assert.match(database, /team_member\.user_id IS NOT NULL/);
+    assert.match(database, /SUBSTR\(resource\.description, 1, 4000\)/);
+    assert.match(routes, /auth\.CurrentCredentialIsAPIToken\(c\)/);
+});
+
 test('package creation includes T2 approval while domain binding remains T3', () => {
     const selector = source('js', 'super-team-selector.js');
     const docker = source('js', 'browser', 'docker.js');

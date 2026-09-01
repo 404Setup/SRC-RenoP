@@ -59,12 +59,14 @@
   through bounded batch queries rather than per-image metadata or authorization lookups.
   Engine-independent global teams reserve an immutable prefix, store T1-T4 memberships, per-member public visibility,
   and invitations exclusively by immutable user ID, preserve creator display after account deletion, and enforce global
-  or per-account creation and membership limits on SQLite, PostgreSQL, MySQL, and native ClickHouse. User and global-team profiles persist the same
-  bounded website, GitHub, Discord, and single named custom-link model; only credential-free HTTP(S) URLs are accepted,
+  or per-account creation and membership limits on SQLite, PostgreSQL, MySQL, and native ClickHouse. User and global-team
+  profiles persist the same bounded website, GitHub, Discord, and single named custom-link model; only credential-free HTTP(S) URLs are accepted,
   and branded links are restricted to their official domains. Cargo crates, Docker images, npm packages,
   Maven artifacts, and Maven publishing domains use one optional indexed `super_team_prefix`; effective authorization
-  takes the higher of an explicit package permission and the live T1-T4 mapping without copying team members. Durable
-  `review_tasks` preserve immutable request identities, bounded filters, source/target bindings, and a pending-state
+  takes the higher of an explicit package permission and the live T1-T4 mapping without copying team members. Public
+  global-team resource pages query the four format catalogs through bounded, visibility-aware SQL isolated in
+  `super_team_resources.go`; private Docker and npm rows require live package or team membership.
+  Durable `review_tasks` preserve immutable request identities, bounded filters, source/target bindings, and a pending-state
   compare-and-set so ownership transfers and their decisions apply atomically across every database driver.
   `review_task_files` attaches at most 256 repository-relative files to each moderated publication without storing
   package bytes in the database; active publication keys merge Maven companions into one version task, enforce an
@@ -171,6 +173,9 @@
   effective account limits, and administrator overrides.
   Each member controls whether their identity appears on public team and user profiles; system administrators and the
   team's T3/T4 managers retain visibility, while aggregate public member counts follow the filtered member list.
+  Public resource APIs page verified Maven domains plus readable Cargo, Docker, and npm packages without exposing
+  inaccessible repository or private-package metadata; API-token calls remain public-only instead of inheriting the
+  owning account's private team visibility.
   T3 may manage T1/T2 members, while only T4 or system administrators may grant or manage T3/T4 roles; at least one
   T4 owner must remain, and owners cannot leave through either membership-removal route until ownership is transferred.
   Non-owner self-removal uses a dedicated membership exit route. Administrators still enforce the target account's
@@ -342,9 +347,11 @@
   controls, shared username suggestions, invitation actions, and embedded profile usage limits; `/team/<prefix>`
   reuses its detail layout as a read-only public page without exposing quota controls. User profile homes load bounded
   global-team membership pages through the same visibility rules. `js/profile-links.js` owns shared
-  profile-link editing, safe external rendering, and routed global-team links on bound package pages. System settings
-  load global team defaults through a separate JSON domain without expanding the protobuf settings schema; all 12 frontend
-  locales include global-team UI, message, error, and audit text. The shared selector exposes T2+ teams for Docker/npm
+  profile-link editing, safe external rendering, and routed global-team links on bound package pages.
+  `js/super-team-resources.js` independently owns the public team's four server-paged resource collections and removes
+  empty format panels instead of reserving blank card space. System settings load global team defaults through a separate
+  JSON domain without expanding the protobuf settings schema; all 12 frontend locales include global-team UI, message,
+  error, and audit text. The shared selector exposes T2+ teams for Docker/npm
   creation and T3+ teams for Maven-domain creation; namespace validation, live role checks, ordered approval stages,
   and API-token `global/<prefix>` targets are rechecked server-side before the transactional reservation.
   Maven artifact versions, npm package versions, and Docker image tags use `@renop/ui/pagination` for bounded

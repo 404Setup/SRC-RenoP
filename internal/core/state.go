@@ -158,6 +158,7 @@ type StateDB interface {
 	CreateSuperTeam(team *SuperTeam, owner string, globalCreateLimit, globalJoinLimit int) error
 	ListSuperTeams(username string, administrator bool, limit, offset int) ([]*SuperTeam, int, error)
 	ListVisibleUserSuperTeams(userID, viewer string, administrator bool, limit, offset int) ([]*UserSuperTeamMembership, int, error)
+	ListSuperTeamResources(options SuperTeamResourceListOptions) ([]*SuperTeamResource, int, error)
 	ListManageableSuperTeams(username string, minimumRole, limit, offset int) ([]*SuperTeam, int, error)
 	GetSuperTeamRole(prefix, username string) (int, error)
 	GetSuperTeamDetails(prefix, username string, administrator bool) (*SuperTeamDetails, error)

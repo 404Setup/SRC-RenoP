@@ -103,3 +103,16 @@ export function createSuperTeamPublicLink(prefix) {
     });
     return link;
 }
+
+/**
+ * Build the application route for one Maven domain or package resource.
+ * @param {object} resource - Format, repository, and resource name.
+ * @returns {string} Encoded application path.
+ */
+export function packageResourceTarget(resource) {
+    const name = String(resource?.name || '').split('/').filter(Boolean).map(encodeURIComponent).join('/');
+    if (resource?.format === 'maven') return `/domain/${name}`;
+    const repository = encodeURIComponent(String(resource?.repository || ''));
+    if (resource?.format === 'cargo' || resource?.format === 'npm') return `/${repository}/packages/${name}`;
+    return `/${repository}/${name}`;
+}

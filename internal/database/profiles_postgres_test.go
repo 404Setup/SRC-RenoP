@@ -98,6 +98,14 @@ func TestPostgresUserProfileIntegration(t *testing.T) {
 	require.Len(t, visibleTeams, 1)
 	require.Equal(t, 1, visibleTotal)
 	require.False(t, visibleTeams[0].Visible)
+	_, err = db.CreateNPMPackageForTeam("npm", "@profile-pg/private", "profile_pg", team.Prefix, true, changedAt+2)
+	require.NoError(t, err)
+	teamResources, resourceTotal, err := db.ListSuperTeamResources(core.SuperTeamResourceListOptions{
+		Prefix: team.Prefix, Format: config.RepositoryFormatNPM, Viewer: "profile_pg", Limit: 10,
+	})
+	require.NoError(t, err)
+	require.Len(t, teamResources, 1)
+	require.Equal(t, 1, resourceTotal)
 	require.NoError(t, db.StoreGitHubIdentity(stableUserID, 9001, "profile-pg", []core.GitHubPrincipal{
 		{Type: core.GitHubPrincipalUser, GitHubID: 9001, Login: "profile-pg"},
 		{Type: core.GitHubPrincipalOrganization, GitHubID: 9002, Login: "renop-pg"},

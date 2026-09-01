@@ -338,7 +338,12 @@ func TestMavenDomainsUseGlobalAccountCenter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(profileSource), "return `/domain/${name}`") {
+	profileLinksSource, err := os.ReadFile(filepath.Join("renop-html", "js", "profile-links.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(profileSource), "packageResourceTarget(membership)") ||
+		!strings.Contains(string(profileLinksSource), "return `/domain/${name}`") {
 		t.Fatal("public profile Maven memberships do not use the standalone domain route")
 	}
 	profileCSS, err := os.ReadFile(filepath.Join("renop-html", "css", "manager", "profile.css"))

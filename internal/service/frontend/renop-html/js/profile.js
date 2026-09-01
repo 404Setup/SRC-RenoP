@@ -38,7 +38,8 @@ import {createProfileAvatarEditor} from './profile-avatar.js';
 import {
     createPublicProfileLinks,
     createPublicProfileLinksEditor,
-    createSuperTeamPublicLink
+    createSuperTeamPublicLink,
+    packageResourceTarget
 } from './profile-links.js';
 import {
     caughtErrorMessage,
@@ -666,20 +667,6 @@ function openProfilePackage(event) {
 }
 
 /**
- * Build the repository-browser path for one public membership entry.
- * @param {object} membership - Membership payload.
- * @returns {string} Encoded application path.
- */
-function profileMembershipTarget(membership) {
-    const name = String(membership.name || '').split('/').filter(Boolean).map(encodeURIComponent).join('/');
-    if (membership.format === 'maven') return `/domain/${name}`;
-    const repository = encodeURIComponent(String(membership.repository || ''));
-    if (membership.format === 'cargo') return `/${repository}/packages/${name}`;
-    if (membership.format === 'npm') return `/${repository}/packages/${name}`;
-    return `/${repository}/${name}`;
-}
-
-/**
  * Format a package-team role without hiding its numeric level.
  * @param {'maven'|'cargo'|'docker'|'npm'} format - Repository format.
  * @param {number|string} level - Team permission level.
@@ -746,7 +733,7 @@ async function renderProfileMemberships(profile, format, sequence) {
             memberships.forEach(membership => {
                 const link = el('a', {
                         class: 'profile-membership-row',
-                        href: profileMembershipTarget(membership)
+                        href: packageResourceTarget(membership)
                     },
                     el('span', {class: 'profile-membership-main'},
                         el('strong', {}, String(membership.name || '')),
