@@ -495,6 +495,33 @@ async function changeMemberLevel(details, member, level) {
 }
 
 /**
+ * Update the current member's public-profile visibility.
+ * @param {object} details - Team details response.
+ * @param {object} member - Current member record.
+ * @param {HTMLButtonElement} button - Trigger button.
+ * @returns {Promise<void>}
+ */
+async function changeMembershipVisibility(details, member, button) {
+    const visible = member.visible === false;
+    await runButtonAction(button, async () => {
+        try {
+            const response = await apiRequest(
+                `/api/super-teams/${encodeURIComponent(details.team.prefix)}/membership/visibility`, {
+                    method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({visible})
+                }
+            );
+            if (!response.ok) throw await localizedResponseError(
+                response, 'superTeam.visibilityFailed', {}, SUPER_TEAM_ERROR_KEYS
+            );
+            showAlert(t('superTeam.visibilityUpdated'), 'success');
+            await loadDetails(details.team.prefix);
+        } catch (error) {
+            showAlert(caughtErrorMessage(error, 'superTeam.visibilityFailed'), 'error');
+        }
+    });
+}
+
+/**
  * Confirm and remove one managed member.
  * @param {object} details - Team details response.
  * @param {object} member - Target member.
@@ -563,6 +590,7 @@ function memberRow(details, member, {readOnly = false} = {}) {
     const memberLevel = Number(member.level) || 1;
     const currentUsername = String(localStorage.getItem('username') || '').toLowerCase();
     const own = String(member.username || '').toLowerCase() === currentUsername;
+    const visible = member.visible !== false;
     const canManage = !readOnly && (details.administrator || actorLevel >= 4 ||
         actorLevel >= 3 && memberLevel < 3);
     const controls = el('div', {class: 'super-team-member-controls'});
@@ -572,6 +600,15 @@ function memberRow(details, member, {readOnly = false} = {}) {
             value => void changeMemberLevel(details, member, value)));
     } else {
         controls.appendChild(el('span', {class: 'super-team-role-badge'}, roleLabel(memberLevel)));
+    }
+    if (!visible) controls.appendChild(el('span', {class: 'super-team-visibility-badge'},
+        createIcon('eye'), el('span', {}, t('superTeam.membershipHidden'))));
+    if (own && !readOnly) {
+        const visibilityButton = el('button', {
+            type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
+            onclick: () => void changeMembershipVisibility(details, member, visibilityButton)
+        }, createIcon('eye'), el('span', {}, t(visible ? 'superTeam.hideMembership' : 'superTeam.showMembership')));
+        controls.appendChild(visibilityButton);
     }
     if (canManage && !own) {
         controls.appendChild(el('button', {
@@ -662,7 +699,7 @@ function teamDetailContent(details, prefix, {publicView = false, quotaStatus = n
             el('span', {}, t('superTeam.memberCount', {count: Number(team.member_count) || 0})),
             team.created_by
                 ? createUserIdentity(team.created_by, {template: 'superTeam.createdBy'})
-                : el('span', {}, t('superTeam.createdBy', {name: t('common.unknown')}))
+                : null
         )
     );
     const members = Array.isArray(details.members) ? details.members : [];
@@ -694,7 +731,7 @@ async function loadDetails(prefix) {
     await replaceContent(loadingState());
     try {
         const [response, quotaResponse] = await Promise.all([
-            apiRequest(`/api/super-teams/${encodeURIComponent(prefix)}`),
+            apiRequest(`/api/super-teams/${encodeURIComponent(prefix)}?manage=true`),
             apiRequest(`/api/publication-quota/super-teams/${encodeURIComponent(prefix)}`),
         ]);
         if (exitProtectedRouteOnDenial(response) || exitProtectedRouteOnDenial(quotaResponse)) return;

@@ -58,6 +58,10 @@ type levelRequest struct {
 	Level int `json:"level"`
 }
 
+type visibilityRequest struct {
+	Visible *bool `json:"visible"`
+}
+
 type limitOverrideRequest struct {
 	CreateLimit *int `json:"create_limit"`
 	JoinLimit   *int `json:"join_limit"`
@@ -80,6 +84,7 @@ func SetupRoutes(router fiber.Router, state *core.AppState) {
 	base.Post("/:prefix/members", func(c fiber.Ctx) error { return addMembers(c, state) })
 	base.Put("/:prefix/members/:username", func(c fiber.Ctx) error { return setMemberLevel(c, state) })
 	base.Delete("/:prefix/members/:username", func(c fiber.Ctx) error { return removeMember(c, state) })
+	base.Put("/:prefix/membership/visibility", func(c fiber.Ctx) error { return setMembershipVisibility(c, state) })
 	base.Delete("/:prefix/membership", func(c fiber.Ctx) error { return leaveTeam(c, state) })
 }
 
@@ -232,6 +237,18 @@ func createTeam(c fiber.Ctx, state *core.AppState) error {
 }
 
 func getTeam(c fiber.Ctx, state *core.AppState) error {
+	if strings.EqualFold(c.Query("manage"), "true") {
+		user, err := authenticated(c)
+		if err != nil {
+			return apiError(c, err)
+		}
+		details, err := state.GetDB().GetSuperTeamDetails(c.Params("prefix"), user.Username, user.IsManager())
+		if err != nil {
+			return apiError(c, err)
+		}
+		c.Set(fiber.HeaderCacheControl, "no-store")
+		return c.JSON(details)
+	}
 	user := auth.GetUser(c)
 	username := ""
 	administrator := false
@@ -390,6 +407,24 @@ func setMemberLevel(c fiber.Ctx, state *core.AppState) error {
 	auditAction(c, state, audit.ActionSuperTeamMemberLevel,
 		fmt.Sprintf("Prefix: %s, member: %s, role: T%d", strings.ToLower(prefix), target, request.Level))
 	return c.JSON(fiber.Map{"ok": true})
+}
+
+func setMembershipVisibility(c fiber.Ctx, state *core.AppState) error {
+	user, err := authenticated(c)
+	if err != nil {
+		return apiError(c, err)
+	}
+	var request visibilityRequest
+	if len(c.Body()) > 1024 || c.Bind().Body(&request) != nil || request.Visible == nil {
+		return apiError(c, fiber.ErrBadRequest)
+	}
+	prefix := c.Params("prefix")
+	if err := state.GetDB().SetSuperTeamMemberVisibility(prefix, user.Username, *request.Visible); err != nil {
+		return apiError(c, err)
+	}
+	auditAction(c, state, audit.ActionSuperTeamVisibility,
+		fmt.Sprintf("Prefix: %s, visible: %t", strings.ToLower(prefix), *request.Visible))
+	return getTeam(c, state)
 }
 
 func removeMember(c fiber.Ctx, state *core.AppState) error {

@@ -35,6 +35,7 @@ const (
 	ActionSuperTeamInvite        = "SUPER_TEAM_INVITE"
 	ActionSuperTeamMemberAdd     = "SUPER_TEAM_MEMBER_ADD"
 	ActionSuperTeamMemberLevel   = "SUPER_TEAM_MEMBER_LEVEL"
+	ActionSuperTeamVisibility    = "SUPER_TEAM_MEMBER_VISIBILITY"
 	ActionSuperTeamMemberRemove  = "SUPER_TEAM_MEMBER_REMOVE"
 	ActionSuperTeamInvitation    = "SUPER_TEAM_INVITATION"
 	ActionSuperTeamLimit         = "SUPER_TEAM_LIMIT"
@@ -130,6 +131,7 @@ func KnownActions() []string {
 		ActionSuperTeamInvite,
 		ActionSuperTeamMemberAdd,
 		ActionSuperTeamMemberLevel,
+		ActionSuperTeamVisibility,
 		ActionSuperTeamMemberRemove,
 		ActionSuperTeamInvitation,
 		ActionSuperTeamLimit,

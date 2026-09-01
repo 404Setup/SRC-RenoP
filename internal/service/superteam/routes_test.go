@@ -182,6 +182,47 @@ func TestSuperTeamRoutesLifecycleInvitationAndVisibility(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotContains(t, string(memberJSON), "user_id")
 
+	response = superTeamRequest(t, app, http.MethodPut,
+		"/api/super-teams/platform/membership/visibility", "bob", map[string]any{"visible": false})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	response.Body.Close()
+	response = superTeamRequest(t, app, http.MethodGet, "/api/super-teams/platform", "", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	decodeSuperTeamResponse(t, response, &publicDetails)
+	require.Len(t, publicDetails.Members, 1)
+	require.Equal(t, 1, publicDetails.Team.MemberCount)
+	response = superTeamRequest(t, app, http.MethodGet, "/api/super-teams/platform", "bob", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	decodeSuperTeamResponse(t, response, &details)
+	require.Len(t, details.Members, 1)
+	response = superTeamRequest(t, app, http.MethodGet, "/api/super-teams/platform?manage=true", "bob", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	decodeSuperTeamResponse(t, response, &details)
+	require.Len(t, details.Members, 2)
+	response = superTeamRequest(t, app, http.MethodGet, "/api/super-teams/platform", "alice", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	decodeSuperTeamResponse(t, response, &details)
+	require.Len(t, details.Members, 2)
+	require.Equal(t, 2, details.Team.MemberCount)
+	for _, member := range details.Members {
+		if member.Username == "bob" {
+			require.False(t, member.Visible)
+		}
+	}
+	response = superTeamRequest(t, app, http.MethodPut,
+		"/api/super-teams/platform/membership/visibility", "alice", map[string]any{"visible": false})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	response.Body.Close()
+	response = superTeamRequest(t, app, http.MethodGet, "/api/super-teams/platform", "", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	decodeSuperTeamResponse(t, response, &publicDetails)
+	require.Empty(t, publicDetails.Team.CreatedBy)
+	require.Empty(t, publicDetails.Members)
+	response = superTeamRequest(t, app, http.MethodPut,
+		"/api/super-teams/platform/membership/visibility", "alice", map[string]any{"visible": true})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	response.Body.Close()
+
 	response = superTeamRequest(t, app, http.MethodGet, "/api/super-teams/platform/users/search?q=a", "bob", nil)
 	assert.Equal(t, http.StatusForbidden, response.StatusCode)
 	response.Body.Close()

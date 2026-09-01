@@ -243,6 +243,16 @@ func TestClickHouseNativeSecurityIdentityAndGPGMatrix(t *testing.T) {
 	teamDetails, err := db.GetPublicSuperTeamDetails(team.Prefix, "alice", false)
 	require.NoError(t, err)
 	require.Equal(t, "https://discord.gg/clickhouse", teamDetails.Team.Links.Discord)
+	require.NoError(t, db.SetSuperTeamMemberVisibility(team.Prefix, "alice", false))
+	publicTeam, err := db.GetPublicSuperTeamDetails(team.Prefix, "", false)
+	require.NoError(t, err)
+	require.Empty(t, publicTeam.Members)
+	require.Empty(t, publicTeam.Team.CreatedBy)
+	visibleTeams, visibleTotal, err := db.ListVisibleUserSuperTeams(profile.UserID, "alice", false, 10, 0)
+	require.NoError(t, err)
+	require.Len(t, visibleTeams, 1)
+	require.Equal(t, 1, visibleTotal)
+	require.False(t, visibleTeams[0].Visible)
 	require.NoError(t, db.StoreGitHubIdentity(profile.UserID, 101, "alice-gh", []core.GitHubPrincipal{
 		{Type: core.GitHubPrincipalUser, GitHubID: 101, Login: "alice-gh"},
 		{Type: core.GitHubPrincipalOrganization, GitHubID: 202, Login: "example-org"},

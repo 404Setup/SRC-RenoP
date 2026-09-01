@@ -1051,6 +1051,89 @@
     box-shadow: 0 18px 50px -34px rgba(15, 23, 42, 0.5);
 }
 
+.profile-super-teams-card {
+    overflow: hidden;
+    margin-top: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.95rem;
+    background: var(--card-bg);
+    box-shadow: 0 18px 50px -34px rgba(15, 23, 42, 0.5);
+}
+
+.profile-super-teams-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.profile-super-teams-header h3,
+.profile-super-teams-header p {
+    margin: 0;
+}
+
+.profile-super-teams-header p {
+    margin-top: 0.2rem;
+    color: var(--muted-text);
+    font-size: 0.78rem;
+}
+
+.profile-super-team-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1.2rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
+}
+
+.profile-super-team-row:last-child {
+    border-bottom: 0;
+}
+
+.profile-super-team-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+    border-radius: 0.58rem;
+    background: color-mix(in srgb, var(--link-hover-color) 9%, transparent);
+    color: var(--link-hover-color);
+}
+
+.profile-super-team-main {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.profile-super-team-main strong,
+.profile-super-team-main span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.profile-super-team-main span {
+    color: var(--muted-text);
+    font-size: 0.76rem;
+}
+
+.profile-super-team-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.profile-super-team-pager:empty {
+    display: none;
+}
+
 .profile-memberships-header {
     display: flex;
     align-items: center;
@@ -1267,6 +1350,16 @@
     .profile-membership-row {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .profile-super-team-row {
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: start;
+    }
+
+    .profile-super-team-meta {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
     }
 
     .profile-membership-meta {

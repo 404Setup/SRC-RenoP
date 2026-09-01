@@ -218,7 +218,7 @@ func clickHouseSchemas() []clickHouseTableSchema {
 			"`created_at` Int64", "`updated_at` Int64",
 		}},
 		{name: "super_team_members", keyColumns: []string{"team_prefix", "user_id"}, columns: []string{
-			"`team_prefix` String", "`user_id` String", "`role_level` Int64", "`added_at` Int64",
+			"`team_prefix` String", "`user_id` String", "`role_level` Int64", "`public_visible` Int64 DEFAULT 1", "`added_at` Int64",
 		}},
 		{name: "super_team_invitations", keyColumns: []string{"id"}, columns: []string{
 			"`id` String", "`team_prefix` String", "`inviter_id` String", "`recipient_id` String",

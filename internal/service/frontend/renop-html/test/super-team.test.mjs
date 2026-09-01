@@ -89,7 +89,26 @@ test('global teams persist independently from package membership tables', () => 
         assert.ok(clickhouse.includes(`name: "${table}"`), `missing ClickHouse schema ${table}`);
     }
     assert.match(database, /team_prefix, user_id, role_level/);
+    assert.match(schema, /super_team_members[\s\S]*?public_visible/);
+    assert.match(clickhouse, /name: "super_team_members"[\s\S]*?public_visible/);
     assert.doesNotMatch(database, /INSERT INTO (?:npm|docker|cargo)_members/);
+});
+
+test('global-team membership visibility is self-managed and manager-aware', () => {
+    const script = source('js', 'super-teams.js');
+    const profile = source('js', 'profile.js');
+    const database = readFileSync(join(repoRoot, 'internal', 'database', 'super_team.go'), 'utf8');
+    const routes = readFileSync(join(repoRoot, 'internal', 'service', 'superteam', 'routes.go'), 'utf8');
+    assert.match(script, /membership\/visibility/);
+    assert.match(script, /\?manage=true/);
+    assert.match(script, /member\.visible === false/);
+    assert.match(script, /superTeam\.hideMembership/);
+    assert.match(profile, /api\/users\/\$\{encodeURIComponent\(profile\.username\)\}\/super-teams/);
+    assert.match(profile, /createProfileSuperTeamSection\(profile\)/);
+    assert.match(database, /target\.public_visible = 1 OR \? = 1 OR/);
+    assert.match(database, /viewer_member\.role_level, 0\) >= \?/);
+    assert.match(database, /team\.RoleLevel < core\.SuperTeamRoleManage/);
+    assert.match(routes, /SetSuperTeamMemberVisibility\(prefix, user\.Username/);
 });
 
 test('package creation includes T2 approval while domain binding remains T3', () => {

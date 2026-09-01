@@ -64,7 +64,17 @@ type SuperTeamMember struct {
 	UserID   string `json:"-"`
 	Username string `json:"username"`
 	Level    int    `json:"level"`
+	Visible  bool   `json:"visible"`
 	AddedAt  int64  `json:"added_at"`
+}
+
+// UserSuperTeamMembership is one global team visible on a user's public profile.
+type UserSuperTeamMembership struct {
+	Prefix      string `json:"prefix"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Level       int    `json:"level"`
+	Visible     bool   `json:"visible"`
 }
 
 // SuperTeamDetails combines one team with the members visible to its managers.

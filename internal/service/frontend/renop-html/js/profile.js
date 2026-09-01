@@ -35,7 +35,11 @@ import {refreshAPITokenSummary} from './api-tokens.js';
 import {createProfileSuperTeamLimits} from './super-teams.js';
 import {createPublicationQuotaPanel, openPublicationQuotaDialog} from './publication-quota.js';
 import {createProfileAvatarEditor} from './profile-avatar.js';
-import {createPublicProfileLinks, createPublicProfileLinksEditor} from './profile-links.js';
+import {
+    createPublicProfileLinks,
+    createPublicProfileLinksEditor,
+    createSuperTeamPublicLink
+} from './profile-links.js';
 import {
     caughtErrorMessage,
     LocalizedResponseError,
@@ -772,6 +776,122 @@ async function renderProfileMemberships(profile, format, sequence) {
 }
 
 /**
+ * Format one global-team membership role.
+ * @param {number|string} level - T1-T4 role level.
+ * @returns {string} Localized role label.
+ */
+function profileSuperTeamRole(level) {
+    const bounded = Math.max(1, Math.min(4, Number(level) || 1));
+    return `T${bounded} · ${t(`superTeam.roleT${bounded}`)}`;
+}
+
+/**
+ * Load one bounded global-team page into a public user profile.
+ * @param {object} profile - Public profile payload.
+ * @param {HTMLElement} section - Stable profile section.
+ * @param {number} sequence - Profile load generation.
+ * @param {number} [offset=0] - Page offset.
+ * @returns {Promise<void>}
+ */
+async function loadProfileSuperTeams(profile, section, sequence, offset = 0) {
+    const pageSize = 12;
+    const list = section.querySelector('.profile-super-team-list');
+    if (!list) return;
+    const requestSequence = (Number(section.dataset.loadSequence) || 0) + 1;
+    section.dataset.loadSequence = String(requestSequence);
+    try {
+        const response = await apiRequest(
+            `/api/users/${encodeURIComponent(profile.username)}/super-teams?limit=${pageSize}&offset=${offset}`
+        );
+        if (sequence !== profilePageLoadSeq || !section.isConnected ||
+            section.dataset.loadSequence !== String(requestSequence)) return;
+        if (!response.ok) throw await localizedResponseError(response, 'superTeam.profileTeamsLoadFailed');
+        const payload = await response.json();
+        const teams = Array.isArray(payload.teams) ? payload.teams : [];
+        const total = Math.max(0, Number(payload.total) || 0);
+        if (total === 0) {
+            section.remove();
+            return;
+        }
+        const currentOffset = offset >= total ? Math.max(0, Math.floor((total - 1) / pageSize) * pageSize) : offset;
+        if (currentOffset !== offset) {
+            await loadProfileSuperTeams(profile, section, sequence, currentOffset);
+            return;
+        }
+        await morphElementHeight(list, () => list.replaceChildren(...teams.map(team =>
+            el('div', {class: 'profile-super-team-row'},
+                el('span', {class: 'profile-super-team-icon', 'aria-hidden': 'true'}, createIcon('identity')),
+                el('span', {class: 'profile-super-team-main'},
+                    el('strong', {}, team.name || team.prefix),
+                    el('span', {}, team.description || t('superTeam.noDescription'))
+                ),
+                el('span', {class: 'profile-super-team-meta'},
+                    el('span', {class: 'super-team-role-badge'}, profileSuperTeamRole(team.level)),
+                    team.visible === false
+                        ? el('span', {class: 'super-team-visibility-badge'}, t('superTeam.membershipHidden'))
+                        : null,
+                    createSuperTeamPublicLink(team.prefix)
+                )
+            ))), {duration: 260});
+        const page = Math.floor(currentOffset / pageSize);
+        const pages = Math.max(1, Math.ceil(total / pageSize));
+        const pager = section.querySelector('.profile-super-team-pager');
+        if (!pager) return;
+        pager.replaceChildren();
+        if (pages > 1) {
+            const summary = t('superTeam.pageSummary', {page: page + 1, pages, total});
+            pager.append(
+                el('button', {
+                    type: 'button', class: 'renop-pagination-btn', disabled: page === 0,
+                    onclick: () => void loadProfileSuperTeams(profile, section, sequence,
+                        Math.max(0, currentOffset - pageSize))
+                }, t('common.prev')),
+                el('span', {class: 'renop-pagination-summary'}, summary),
+                el('button', {
+                    type: 'button', class: 'renop-pagination-btn', disabled: page >= pages - 1,
+                    onclick: () => void loadProfileSuperTeams(profile, section, sequence, currentOffset + pageSize)
+                }, t('common.next'))
+            );
+            pager.setAttribute('aria-label', summary);
+        }
+    } catch (error) {
+        if (sequence !== profilePageLoadSeq || !section.isConnected ||
+            section.dataset.loadSequence !== String(requestSequence)) return;
+        console.error('Failed to load profile global teams', error);
+        section.querySelector('.profile-super-team-pager')?.replaceChildren();
+        await morphElementHeight(list, () => list.replaceChildren(
+            el('div', {class: 'profile-memberships-empty is-error'}, t('superTeam.profileTeamsLoadFailed'))
+        ), {duration: 240});
+    }
+}
+
+/**
+ * Build the asynchronously populated global-team section on a public profile.
+ * @param {object} profile - Public profile payload.
+ * @returns {HTMLElement} Global-team section.
+ */
+function createProfileSuperTeamSection(profile) {
+    const section = el('section', {class: 'profile-super-teams-card'},
+        el('header', {class: 'profile-super-teams-header'},
+            el('span', {class: 'profile-super-team-icon', 'aria-hidden': 'true'}, createIcon('identity')),
+            el('div', {},
+                el('h3', {}, t('superTeam.profileTeamsTitle')),
+                el('p', {}, t('superTeam.profileTeamsSubtitle', {name: profileDisplayName(profile)}))
+            )
+        ),
+        el('div', {class: 'profile-super-team-list'},
+            el('div', {class: 'profile-route-loading'},
+                el('div', {class: 'sessions-loading-spinner', 'aria-hidden': 'true'}),
+                el('span', {}, t('common.loading'))
+            )
+        ),
+        el('nav', {class: 'renop-pagination profile-super-team-pager'})
+    );
+    void loadProfileSuperTeams(profile, section, profilePageLoadSeq);
+    return section;
+}
+
+/**
  * Build one private profile action card from existing profile copy and icons.
  * @param {string} icon - Canonical icon name.
  * @param {string} modifier - Profile icon modifier.
@@ -889,7 +1009,8 @@ function renderPublicProfile(profile) {
                     )
                 )
             )
-        )
+        ),
+        createProfileSuperTeamSection(profile)
     ];
     if (profile.private_details) {
         const administrator = profile.administrator_view === true;

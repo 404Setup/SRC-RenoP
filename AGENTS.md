@@ -57,9 +57,9 @@
   when the optional `latest` dist-tag is absent, including automatic repair of older empty summary rows. Docker list
   and search results hydrate owners, tag counts, latest tags, legacy publisher fallbacks, and private-image membership
   through bounded batch queries rather than per-image metadata or authorization lookups.
-  Engine-independent global teams reserve an immutable prefix, store T1-T4 memberships and invitations exclusively by
-  immutable user ID, preserve creator display after account deletion, and enforce global or per-account creation and
-  membership limits on SQLite, PostgreSQL, MySQL, and native ClickHouse. User and global-team profiles persist the same
+  Engine-independent global teams reserve an immutable prefix, store T1-T4 memberships, per-member public visibility,
+  and invitations exclusively by immutable user ID, preserve creator display after account deletion, and enforce global
+  or per-account creation and membership limits on SQLite, PostgreSQL, MySQL, and native ClickHouse. User and global-team profiles persist the same
   bounded website, GitHub, Discord, and single named custom-link model; only credential-free HTTP(S) URLs are accepted,
   and branded links are restricted to their official domains. Cargo crates, Docker images, npm packages,
   Maven artifacts, and Maven publishing domains use one optional indexed `super_team_prefix`; effective authorization
@@ -169,6 +169,8 @@
 - **`internal/service/superteam/`**: Public read-only global-team metadata and member APIs plus authenticated account
   APIs for creation, pagination, immutable-prefix management, T1-T4 invitations and membership administration,
   effective account limits, and administrator overrides.
+  Each member controls whether their identity appears on public team and user profiles; system administrators and the
+  team's T3/T4 managers retain visibility, while aggregate public member counts follow the filtered member list.
   T3 may manage T1/T2 members, while only T4 or system administrators may grant or manage T3/T4 roles; at least one
   T4 owner must remain, and owners cannot leave through either membership-removal route until ownership is transferred.
   Non-owner self-removal uses a dedicated membership exit route. Administrators still enforce the target account's
@@ -338,9 +340,10 @@
   `Vary: Accept-Encoding`, and fall back to the identity file without enabling runtime response compression.
   The routed `/account/teams` center owns global-team pagination, immutable-prefix creation, responsive T1-T4 member
   controls, shared username suggestions, invitation actions, and embedded profile usage limits; `/team/<prefix>`
-  reuses its detail layout as a read-only public page without exposing quota controls. `js/profile-links.js` owns shared
-  profile-link editing, safe external rendering, and routed global-team links on bound package pages. System settings load
-  global team defaults through a separate JSON domain without expanding the protobuf settings schema; all 12 frontend
+  reuses its detail layout as a read-only public page without exposing quota controls. User profile homes load bounded
+  global-team membership pages through the same visibility rules. `js/profile-links.js` owns shared
+  profile-link editing, safe external rendering, and routed global-team links on bound package pages. System settings
+  load global team defaults through a separate JSON domain without expanding the protobuf settings schema; all 12 frontend
   locales include global-team UI, message, error, and audit text. The shared selector exposes T2+ teams for Docker/npm
   creation and T3+ teams for Maven-domain creation; namespace validation, live role checks, ordered approval stages,
   and API-token `global/<prefix>` targets are rechecked server-side before the transactional reservation.

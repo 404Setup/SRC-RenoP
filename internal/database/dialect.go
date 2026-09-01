@@ -124,6 +124,7 @@ func initSuperTeamTables(db *sql.DB) error {
 			team_prefix VARCHAR(64) NOT NULL,
 			user_id VARCHAR(36) NOT NULL,
 			role_level INT NOT NULL,
+			public_visible INT NOT NULL DEFAULT 1,
 			added_at BIGINT NOT NULL,
 			PRIMARY KEY (team_prefix, user_id)
 		);`,
@@ -467,6 +468,7 @@ var sharedColumnMigrations = []SchemaMigration{
 	{Name: "super_teams.discord_url", Query: "ALTER TABLE super_teams ADD COLUMN discord_url VARCHAR(2048) NOT NULL DEFAULT '';"},
 	{Name: "super_teams.custom_link_name", Query: "ALTER TABLE super_teams ADD COLUMN custom_link_name VARCHAR(160) NOT NULL DEFAULT '';"},
 	{Name: "super_teams.custom_link_url", Query: "ALTER TABLE super_teams ADD COLUMN custom_link_url VARCHAR(2048) NOT NULL DEFAULT '';"},
+	{Name: "super_team_members.public_visible", Query: "ALTER TABLE super_team_members ADD COLUMN public_visible INT NOT NULL DEFAULT 1;"},
 	{Name: "user_profiles.user_id", Query: "ALTER TABLE user_profiles ADD COLUMN user_id VARCHAR(36) NULL;"},
 	{Name: "cargo_members.user_id", Query: "ALTER TABLE cargo_members ADD COLUMN user_id VARCHAR(36) NULL;"},
 	{Name: "docker_members.user_id", Query: "ALTER TABLE docker_members ADD COLUMN user_id VARCHAR(36) NULL;"},

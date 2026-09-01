@@ -154,6 +154,36 @@ func publicUserMemberships(c fiber.Ctx, state *core.AppState) error {
 	return c.JSON(fiber.Map{"memberships": memberships})
 }
 
+func publicUserSuperTeams(c fiber.Ctx, state *core.AppState) error {
+	username := strings.ToLower(strings.TrimSpace(c.Params("username")))
+	profile, err := state.GetDB().GetUserProfile(username)
+	if errors.Is(err, core.ErrUserProfileNotFound) {
+		return c.Status(fiber.StatusNotFound).SendString("User profile not found")
+	}
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load user profile")
+	}
+	limit, _ := strconv.Atoi(c.Query("limit", "12"))
+	offset, _ := strconv.Atoi(c.Query("offset", "0"))
+	if limit < 1 || limit > 100 || offset < 0 {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid global team page")
+	}
+	viewer := GetUser(c)
+	viewerName := ""
+	administrator := false
+	if viewer != nil && !strings.EqualFold(viewer.Username, "guest") {
+		viewerName = viewer.Username
+		administrator = viewer.IsManager()
+	}
+	teams, total, err := state.GetDB().ListVisibleUserSuperTeams(
+		profile.UserID, viewerName, administrator, limit, offset)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load global team memberships")
+	}
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return c.JSON(fiber.Map{"teams": teams, "total": total, "limit": limit, "offset": offset})
+}
+
 func visibleUserPackageMemberships(c fiber.Ctx, state *core.AppState, profile *core.UserProfile, format string) ([]*core.UserPackageMembership, error) {
 	db := state.GetDB()
 	memberships, err := db.ListUserPackageMemberships(profile.UserID, format)

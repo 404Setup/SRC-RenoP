@@ -18,6 +18,7 @@ export default Object.freeze({
     "audit.action.SUPER_TEAM_INVITE": "傳送超級團隊邀請",
     "audit.action.SUPER_TEAM_MEMBER_ADD": "加入超級團隊成員",
     "audit.action.SUPER_TEAM_MEMBER_LEVEL": "更新超級團隊角色",
+    "audit.action.SUPER_TEAM_MEMBER_VISIBILITY": "更新超級團隊成員身分顯示設定",
     "audit.action.SUPER_TEAM_MEMBER_REMOVE": "移除超級團隊成員",
     "audit.action.SUPER_TEAM_INVITATION": "處理超級團隊邀請",
     "audit.action.SUPER_TEAM_LIMIT": "更新帳戶超級團隊上限"

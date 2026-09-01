@@ -87,6 +87,7 @@ func SetupAuthRoutes(app fiber.Router, state *core.AppState, opChan chan<- token
 	app.Get("/users/:username/profile", func(c fiber.Ctx) error { return publicUserProfile(c, state) })
 	app.Get("/users/:username/avatar", func(c fiber.Ctx) error { return getPublicAvatar(c, state) })
 	app.Get("/users/:username/memberships", func(c fiber.Ctx) error { return publicUserMemberships(c, state) })
+	app.Get("/users/:username/super-teams", func(c fiber.Ctx) error { return publicUserSuperTeams(c, state) })
 	auth := app.Group("/auth")
 	auth.Post("/login", func(c fiber.Ctx) error { return PostAuthLogin(c, state, opChan) })
 	auth.Post("/logout", func(c fiber.Ctx) error { return PostAuthLogout(c, state) })

@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
@@ -89,6 +90,13 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.NoError(t, err)
 	aliceProfile, err := db.GetUserProfile("alice")
 	require.NoError(t, err)
+	teamCreatedAt := time.Now().UnixMilli()
+	require.NoError(t, db.CreateSuperTeam(&core.SuperTeam{
+		Prefix: "profile-team", Name: "Profile Team", Description: "Visible profile team", CreatedAt: teamCreatedAt,
+	}, "alice", cfg.SuperTeams.CreateLimit, cfg.SuperTeams.JoinLimit))
+	require.NoError(t, db.ForceAddSuperTeamMembers("profile-team", "admin", []string{"bobby"},
+		core.SuperTeamRoleWrite, cfg.SuperTeams.CreateLimit, cfg.SuperTeams.JoinLimit, teamCreatedAt+1))
+	require.NoError(t, db.SetSuperTeamMemberVisibility("profile-team", "bobby", false))
 	const githubAuthorizedAt int64 = 1_800_000_000_000
 	require.NoError(t, db.StoreGitHubIdentity(aliceProfile.UserID, 101, "alice-github", []core.GitHubPrincipal{
 		{Type: core.GitHubPrincipalUser, GitHubID: 101, Login: "alice-github", AuthorizedAt: githubAuthorizedAt},
@@ -149,6 +157,25 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.Nil(t, publicProfile.SuperTeamLimits)
 	require.Nil(t, publicProfile.PublicationQuota)
 	require.NoError(t, response.Body.Close())
+	response = profileRequest(t, app, http.MethodGet, "/users/bobby/super-teams?limit=12&offset=0", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var superTeamMemberships struct {
+		Teams []*core.UserSuperTeamMembership `json:"teams"`
+		Total int                             `json:"total"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&superTeamMemberships))
+	require.NoError(t, response.Body.Close())
+	require.Len(t, superTeamMemberships.Teams, 1)
+	require.Equal(t, 1, superTeamMemberships.Total)
+	require.False(t, superTeamMemberships.Teams[0].Visible)
+	currentUsername = "guest"
+	response = profileRequest(t, app, http.MethodGet, "/users/bobby/super-teams", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&superTeamMemberships))
+	require.NoError(t, response.Body.Close())
+	require.Empty(t, superTeamMemberships.Teams)
+	require.Zero(t, superTeamMemberships.Total)
+	currentUsername = "alice"
 
 	response = profileRequest(t, app, http.MethodGet, "/users/alice/profile", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)

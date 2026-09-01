@@ -157,6 +157,7 @@ type StateDB interface {
 	SetSuperTeamLimitOverride(username string, createLimit, joinLimit *int, updatedAt int64) error
 	CreateSuperTeam(team *SuperTeam, owner string, globalCreateLimit, globalJoinLimit int) error
 	ListSuperTeams(username string, administrator bool, limit, offset int) ([]*SuperTeam, int, error)
+	ListVisibleUserSuperTeams(userID, viewer string, administrator bool, limit, offset int) ([]*UserSuperTeamMembership, int, error)
 	ListManageableSuperTeams(username string, minimumRole, limit, offset int) ([]*SuperTeam, int, error)
 	GetSuperTeamRole(prefix, username string) (int, error)
 	GetSuperTeamDetails(prefix, username string, administrator bool) (*SuperTeamDetails, error)
@@ -168,6 +169,7 @@ type StateDB interface {
 	ForceAddSuperTeamMembers(prefix, actor string, usernames []string, level, globalCreateLimit, globalJoinLimit int, actedAt int64) error
 	RespondSuperTeamInvitation(id, recipient string, accept bool, globalJoinLimit int, actedAt int64) error
 	SetSuperTeamMemberLevel(prefix, actor, target string, level int, administrator bool) error
+	SetSuperTeamMemberVisibility(prefix, username string, visible bool) error
 	RemoveSuperTeamMember(prefix, actor, target string, administrator bool, actedAt int64) error
 	CleanExpiredSuperTeamInvitations(now int64) error
 	CreateSuperTeamTransferReview(request SuperTeamTransferRequest, actor string, administrator bool, createdAt int64) (*ReviewTask, error)

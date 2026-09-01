@@ -18,6 +18,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
+
 	"renop/internal/core"
 )
 
@@ -253,7 +255,8 @@ const superTeamSelectColumns = `t.prefix, t.name, t.description, COALESCE(creato
 
 const superTeamDetailsSelectColumns = `t.prefix, t.name, t.description, t.website_url, t.github_url, t.discord_url,
 	t.custom_link_name, t.custom_link_url, COALESCE(creator.username, t.created_by_name),
-	COALESCE(member.role_level, 0), COALESCE(member_counts.member_count, 0), t.created_at, t.updated_at`
+	COALESCE(creator_member.public_visible, 1), COALESCE(member.role_level, 0),
+	0, t.created_at, t.updated_at`
 
 func scanSuperTeam(scanner row) (*core.SuperTeam, error) {
 	team := &core.SuperTeam{}
@@ -264,14 +267,15 @@ func scanSuperTeam(scanner row) (*core.SuperTeam, error) {
 	return team, nil
 }
 
-func scanSuperTeamDetails(scanner row) (*core.SuperTeam, error) {
+func scanSuperTeamDetails(scanner row) (*core.SuperTeam, bool, error) {
 	team := &core.SuperTeam{}
+	var creatorVisible int
 	if err := scanner.Scan(&team.Prefix, &team.Name, &team.Description, &team.Links.Website,
 		&team.Links.GitHub, &team.Links.Discord, &team.Links.CustomName, &team.Links.CustomURL, &team.CreatedBy,
-		&team.RoleLevel, &team.MemberCount, &team.CreatedAt, &team.UpdatedAt); err != nil {
-		return nil, err
+		&creatorVisible, &team.RoleLevel, &team.MemberCount, &team.CreatedAt, &team.UpdatedAt); err != nil {
+		return nil, false, err
 	}
-	return team, nil
+	return team, creatorVisible != 0, nil
 }
 
 // ListSuperTeams returns a bounded page of teams visible to one user.
@@ -317,6 +321,61 @@ func (db *DB) ListSuperTeams(username string, administrator bool, limit, offset 
 		return nil, 0, fmt.Errorf("iterate global teams: %w", err)
 	}
 	return teams, total, nil
+}
+
+// ListVisibleUserSuperTeams returns a bounded profile page after applying per-membership visibility.
+func (db *DB) ListVisibleUserSuperTeams(userID, viewer string, administrator bool,
+	limit, offset int,
+) ([]*core.UserSuperTeamMembership, int, error) {
+	if db == nil || db.SQLDB == nil {
+		return nil, 0, core.ErrDatabaseUnavailable
+	}
+	userID = strings.ToLower(strings.TrimSpace(userID))
+	if _, err := uuid.Parse(userID); err != nil || limit < 1 || limit > 100 || offset < 0 {
+		return nil, 0, errors.New("user global team page is invalid")
+	}
+	viewerID := ""
+	if viewer = strings.TrimSpace(viewer); viewer != "" && !strings.EqualFold(viewer, "guest") {
+		resolved, err := db.userIDForExistingAccount(viewer)
+		if err != nil && administrator {
+			return nil, 0, core.ErrUserProfileNotFound
+		}
+		if err == nil {
+			viewerID = resolved
+		}
+	}
+	baseJoin := ` FROM super_team_members target
+		JOIN super_teams team ON team.prefix = target.team_prefix
+		LEFT JOIN super_team_members viewer_member ON viewer_member.team_prefix = target.team_prefix
+			AND viewer_member.user_id = ?
+		WHERE target.user_id = ? AND (target.public_visible = 1 OR ? = 1 OR
+			COALESCE(viewer_member.role_level, 0) >= ?)`
+	args := []any{viewerID, userID, boolInt(administrator), core.SuperTeamRoleManage}
+	var total int
+	if err := db.QueryRow(`SELECT COUNT(*)`+baseJoin, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count visible user global teams: %w", err)
+	}
+	rows, err := db.Query(`SELECT team.prefix, team.name, team.description, target.role_level,
+		target.public_visible`+baseJoin+` ORDER BY team.prefix LIMIT ? OFFSET ?`, append(args, limit, offset)...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list visible user global teams: %w", err)
+	}
+	defer rows.Close()
+	memberships := make([]*core.UserSuperTeamMembership, 0, min(limit, total))
+	for rows.Next() {
+		membership := &core.UserSuperTeamMembership{}
+		var visible int
+		if err := rows.Scan(&membership.Prefix, &membership.Name, &membership.Description,
+			&membership.Level, &visible); err != nil {
+			return nil, 0, fmt.Errorf("scan visible user global team: %w", err)
+		}
+		membership.Visible = visible != 0
+		memberships = append(memberships, membership)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterate visible user global teams: %w", err)
+	}
+	return memberships, total, nil
 }
 
 // ListManageableSuperTeams returns teams where an account holds at least the requested T-level.
@@ -414,12 +473,12 @@ func (db *DB) getSuperTeamDetails(prefix, username string, administrator, public
 	} else if !public {
 		return nil, core.ErrUserProfileNotFound
 	}
-	team, err := scanSuperTeamDetails(db.QueryRow(`SELECT `+superTeamDetailsSelectColumns+`
+	team, creatorVisible, err := scanSuperTeamDetails(db.QueryRow(`SELECT `+superTeamDetailsSelectColumns+`
 		FROM super_teams t
 		LEFT JOIN user_profiles creator ON creator.user_id = t.created_by
+		LEFT JOIN super_team_members creator_member ON creator_member.team_prefix = t.prefix
+			AND creator_member.user_id = t.created_by
 		LEFT JOIN super_team_members member ON member.team_prefix = t.prefix AND member.user_id = ?
-		LEFT JOIN (SELECT team_prefix, COUNT(*) AS member_count FROM super_team_members GROUP BY team_prefix) member_counts
-			ON member_counts.team_prefix = t.prefix
 		WHERE t.prefix = ? AND (? = 1 OR member.user_id IS NOT NULL)`, userID, prefix, boolInt(administrator || public)))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, core.ErrSuperTeamNotFound
@@ -427,9 +486,23 @@ func (db *DB) getSuperTeamDetails(prefix, username string, administrator, public
 	if err != nil {
 		return nil, fmt.Errorf("get global team: %w", err)
 	}
-	rows, err := db.Query(`SELECT m.user_id, p.username, m.role_level, m.added_at
+	if !administrator && team.RoleLevel < core.SuperTeamRoleManage && !creatorVisible &&
+		(public || !strings.EqualFold(team.CreatedBy, username)) {
+		team.CreatedBy = ""
+	}
+	memberQuery := `SELECT m.user_id, p.username, m.role_level, m.public_visible, m.added_at
 		FROM super_team_members m JOIN user_profiles p ON p.user_id = m.user_id
-		WHERE m.team_prefix = ? ORDER BY m.role_level DESC, p.username`, prefix)
+		WHERE m.team_prefix = ?`
+	memberArgs := []any{prefix}
+	if !administrator && team.RoleLevel < core.SuperTeamRoleManage {
+		if public {
+			memberQuery += ` AND m.public_visible = 1`
+		} else {
+			memberQuery += ` AND (m.public_visible = 1 OR m.user_id = ?)`
+			memberArgs = append(memberArgs, userID)
+		}
+	}
+	rows, err := db.Query(memberQuery+` ORDER BY m.role_level DESC, p.username`, memberArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("list global team members: %w", err)
 	}
@@ -437,14 +510,17 @@ func (db *DB) getSuperTeamDetails(prefix, username string, administrator, public
 	members := make([]*core.SuperTeamMember, 0, team.MemberCount)
 	for rows.Next() {
 		member := &core.SuperTeamMember{}
-		if err := rows.Scan(&member.UserID, &member.Username, &member.Level, &member.AddedAt); err != nil {
+		var visible int
+		if err := rows.Scan(&member.UserID, &member.Username, &member.Level, &visible, &member.AddedAt); err != nil {
 			return nil, fmt.Errorf("scan global team member: %w", err)
 		}
+		member.Visible = visible != 0
 		members = append(members, member)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate global team members: %w", err)
 	}
+	team.MemberCount = len(members)
 	return &core.SuperTeamDetails{Team: team, Members: members, Administrator: administrator}, nil
 }
 
@@ -1027,6 +1103,39 @@ func (db *DB) SetSuperTeamMemberLevel(prefix, actor, target string, level int, a
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit global team member update: %w", err)
+	}
+	return nil
+}
+
+// SetSuperTeamMemberVisibility updates one member's public-profile preference.
+func (db *DB) SetSuperTeamMemberVisibility(prefix, username string, visible bool) error {
+	if db == nil || db.SQLDB == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	prefix, valid := sanitizeSuperTeamPrefix(prefix)
+	if !valid {
+		return core.ErrSuperTeamNotFound
+	}
+	userID, err := db.userIDForExistingAccount(username)
+	if err != nil {
+		return core.ErrSuperTeamPermissionDenied
+	}
+	superTeamMutationLock.Lock()
+	defer superTeamMutationLock.Unlock()
+	var current int
+	if err := db.QueryRow(`SELECT public_visible FROM super_team_members WHERE team_prefix = ? AND user_id = ?`,
+		prefix, userID).Scan(&current); errors.Is(err, sql.ErrNoRows) {
+		return core.ErrSuperTeamPermissionDenied
+	} else if err != nil {
+		return fmt.Errorf("inspect global team member visibility: %w", err)
+	}
+	value := boolInt(visible)
+	if current == value {
+		return nil
+	}
+	if _, err := db.Exec(`UPDATE super_team_members SET public_visible = ? WHERE team_prefix = ? AND user_id = ?`,
+		value, prefix, userID); err != nil {
+		return fmt.Errorf("update global team member visibility: %w", err)
 	}
 	return nil
 }
