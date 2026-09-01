@@ -374,6 +374,12 @@
     line-height: 1.4;
 }
 
+.docker-tag-digest.copied {
+    border-color: #10b981;
+    background: color-mix(in srgb, #10b981 10%, var(--card-bg));
+    color: #059669;
+}
+
 @keyframes dockerToastPopLeft {
     from {
         opacity: 0;

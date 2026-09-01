@@ -31,6 +31,7 @@ import {openReviewCenter, openSuperTeamTransferDialog} from '../reviews.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {createSuperTeamPublicLink} from '../profile-links.js';
 import {copyWithFeedback} from './copy-feedback.js';
+import {createPackageDetailTabs} from './package-detail-tabs.js';
 import {
     createRepositoryBackButton,
     createRepositoryFactsSection,
@@ -58,6 +59,7 @@ let packageOffset = 0;
 let inviteLevel = 0;
 let versionPage = 0;
 let versionPackage = '';
+let npmPackageView = 'overview';
 
 /** Localized failure returned by the stable npm management error boundary. */
 class NPMRequestError extends Error {
@@ -621,15 +623,12 @@ function versionsSection() {
     return section;
 }
 
-/** @returns {HTMLElement} Sorted distribution-tag summary. */
+/** @returns {HTMLElement|null} Sorted distribution-tag summary when tags exist. */
 function distTagsSection() {
-    const section = el('section', {class: 'npm-page-section'}, el('h3', {}, t('npm.distTags')));
     const tags = Object.entries(packageDetails.dist_tags || {})
         .sort(([left], [right]) => left.localeCompare(right, undefined, {sensitivity: 'base'}));
-    if (tags.length === 0) {
-        section.appendChild(el('div', {class: 'npm-empty npm-empty--compact'}, el('p', {}, t('npm.noDistTags'))));
-        return section;
-    }
+    if (tags.length === 0) return null;
+    const section = el('section', {class: 'npm-page-section'}, el('h3', {}, t('npm.distTags')));
     section.appendChild(el('div', {class: 'npm-dist-tags'}, ...tags.map(([tag, version]) =>
         el('div', {class: 'npm-dist-tag'}, el('code', {}, tag), el('span', {}, version))
     )));
@@ -828,19 +827,15 @@ function projectMetadataSection() {
     return section;
 }
 
-/** @returns {HTMLElement} Safely rendered published package README section. */
+/** @returns {HTMLElement|null} Safely rendered published package README section. */
 function readmeSection() {
     const project = packageDetails.project || {};
+    if (!project.readme) return null;
     const title = el('div', {class: 'npm-section-heading'},
         el('div', {}, el('h3', {}, t('npm.readme')),
             project.readme_filename ? el('p', {}, project.readme_filename) : null)
     );
     const section = el('section', {class: 'npm-page-section npm-readme-section'}, title);
-    if (!project.readme) {
-        section.appendChild(el('div', {class: 'npm-empty npm-empty--compact'},
-            createIcon('fileMarkdown'), el('p', {}, t('npm.noReadme'))));
-        return section;
-    }
     const content = el('article', {class: 'npm-readme-body repository-markdown'});
     setSafeMarkdown(content, project.readme);
     section.appendChild(content);
@@ -876,9 +871,27 @@ function renderPackage() {
         }
     ], {className: 'npm-page-section'});
     const information = el('div', {class: 'npm-information-grid'}, facts, distTagsSection());
+    const readme = readmeSection();
+    const project = projectMetadataSection();
+    const canManageTeam = !pkg.mirrored &&
+        (packageDetails.administrator || Number(pkg.permission_level) >= 3);
+    const detail = createPackageDetailTabs({
+        id: 'npm-package-detail', active: npmPackageView,
+        tabs: [
+            {
+                id: 'overview', label: t('npm.packageInformation'),
+                content: [registryCommands(pkg.name), project, information]
+            },
+            {id: 'readme', label: t('npm.readme'), content: [readme]},
+            {id: 'versions', label: t('npm.versions'), content: [versionsSection()]},
+            {id: 'team', label: t('npm.team'), content: [canManageTeam ? teamSection() : null]},
+        ],
+        onChange: value => {
+            npmPackageView = value;
+        },
+    });
     return [
-        packageHero(pkg), registryCommands(pkg.name), information,
-        projectMetadataSection(), readmeSection(), versionsSection(), teamSection()
+        packageHero(pkg), detail
     ].filter(Boolean);
 }
 
@@ -997,6 +1010,7 @@ async function loadPackage(packageName, sequence) {
         if (versionPackage !== packageName) {
             versionPackage = packageName;
             versionPage = 0;
+            npmPackageView = 'overview';
         }
         packageDetails = await npmRequest(npmAPI('packages', packageName), {}, 'npm.loadFailed');
         if (sequence === loadSequence) await replaceRepositoryView(view, renderPackage(), {duration: 300});

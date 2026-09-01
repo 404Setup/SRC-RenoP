@@ -28,6 +28,7 @@ import {openSuperTeamTransferDialog} from '../reviews.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '../response-errors.js';
 import {copyWithFeedback} from './copy-feedback.js';
+import {createPackageDetailTabs} from './package-detail-tabs.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
 import {resolveUserDisplayName} from '../user-profiles.js';
 import {createSuperTeamPublicLink} from '../profile-links.js';
@@ -58,6 +59,7 @@ let activeView = null;
 let activeRouteKind = '';
 let activeSelectedVersion = '';
 let activePackageTab = 'dependencies';
+let activeCargoDetailView = 'overview';
 let activeCommandFormat = 'cargo-add';
 let activePackageHeroUpdater = null;
 let activeCommandsUpdater = null;
@@ -228,7 +230,7 @@ function cargoCatalogCount() {
  * @returns {HTMLElement} Package-catalog section.
  */
 function buildCargoCatalogSection() {
-    const section = el('section', {class: 'cargo-page-section'},
+    const section = el('section', {class: 'cargo-page-section cargo-versions-section'},
         el('div', {class: 'cargo-section-header'},
             el('div', {},
                 el('h3', {}, t('cargo.packageCatalog')),
@@ -1188,18 +1190,14 @@ function buildCargoPackageHero() {
 
 /**
  * Build the README extracted from the latest locally published crate archive.
- * @returns {HTMLElement} Safe Markdown README section.
+ * @returns {HTMLElement|null} Safe Markdown README section when content exists.
  */
 function buildCargoReadmeSection() {
     const readme = String(activePackageDetails?.package?.readme || '');
+    if (!readme) return null;
     const section = el('section', {class: 'cargo-page-section cargo-readme-section'},
         el('h3', {}, t('cargo.readme'))
     );
-    if (!readme) {
-        section.appendChild(el('div', {class: 'cargo-readme-empty'},
-            createIcon('fileMarkdown'), el('span', {}, t('cargo.noReadme'))));
-        return section;
-    }
     const content = el('article', {class: 'repository-markdown'});
     setSafeMarkdown(content, readme);
     section.appendChild(content);
@@ -1216,18 +1214,26 @@ function renderCargoPackagePage(animateTeam = false) {
     cargoUserSuggestions.detach();
     activeRouteKind = 'package';
     const packageName = String(activePackageDetails.package.name || '');
-    const sections = [
-        buildCargoPackageHero(),
-        buildCargoCommandsSection(packageName),
-        buildCargoReadmeSection(),
-        buildCargoVersionFactsSection(),
-        buildCargoInspectionSection(),
-        buildCargoVersionsSection()
-    ];
-    if (activeAdministrator || Number(activePackageDetails.package.permission_level) > 0) {
-        sections.push(buildCargoTeamSection(animateTeam));
-    }
-    activeView.replaceChildren(...sections);
+    const canViewTeam = activeAdministrator || Number(activePackageDetails.package.permission_level) > 0;
+    const detail = createPackageDetailTabs({
+        id: 'cargo-package-detail', active: activeCargoDetailView,
+        tabs: [
+            {
+                id: 'overview', label: t('cargo.packageDetails'),
+                content: [buildCargoCommandsSection(packageName), buildCargoVersionFactsSection(),
+                    buildCargoReadmeSection()]
+            },
+            {
+                id: 'versions', label: t('cargo.versions'),
+                content: [buildCargoInspectionSection(), buildCargoVersionsSection()]
+            },
+            {id: 'team', label: t('cargo.team'), content: [canViewTeam ? buildCargoTeamSection(animateTeam) : null]},
+        ],
+        onChange: value => {
+            activeCargoDetailView = value;
+        },
+    });
+    activeView.replaceChildren(buildCargoPackageHero(), detail);
 }
 
 /**
@@ -1380,6 +1386,7 @@ async function loadCargoOverview(sequence) {
  * @returns {Promise<void>}
  */
 async function loadCargoPackage(packageName, sequence) {
+    if (activePackageDetails?.package?.name !== packageName) activeCargoDetailView = 'overview';
     activePackageHeroUpdater = null;
     activeCommandsUpdater = null;
     activeFactsUpdater = null;

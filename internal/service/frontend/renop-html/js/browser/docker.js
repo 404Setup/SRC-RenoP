@@ -29,6 +29,7 @@ import {setSafeMarkdown} from '../markdown.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {openReviewCenter, openSuperTeamTransferDialog} from '../reviews.js';
 import {copyWithFeedback} from './copy-feedback.js';
+import {createPackageDetailTabs} from './package-detail-tabs.js';
 import {decodePathSegment, encodePathSegment, encodeRelativePath, formatBytes} from './utils.js';
 import {resolveUserDisplayName} from '../user-profiles.js';
 import {createSuperTeamPublicLink} from '../profile-links.js';
@@ -51,6 +52,7 @@ let activeNavigate = null;
 let dockerLoadSequence = 0;
 let dockerTagPage = 0;
 let dockerTagImage = '';
+let dockerPackageView = 'tags';
 
 let inviteLevel = 1;
 
@@ -108,7 +110,9 @@ export function hideDockerRepositoryView() {
 async function triggerDockerCopy(element, text) {
     if (!element || !text) return;
     try {
-        await copyWithFeedback(element, text, {copiedLabel: t('details.copied')});
+        await copyWithFeedback(element, text, {
+            copiedLabel: t('details.copied'), preserveContent: element.classList.contains('docker-tag-digest')
+        });
     } catch (err) {
         console.error('Failed to copy', err);
         showAlert(t('docker.copyFailed'), 'error');
@@ -657,6 +661,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         if (dockerTagImage !== tagImageKey) {
             dockerTagImage = tagImageKey;
             dockerTagPage = 0;
+            dockerPackageView = 'tags';
         }
         const members = details.members || [];
         const permissionLevel = Number(details.permission_level || 0);
@@ -1001,16 +1006,18 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             }, createIcon('edit', {class: 'icon-svg'}), el('span', {}, t('docker.editReadme')));
         }
 
-        const readmeSection = el('div', {class: 'docker-readme-card'},
-            el('div', {class: 'docker-readme-header'},
-                el('h3', {class: 'docker-readme-title'},
-                    createIcon('fileText', {class: 'icon-svg'}),
-                    t('docker.readme')
+        const readmeSection = String(image.description || '').trim() || canManageL2
+            ? el('div', {class: 'docker-readme-card'},
+                el('div', {class: 'docker-readme-header'},
+                    el('h3', {class: 'docker-readme-title'},
+                        createIcon('fileText', {class: 'icon-svg'}),
+                        t('docker.readme')
+                    ),
+                    editReadmeBtn
                 ),
-                editReadmeBtn
-            ),
-            readmeContent
-        );
+                readmeContent
+            )
+            : null;
 
         // Team / Collaborators Section
         let teamSection = null;
@@ -1182,12 +1189,19 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             );
         }
 
-        const sections = [hero, tagsSection, readmeSection];
-        if (teamSection) {
-            sections.push(teamSection);
-        }
+        const detail = createPackageDetailTabs({
+            id: 'docker-package-detail', active: dockerPackageView,
+            tabs: [
+                {id: 'tags', label: t('docker.tagsTitle'), content: [tagsSection]},
+                {id: 'readme', label: t('docker.readme'), content: [readmeSection]},
+                {id: 'team', label: t('docker.teamTitle'), content: [teamSection]},
+            ],
+            onChange: value => {
+                dockerPackageView = value;
+            },
+        });
 
-        await replaceRepositoryView(container, sections, {duration: 280, enterDuration: 440});
+        await replaceRepositoryView(container, [hero, detail], {duration: 280, enterDuration: 440});
     } catch (err) {
         if (seq !== dockerLoadSequence) return;
         console.error('Failed to load Docker image details', err);

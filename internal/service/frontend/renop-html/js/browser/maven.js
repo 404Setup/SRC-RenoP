@@ -27,6 +27,7 @@ import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '
 import {exitProtectedRouteOnDenial} from '../protected-route.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
 import {copyWithFeedback} from './copy-feedback.js';
+import {createPackageDetailTabs} from './package-detail-tabs.js';
 import {
     createRepositoryBackButton,
     createRepositoryFactsSection,
@@ -56,6 +57,8 @@ let publicDomainOffset = 0;
 let publicDomainName = '';
 let artifactVersionPage = 0;
 let artifactVersionKey = '';
+let mavenArtifactView = 'overview';
+let mavenImportFormat = 'maven';
 
 /**
  * Parse the account Maven-domain route.
@@ -124,7 +127,7 @@ function navigateMavenDomainCenter(domain = '') {
 
 /**
  * Return the persistent Maven repository view container.
- * @returns {HTMLElement}
+ * @returns {HTMLElement|null}
  */
 function ensureContainer() {
     mavenContainer = ensureRepositoryView(mavenContainer, {id: 'maven-repository-view'});
@@ -484,6 +487,62 @@ function mavenProjectInformationSection(details) {
 }
 
 /**
+ * Build copy-ready Maven and Gradle dependency declarations.
+ * @param {object} artifact - Maven artifact summary.
+ * @returns {HTMLElement} Dependency import section.
+ */
+function mavenImportSection(artifact) {
+    const version = artifact.latest_version || '<version>';
+    const coordinate = `${artifact.group_id}:${artifact.artifact_id}:${version}`;
+    const formats = [
+        {
+            id: 'maven', label: 'Maven', value: `<dependency>\n  <groupId>${artifact.group_id}</groupId>\n` +
+                `  <artifactId>${artifact.artifact_id}</artifactId>\n  <version>${version}</version>\n</dependency>`
+        },
+        {id: 'gradle-kotlin', label: 'Gradle Kotlin DSL', value: `implementation("${coordinate}")`},
+        {id: 'gradle-groovy', label: 'Gradle Groovy DSL', value: `implementation '${coordinate}'`},
+    ];
+    const tabs = el('div', {class: 'maven-import-tabs', role: 'tablist'});
+    const code = el('code', {});
+    const copy = el('button', {
+        type: 'button', class: 'maven-icon-btn', title: t('details.copy'), 'aria-label': t('details.copy')
+    }, createIcon('copy'));
+    let current = formats.find(format => format.id === mavenImportFormat) || formats[0];
+    const buttons = [];
+
+    /** Synchronize dependency format controls and code. */
+    function update() {
+        current = formats.find(format => format.id === mavenImportFormat) || formats[0];
+        for (const entry of buttons) {
+            const selected = entry.id === current.id;
+            entry.button.classList.toggle('is-active', selected);
+            entry.button.setAttribute('aria-selected', String(selected));
+        }
+        code.textContent = current.value;
+    }
+
+    for (const format of formats) {
+        const button = el('button', {
+            type: 'button', class: 'maven-import-tab', role: 'tab'
+        }, format.label);
+        button.addEventListener('click', () => {
+            mavenImportFormat = format.id;
+            update();
+        });
+        buttons.push({id: format.id, button});
+        tabs.appendChild(button);
+    }
+    copy.addEventListener('click', () => void copyText(copy, current.value));
+    update();
+    return el('section', {class: 'maven-section maven-import-section'},
+        el('h3', {}, t('maven.addDependency')),
+        el('p', {class: 'maven-section-summary'}, t('maven.addDependencyHint')),
+        tabs,
+        el('div', {class: 'maven-import-code'}, el('pre', {}, code), copy)
+    );
+}
+
+/**
  * Build direct dependency rows from the latest indexed POM.
  * @param {object|null|undefined} project - Project metadata payload.
  * @returns {HTMLElement|null} Dependency section.
@@ -510,7 +569,7 @@ function mavenDependencySection(project) {
             el('div', {class: 'maven-dependency-meta'}, ...metadata)
         ));
     });
-    return el('section', {class: 'maven-section'},
+    return el('section', {class: 'maven-section maven-dependency-section'},
         el('h3', {}, t('maven.dependenciesTitle')),
         el('p', {class: 'maven-section-summary'}, t('maven.dependenciesSummary', {
             count: dependencies.length,
@@ -1363,9 +1422,10 @@ function openArtifactReadmeEditor(container, repository, artifact, sequence) {
  * @param {object} artifact
  * @param {number} sequence
  * @param {boolean} canManage
- * @returns {HTMLElement}
+ * @returns {HTMLElement|null}
  */
 function mavenArtifactReadmeSection(container, repository, artifact, sequence, canManage) {
+    if (!artifact.readme && !canManage) return null;
     const heading = el('div', {class: 'maven-readme-heading'},
         el('h3', {}, t('maven.readme')),
         canManage ? el('button', {
@@ -1466,6 +1526,8 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
         if (artifactVersionKey !== versionKey) {
             artifactVersionKey = versionKey;
             artifactVersionPage = 0;
+            mavenArtifactView = 'overview';
+            mavenImportFormat = 'maven';
         }
         const query = new URLSearchParams({group: groupID, artifact: artifactID});
         const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/package?${query}`);
@@ -1542,15 +1604,28 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
                 artifactVersionPage = page;
             },
         });
-        const versionsSection = el('section', {class: 'maven-section'},
+        const versionsSection = el('section', {class: 'maven-section maven-versions-section'},
             el('h3', {}, t('maven.versionsTitle')), versionList, versionPager);
+        const readme = mavenArtifactReadmeSection(
+            container, repository, artifact, sequence, canManageVersions);
+        const detail = createPackageDetailTabs({
+            id: 'maven-package-detail', active: mavenArtifactView,
+            tabs: [
+                {
+                    id: 'overview', label: t('maven.overviewTab'),
+                    content: [artifactInformationSection(details, repository), mavenImportSection(artifact),
+                        mavenProjectInformationSection(details), mavenDependencySection(project)]
+                },
+                {id: 'readme', label: t('maven.readme'), content: [readme]},
+                {id: 'versions', label: t('maven.versionsTitle'), content: [versionsSection]},
+            ],
+            onChange: value => {
+                mavenArtifactView = value;
+            },
+        });
         await replaceRepositoryView(container, [
             hero,
-            artifactInformationSection(details, repository),
-            mavenProjectInformationSection(details),
-            mavenDependencySection(project),
-            mavenArtifactReadmeSection(container, repository, artifact, sequence, canManageVersions),
-            versionsSection
+            detail
         ], {duration: 280, enterDuration: 420});
     } catch (error) {
         if (sequence !== mavenLoadSequence) return;

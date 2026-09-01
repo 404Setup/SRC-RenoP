@@ -1,0 +1,104 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+.package-detail-tabs {
+    display: grid;
+    gap: 0.8rem;
+    min-width: 0;
+}
+
+.package-detail-tablist {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: fit-content;
+    max-width: 100%;
+    padding: 0.3rem;
+    overflow-x: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 0.72rem;
+    background: var(--card-bg);
+    scrollbar-width: thin;
+}
+
+.package-detail-tab {
+    flex: 0 0 auto;
+    padding: 0.45rem 0.72rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: transparent;
+    color: var(--muted-text);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 680;
+}
+
+.package-detail-tab:hover,
+.package-detail-tab:focus-visible {
+    background: color-mix(in srgb, var(--link-hover-color) 7%, transparent);
+    color: var(--link-hover-color);
+    outline: none;
+}
+
+.package-detail-tab.is-active {
+    background: color-mix(in srgb, var(--link-hover-color) 12%, var(--card-bg));
+    color: var(--link-hover-color);
+}
+
+.package-detail-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.package-detail-panel:focus {
+    outline: none;
+}
+
+.package-detail-panel > :only-child,
+.package-detail-panel > .npm-readme-section,
+.package-detail-panel > .npm-team-section,
+.package-detail-panel > .npm-information-grid,
+.package-detail-panel > .cargo-readme-section,
+.package-detail-panel > .cargo-inspection-section,
+.package-detail-panel > .cargo-versions-section,
+.package-detail-panel > .maven-readme-section,
+.package-detail-panel > .maven-dependency-section,
+.package-detail-panel > .maven-versions-section {
+    grid-column: 1 / -1;
+}
+
+.package-detail-panel .docker-readme-card {
+    margin-top: 0;
+}
+
+@media (max-width: 760px) {
+    .package-detail-tablist {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .package-detail-panel {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .package-detail-panel > * {
+        grid-column: auto !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .package-detail-tab {
+        transition: none;
+    }
+}

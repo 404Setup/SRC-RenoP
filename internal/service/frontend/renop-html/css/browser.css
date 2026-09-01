@@ -11,6 +11,7 @@
 @import "./browser/header.css";
 @import "./browser/file-list.css";
 @import "./browser/details.css";
+@import "./browser/package-detail-tabs.css";
 @import "./browser/maven.css";
 @import "./browser/cargo.css";
 @import "./browser/docker.css";

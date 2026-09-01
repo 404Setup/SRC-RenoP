@@ -357,6 +357,10 @@
   Maven artifact versions, npm package versions, and Docker image tags use `@renop/ui/pagination` for bounded
   previous/next pages, responsive summaries, height-morphed page changes, and page clamping after deletions; the
   shared pager intentionally avoids dense numbered-button rows on mobile.
+  `js/browser/package-detail-tabs.js` partitions npm, Cargo, Maven, and Docker details into accessible overview,
+  documentation/version, and authorized team subpages that mount only the active group; empty optional README and
+  metadata panels are omitted. Maven artifacts expose copy-ready Maven and Gradle declarations, while shared clipboard
+  feedback can preserve Docker digest-pill contents so success toasts never resize the SHA control.
   Cargo package collaborators and repository moderators can see pending versions in the package page, while public
   sparse-index and catalog responses remain unchanged until approval.
   Docker image collaborators and repository moderators see pending tags with pull, inspect, and delete actions withheld;

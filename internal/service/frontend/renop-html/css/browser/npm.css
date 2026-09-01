@@ -315,6 +315,10 @@
     margin: 0;
 }
 
+.npm-information-grid > :only-child {
+    grid-column: 1 / -1;
+}
+
 .npm-project-links,
 .npm-keyword-list {
     display: flex;

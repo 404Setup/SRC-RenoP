@@ -346,6 +346,58 @@ html.dark .maven-status-badge.is-pending {
     margin: 0.7rem 0 0;
 }
 
+.maven-import-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0.65rem;
+}
+
+.maven-import-tab {
+    padding: 0.34rem 0.58rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.45rem;
+    background: transparent;
+    color: var(--muted-text);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 650;
+}
+
+.maven-import-tab:hover,
+.maven-import-tab:focus-visible,
+.maven-import-tab.is-active {
+    border-color: color-mix(in srgb, var(--link-hover-color) 42%, var(--border-color));
+    background: color-mix(in srgb, var(--link-hover-color) 8%, transparent);
+    color: var(--link-hover-color);
+    outline: none;
+}
+
+.maven-import-code {
+    position: relative;
+    min-width: 0;
+    padding: 0.8rem 3rem 0.8rem 0.9rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.65rem;
+    background: var(--code-bg, color-mix(in srgb, var(--card-bg) 84%, #000));
+}
+
+.maven-import-code pre {
+    overflow-x: auto;
+    margin: 0;
+    color: var(--text-color);
+    font-size: 0.76rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.maven-import-code > .maven-icon-btn {
+    position: absolute;
+    top: 0.55rem;
+    right: 0.55rem;
+}
+
 .maven-metadata-list {
     display: inline-flex;
     align-items: center;

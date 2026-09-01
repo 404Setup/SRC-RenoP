@@ -18,28 +18,29 @@ const activeCopyFeedback = new WeakMap();
  * Copy text and apply the shared repository copy-button success feedback.
  * @param {HTMLButtonElement} button - Copy button receiving the temporary state.
  * @param {string} text - Non-empty clipboard value.
- * @param {{copiedLabel: string, duration?: number}} options - Localized label and feedback duration.
+ * @param {{copiedLabel: string, duration?: number, preserveContent?: boolean}} options - Feedback options.
  * @returns {Promise<void>}
  */
-export async function copyWithFeedback(button, text, {copiedLabel, duration = 2000}) {
+export async function copyWithFeedback(button, text, {copiedLabel, duration = 2000, preserveContent = false}) {
     if (!(button instanceof HTMLButtonElement) || !text) return;
     await writeClipboardText(text);
     const current = activeCopyFeedback.get(button);
     if (current) clearTimeout(current.timer);
     const originalTitle = current?.originalTitle ?? button.title;
     const originalChildren = current?.originalChildren ?? Array.from(button.childNodes);
+    current?.toast?.remove();
     button.classList.add('copied');
     button.title = copiedLabel;
-    button.replaceChildren(
-        createIcon('check', {class: 'icon-svg'}),
-        el('span', {class: 'copy-toast'}, copiedLabel)
-    );
+    const toast = el('span', {class: 'copy-toast'}, copiedLabel);
+    if (preserveContent) button.appendChild(toast);
+    else button.replaceChildren(createIcon('check', {class: 'icon-svg'}), toast);
     const timer = setTimeout(() => {
         activeCopyFeedback.delete(button);
         if (!button.isConnected) return;
         button.classList.remove('copied');
         button.title = originalTitle;
-        button.replaceChildren(...originalChildren);
+        if (preserveContent) toast.remove();
+        else button.replaceChildren(...originalChildren);
     }, duration);
-    activeCopyFeedback.set(button, {originalChildren, originalTitle, timer});
+    activeCopyFeedback.set(button, {originalChildren, originalTitle, timer, toast});
 }
