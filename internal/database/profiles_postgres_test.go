@@ -303,6 +303,25 @@ func TestPostgresAccountSecuritySerialization(t *testing.T) {
 	apiCredential, err = db.GetAPITokenByHash(core.HashAPITokenSecret(apiSecret), "security_pg")
 	require.NoError(t, err)
 	require.NotNil(t, apiCredential)
+	banExpiresAt := now + int64((48*time.Hour)/time.Millisecond)
+	banSession := &core.Session{PublicID: "postgres-ban-session", Username: "security_pg", CreatedAt: now}
+	banSession.LastActive.Store(now)
+	require.NoError(t, db.SaveSession(banSession, "postgres-ban-session-secret"))
+	require.NoError(t, db.SetAccountBan("security_pg", &core.AccountBan{
+		Reason: "PostgreSQL suspension", CreatedAt: now + 20, ExpiresAt: &banExpiresAt,
+	}))
+	bannedAccount, err := db.GetTokenByName("security_pg")
+	require.NoError(t, err)
+	require.NotNil(t, bannedAccount.Ban)
+	require.Equal(t, "PostgreSQL suspension", bannedAccount.Ban.Reason)
+	apiCredential, err = db.GetAPITokenByHash(core.HashAPITokenSecret(apiSecret), "security_pg")
+	require.NoError(t, err)
+	require.NotNil(t, apiCredential)
+	require.NotNil(t, apiCredential.Account.Ban)
+	storedBanSession, err := db.GetSession("postgres-ban-session-secret")
+	require.NoError(t, err)
+	require.Nil(t, storedBanSession)
+	require.NoError(t, db.SetAccountBan("security_pg", nil))
 	require.NoError(t, db.DeleteAPIToken("security_pg", apiToken.ID))
 }
 
@@ -440,5 +459,5 @@ func TestPostgresDriverContract(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
 	results, err := database.RunDriverCheck(context.Background(), db)
 	require.NoError(t, err)
-	require.Len(t, results, 8)
+	require.Len(t, results, 9)
 }

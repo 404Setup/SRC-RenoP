@@ -26,6 +26,8 @@ const (
 	ActionTokenDisable           = "TOKEN_DISABLE"
 	ActionTokenEnable            = "TOKEN_ENABLE"
 	ActionUserPermissionUpdate   = "USER_PERMISSION_UPDATE"
+	ActionUserBan                = "USER_BAN"
+	ActionUserUnban              = "USER_UNBAN"
 	ActionLogClear               = "LOG_CLEAR"
 	ActionGPGUpdate              = "GPG_UPDATE"
 	ActionProfileUpdate          = "PROFILE_UPDATE"
@@ -124,6 +126,8 @@ func KnownActions() []string {
 		ActionTokenDisable,
 		ActionTokenEnable,
 		ActionUserPermissionUpdate,
+		ActionUserBan,
+		ActionUserUnban,
 		ActionLogClear,
 		ActionGPGUpdate,
 		ActionProfileUpdate,

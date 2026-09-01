@@ -100,6 +100,9 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		description TEXT NOT NULL,
 		expires_at BIGINT NULL,
 		permissions_json TEXT NOT NULL,
+		ban_reason VARCHAR(2048) NOT NULL DEFAULT '',
+		banned_at BIGINT NOT NULL DEFAULT 0,
+		banned_until BIGINT NULL,
 		INDEX idx_tokens_expires_at (expires_at)
 	);`
 
@@ -546,11 +549,12 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 }
 
 func (d *MySQLDialect) UpsertTokenQuery() string {
-	return `INSERT INTO tokens (name, type, type_value, encrypted_secret, password_hash, tokens_json, created_at, description, expires_at, permissions_json)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	return `INSERT INTO tokens (name, type, type_value, encrypted_secret, password_hash, tokens_json, created_at, description, expires_at, permissions_json, ban_reason, banned_at, banned_until)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	ON DUPLICATE KEY UPDATE
 	type=VALUES(type), type_value=VALUES(type_value), encrypted_secret=VALUES(encrypted_secret), password_hash=VALUES(password_hash),
-	tokens_json=VALUES(tokens_json), created_at=VALUES(created_at), description=VALUES(description), expires_at=VALUES(expires_at), permissions_json=VALUES(permissions_json)`
+	tokens_json=VALUES(tokens_json), created_at=VALUES(created_at), description=VALUES(description), expires_at=VALUES(expires_at),
+	permissions_json=VALUES(permissions_json), ban_reason=VALUES(ban_reason), banned_at=VALUES(banned_at), banned_until=VALUES(banned_until)`
 }
 
 func (d *MySQLDialect) UpsertSessionQuery() string {

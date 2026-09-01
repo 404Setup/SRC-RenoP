@@ -212,8 +212,8 @@ func AuthenticateUser(state *core.AppState, body *core.LoginRequest, opChan chan
 	passwordHash := invalidPasswordHash
 	passwordEnabled := false
 	if accessToken != nil {
-		if isAccessTokenExpired(accessToken) {
-			return nil, fiber.ErrForbidden
+		if err := accountAccessError(accessToken); err != nil {
+			return nil, err
 		}
 		policyEnabled, err := state.GetDB().PasswordLoginEnabled(accessToken.Name)
 		if err != nil {
@@ -248,7 +248,11 @@ func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenO
 	}
 
 	user, err := AuthenticateUser(state, &body, opChan)
-	if errors.Is(err, fiber.ErrForbidden) {
+	if errors.Is(err, core.ErrAccountBanned) {
+		c.Set("X-Renop-Error-Code", "ACCOUNT_BANNED")
+		return c.Status(fiber.StatusForbidden).SendString("Account suspended")
+	}
+	if errors.Is(err, errCredentialExpired) || errors.Is(err, fiber.ErrForbidden) {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 	if err != nil {
@@ -257,6 +261,10 @@ func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenO
 
 	if user != nil {
 		if err := issueBrowserSession(c, state, user, "password"); err != nil {
+			if errors.Is(err, core.ErrAccountBanned) {
+				c.Set("X-Renop-Error-Code", "ACCOUNT_BANNED")
+				return c.Status(fiber.StatusForbidden).SendString("Account suspended")
+			}
 			return c.Status(fiber.StatusInternalServerError).SendString("Failed to create session")
 		}
 		details := CreateSessionDetails(user, "")

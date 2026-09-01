@@ -293,6 +293,25 @@ func TestClickHouseNativeSecurityIdentityAndGPGMatrix(t *testing.T) {
 	credential, err = db.GetAPITokenByHash(hex.EncodeToString(digest[:]), "alice")
 	require.NoError(t, err)
 	require.NotNil(t, credential)
+	banExpiresAt := now + int64((48*time.Hour)/time.Millisecond)
+	banSession := &core.Session{PublicID: "clickhouse-ban-session", Username: "alice", CreatedAt: now}
+	banSession.LastActive.Store(now)
+	require.NoError(t, db.SaveSession(banSession, "clickhouse-ban-session-secret"))
+	require.NoError(t, db.SetAccountBan("alice", &core.AccountBan{
+		Reason: "ClickHouse suspension", CreatedAt: now + 20, ExpiresAt: &banExpiresAt,
+	}))
+	bannedAccount, err := db.GetTokenByName("alice")
+	require.NoError(t, err)
+	require.NotNil(t, bannedAccount.Ban)
+	require.Equal(t, "ClickHouse suspension", bannedAccount.Ban.Reason)
+	credential, err = db.GetAPITokenByHash(hex.EncodeToString(digest[:]), "alice")
+	require.NoError(t, err)
+	require.NotNil(t, credential)
+	require.NotNil(t, credential.Account.Ban)
+	storedBanSession, err := db.GetSession("clickhouse-ban-session-secret")
+	require.NoError(t, err)
+	require.Nil(t, storedBanSession)
+	require.NoError(t, db.SetAccountBan("alice", nil))
 
 	const fingerprint = "1462C0512352DEC38A39D0793586B4EB0FDA2EA9"
 	const keyID = "3586B4EB0FDA2EA9"
@@ -360,7 +379,7 @@ func TestClickHouseNativeDriverContract(t *testing.T) {
 	db := newClickHouseTestDatabase(t)
 	results, err := database.RunDriverCheck(context.Background(), db)
 	require.NoError(t, err)
-	require.Len(t, results, 8)
+	require.Len(t, results, 9)
 }
 
 func TestClickHouseNativeSchemaCopyMigrationPreservesRows(t *testing.T) {
@@ -391,6 +410,15 @@ func TestClickHouseNativeSchemaCopyMigrationPreservesRows(t *testing.T) {
 	require.NoError(t, admin.Exec(context.Background(), `INSERT INTO `+legacyTable+`
 		(repository, image_name, description, publisher, created_at, updated_at)
 		VALUES ('containers', 'legacy', 'preserved', 'alice', 100, 100)`))
+	legacyTokens := "`" + databaseName + "`.`tokens`"
+	require.NoError(t, admin.Exec(context.Background(), `CREATE TABLE `+legacyTokens+` (
+		name String, type String, type_value Int64, encrypted_secret String, password_hash String,
+		tokens_json String, created_at String, description String, expires_at Nullable(Int64), permissions_json String,
+		_renop_key String MATERIALIZED name
+	) ENGINE = EmbeddedRocksDB PRIMARY KEY _renop_key SETTINGS optimize_for_bulk_insert = 0`))
+	require.NoError(t, admin.Exec(context.Background(), `INSERT INTO `+legacyTokens+`
+		(name, type, type_value, encrypted_secret, password_hash, tokens_json, created_at, description, permissions_json)
+		VALUES ('legacy_user', 'PERSISTENT', 1, '', '', '[]', '2026-09-01T00:00:00Z', 'preserved account', '["base"]')`))
 	parsed.Path = "/" + databaseName
 	db, err := database.InitDB(config.DatabaseConfig{
 		Driver: "clickhouse", Dsn: parsed.String(), MaxOpenConns: 4, MaxIdleConns: 2,
@@ -402,6 +430,11 @@ func TestClickHouseNativeSchemaCopyMigrationPreservesRows(t *testing.T) {
 		WHERE repository = ? AND image_name = ?`, "containers", "legacy").Scan(&description, &binding))
 	assert.Equal(t, "preserved", description)
 	assert.Empty(t, binding)
+	legacyAccount, err := db.GetTokenByName("legacy_user")
+	require.NoError(t, err)
+	require.NotNil(t, legacyAccount)
+	assert.Equal(t, "preserved account", legacyAccount.Description)
+	assert.Nil(t, legacyAccount.Ban)
 	var migrationTables int
 	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM system.tables
 		WHERE database = ? AND startsWith(name, '_renop_schema_')`, databaseName).Scan(&migrationTables))

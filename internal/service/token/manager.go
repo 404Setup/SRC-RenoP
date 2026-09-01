@@ -56,6 +56,7 @@ func cloneAccessToken(token *core.AccessToken) *core.AccessToken {
 		expires := *token.ExpiresAt
 		cloned.ExpiresAt = &expires
 	}
+	cloned.Ban = token.Ban.Clone()
 
 	if token.Tokens != nil {
 		cloned.Tokens = make([]string, len(token.Tokens))

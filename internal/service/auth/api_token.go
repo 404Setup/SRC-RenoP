@@ -312,14 +312,17 @@ func VerifyAccountCredential(state *core.AppState, account *core.AccessToken, se
 	if state == nil || state.GetDB() == nil || account == nil || secret == "" {
 		return nil, nil
 	}
-	if account.ExpiresAt != nil && time.Now().UnixMilli() >= *account.ExpiresAt {
-		return nil, errCredentialExpired
+	if err := accountAccessError(account); err != nil {
+		return nil, err
 	}
 	credential, err := state.GetDB().GetAPITokenByHash(apiTokenSecretHash(secret), account.Name)
 	if err != nil {
 		return nil, err
 	}
 	if credential != nil && credential.Token != nil && credential.Account != nil {
+		if err := accountAccessError(credential.Account); err != nil {
+			return nil, err
+		}
 		expiresAt := effectiveCredentialExpiry(credential.Account.ExpiresAt, credential.Token.ExpiresAt)
 		if expiresAt != nil && time.Now().UnixMilli() >= *expiresAt {
 			return nil, errCredentialExpired
@@ -349,9 +352,6 @@ func VerifyAccountCredential(state *core.AppState, account *core.AccessToken, se
 	if err := bcrypt.CompareHashAndPassword([]byte(account.EncryptedSecret), []byte(secret)); err != nil {
 		return nil, nil
 	}
-	if account.ExpiresAt != nil && time.Now().UnixMilli() >= *account.ExpiresAt {
-		return nil, errCredentialExpired
-	}
 	return &VerifiedCredential{
 		Account: account, Kind: credentialKindPassword, ExpiresAt: account.ExpiresAt,
 	}, nil
@@ -367,6 +367,9 @@ func VerifyBearerCredential(state *core.AppState, secret string) (*VerifiedCrede
 		return nil, err
 	}
 	if credential != nil && credential.Token != nil && credential.Account != nil {
+		if err := accountAccessError(credential.Account); err != nil {
+			return nil, err
+		}
 		expiresAt := effectiveCredentialExpiry(credential.Account.ExpiresAt, credential.Token.ExpiresAt)
 		if expiresAt != nil && time.Now().UnixMilli() >= *expiresAt {
 			return nil, errCredentialExpired

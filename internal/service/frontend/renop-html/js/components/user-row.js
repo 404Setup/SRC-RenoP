@@ -102,6 +102,7 @@ if (!customElements.get('renop-user-row')) {
  * @property {(token: object) => void} [onDelete] - Delete action handler
  * @property {(token: object) => void} [onSessions] - Sessions action handler
  * @property {(token: object) => void} [onQuota] - Publication quota action handler
+ * @property {(token: object) => void} [onBan] - Account suspension action handler
  */
 
 /**
@@ -159,6 +160,15 @@ export function openUserActionsDialog(token, options = {}) {
             desc: t('publicationQuota.adminUserHint'),
             handler: options.onQuota
         },
+        ...(options.onBan ? [{
+            id: 'ban',
+            icon: 'warning',
+            iconColor: '#ef4444',
+            iconBg: 'rgba(239, 68, 68, 0.1)',
+            title: t('users.manageBan'),
+            desc: t('users.manageBanDesc'),
+            handler: options.onBan
+        }] : []),
         {
             id: 'edit',
             icon: 'edit',
@@ -284,10 +294,21 @@ export function openUserActionsDialog(token, options = {}) {
 export function createUserRow(token, options = {}) {
     const row = document.createElement('tr');
     row.dataset.userName = token.name;
+    if (token.ban) row.classList.add('is-banned');
 
     const nameTd = el('td', {class: 'user-cell'},
         createUserIdentity(token.name, {avatar: true})
     );
+    if (token.ban) {
+        const duration = token.ban.expires_at
+            ? t('users.banCurrentUntil', {
+                date: formatTimestamp(token.ban.expires_at, {fallback: t('common.unknown')})
+            })
+            : t('users.banCurrentPermanent');
+        nameTd.appendChild(createBadge(t('users.banned'), 'danger', {
+            title: `${duration} — ${token.ban.reason || t('common.unknown')}`
+        }));
+    }
 
     const permsTd = el('td');
     const perms = token.permissions || [];

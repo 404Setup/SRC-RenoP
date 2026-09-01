@@ -282,7 +282,7 @@ func (db *DB) GetAPITokenByHash(secretHash, username string) (*core.APITokenCred
 	query := `SELECT api.id, api.name, api.scopes_json, api.created_at, api.expires_at,
 		account.name, account.type, account.type_value, account.encrypted_secret,
 		account.password_hash, account.tokens_json, account.created_at, account.description,
-		account.expires_at, account.permissions_json
+		account.expires_at, account.permissions_json, account.ban_reason, account.banned_at, account.banned_until
 		FROM user_api_tokens api
 		JOIN user_profiles profile ON profile.user_id = api.user_id
 		JOIN tokens account ON account.name = profile.username
@@ -295,12 +295,13 @@ func (db *DB) GetAPITokenByHash(secretHash, username string) (*core.APITokenCred
 	row := db.QueryRow(query, arguments...)
 	token := &core.APIToken{}
 	var scopesJSON string
-	var tokenExpiresAt, accountExpiresAt sql.NullInt64
-	var accountName, accountType, encryptedSecret, passwordHash, tokensJSON, createdAt, description, permissionsJSON string
+	var tokenExpiresAt, accountExpiresAt, bannedUntil sql.NullInt64
+	var accountName, accountType, encryptedSecret, passwordHash, tokensJSON, createdAt, description, permissionsJSON, banReason string
+	var bannedAt int64
 	var typeValue int32
 	if err := row.Scan(&token.ID, &token.Name, &scopesJSON, &token.CreatedAt, &tokenExpiresAt,
 		&accountName, &accountType, &typeValue, &encryptedSecret, &passwordHash, &tokensJSON,
-		&createdAt, &description, &accountExpiresAt, &permissionsJSON); err != nil {
+		&createdAt, &description, &accountExpiresAt, &permissionsJSON, &banReason, &bannedAt, &bannedUntil); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
@@ -314,7 +315,7 @@ func (db *DB) GetAPITokenByHash(secretHash, username string) (*core.APITokenCred
 		token.ExpiresAt = &value
 	}
 	account, err := parseTokenRow(accountName, accountType, typeValue, encryptedSecret, passwordHash,
-		tokensJSON, createdAt, description, accountExpiresAt, permissionsJSON)
+		tokensJSON, createdAt, description, accountExpiresAt, permissionsJSON, banReason, bannedAt, bannedUntil)
 	if err != nil {
 		return nil, err
 	}

@@ -26,6 +26,7 @@ import {responseErrorMessage} from './response-errors.js';
 import {exitProtectedRouteOnDenial} from './protected-route.js';
 import {openPublicationQuotaDialog} from './publication-quota.js';
 import {invalidateUserProfiles} from './user-profiles.js';
+import {openUserBanDialog} from './users/ban.js';
 
 let previousStats = {total: -1, admin: -1, key: -1};
 let allTokens = [];
@@ -398,6 +399,7 @@ export async function openUserFidoDialog(username) {
  * @returns {HTMLTableRowElement}
  */
 function createUserRowElement(token) {
+    const currentUsername = localStorage.getItem('username') || '';
     return createUserRow(token, {
         formatPermissionTag,
         onEdit: (t) => openEditModal(t),
@@ -406,6 +408,9 @@ function createUserRowElement(token) {
         onFido: (tok) => openUserFidoDialog(tok.name),
         onAuditLogs: (tok) => openAuditLogsDialog({mode: 'user', username: tok.name}),
         onQuota: (tok) => openPublicationQuotaDialog({ownerType: 'user', ownerKey: tok.name}),
+        onBan: currentUsername.toLowerCase() === String(token.name || '').toLowerCase()
+            ? null
+            : (tok) => openUserBanDialog(tok, fetchTokens),
     });
 }
 

@@ -51,6 +51,12 @@ func FromAccessTokenDto(t core.AccessTokenDto) *AccessTokenDto {
 	if t.ExpiresAt != nil {
 		msg.ExpiresAt = t.ExpiresAt
 	}
+	if t.Ban != nil {
+		msg.Ban = &AccountBan{Reason: t.Ban.Reason, CreatedAt: t.Ban.CreatedAt}
+		if t.Ban.ExpiresAt != nil {
+			msg.Ban.ExpiresAt = t.Ban.ExpiresAt
+		}
+	}
 	return msg
 }
 

@@ -23,6 +23,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
+	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
 	"renop/pkg/pb"
 )
@@ -32,10 +33,90 @@ func SetupTokenRoutes(app fiber.Router, state *core.AppState, opChan chan<- Toke
 	api.Get("", func(c fiber.Ctx) error { return FindAllTokens(c, state) })
 	api.Get("/:name", func(c fiber.Ctx) error { return FindToken(c, state) })
 	api.Put("/:name", func(c fiber.Ctx) error { return UpsertToken(c, state, opChan) })
+	api.Put("/:name/ban", func(c fiber.Ctx) error { return BanAccount(c, state) })
+	api.Delete("/:name/ban", func(c fiber.Ctx) error { return UnbanAccount(c, state) })
 	api.Delete("/:name", func(c fiber.Ctx) error { return DeleteToken(c, state, opChan) })
 	api.Get("/:name/sessions", func(c fiber.Ctx) error { return ListUserSessions(c, state) })
 	api.Post("/:name/sessions/revoke-all", func(c fiber.Ctx) error { return RevokeAllUserSessions(c, state) })
 	api.Delete("/:name/sessions/:session_id", func(c fiber.Ctx) error { return DeleteUserSession(c, state) })
+}
+
+type accountBanRequest struct {
+	Reason    string `json:"reason"`
+	ExpiresAt *int64 `json:"expires_at"`
+}
+
+// BanAccount suspends one account and revokes every active browser session (manager only).
+func BanAccount(c fiber.Ctx, state *core.AppState) error {
+	user := getUserFromCtx(c)
+	if !RequireManager(user) {
+		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+	}
+	name := strings.ToLower(strings.TrimSpace(c.Params("name")))
+	if name == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+	}
+	if strings.EqualFold(user.Username, name) {
+		c.Set("X-Renop-Error-Code", "ACCOUNT_BAN_SELF")
+		return c.Status(fiber.StatusForbidden).SendString("Cannot suspend current account")
+	}
+	var request accountBanRequest
+	if err := utils.ReadJSONLimited(c, &request, 4096); err != nil {
+		c.Set("X-Renop-Error-Code", "ACCOUNT_BAN_INVALID")
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid account ban")
+	}
+	reason, valid := core.NormalizeAccountBanReason(request.Reason)
+	now := time.Now().UnixMilli()
+	if !valid || request.ExpiresAt != nil && *request.ExpiresAt <= now {
+		c.Set("X-Renop-Error-Code", "ACCOUNT_BAN_INVALID")
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid account ban")
+	}
+	ban := &core.AccountBan{Reason: reason, CreatedAt: now, ExpiresAt: request.ExpiresAt}
+	if err := state.GetDB().SetAccountBan(name, ban); errors.Is(err, core.ErrUserProfileNotFound) {
+		return c.SendStatus(fiber.StatusNotFound)
+	} else if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to suspend account")
+	}
+	state.InvalidateAccountAuthCache(true, name)
+	state.ForgetUserSessions(name)
+	duration := "permanently"
+	if ban.ExpiresAt != nil {
+		duration = "until " + time.UnixMilli(*ban.ExpiresAt).UTC().Format(time.RFC3339)
+	}
+	_, operator, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
+	audit.Log(state, &core.AuditLogEntry{
+		Username: name, Operator: operator, Action: audit.ActionUserBan,
+		Details:    "Suspended account " + duration + ": " + reason,
+		AuthMethod: authMethod, SessionID: sessionID, IP: ip,
+	})
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return c.JSON(fiber.Map{"ban": ban})
+}
+
+// UnbanAccount clears one account suspension (manager only).
+func UnbanAccount(c fiber.Ctx, state *core.AppState) error {
+	user := getUserFromCtx(c)
+	if !RequireManager(user) {
+		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+	}
+	name := strings.ToLower(strings.TrimSpace(c.Params("name")))
+	if name == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+	}
+	if err := state.GetDB().SetAccountBan(name, nil); errors.Is(err, core.ErrUserProfileNotFound) {
+		return c.SendStatus(fiber.StatusNotFound)
+	} else if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to lift account suspension")
+	}
+	state.InvalidateAccountAuthCache(true, name)
+	_, operator, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
+	audit.Log(state, &core.AuditLogEntry{
+		Username: name, Operator: operator, Action: audit.ActionUserUnban,
+		Details:    "Lifted account suspension",
+		AuthMethod: authMethod, SessionID: sessionID, IP: ip,
+	})
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 func getUserFromCtx(c fiber.Ctx) *config.User {
@@ -70,6 +151,13 @@ func DefaultCreatedAt() string {
 	return time.Now().UTC().Format(time.RFC3339)
 }
 
+func activeAccountBan(token *core.AccessToken, now int64) *core.AccountBan {
+	if token == nil || !token.Ban.IsActive(now) {
+		return nil
+	}
+	return token.Ban.Clone()
+}
+
 func FindAllTokens(c fiber.Ctx, state *core.AppState) error {
 	user := getUserFromCtx(c)
 	if !RequireManager(user) {
@@ -78,6 +166,7 @@ func FindAllTokens(c fiber.Ctx, state *core.AppState) error {
 
 	rawTokens := state.GetAllTokens()
 	tokens := make([]core.AccessTokenDto, 0, len(rawTokens))
+	now := time.Now().UnixMilli()
 	apiTokenCounts, err := state.GetDB().CountAPITokensByUsername()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to count API tokens")
@@ -95,9 +184,11 @@ func FindAllTokens(c fiber.Ctx, state *core.AppState) error {
 			ExpiresAt:   token.ExpiresAt,
 			Tokens:      make([]string, apiTokenCounts[token.Name]),
 			Permissions: token.Permissions,
+			Ban:         activeAccountBan(token, now),
 		})
 	}
 
+	c.Set(fiber.HeaderCacheControl, "no-store")
 	return protohttp.Write(c, pb.FromAccessTokenList(tokens))
 }
 
@@ -113,7 +204,7 @@ func FindToken(c fiber.Ctx, state *core.AppState) error {
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).SendString("Failed to count API tokens")
 		}
-		dto := core.AccessTokenDto{
+			dto := core.AccessTokenDto{
 			Identifier:  token.Identifier,
 			Name:        name,
 			CreatedAt:   token.CreatedAt,
@@ -121,7 +212,9 @@ func FindToken(c fiber.Ctx, state *core.AppState) error {
 			ExpiresAt:   token.ExpiresAt,
 			Tokens:      make([]string, apiTokenCount),
 			Permissions: token.Permissions,
+			Ban:         activeAccountBan(token, time.Now().UnixMilli()),
 		}
+		c.Set(fiber.HeaderCacheControl, "no-store")
 		return protohttp.Write(c, pb.FromAccessTokenDto(dto))
 	}
 
@@ -258,6 +351,7 @@ func UpsertToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 		ExpiresAt:   token.ExpiresAt,
 		Tokens:      token.Tokens,
 		Permissions: token.Permissions,
+		Ban:         activeAccountBan(token, time.Now().UnixMilli()),
 	}
 
 	errChan := make(chan error, 1)
@@ -308,6 +402,7 @@ func UpsertToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 		Secret:      returnedSecret,
 	}
 
+	c.Set(fiber.HeaderCacheControl, "no-store")
 	return protohttp.Write(c, pb.FromCreateAccessTokenResponse(res))
 }
 

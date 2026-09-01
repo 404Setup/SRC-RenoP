@@ -14,6 +14,9 @@ export const RESPONSE_ERROR_CODE_HEADER = 'X-Renop-Error-Code';
 
 const MAX_ERROR_BODY_BYTES = 2048;
 const commonErrorCodeKeys = Object.freeze({
+    ACCOUNT_BANNED: 'login.accountBanned',
+    ACCOUNT_BAN_INVALID: 'users.banInvalid',
+    ACCOUNT_BAN_SELF: 'users.banSelf',
     ACCOUNT_EMAIL_CONFLICT: 'profile.privateEmailConflict',
     ACCOUNT_EMAIL_INVALID: 'profile.privateEmailInvalid',
     ACCOUNT_LAST_LOGIN_METHOD: 'profile.passwordLoginNeedsAlternative',

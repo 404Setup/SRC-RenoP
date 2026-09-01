@@ -39,6 +39,7 @@ export default Object.freeze({
     "login.passwordPlaceholder": "Introduce la contraseña",
     "login.submitBtn": "Iniciar sesión",
     "login.invalidCreds": "Credenciales no válidas",
+    "login.accountBanned": "Esta cuenta está suspendida. Póngase en contacto con un administrador del sistema.",
     "login.loginError": "Se produjo un error al iniciar sesión",
     "login.welcomeBack": "¡Bienvenido de nuevo, {name}!",
     "login.sessionExpired": "Su sesión ha expirado. Por favor inicie sesión de nuevo.",

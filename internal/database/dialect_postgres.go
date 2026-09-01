@@ -144,7 +144,10 @@ func (d *PostgresDialect) InitTables(db *sql.DB) error {
 		created_at VARCHAR(64) NOT NULL,
 		description TEXT NOT NULL,
 		expires_at BIGINT NULL,
-		permissions_json TEXT NOT NULL
+		permissions_json TEXT NOT NULL,
+		ban_reason VARCHAR(2048) NOT NULL DEFAULT '',
+		banned_at BIGINT NOT NULL DEFAULT 0,
+		banned_until BIGINT NULL
 	);`
 
 	userProfilesTable := `
@@ -517,11 +520,12 @@ func (d *PostgresDialect) InitTables(db *sql.DB) error {
 }
 
 func (d *PostgresDialect) UpsertTokenQuery() string {
-	return `INSERT INTO tokens (name, type, type_value, encrypted_secret, password_hash, tokens_json, created_at, description, expires_at, permissions_json)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	return `INSERT INTO tokens (name, type, type_value, encrypted_secret, password_hash, tokens_json, created_at, description, expires_at, permissions_json, ban_reason, banned_at, banned_until)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT(name) DO UPDATE SET
 	type=excluded.type, type_value=excluded.type_value, encrypted_secret=excluded.encrypted_secret, password_hash=excluded.password_hash,
-	tokens_json=excluded.tokens_json, created_at=excluded.created_at, description=excluded.description, expires_at=excluded.expires_at, permissions_json=excluded.permissions_json`
+	tokens_json=excluded.tokens_json, created_at=excluded.created_at, description=excluded.description, expires_at=excluded.expires_at,
+	permissions_json=excluded.permissions_json, ban_reason=excluded.ban_reason, banned_at=excluded.banned_at, banned_until=excluded.banned_until`
 }
 
 func (d *PostgresDialect) UpsertSessionQuery() string {

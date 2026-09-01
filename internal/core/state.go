@@ -61,6 +61,7 @@ type StateDB interface {
 	GetTokenBySecret(secret string) (*AccessToken, error)
 	GetAllTokens() ([]*AccessToken, error)
 	UpdateToken(name string, updateFn func(*AccessToken)) error
+	SetAccountBan(username string, ban *AccountBan) error
 	ListAPITokens(username string) ([]*APIToken, error)
 	CreateAPIToken(username string, token *APIToken, secretHash string) error
 	DeleteAPIToken(username, tokenID string) error
@@ -612,6 +613,20 @@ func (state *AppState) RevokeOtherUserSessions(username, keepSessionToken string
 // RevokeAllUserSessions removes every browser session for username.
 func (state *AppState) RevokeAllUserSessions(username string) (int, error) {
 	return state.RevokeOtherUserSessions(username, "")
+}
+
+// ForgetUserSessions clears in-memory session copies after the database revoked them transactionally.
+func (state *AppState) ForgetUserSessions(username string) {
+	if state == nil || state.Inner == nil || username == "" {
+		return
+	}
+	state.Inner.Sessions.Range(func(token string, session *Session) bool {
+		if session != nil && strings.EqualFold(session.Username, username) {
+			state.DeleteAuthCache("Session " + token)
+			state.Inner.Sessions.Delete(token)
+		}
+		return true
+	})
 }
 
 func (state *AppState) ListFidoDevices(username string) []*FidoDevice {

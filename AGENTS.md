@@ -18,8 +18,9 @@
   `.br` sidecars with deflate/gzip level 6, default Zstandard, and Brotli quality 9. It processes only compressible
   source extensions and explicitly skips every sidecar suffix so repeated builds never recompress generated output.
 - **`cmd/renop-dbtest/`**: Standalone destructive-on-isolated-data driver contract CLI. It requires
-  `-confirm-isolated` and exercises account/session persistence, rollback, message deduplication, Cargo/Docker/Maven/npm
-  catalogs, global-team invitation/role mutations, cross-engine team bindings, and download statistics through the same
+  `-confirm-isolated` and exercises account/session persistence, timed account bans with session revocation, rollback,
+  message deduplication, Cargo/Docker/Maven/npm catalogs, global-team invitation/role mutations, cross-engine team
+  bindings, and download statistics through the same
   database API used by the server. Its review phase also verifies repository-moderator listing, bounded publication
   files, single-decision completion, and hidden-path release across every available driver.
 - **`scripts/build-target.ps1` & `scripts/compress-target.ps1`**: Isolated release workers coordinated by `build.ps1`.
@@ -43,8 +44,9 @@
   modules. SQLite shutdown checkpoints and exits WAL mode before closing pooled connections so Windows can release
   sidecar files deterministically. Bounded sharded read-through caches use randomized zero-allocation key hashing and coalesce concurrent
   token, session, and immutable-user lookup misses;
-  nickname-first profile batches query only uncached accounts, and commit-time invalidation prevents stale rename or
-  creation results. A repository-wide AST regression test rejects production Go SQL containing any `DELETE FROM`
+  nickname-first profile batches query only uncached accounts, and commit-time invalidation plus generation-guarded
+  account fills prevent stale rename, creation, permission, or security-state results. A repository-wide AST regression
+  test rejects production Go SQL containing any `DELETE FROM`
   statement that cannot statically demonstrate a `WHERE` clause. Includes
   zero-alloc SQL parameter rebinding (`RebindPostgres`), unified transaction wrappers, schema migrations, public user
   profiles, immutable user identities for package ownership, and sanitized `user_avatars` blobs whose small metadata
@@ -83,7 +85,9 @@
   uses twelve 160-bit codes, Argon2id verifiers, four-code atomic consumption, and session revocation; password login
   may be disabled only while a GitHub identity or Passkey remains available. API tokens use one-time 256-bit secrets,
   optional expiration, reversible owner-managed suspension, current-account-permission intersection, and immediate
-  cache invalidation on suspension or revocation. Capabilities separately
+  cache invalidation on suspension or revocation. Reasoned administrator account bans may be temporary or permanent;
+  one shared account-status check blocks password, Passkey, GitHub, session, and API-token authentication, revokes
+  browser sessions immediately, and restores access automatically when a temporary ban expires. Capabilities separately
   gate repository reads/publication/deletion, package creation/metadata/lifecycle, team administration, and Maven-domain
   reading/creation/verification/deletion. Each target-aware scope can additionally carry bounded exact repository,
   package, team, or domain restrictions in the backward-compatible authorization JSON; legacy broad package/domain
@@ -291,7 +295,8 @@
   and retain the server-side alternate-login invariant.
   Administrator account creation and editing use the responsive two-column `js/users/modal.js` dialog, with account
   identity and password semantics separated from the asynchronously loaded repository permission editor in
-  `js/users/permissions.js`. Per-repository view, moderate, and deploy chips map to distinct permissions; moderator
+  `js/users/permissions.js`; `js/users/ban.js` separately owns the reasoned temporary/permanent suspension dialog.
+  Per-repository view, moderate, and deploy chips map to distinct permissions; moderator
   roles never expose manager-only tabs. Narrow viewports stack both sections without allowing the modal to exceed the
   dynamic viewport. The legacy protobuf `secret` field remains a transport-only compatibility detail and is not exposed as
   account-token terminology in the interface.

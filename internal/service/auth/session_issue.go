@@ -23,6 +23,16 @@ import (
 )
 
 func issueBrowserSession(c fiber.Ctx, state *core.AppState, user *config.User, method string) error {
+	if user == nil {
+		return core.ErrUserProfileNotFound
+	}
+	accessToken := state.GetTokenByName(user.Username)
+	if accessToken == nil {
+		return core.ErrUserProfileNotFound
+	}
+	if err := accountAccessError(accessToken); err != nil {
+		return err
+	}
 	sessionToken := uuid.NewString()
 	publicID := uuid.NewString()
 	now := time.Now().UnixMilli()

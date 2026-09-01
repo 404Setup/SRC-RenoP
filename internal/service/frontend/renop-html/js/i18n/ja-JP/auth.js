@@ -39,6 +39,7 @@ export default Object.freeze({
     "login.passwordPlaceholder": "パスワードを入力",
     "login.submitBtn": "ログイン",
     "login.invalidCreds": "無効な認証情報です",
+    "login.accountBanned": "このアカウントは停止されています。システム管理者に連絡してください。",
     "login.loginError": "ログイン処理中にエラーが発生しました",
     "login.welcomeBack": "おかえりなさい、{name} さん！",
     "login.sessionExpired": "セッションの期限が切れました。再度サインインしてください。",

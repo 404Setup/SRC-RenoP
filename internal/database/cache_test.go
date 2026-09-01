@@ -94,6 +94,15 @@ func TestTTLCacheCapacityAndInvalidationDuringLoad(t *testing.T) {
 	if _, ok := cache.Get("invalidated"); ok {
 		t.Fatal("an invalidated in-flight load repopulated the cache")
 	}
+	staleGeneration := cache.Generation()
+	cache.Delete("generation-guard")
+	if cache.SetIfGeneration("generation-guard", 8, time.Minute, staleGeneration) {
+		t.Fatal("stale direct load bypassed the cache generation guard")
+	}
+	freshGeneration := cache.Generation()
+	if !cache.SetIfGeneration("generation-guard", 9, time.Minute, freshGeneration) {
+		t.Fatal("current direct load was not cached")
+	}
 }
 
 func TestTTLCacheLoaderPanicDoesNotPoisonKey(t *testing.T) {

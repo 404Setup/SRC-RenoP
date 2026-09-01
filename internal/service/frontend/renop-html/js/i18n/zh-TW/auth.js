@@ -39,6 +39,7 @@ export default Object.freeze({
     "login.passwordPlaceholder": "請輸入密碼",
     "login.submitBtn": "登入",
     "login.invalidCreds": "無效的憑據",
+    "login.accountBanned": "此帳號已被封禁，請聯絡系統超級管理員。",
     "login.loginError": "登入過程中發生錯誤",
     "login.welcomeBack": "歡迎回來，{name}！",
     "login.sessionExpired": "您的登入已過期，請重新登入。",

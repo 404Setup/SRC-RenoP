@@ -158,8 +158,11 @@ func resolveGitHubLogin(state *core.AppState, opChan chan<- token.TokenOp, ident
 		return nil, err
 	}
 	accessToken := state.GetTokenByName(linked.Username)
-	if accessToken == nil || isAccessTokenExpired(accessToken) {
+	if accessToken == nil {
 		return nil, errors.New("linked RenoP account is unavailable")
+	}
+	if err := accountAccessError(accessToken); err != nil {
+		return nil, err
 	}
 	return buildSynthUser(accessToken), nil
 }

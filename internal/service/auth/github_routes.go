@@ -216,11 +216,17 @@ func finishGitHubOAuth(c fiber.Ctx, state *core.AppState, opChan chan<- token.To
 	if errors.Is(err, core.ErrGitHubIdentityLinked) {
 		return oauthResultRedirect(c, record.ReturnTo, "identity_linked")
 	}
+	if errors.Is(err, core.ErrAccountBanned) {
+		return oauthResultRedirect(c, record.ReturnTo, "account_banned")
+	}
 	if err != nil {
 		log.Printf("Failed to resolve GitHub login: %v", err)
 		return oauthResultRedirect(c, record.ReturnTo, "identity_failed")
 	}
 	if err := issueBrowserSession(c, state, user, "github"); err != nil {
+		if errors.Is(err, core.ErrAccountBanned) {
+			return oauthResultRedirect(c, record.ReturnTo, "account_banned")
+		}
 		log.Printf("Failed to create GitHub browser session: %v", err)
 		return oauthResultRedirect(c, record.ReturnTo, "session_failed")
 	}

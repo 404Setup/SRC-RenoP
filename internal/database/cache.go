@@ -156,6 +156,27 @@ func (c *TTLCache[K, V]) Set(key K, val V, ttl time.Duration) {
 	c.setLocked(shard, key, val, exp, nowMs)
 }
 
+// Generation returns the current invalidation generation for a read-through load.
+func (c *TTLCache[K, V]) Generation() uint64 {
+	return c.generation.Load()
+}
+
+// SetIfGeneration stores a loaded value only when no invalidation occurred since generation was read.
+func (c *TTLCache[K, V]) SetIfGeneration(key K, val V, ttl time.Duration, generation uint64) bool {
+	if ttl <= 0 {
+		ttl = c.defaultTTL
+	}
+	shard := c.getShard(key)
+	shard.mu.Lock()
+	defer shard.mu.Unlock()
+	if c.generation.Load() != generation {
+		return false
+	}
+	now := time.Now()
+	c.setLocked(shard, key, val, now.Add(ttl).UnixMilli(), now.UnixMilli())
+	return true
+}
+
 func (c *TTLCache[K, V]) setLocked(shard *cacheShard[K, V], key K, val V, expiredAt, now int64) {
 	if _, exists := shard.items[key]; !exists && len(shard.items) >= c.maxEntriesPerShard {
 		for candidate, item := range shard.items {

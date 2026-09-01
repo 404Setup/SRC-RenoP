@@ -71,8 +71,18 @@ func authCacheExpiry(c fiber.Ctx, now int64) int64 {
 	return expiresAt
 }
 
-func isAccessTokenExpired(accessToken *core.AccessToken) bool {
-	return accessToken != nil && accessToken.ExpiresAt != nil && time.Now().UnixMilli() >= *accessToken.ExpiresAt
+func accountAccessError(accessToken *core.AccessToken) error {
+	if accessToken == nil {
+		return nil
+	}
+	now := time.Now().UnixMilli()
+	if accessToken.Ban.IsActive(now) {
+		return core.ErrAccountBanned
+	}
+	if accessToken.ExpiresAt != nil && now >= *accessToken.ExpiresAt {
+		return errCredentialExpired
+	}
+	return nil
 }
 
 func ValidateAndRenewSession(state *core.AppState, sessionID string) string {
@@ -212,7 +222,7 @@ func handleBasicAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*aut
 		return nil, nil
 	}
 	credential, err := VerifyAccountCredential(state, accessToken, password)
-	if errors.Is(err, errCredentialExpired) {
+	if errors.Is(err, errCredentialExpired) || errors.Is(err, core.ErrAccountBanned) {
 		return nil, fiber.ErrForbidden
 	}
 	if err != nil || credential == nil {
@@ -236,7 +246,7 @@ func handleSessionAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*a
 	if accessToken == nil {
 		return nil, nil
 	}
-	if isAccessTokenExpired(accessToken) {
+	if err := accountAccessError(accessToken); err != nil {
 		_, _ = state.RevokeSession(sessionID)
 		return nil, fiber.ErrForbidden
 	}
@@ -265,7 +275,7 @@ func handleBearerAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*au
 	} else {
 		credential, err = VerifyBearerCredential(state, bearerAuth)
 	}
-	if errors.Is(err, errCredentialExpired) {
+	if errors.Is(err, errCredentialExpired) || errors.Is(err, core.ErrAccountBanned) {
 		return nil, fiber.ErrForbidden
 	}
 	if err != nil || credential == nil {

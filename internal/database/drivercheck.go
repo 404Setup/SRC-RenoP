@@ -72,6 +72,23 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		if err != nil || stored == nil || stored.Username != username {
 			return errorsOrMissing(err, "session")
 		}
+		banUntil := now + int64(time.Hour/time.Millisecond)
+		if err := db.SetAccountBan(username, &core.AccountBan{
+			Reason: "Driver contract suspension", CreatedAt: now, ExpiresAt: &banUntil,
+		}); err != nil {
+			return err
+		}
+		account, err = db.GetTokenByName(username)
+		if err != nil || account == nil || !account.Ban.IsActive(now) {
+			return errorsOrMissing(err, "account suspension")
+		}
+		stored, err = db.GetSession("driver-check-session-" + suffix)
+		if err != nil || stored != nil {
+			return errorsOrMissing(err, "suspended account session revocation")
+		}
+		if err := db.SetAccountBan(username, nil); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return results, err

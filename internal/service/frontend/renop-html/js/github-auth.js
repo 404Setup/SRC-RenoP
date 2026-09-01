@@ -48,6 +48,7 @@ function showGitHubOAuthResult() {
         session_changed: ['login.githubExpired', 'error'],
         scope_missing: ['login.githubScopeMissing', 'error'],
         identity_linked: ['profile.githubAlreadyLinked', 'error'],
+        account_banned: ['login.accountBanned', 'error'],
     };
     const pair = messages[result] || ['login.githubFailed', 'error'];
     showAlert(t(pair[0]), pair[1]);

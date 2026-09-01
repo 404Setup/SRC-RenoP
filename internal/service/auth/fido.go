@@ -726,7 +726,10 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState, opChan chan<- token.
 	}
 	if accessToken := state.GetTokenByName(authenticatedUser.Username); accessToken == nil {
 		return c.Status(fiber.StatusUnauthorized).SendString("FIDO authentication failed")
-	} else if isAccessTokenExpired(accessToken) {
+	} else if err := accountAccessError(accessToken); err != nil {
+		if errors.Is(err, core.ErrAccountBanned) {
+			c.Set("X-Renop-Error-Code", "ACCOUNT_BANNED")
+		}
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 
@@ -735,6 +738,10 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState, opChan chan<- token.
 	}
 
 	if err := issueBrowserSession(c, state, authenticatedUser, "fido"); err != nil {
+		if errors.Is(err, core.ErrAccountBanned) {
+			c.Set("X-Renop-Error-Code", "ACCOUNT_BANNED")
+			return c.Status(fiber.StatusForbidden).SendString("Account suspended")
+		}
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to create session")
 	}
 

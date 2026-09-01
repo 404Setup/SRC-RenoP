@@ -31,6 +31,7 @@ type AccessToken struct {
 	Description     string                `json:"description" yaml:"description"`
 	ExpiresAt       *int64                `json:"expires_at" yaml:"expires_at"`
 	Permissions     []string              `json:"permissions" yaml:"permissions"`
+	Ban             *AccountBan           `json:"ban,omitempty" yaml:"ban,omitempty"`
 }
 
 // AccountTokenChanges identifies the account-token fields intentionally changed with a profile update.
@@ -84,6 +85,7 @@ type AccessTokenDto struct {
 	ExpiresAt   *int64                `json:"expires_at"`
 	Tokens      []string              `json:"tokens"`
 	Permissions []string              `json:"permissions"`
+	Ban         *AccountBan           `json:"ban,omitempty"`
 }
 
 type CreateAccessTokenRequest struct {

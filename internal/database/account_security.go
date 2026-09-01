@@ -109,29 +109,32 @@ func (db *DB) GetTokenByEmail(email string) (*core.AccessToken, error) {
 	if !valid || email == "" {
 		return nil, nil
 	}
+	cacheGeneration := db.tokenCache.Generation()
 	row := db.QueryRow(`SELECT token.name, token.type, token.type_value, token.encrypted_secret,
 		token.password_hash, token.tokens_json, token.created_at, token.description,
-		token.expires_at, token.permissions_json
+		token.expires_at, token.permissions_json, token.ban_reason, token.banned_at, token.banned_until
 		FROM user_account_security security
 		JOIN user_profiles profile ON profile.user_id = security.user_id
 		JOIN tokens token ON token.name = profile.username
 		WHERE security.email = ?`, email)
-	var tokenName, tokenType, encryptedSecret, passwordHash, tokensJSON, createdAt, description, permissionsJSON string
+	var tokenName, tokenType, encryptedSecret, passwordHash, tokensJSON, createdAt, description, permissionsJSON, banReason string
 	var typeValue int32
-	var expiresAt sql.NullInt64
+	var expiresAt, bannedUntil sql.NullInt64
+	var bannedAt int64
 	if err := row.Scan(&tokenName, &tokenType, &typeValue, &encryptedSecret, &passwordHash,
-		&tokensJSON, &createdAt, &description, &expiresAt, &permissionsJSON); err != nil {
+		&tokensJSON, &createdAt, &description, &expiresAt, &permissionsJSON,
+		&banReason, &bannedAt, &bannedUntil); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("get token by private email: %w", err)
 	}
 	token, err := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash,
-		tokensJSON, createdAt, description, expiresAt, permissionsJSON)
+		tokensJSON, createdAt, description, expiresAt, permissionsJSON, banReason, bannedAt, bannedUntil)
 	if err != nil {
 		return nil, err
 	}
-	db.tokenCache.Set(token.Name, token, 10*time.Minute)
+	db.tokenCache.SetIfGeneration(token.Name, token, 10*time.Minute, cacheGeneration)
 	return token, nil
 }
 
