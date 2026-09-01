@@ -159,8 +159,9 @@
   administrator notices. Package-team removals create operator-neutral notifications localized by
   `internal/service/frontend/renop-html/js/team-messages.js`; scheduled and interactive system-update results are
   deduplicated per administrator and localized by `js/updater-messages.js` instead of transient dashboard prompts.
-- **`internal/service/superteam/`**: Authenticated global-team account APIs for creation, pagination, immutable-prefix
-  metadata, T1-T4 invitations and membership administration, effective account limits, and administrator overrides.
+- **`internal/service/superteam/`**: Public read-only global-team metadata and member APIs plus authenticated account
+  APIs for creation, pagination, immutable-prefix management, T1-T4 invitations and membership administration,
+  effective account limits, and administrator overrides.
   T3 may manage T1/T2 members, while only T4 or system administrators may grant or manage T3/T4 roles; at least one
   T4 owner must remain, and owners cannot leave through either membership-removal route until ownership is transferred.
   Non-owner self-removal uses a dedicated membership exit route. Administrators still enforce the target account's
@@ -326,7 +327,8 @@
   Zstandard, gzip, or deflate sidecars by quality-aware `Accept-Encoding`, return representation-specific ETags and
   `Vary: Accept-Encoding`, and fall back to the identity file without enabling runtime response compression.
   The routed `/account/teams` center owns global-team pagination, immutable-prefix creation, responsive T1-T4 member
-  controls, shared username suggestions, invitation actions, and embedded profile usage limits. System settings load
+  controls, shared username suggestions, invitation actions, and embedded profile usage limits; `/team/<prefix>`
+  reuses its detail layout as a read-only public page without exposing quota controls. System settings load
   global team defaults through a separate JSON domain without expanding the protobuf settings schema; all 12 frontend
   locales include global-team UI, message, error, and audit text. The shared selector exposes T2+ teams for Docker/npm
   creation and T3+ teams for Maven-domain creation; namespace validation, live role checks, ordered approval stages,

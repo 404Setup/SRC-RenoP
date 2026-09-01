@@ -30,7 +30,13 @@ import {
     openMavenDomainCenter,
     publicMavenDomainRouteFromPath
 } from './browser/maven.js';
-import {loadSuperTeamCenterPage, openSuperTeamCenter, superTeamRouteFromPath} from './super-teams.js';
+import {
+    loadPublicSuperTeamPage,
+    loadSuperTeamCenterPage,
+    openSuperTeamCenter,
+    publicSuperTeamRouteFromPath,
+    superTeamRouteFromPath
+} from './super-teams.js';
 import {loadReviewCenterPage, openReviewCenter, reviewRouteFromPath} from './reviews.js';
 import {initMessageCenter, openMessageCenter} from './messages.js';
 import {initNotificationComposer, openNotificationComposer} from './notification-composer.js';
@@ -82,7 +88,8 @@ $(window).on('languageChanged', async () => {
     const currentTab = profileRouteFromPath(window.location.pathname)
         ? 'profile'
         : (publicMavenDomainRouteFromPath() ? 'maven-domain'
-            : (accountTabFromPath() || localStorage.getItem('selectedTab') || 'overview'));
+            : (publicSuperTeamRouteFromPath() ? 'super-team'
+                : (accountTabFromPath() || localStorage.getItem('selectedTab') || 'overview')));
     await switchTab(currentTab);
 
     if (currentTab === 'dashboard') {
@@ -296,6 +303,9 @@ export async function switchTab(tabId) {
     if (tabId === 'overview' && publicMavenDomainRouteFromPath(window.location.pathname)) {
         tabId = 'maven-domain';
     }
+    if (tabId === 'overview' && publicSuperTeamRouteFromPath(window.location.pathname)) {
+        tabId = 'super-team';
+    }
     if (tabId === 'overview' && accountTabFromPath()) {
         tabId = accountTabFromPath();
     }
@@ -327,7 +337,7 @@ export async function switchTab(tabId) {
         }
     });
 
-    if (tabId !== 'profile' && tabId !== 'maven-domain' && !isAccountTab(tabId)) {
+    if (tabId !== 'profile' && tabId !== 'maven-domain' && tabId !== 'super-team' && !isAccountTab(tabId)) {
         localStorage.setItem('selectedTab', tabId);
     }
 
@@ -362,6 +372,9 @@ export async function switchTab(tabId) {
     if (tabId === 'super-teams') {
         await loadSuperTeamCenterPage();
     }
+    if (tabId === 'super-team') {
+        await loadPublicSuperTeamPage();
+    }
     if (tabId === 'reviews') {
         await loadReviewCenterPage();
     }
@@ -391,6 +404,10 @@ window.addEventListener('popstate', () => {
     }
     if (publicMavenDomainRouteFromPath(window.location.pathname)) {
         void switchTab('maven-domain');
+        return;
+    }
+    if (publicSuperTeamRouteFromPath(window.location.pathname)) {
+        void switchTab('super-team');
         return;
     }
     const accountTab = accountTabFromPath();

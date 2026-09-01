@@ -1156,7 +1156,7 @@ func TestRoutedPagesServeSPAIndex(t *testing.T) {
 	SetupFrontendRoutes(app, state)
 	for _, path := range []string{
 		"/user/alice", "/user/alice/edit", "/user/alice/maven", "/user/alice/cargo", "/user/alice/docker", "/user/alice/npm",
-		"/domain/com.example",
+		"/domain/com.example", "/team/platform",
 		"/account/reviews", "/account/teams", "/account/teams/core", "/account/maven-domains", "/account/maven-domains/com.example",
 	} {
 		response, err := app.Test(httptest.NewRequest(http.MethodGet, path, nil))

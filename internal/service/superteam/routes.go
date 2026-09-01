@@ -229,11 +229,14 @@ func createTeam(c fiber.Ctx, state *core.AppState) error {
 }
 
 func getTeam(c fiber.Ctx, state *core.AppState) error {
-	user, err := authenticated(c)
-	if err != nil {
-		return apiError(c, err)
+	user := auth.GetUser(c)
+	username := ""
+	administrator := false
+	if user != nil && !strings.EqualFold(user.Username, "guest") {
+		username = user.Username
+		administrator = user.IsManager()
 	}
-	details, err := state.GetDB().GetSuperTeamDetails(c.Params("prefix"), user.Username, user.IsManager())
+	details, err := state.GetDB().GetPublicSuperTeamDetails(c.Params("prefix"), username, administrator)
 	if err != nil {
 		return apiError(c, err)
 	}

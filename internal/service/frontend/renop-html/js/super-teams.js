@@ -22,6 +22,7 @@ import {exitProtectedRouteOnDenial} from './protected-route.js';
 import {createPublicationQuotaPanel, openPublicationQuotaDialog} from './publication-quota.js';
 
 const routeRoot = '/account/teams';
+const publicRouteRoot = '/team';
 const pageSize = 12;
 let loadGeneration = 0;
 let listOffset = 0;
@@ -70,6 +71,24 @@ export function superTeamRouteFromPath(pathname = window.location.pathname) {
     }
 }
 
+/**
+ * Parse a public global-team route.
+ * @param {string} [pathname=window.location.pathname] - Candidate pathname.
+ * @returns {{prefix: string}|null} Parsed route or null.
+ */
+export function publicSuperTeamRouteFromPath(pathname = window.location.pathname) {
+    const normalized = String(pathname || '/').replace(/\/+$/, '') || '/';
+    if (!normalized.startsWith(`${publicRouteRoot}/`)) return null;
+    const segment = normalized.slice(publicRouteRoot.length + 1);
+    if (!segment || segment.includes('/')) return null;
+    try {
+        const prefix = decodeURIComponent(segment).trim().toLowerCase();
+        return validPrefix(prefix) ? {prefix} : null;
+    } catch {
+        return null;
+    }
+}
+
 /** Open the global-team account center. */
 export function openSuperTeamCenter() {
     navigate('');
@@ -88,9 +107,38 @@ function navigate(prefix) {
     window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
+/**
+ * Navigate through the application shell.
+ * @param {string} path - Absolute application path.
+ * @returns {void}
+ */
+function navigateApplicationPath(path) {
+    if (!path || !path.startsWith('/')) return;
+    if (window.location.pathname !== path || window.location.search || window.location.hash) {
+        window.history.pushState(null, '', path);
+    }
+    window.dispatchEvent(new PopStateEvent('popstate'));
+}
+
 /** @returns {HTMLElement|null} Stable account-page content host. */
 function contentHost() {
     return document.getElementById('super-team-page-content');
+}
+
+/** @returns {HTMLElement|null} Stable public team-page content host. */
+function publicContentHost() {
+    return document.getElementById('public-super-team-page-content');
+}
+
+/**
+ * Height-morph one team page to a new set of nodes.
+ * @param {HTMLElement|null} host - Content host.
+ * @param {...(Node|null|undefined)} nodes - Replacement nodes.
+ * @returns {Promise<void>} Animation completion.
+ */
+async function replaceHostContent(host, ...nodes) {
+    if (!host) return;
+    await morphElementHeight(host, () => host.replaceChildren(...nodes.filter(Boolean)), {duration: 300});
 }
 
 /**
@@ -99,9 +147,7 @@ function contentHost() {
  * @returns {Promise<void>} Animation completion.
  */
 async function replaceContent(...nodes) {
-    const host = contentHost();
-    if (!host) return;
-    await morphElementHeight(host, () => host.replaceChildren(...nodes.filter(Boolean)), {duration: 300});
+    await replaceHostContent(contentHost(), ...nodes);
 }
 
 /**
@@ -496,15 +542,17 @@ function openLeaveTeamDialog(details) {
  * Build one responsive team member row.
  * @param {object} details - Team details response.
  * @param {object} member - Member record.
+ * @param {object} [options]
+ * @param {boolean} [options.readOnly=false] - Suppress account-management controls.
  * @returns {HTMLElement} Member row.
  */
-function memberRow(details, member) {
+function memberRow(details, member, {readOnly = false} = {}) {
     const actorLevel = Number(details.team.role_level) || 0;
     const memberLevel = Number(member.level) || 1;
     const currentUsername = String(localStorage.getItem('username') || '').toLowerCase();
     const own = String(member.username || '').toLowerCase() === currentUsername;
-    const canManage = details.administrator || actorLevel >= 4 ||
-        actorLevel >= 3 && memberLevel < 3;
+    const canManage = !readOnly && (details.administrator || actorLevel >= 4 ||
+        actorLevel >= 3 && memberLevel < 3);
     const controls = el('div', {class: 'super-team-member-controls'});
     if (canManage && !own) {
         const maximum = details.administrator || actorLevel >= 4 ? 4 : 2;
@@ -551,6 +599,79 @@ async function deleteTeam(details) {
 }
 
 /**
+ * Build shared public or account content for one global team.
+ * @param {object} details - Team details response.
+ * @param {string} prefix - Requested immutable prefix.
+ * @param {object} [options]
+ * @param {boolean} [options.publicView=false] - Render a read-only public page.
+ * @param {object|null} [options.quotaStatus=null] - Authorized quota status for account views.
+ * @returns {(HTMLElement|null)[]} Detail content nodes.
+ */
+function teamDetailContent(details, prefix, {publicView = false, quotaStatus = null} = {}) {
+    const team = details.team || {};
+    const actorLevel = Number(team.role_level) || 0;
+    const canOwn = !publicView && (details.administrator || actorLevel >= 4);
+    const canManage = !publicView && (details.administrator || actorLevel >= 3);
+    const actions = el('div', {class: 'super-team-detail-actions'});
+    if (!publicView && actorLevel > 0 && actorLevel < 4) actions.appendChild(el('button', {
+        type: 'button', class: 'pill-btn pill-btn--ghost-danger pill-btn--sm',
+        onclick: () => openLeaveTeamDialog(details)
+    }, createIcon('logout'), el('span', {}, t('superTeam.leave'))));
+    if (canManage) actions.appendChild(el('button', {
+        type: 'button', class: 'pill-btn pill-btn--primary pill-btn--sm', onclick: () => openInviteDialog(details)
+    }, createIcon('userPlus'), el('span', {}, t('superTeam.invite'))));
+    if (canOwn) {
+        actions.append(
+            el('button', {
+                    type: 'button',
+                    class: 'pill-btn pill-btn--soft pill-btn--sm',
+                    onclick: () => openEditDialog(details)
+                },
+                createIcon('edit'), el('span', {}, t('common.edit'))),
+            el('button', {
+                    type: 'button',
+                    class: 'pill-btn pill-btn--danger pill-btn--sm',
+                    onclick: () => void deleteTeam(details)
+                },
+                createIcon('delete'), el('span', {}, t('common.delete')))
+        );
+    }
+    const hero = el('section', {class: 'super-team-detail-hero'},
+        el('button', {
+            type: 'button', class: 'super-team-back',
+            onclick: publicView ? () => navigateApplicationPath('/') : () => navigate('')
+        }, createIcon('chevronLeft'), el('span', {}, t(publicView ? 'nav.backHome' : 'superTeam.back'))),
+        el('div', {class: 'super-team-detail-heading'},
+            el('span', {class: 'super-team-detail-icon'}, createIcon('identity')),
+            el('div', {}, el('span', {class: 'super-team-prefix'}, team.prefix || prefix),
+                el('h2', {}, team.name || prefix),
+                el('p', {}, team.description || t('superTeam.noDescription'))),
+            actions.childElementCount ? actions : null
+        ),
+        el('div', {class: 'super-team-facts'},
+            actorLevel ? el('span', {}, roleLabel(actorLevel)) : null,
+            el('span', {}, t('superTeam.memberCount', {count: Number(team.member_count) || 0})),
+            el('span', {}, t('superTeam.createdBy', {name: team.created_by || t('common.unknown')}))
+        )
+    );
+    const members = Array.isArray(details.members) ? details.members : [];
+    const memberSection = el('section', {class: 'super-team-members-section'},
+        el('header', {}, el('div', {}, el('h3', {}, t('superTeam.members')),
+            el('p', {}, t('superTeam.membersHint')))),
+        el('div', {class: 'super-team-member-list'},
+            ...members.map(member => memberRow(details, member, {readOnly: publicView})))
+    );
+    const quotaPanel = quotaStatus ? createPublicationQuotaPanel(quotaStatus, {
+        editable: Boolean(details.administrator),
+        onEdit: () => void openPublicationQuotaDialog({
+            ownerType: 'super_team', ownerKey: team.prefix || prefix,
+            onSaved: () => void loadDetails(prefix),
+        }),
+    }) : null;
+    return [hero, quotaPanel, memberSection];
+}
+
+/**
  * Load and render one global team route.
  * @param {string} prefix - Immutable team prefix.
  * @returns {Promise<void>}
@@ -571,64 +692,7 @@ async function loadDetails(prefix) {
         const details = await response.json();
         const quotaStatus = await quotaResponse.json();
         if (generation !== loadGeneration) return;
-        const team = details.team || {};
-        const actorLevel = Number(team.role_level) || 0;
-        const canOwn = details.administrator || actorLevel >= 4;
-        const canManage = details.administrator || actorLevel >= 3;
-        const actions = el('div', {class: 'super-team-detail-actions'});
-        if (actorLevel > 0 && actorLevel < 4) actions.appendChild(el('button', {
-            type: 'button', class: 'pill-btn pill-btn--ghost-danger pill-btn--sm',
-            onclick: () => openLeaveTeamDialog(details)
-        }, createIcon('logout'), el('span', {}, t('superTeam.leave'))));
-        if (canManage) actions.appendChild(el('button', {
-            type: 'button', class: 'pill-btn pill-btn--primary pill-btn--sm', onclick: () => openInviteDialog(details)
-        }, createIcon('userPlus'), el('span', {}, t('superTeam.invite'))));
-        if (canOwn) {
-            actions.append(
-                el('button', {
-                        type: 'button',
-                        class: 'pill-btn pill-btn--soft pill-btn--sm',
-                        onclick: () => openEditDialog(details)
-                    },
-                    createIcon('edit'), el('span', {}, t('common.edit'))),
-                el('button', {
-                        type: 'button',
-                        class: 'pill-btn pill-btn--danger pill-btn--sm',
-                        onclick: () => void deleteTeam(details)
-                    },
-                    createIcon('delete'), el('span', {}, t('common.delete')))
-            );
-        }
-        const hero = el('section', {class: 'super-team-detail-hero'},
-            el('button', {type: 'button', class: 'super-team-back', onclick: () => navigate('')},
-                createIcon('chevronLeft'), el('span', {}, t('superTeam.back'))),
-            el('div', {class: 'super-team-detail-heading'},
-                el('span', {class: 'super-team-detail-icon'}, createIcon('identity')),
-                el('div', {}, el('span', {class: 'super-team-prefix'}, team.prefix || prefix),
-                    el('h2', {}, team.name || prefix),
-                    el('p', {}, team.description || t('superTeam.noDescription'))),
-                actions
-            ),
-            el('div', {class: 'super-team-facts'},
-                actorLevel ? el('span', {}, roleLabel(actorLevel)) : null,
-                el('span', {}, t('superTeam.memberCount', {count: Number(team.member_count) || 0})),
-                el('span', {}, t('superTeam.createdBy', {name: team.created_by || t('common.unknown')}))
-            )
-        );
-        const members = Array.isArray(details.members) ? details.members : [];
-        const memberSection = el('section', {class: 'super-team-members-section'},
-            el('header', {}, el('div', {}, el('h3', {}, t('superTeam.members')),
-                el('p', {}, t('superTeam.membersHint')))),
-            el('div', {class: 'super-team-member-list'}, ...members.map(member => memberRow(details, member)))
-        );
-        const quotaPanel = createPublicationQuotaPanel(quotaStatus, {
-            editable: Boolean(details.administrator),
-            onEdit: () => void openPublicationQuotaDialog({
-                ownerType: 'super_team', ownerKey: team.prefix || prefix,
-                onSaved: () => void loadDetails(prefix),
-            }),
-        });
-        await replaceContent(hero, quotaPanel, memberSection);
+        await replaceContent(...teamDetailContent(details, prefix, {quotaStatus}));
     } catch (error) {
         if (generation !== loadGeneration) return;
         if (error?.message === 'Unauthorized') return;
@@ -644,6 +708,32 @@ export async function loadSuperTeamCenterPage() {
     if (!route) return;
     if (route.prefix) await loadDetails(route.prefix);
     else await loadList();
+}
+
+/**
+ * Load the active public global-team page.
+ * @returns {Promise<void>}
+ */
+export async function loadPublicSuperTeamPage() {
+    const route = publicSuperTeamRouteFromPath();
+    const host = publicContentHost();
+    if (!route || !host) return;
+    const generation = ++loadGeneration;
+    activePrefix = '';
+    userSuggestions.detach();
+    await replaceHostContent(host, loadingState());
+    try {
+        const response = await apiRequest(`/api/super-teams/${encodeURIComponent(route.prefix)}`);
+        if (!response.ok) throw await localizedResponseError(response, 'superTeam.loadFailed', {}, SUPER_TEAM_ERROR_KEYS);
+        const details = await response.json();
+        if (generation !== loadGeneration) return;
+        await replaceHostContent(host, ...teamDetailContent(details, route.prefix, {publicView: true}));
+    } catch (error) {
+        if (generation !== loadGeneration) return;
+        console.error('Failed to load public global team', error);
+        await replaceHostContent(host, el('div', {class: 'super-team-state is-error'},
+            createIcon('warning'), el('span', {}, caughtErrorMessage(error, 'superTeam.loadFailed'))));
+    }
 }
 
 /**

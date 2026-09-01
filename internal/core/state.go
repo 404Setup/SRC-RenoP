@@ -156,6 +156,7 @@ type StateDB interface {
 	ListManageableSuperTeams(username string, minimumRole, limit, offset int) ([]*SuperTeam, int, error)
 	GetSuperTeamRole(prefix, username string) (int, error)
 	GetSuperTeamDetails(prefix, username string, administrator bool) (*SuperTeamDetails, error)
+	GetPublicSuperTeamDetails(prefix, username string, administrator bool) (*SuperTeamDetails, error)
 	ListSuperTeamReviewerNames(prefix string) ([]string, error)
 	UpdateSuperTeam(prefix, actor, name, description string, administrator bool, updatedAt int64) error
 	DeleteSuperTeam(prefix, actor string, administrator bool, actedAt int64) error

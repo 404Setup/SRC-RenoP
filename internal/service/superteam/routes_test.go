@@ -103,6 +103,14 @@ func TestSuperTeamRoutesLifecycleInvitationAndVisibility(t *testing.T) {
 	decodeSuperTeamResponse(t, response, &created)
 	assert.Equal(t, "platform", created.Prefix)
 	assert.Equal(t, core.SuperTeamRoleOwner, created.RoleLevel)
+	response = superTeamRequest(t, app, http.MethodGet, "/api/super-teams/platform", "", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var publicDetails core.SuperTeamDetails
+	decodeSuperTeamResponse(t, response, &publicDetails)
+	assert.Zero(t, publicDetails.Team.RoleLevel)
+	assert.False(t, publicDetails.Administrator)
+	require.Len(t, publicDetails.Members, 1)
+	assert.Equal(t, "alice", publicDetails.Members[0].Username)
 	response = superTeamRequest(t, app, http.MethodGet,
 		"/api/super-teams/eligible?minimum_role=3&limit=10&offset=0", "alice", nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)

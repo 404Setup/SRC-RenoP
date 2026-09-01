@@ -26,6 +26,7 @@ func SetupFrontendRoutes(app fiber.Router, state *core.AppState) {
 	app.Get("/user/:username/docker", func(c fiber.Ctx) error { return ServeIndex(c, state) })
 	app.Get("/user/:username/npm", func(c fiber.Ctx) error { return ServeIndex(c, state) })
 	app.Get("/domain/:domain", func(c fiber.Ctx) error { return ServeIndex(c, state) })
+	app.Get("/team/:prefix", func(c fiber.Ctx) error { return ServeIndex(c, state) })
 	app.Get("/account/reviews", func(c fiber.Ctx) error { return ServeIndex(c, state) })
 	app.Get("/account/teams", func(c fiber.Ctx) error { return ServeIndex(c, state) })
 	app.Get("/account/teams/:prefix", func(c fiber.Ctx) error { return ServeIndex(c, state) })

@@ -368,6 +368,15 @@ func (db *DB) GetSuperTeamRole(prefix, username string) (int, error) {
 
 // GetSuperTeamDetails returns one visible global team and its members.
 func (db *DB) GetSuperTeamDetails(prefix, username string, administrator bool) (*core.SuperTeamDetails, error) {
+	return db.getSuperTeamDetails(prefix, username, administrator, false)
+}
+
+// GetPublicSuperTeamDetails returns one global team and its public member list.
+func (db *DB) GetPublicSuperTeamDetails(prefix, username string, administrator bool) (*core.SuperTeamDetails, error) {
+	return db.getSuperTeamDetails(prefix, username, administrator, true)
+}
+
+func (db *DB) getSuperTeamDetails(prefix, username string, administrator, public bool) (*core.SuperTeamDetails, error) {
 	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
@@ -375,8 +384,14 @@ func (db *DB) GetSuperTeamDetails(prefix, username string, administrator bool) (
 	if !valid {
 		return nil, core.ErrSuperTeamNotFound
 	}
-	userID, err := db.userIDForExistingAccount(username)
-	if err != nil {
+	userID := ""
+	if username = strings.TrimSpace(username); username != "" && !strings.EqualFold(username, "guest") {
+		var err error
+		userID, err = db.userIDForExistingAccount(username)
+		if err != nil && !public {
+			return nil, core.ErrUserProfileNotFound
+		}
+	} else if !public {
 		return nil, core.ErrUserProfileNotFound
 	}
 	team, err := scanSuperTeam(db.QueryRow(`SELECT `+superTeamSelectColumns+`
@@ -385,7 +400,7 @@ func (db *DB) GetSuperTeamDetails(prefix, username string, administrator bool) (
 		LEFT JOIN super_team_members member ON member.team_prefix = t.prefix AND member.user_id = ?
 		LEFT JOIN (SELECT team_prefix, COUNT(*) AS member_count FROM super_team_members GROUP BY team_prefix) member_counts
 			ON member_counts.team_prefix = t.prefix
-		WHERE t.prefix = ? AND (? = 1 OR member.user_id IS NOT NULL)`, userID, prefix, boolInt(administrator)))
+		WHERE t.prefix = ? AND (? = 1 OR member.user_id IS NOT NULL)`, userID, prefix, boolInt(administrator || public)))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, core.ErrSuperTeamNotFound
 	}

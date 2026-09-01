@@ -38,6 +38,20 @@ test('global teams use a routed account center and embedded profile limits', () 
     assert.match(profile, /createProfileSuperTeamLimits\(profile\.super_team_limits/);
 });
 
+test('global teams expose a standalone read-only public route', () => {
+    const frontendRoutes = readFileSync(join(repoRoot, 'internal', 'service', 'frontend', 'mod.go'), 'utf8');
+    const mainSource = source('js', 'main.js');
+    const superTeamSource = source('js', 'super-teams.js');
+    assert.match(frontendRoutes, /app\.Get\("\/team\/:prefix"/);
+    assert.match(mainSource, /publicSuperTeamRouteFromPath/);
+    assert.match(superTeamSource, /const publicRouteRoot = '\/team'/);
+    assert.match(superTeamSource, /export function publicSuperTeamRouteFromPath/);
+    assert.match(superTeamSource, /export async function loadPublicSuperTeamPage/);
+    assert.match(superTeamSource, /teamDetailContent\(details, route\.prefix, \{publicView: true\}\)/);
+    assert.match(superTeamSource, /const canManage = !readOnly/);
+    assert.doesNotMatch(superTeamSource, /loadPublicSuperTeamPage[\s\S]*?publication-quota\/super-teams/);
+});
+
 test('global team controls share bounded dialogs, user suggestions, errors, and mobile layout', () => {
     const script = source('js', 'super-teams.js');
     const messages = source('js', 'super-team-messages.js');
