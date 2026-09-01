@@ -73,13 +73,13 @@ func profileReadUser(c fiber.Ctx) (*string, error) {
 	if target == "" || strings.EqualFold(target, *username) {
 		return username, nil
 	}
-	target, valid := core.NormalizeUsername(target)
-	if !valid {
+	if len(target) > 255 || strings.ContainsAny(target, "\x00\r\n") {
 		return nil, fiber.ErrBadRequest
 	}
 	if !auth.GetUser(c).IsManager() {
 		return nil, fiber.ErrForbidden
 	}
+	target = strings.ToLower(target)
 	return &target, nil
 }
 

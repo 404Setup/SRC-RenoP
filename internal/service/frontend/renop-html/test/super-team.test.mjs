@@ -36,6 +36,11 @@ test('global teams use a routed account center and embedded profile limits', () 
     assert.match(main, /loadSuperTeamCenterPage/);
     assert.match(main, /isAccountTab\(tabId\)/);
     assert.match(profile, /createProfileSuperTeamLimits\(profile\.super_team_limits/);
+    assert.match(profile, /editable: administrator/);
+    assert.match(profile, /profile\.super_team_limits = saved/);
+    const superTeams = source('js', 'super-teams.js');
+    assert.match(superTeams, /api\/super-teams\/users\/\$\{encodeURIComponent\(username\)\}\/limits/);
+    assert.match(superTeams, /Number\.isSafeInteger\(value\)/);
 });
 
 test('global teams expose a standalone read-only public route', () => {

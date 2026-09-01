@@ -13,7 +13,7 @@ import {makeCustomSelect} from '@renop/ui/custom-select';
 import {morphElementHeight} from '@renop/ui/height-anim';
 import {apiRequest} from './api.js';
 import {showAlert, showConfirm} from './alert.js';
-import {createIcon, createUserIdentity, RenopDialog, runButtonAction} from './components.js';
+import {createFieldRow, createIcon, createUserIdentity, RenopDialog, runButtonAction} from './components.js';
 import {t} from './i18n.js';
 import {caughtErrorMessage, localizedResponseError} from './response-errors.js';
 import {RepositoryUserSuggestions} from './browser/user-suggestions.js';
@@ -735,12 +735,86 @@ export async function loadPublicSuperTeamPage() {
 }
 
 /**
+ * Open the administrator editor for one account's global-team limits.
+ * Empty fields restore the corresponding global default.
+ * @param {string} username - Target account username.
+ * @param {object} limits - Embedded effective limit status.
+ * @param {function(object): void|null} onSaved - Saved-status callback.
+ * @returns {void}
+ */
+function openProfileSuperTeamLimitsDialog(username, limits, onSaved) {
+    /**
+     * Build one nullable account-limit input.
+     * @param {number|string} value - Effective limit.
+     * @param {boolean} inherited - Whether the global default applies.
+     * @returns {HTMLInputElement} Numeric override input.
+     */
+    const limitInput = (value, inherited) => el('input', {
+        class: 'cfg-input', type: 'number', min: '0', max: '1000', step: '1',
+        value: inherited ? '' : String(value),
+        placeholder: `${t('superTeam.inherited')} (${Math.max(0, Number(value) || 0)})`
+    });
+    const createLimit = limitInput(limits.create_limit, limits.create_limit_inherited);
+    const joinLimit = limitInput(limits.join_limit, limits.join_limit_inherited);
+    const fields = el('div', {class: 'cfg-fields'},
+        createFieldRow(t('superTeam.createLimit'), t('superTeam.createLimitHint'), createLimit),
+        createFieldRow(t('superTeam.joinLimit'), t('superTeam.joinLimitHint'), joinLimit)
+    );
+    /**
+     * Read one nullable override, using -1 for the inherited default.
+     * @param {HTMLInputElement} input - Numeric override input.
+     * @returns {number|null} Validated override or null when invalid.
+     */
+    const readLimit = input => {
+        const raw = input.value.trim();
+        if (!raw) return -1;
+        const value = Number(raw);
+        return Number.isSafeInteger(value) && value >= 0 && value <= 1000 ? value : null;
+    };
+    RenopDialog.show({
+        id: 'profile-super-team-limits-dialog', maxWidth: '620px', icon: 'identity',
+        title: t('superTeam.profileLimitsTitle'), body: fields,
+        footer: [
+            {text: t('common.cancel'), className: 'action-btn', onClick: (event, dialog) => dialog.close(false)},
+            {
+                text: t('common.save'), className: 'action-btn primary-btn',
+                onClick: async (event, dialog) => runButtonAction(event.currentTarget, async () => {
+                    const create = readLimit(createLimit);
+                    const join = readLimit(joinLimit);
+                    if (create === null || join === null) {
+                        showAlert(t('superTeam.invalidRequest'), 'error');
+                        return;
+                    }
+                    try {
+                        const response = await apiRequest(`/api/super-teams/users/${encodeURIComponent(username)}/limits`, {
+                            method: 'PUT', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({create_limit: create, join_limit: join})
+                        });
+                        if (!response.ok) {
+                            throw await localizedResponseError(response, 'superTeam.settingsSaveFailed', {}, SUPER_TEAM_ERROR_KEYS);
+                        }
+                        const saved = await response.json();
+                        dialog.close(true);
+                        showAlert(t('audit.action.SUPER_TEAM_LIMIT'), 'success');
+                        if (typeof onSaved === 'function') onSaved(saved);
+                    } catch (error) {
+                        showAlert(caughtErrorMessage(error, 'superTeam.settingsSaveFailed'), 'error');
+                    }
+                })
+            }
+        ]
+    });
+}
+
+/**
  * Build effective global-team limits for an authorized profile view.
  * @param {object|null|undefined} limits - Limits embedded in an authorized singular profile response.
- * @param {{showManage?: boolean}} [options] - Optional self-service action.
+ * @param {{showManage?: boolean, editable?: boolean, ownerKey?: string, onSaved?: function(object): void}} [options] - Optional actions.
  * @returns {HTMLElement|null} Limits card or null when private limits are unavailable.
  */
-export function createProfileSuperTeamLimits(limits, {showManage = false} = {}) {
+export function createProfileSuperTeamLimits(limits, {
+    showManage = false, editable = false, ownerKey = '', onSaved = null
+} = {}) {
     if (!limits) return null;
     const body = [
         limitCard(t('superTeam.createUsage'), limits.created_count, limits.create_limit, limits.create_limit_inherited),
@@ -749,6 +823,10 @@ export function createProfileSuperTeamLimits(limits, {showManage = false} = {}) 
     if (showManage) body.push(el('button', {
         type: 'button', class: 'pill-btn pill-btn--soft', onclick: openSuperTeamCenter
     }, t('superTeam.openTeams')));
+    if (editable && ownerKey) body.push(el('button', {
+        type: 'button', class: 'pill-btn pill-btn--soft',
+        onclick: () => openProfileSuperTeamLimitsDialog(ownerKey, limits, onSaved)
+    }, createIcon('edit'), el('span', {}, t('common.edit'))));
     return el('div', {class: 'profile-settings-section profile-super-team-limits'},
         el('div', {class: 'profile-section-card-header'},
             el('div', {class: 'profile-section-icon', 'aria-hidden': 'true'}, createIcon('identity')),

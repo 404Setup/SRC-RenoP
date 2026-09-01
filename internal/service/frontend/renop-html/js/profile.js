@@ -903,7 +903,13 @@ function renderPublicProfile(profile) {
             }) : null
         });
         const teamLimits = createProfileSuperTeamLimits(profile.super_team_limits, {
-            showManage: profile.own_profile === true
+            showManage: profile.own_profile === true,
+            editable: administrator,
+            ownerKey: profile.username,
+            onSaved: administrator ? saved => {
+                profile.super_team_limits = saved;
+                renderPublicProfile(profile);
+            } : null
         });
         children.push(el('div', {class: 'profile-private-grid'},
             quotaPanel,
