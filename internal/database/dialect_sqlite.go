@@ -430,6 +430,9 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 	if err := initNPMTables(db); err != nil {
 		return err
 	}
+	if err := initPackageDeprecationTable(db); err != nil {
+		return err
+	}
 	if err := initDownloadStatisticsTables(db); err != nil {
 		return err
 	}

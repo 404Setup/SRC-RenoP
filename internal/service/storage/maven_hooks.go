@@ -18,6 +18,9 @@ import (
 // MavenMutationAuthorizer is wired by the Maven service to avoid a package cycle.
 var MavenMutationAuthorizer func(state *core.AppState, user *config.User, repo *config.Repository, path string, requiredLevel int) error
 
+// MavenMutationGuard rechecks package immutability while the repository mutation gate is held.
+var MavenMutationGuard func(state *core.AppState, repo *config.Repository, path string) error
+
 // MavenPublicationQuotaOwner resolves the global-team quota owner for an authorized Maven path.
 var MavenPublicationQuotaOwner func(state *core.AppState, username string, repo *config.Repository, path string) (string, error)
 

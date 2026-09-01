@@ -162,6 +162,12 @@ func ProcessPublishedFiles(state *core.AppState, repo *config.Repository, userna
 		return nil, core.ErrDatabaseUnavailable
 	}
 	coordinate, valid := publicationReviewCoordinate(files)
+	if valid {
+		if err := state.GetDB().EnsurePackageMutable(config.RepositoryFormatMaven, repo.Name,
+			coordinate.GroupID+":"+coordinate.ArtifactID); err != nil {
+			return nil, err
+		}
+	}
 	policy := repo.PublicationReviewPolicy()
 	if policy == config.PublicationReviewOff {
 		if !valid {

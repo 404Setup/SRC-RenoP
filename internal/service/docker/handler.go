@@ -29,7 +29,6 @@ import (
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
 	"renop/internal/service/publicationquota"
-	"renop/internal/service/repositorygate"
 	"renop/internal/service/statistics"
 )
 
@@ -480,9 +479,6 @@ func (h *Handler) HandlePutManifest(c fiber.Ctx, state *core.AppState) error {
 	if !ok {
 		return RespondError(c, fiber.StatusNotFound, ErrCodeNameUnknown, "repository not found", map[string]string{"name": name})
 	}
-	release := repositorygate.AcquireMutation(repoName)
-	defer release()
-
 	user, err := h.authenticateAndAuthorize(c, state, repo, name, true)
 	if err != nil {
 		return nil

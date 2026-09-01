@@ -91,6 +91,7 @@ export default Object.freeze({
     "audit.action.USER_PERMISSION_UPDATE": "Обновление прав",
     "audit.action.USER_BAN": "Учетная запись заблокирована",
     "audit.action.USER_UNBAN": "Блокировка учетной записи снята",
+    "audit.action.PACKAGE_DEPRECATE": "Пакет окончательно объявлен устаревшим",
     "audit.action.LOG_CLEAR": "Очистка журнала",
     "audit.action.GPG_UPDATE": "Обновление ключа GPG",
     "audit.action.UPLOAD_QUEUED_GPG": "Загрузка GPG поставлена в очередь",

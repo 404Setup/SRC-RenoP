@@ -33,6 +33,11 @@ import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
 import {resolveUserDisplayName} from '../user-profiles.js';
 import {createSuperTeamPublicLink} from '../profile-links.js';
 import {
+    createDeprecatePackageButton,
+    createPackageDeprecationBadge,
+    createPackageDeprecationNotice
+} from '../package-deprecation.js';
+import {
     createRepositoryMirrorBadge,
     formatRepositoryTimestamp,
     hideRepositoryView,
@@ -645,7 +650,8 @@ function buildCargoInspectionSection() {
  */
 function buildCargoVersionsSection() {
     const packageRecord = activePackageDetails.package;
-    const canManageVersions = activeAdministrator || Number(packageRecord.permission_level) >= 2;
+    const canManageVersions = !packageRecord.deprecated &&
+        (activeAdministrator || Number(packageRecord.permission_level) >= 2);
     const section = el('section', {class: 'cargo-page-section'},
         el('div', {class: 'cargo-section-header'},
             el('div', {},
@@ -934,7 +940,8 @@ function buildMemberLevelSelect(member) {
  */
 function buildCargoTeamSection(animate = false) {
     const packageRecord = activePackageDetails.package;
-    const canManageTeam = activeAdministrator || Number(packageRecord.permission_level) >= 3;
+    const canManageTeam = !packageRecord.deprecated &&
+        (activeAdministrator || Number(packageRecord.permission_level) >= 3);
     const currentUsername = String(localStorage.getItem('username') || '').trim().toLowerCase();
     const section = el('section', {class: 'cargo-page-section'},
         el('h3', {class: 'cargo-section-title'}, t('cargo.team'))
@@ -1044,6 +1051,7 @@ function buildCargoPackageHero() {
     const yankedBadge = el('span', {class: 'cargo-state-badge is-yanked'}, t('cargo.yanked'));
     yankedBadge.hidden = !activeVersion?.yanked;
     titleRow.appendChild(yankedBadge);
+    if (packageRecord?.deprecated) titleRow.appendChild(createPackageDeprecationBadge());
 
     if (packageRecord?.mirrored) {
         titleRow.appendChild(createRepositoryMirrorBadge(t('common.fromMirror')));
@@ -1106,7 +1114,8 @@ function buildCargoPackageHero() {
     docBtn.hidden = true;
     actions.appendChild(docBtn);
 
-    const canModifyPackage = activeAdministrator || Number(packageRecord?.permission_level) >= 1;
+    const canModifyPackage = !packageRecord?.deprecated &&
+        (activeAdministrator || Number(packageRecord?.permission_level) >= 1);
     let uploadDocBtn = null;
     if (canModifyPackage) {
         uploadDocBtn = el('button', {
@@ -1131,7 +1140,13 @@ function buildCargoPackageHero() {
 
     const canManagePackage = activeAdministrator || Number(packageRecord?.permission_level) >= 3;
     const canOwnPackage = activeAdministrator || Number(packageRecord?.permission_level) >= 4;
-    if (canOwnPackage && !packageRecord?.mirrored) {
+    if (canManagePackage && !packageRecord?.mirrored && !packageRecord?.deprecated) {
+        actions.appendChild(createDeprecatePackageButton(
+            () => apiRequest(cargoAPIPath('crates', packageName, 'deprecate'), {method: 'PUT'}),
+            refreshCargoPackagePage
+        ));
+    }
+    if (canOwnPackage && !packageRecord?.mirrored && !packageRecord?.deprecated) {
         actions.appendChild(el('button', {
             type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
             onclick: () => openSuperTeamTransferDialog({
@@ -1141,7 +1156,7 @@ function buildCargoPackageHero() {
             })
         }, createIcon('refresh'), el('span', {}, t('review.transferOwnership'))));
     }
-    if (canManagePackage) {
+    if (canManagePackage && !packageRecord?.deprecated) {
         const restoreLocked = packageRecord.archived && packageRecord.admin_archived && !activeAdministrator;
         actions.appendChild(el('button', {
             type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
@@ -1233,7 +1248,11 @@ function renderCargoPackagePage(animateTeam = false) {
             activeCargoDetailView = value;
         },
     });
-    activeView.replaceChildren(buildCargoPackageHero(), detail);
+    activeView.replaceChildren(...[
+        buildCargoPackageHero(),
+        activePackageDetails.package.deprecated ? createPackageDeprecationNotice() : null,
+        detail
+    ].filter(Boolean));
 }
 
 /**

@@ -61,6 +61,7 @@ type CargoPackage struct {
 	Documentation   string `json:"documentation,omitempty"`
 	Archived        bool   `json:"archived"`
 	AdminArchived   bool   `json:"admin_archived"`
+	Deprecated      bool   `json:"deprecated,omitempty"`
 	Mirrored        bool   `json:"mirrored"`
 	SuperTeamPrefix string `json:"super_team_prefix,omitempty"`
 	CreatedAt       int64  `json:"created_at"`

@@ -27,7 +27,6 @@ import (
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
 	"renop/internal/service/docker"
-	"renop/internal/service/repositorygate"
 	"renop/internal/utils"
 )
 
@@ -39,6 +38,24 @@ const (
 func dockerAPIError(c fiber.Ctx, status int, code, message string) error {
 	c.Set(dockerAPIErrorCodeHeader, code)
 	return c.Status(status).SendString(message)
+}
+
+func ensureDockerImageMutable(state *core.AppState, repository, image string) error {
+	if state == nil || state.GetDB() == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	return state.GetDB().EnsurePackageMutable(config.RepositoryFormatDocker, repository, image)
+}
+
+func dockerImageMutationError(c fiber.Ctx, err error) error {
+	if errors.Is(err, core.ErrPackageDeprecated) {
+		return dockerAPIError(c, fiber.StatusConflict, "package_deprecated",
+			"Docker image is permanently deprecated and pull-only")
+	}
+	if errors.Is(err, core.ErrDatabaseUnavailable) {
+		return dockerAPIError(c, fiber.StatusServiceUnavailable, "service_unavailable", "Docker package state is unavailable")
+	}
+	return dockerAPIError(c, fiber.StatusInternalServerError, "internal_error", "Failed to inspect Docker image state")
 }
 
 func withDockerAPIErrorCode(handler fiber.Handler) fiber.Handler {
@@ -189,8 +206,6 @@ func CreateDockerImageAPI(c fiber.Ctx, state *core.AppState) error {
 			reviewTeamPrefix = teamPrefix
 		}
 	}
-	release := repositorygate.AcquireMutation(repoName)
-	defer release()
 	currentConfig := state.Inner.Config.Load()
 	if currentConfig == nil {
 		return c.Status(fiber.StatusServiceUnavailable).SendString("Configuration unavailable")
@@ -296,6 +311,11 @@ func GetDockerImageDetailsAPI(c fiber.Ctx, state *core.AppState) error {
 	if err != nil || details == nil {
 		return c.Status(fiber.StatusNotFound).SendString("Image not found")
 	}
+	deprecated, err := db.IsPackageDeprecated(config.RepositoryFormatDocker, repoName, imageName)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to inspect image state")
+	}
+	details.Image.Deprecated = deprecated
 
 	if user.IsManager() || user.CheckUpdatePermission(repoName) {
 		details.Administrator = true
@@ -310,6 +330,45 @@ func GetDockerImageDetailsAPI(c fiber.Ctx, state *core.AppState) error {
 
 	c.Set(fiber.HeaderContentType, "application/json; charset=utf-8")
 	return c.Status(fiber.StatusOK).JSON(details)
+}
+
+// DeprecateDockerImageAPI permanently freezes one image for L3/L4 managers.
+func DeprecateDockerImageAPI(c fiber.Ctx, state *core.AppState) error {
+	repoName := c.Params("repo_name")
+	imageName := strings.Trim(c.Query("image"), "/")
+	if !utils.IsValidRepositoryName(repoName) || imageName == "" {
+		return dockerAPIError(c, fiber.StatusBadRequest, "invalid_request", "Invalid Docker image")
+	}
+	db := state.GetDB()
+	if db == nil {
+		return dockerAPIError(c, fiber.StatusServiceUnavailable, "service_unavailable", "Database unavailable")
+	}
+	details, err := db.GetDockerImageDetails(repoName, imageName, auth.GetUser(c).Username)
+	if err != nil || details == nil || details.Image == nil {
+		return dockerAPIError(c, fiber.StatusNotFound, "image_not_found", "Docker image was not found")
+	}
+	user := auth.GetUser(c)
+	administrator := user.IsManager() || user.CheckUpdatePermission(repoName)
+	if !administrator && details.PermissionLevel < core.DockerPermissionTeam {
+		return dockerAPIError(c, fiber.StatusForbidden, "permission_denied", "L3 or L4 image permission is required")
+	}
+	if details.Image.Mirrored {
+		return dockerAPIError(c, fiber.StatusForbidden, "permission_denied", "Mirrored images cannot be deprecated")
+	}
+	if err := db.DeprecatePackage(config.RepositoryFormatDocker, repoName, imageName,
+		time.Now().UnixMilli()); err != nil {
+		switch {
+		case errors.Is(err, core.ErrPackageDeprecated):
+			return dockerAPIError(c, fiber.StatusConflict, "package_deprecated", "Docker image is already deprecated")
+		case errors.Is(err, core.ErrPackageDeprecationPending):
+			return dockerAPIError(c, fiber.StatusConflict, "review_pending", "Resolve pending reviews before deprecating this image")
+		default:
+			return dockerAPIError(c, fiber.StatusInternalServerError, "internal_error", "Failed to deprecate Docker image")
+		}
+	}
+	logDockerAudit(c, state, audit.ActionPackageDeprecate,
+		"Format: docker, repository: "+repoName+", package: "+imageName)
+	return c.JSON(fiber.Map{"ok": true})
 }
 
 // UpdateDockerImageDescriptionRequest represents the payload for updating an image description / README.
@@ -342,6 +401,9 @@ func UpdateDockerImageDescriptionAPI(c fiber.Ctx, state *core.AppState) error {
 	db := state.GetDB()
 	if db == nil {
 		return dockerAPIError(c, fiber.StatusServiceUnavailable, "service_unavailable", "Database unavailable")
+	}
+	if err := ensureDockerImageMutable(state, repoName, imageName); err != nil {
+		return dockerImageMutationError(c, err)
 	}
 
 	user := auth.GetUser(c)
@@ -405,6 +467,9 @@ func DeleteDockerImageAPI(c fiber.Ctx, state *core.AppState) error {
 	db := state.GetDB()
 	if db == nil {
 		return c.Status(fiber.StatusServiceUnavailable).SendString("Database unavailable")
+	}
+	if err := ensureDockerImageMutable(state, repoName, imageName); err != nil {
+		return dockerImageMutationError(c, err)
 	}
 
 	user := auth.GetUser(c)
@@ -471,6 +536,9 @@ func DeleteDockerTagAPI(c fiber.Ctx, state *core.AppState) error {
 	db := state.GetDB()
 	if db == nil {
 		return c.Status(fiber.StatusServiceUnavailable).SendString("Database unavailable")
+	}
+	if err := ensureDockerImageMutable(state, repoName, imageName); err != nil {
+		return dockerImageMutationError(c, err)
 	}
 
 	user := auth.GetUser(c)
@@ -637,6 +705,9 @@ func InviteDockerOwnersAPI(c fiber.Ctx, state *core.AppState) error {
 	db := state.GetDB()
 	if db == nil {
 		return dockerAPIError(c, fiber.StatusServiceUnavailable, "service_unavailable", "Database unavailable")
+	}
+	if err := ensureDockerImageMutable(state, repoName, imageName); err != nil {
+		return dockerImageMutationError(c, err)
 	}
 
 	user := auth.GetUser(c)
@@ -816,6 +887,9 @@ func SetDockerOwnerLevelAPI(c fiber.Ctx, state *core.AppState) error {
 	if db == nil {
 		return c.Status(fiber.StatusServiceUnavailable).SendString("Database unavailable")
 	}
+	if err := ensureDockerImageMutable(state, repoName, imageName); err != nil {
+		return dockerImageMutationError(c, err)
+	}
 	targetUsername, err := resolveDockerMemberReference(db, targetReference)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).SendString("Member not found")
@@ -880,6 +954,9 @@ func RemoveDockerOwnerAPI(c fiber.Ctx, state *core.AppState) error {
 	db := state.GetDB()
 	if db == nil {
 		return c.Status(fiber.StatusServiceUnavailable).SendString("Database unavailable")
+	}
+	if err := ensureDockerImageMutable(state, repoName, imageName); err != nil {
+		return dockerImageMutationError(c, err)
 	}
 	targetUsername, err := resolveDockerMemberReference(db, targetReference)
 	if err != nil {

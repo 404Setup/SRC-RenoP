@@ -74,6 +74,12 @@ func packageDetails(state *core.AppState, repository, crateName, username string
 	if details == nil || details.Package == nil {
 		return nil, core.ErrCargoPackageNotFound
 	}
+	deprecated, err := db.IsPackageDeprecated(config.RepositoryFormatCargo, repository,
+		details.Package.NormalizedName)
+	if err != nil {
+		return nil, err
+	}
+	details.Package.Deprecated = deprecated
 	return details, nil
 }
 
@@ -107,6 +113,11 @@ func cargoError(c fiber.Ctx, err error) error {
 		return errorResponse(c, fiber.StatusConflict, errVersionExists.Error())
 	case errors.Is(err, core.ErrCargoPackageArchived):
 		return errorResponse(c, fiber.StatusConflict, "Crate is archived")
+	case errors.Is(err, core.ErrPackageDeprecated):
+		c.Set("X-Renop-Error-Code", "package_deprecated")
+		return errorResponse(c, fiber.StatusConflict, "Crate is permanently deprecated and read-only")
+	case errors.Is(err, core.ErrPackageDeprecationPending):
+		return errorResponse(c, fiber.StatusConflict, "Resolve pending reviews before deprecating this crate")
 	case errors.Is(err, core.ErrCargoAdminArchived):
 		return errorResponse(c, fiber.StatusForbidden, "Only an administrator can restore this crate")
 	case errors.Is(err, core.ErrCargoAdminYanked):

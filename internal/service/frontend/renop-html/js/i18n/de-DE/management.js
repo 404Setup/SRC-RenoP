@@ -91,6 +91,7 @@ export default Object.freeze({
     "audit.action.USER_PERMISSION_UPDATE": "Berechtigungsaktualisierung",
     "audit.action.USER_BAN": "Konto gesperrt",
     "audit.action.USER_UNBAN": "Kontosperre aufgehoben",
+    "audit.action.PACKAGE_DEPRECATE": "Paket dauerhaft veraltet",
     "audit.action.LOG_CLEAR": "Protokoll löschen",
     "audit.action.GPG_UPDATE": "GPG-Schlüssel aktualisiert",
     "audit.action.UPLOAD_QUEUED_GPG": "GPG-Upload eingereiht",

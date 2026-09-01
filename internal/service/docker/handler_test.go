@@ -24,6 +24,8 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"renop/internal/config"
 	"renop/internal/core"
@@ -239,6 +241,45 @@ func createTestDockerImage(t *testing.T, state *core.AppState, repository, image
 	if err != nil {
 		t.Fatalf("create Docker image %s/%s: %v", repository, image, err)
 	}
+}
+
+func TestDockerPermanentDeprecationKeepsPullAndBlocksPush(t *testing.T) {
+	app, state, genericStore := setupTestDockerApp(t)
+	store := genericStore.(*memoryDockerStore)
+	createTestDockerImage(t, state, "docker-local", "frozen", false)
+
+	tokenRequest := httptest.NewRequest(http.MethodGet,
+		"/v2/token?service=127.0.0.1:8080&scope=repository:docker-local/frozen:pull,push", nil)
+	tokenRequest.SetBasicAuth("admin", "admin-secret-token")
+	tokenResponse, err := app.Test(tokenRequest)
+	require.NoError(t, err)
+	var token TokenResponse
+	require.NoError(t, json.NewDecoder(tokenResponse.Body).Decode(&token))
+	require.NoError(t, tokenResponse.Body.Close())
+
+	manifestJSON := []byte(`{"schemaVersion":2,"mediaType":"application/vnd.docker.distribution.manifest.v2+json"}`)
+	digest := CalculateDigest(manifestJSON)
+	store.manifests["docker-local/frozen/"+digest] = manifestJSON
+	require.NoError(t, state.GetDB().PutDockerManifest(&core.DockerManifest{
+		Repository: "docker-local", ImageName: "frozen", Digest: digest,
+		MediaType: MediaTypeDockerManifest2, Size: int64(len(manifestJSON)), RawJSON: manifestJSON,
+	}, "latest", "admin"))
+	require.NoError(t, state.GetDB().DeprecatePackage(config.RepositoryFormatDocker,
+		"docker-local", "frozen", time.Now().UnixMilli()))
+
+	pull := httptest.NewRequest(http.MethodGet, "/v2/docker-local/frozen/manifests/latest", nil)
+	pull.Header.Set(fiber.HeaderAuthorization, "Bearer "+token.Token)
+	response, err := app.Test(pull)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+
+	push := httptest.NewRequest(http.MethodPost, "/v2/docker-local/frozen/blobs/uploads/", nil)
+	push.Header.Set(fiber.HeaderAuthorization, "Bearer "+token.Token)
+	response, err = app.Test(push)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusConflict, response.StatusCode)
+	require.NoError(t, response.Body.Close())
 }
 
 func TestDockerRegistryFullLifecycle(t *testing.T) {

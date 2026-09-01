@@ -23,6 +23,11 @@ import {openSuperTeamTransferDialog} from '../reviews.js';
 import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {createSuperTeamPublicLink} from '../profile-links.js';
+import {
+    createDeprecatePackageButton,
+    createPackageDeprecationBadge,
+    createPackageDeprecationNotice
+} from '../package-deprecation.js';
 import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '../response-errors.js';
 import {exitProtectedRouteOnDenial} from '../protected-route.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
@@ -1537,9 +1542,21 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
         const artifact = details.artifact;
         const project = details.project || null;
         const versions = Array.isArray(details.versions) ? details.versions : [];
-        const canManageVersions = details.administrator || Number(artifact.permission_level) >= 2;
-        const canOwnArtifact = details.administrator || Number(artifact.permission_level) >= 4;
+        const isDeprecated = artifact.deprecated === true;
+        const canDeprecate = details.administrator || Number(artifact.permission_level) >= 3;
+        const canManageVersions = !isDeprecated &&
+            (details.administrator || Number(artifact.permission_level) >= 2);
+        const canOwnArtifact = !isDeprecated &&
+            (details.administrator || Number(artifact.permission_level) >= 4);
         const artifactActions = el('div', {class: 'maven-domain-actions'});
+        if (canDeprecate && !artifact.mirrored && !isDeprecated) {
+            artifactActions.appendChild(createDeprecatePackageButton(
+                () => apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/package/deprecate?${query}`, {
+                    method: 'PUT'
+                }),
+                () => renderArtifact(container, repository, groupID, artifactID, sequence)
+            ));
+        }
         if (canManageVersions) artifactActions.appendChild(el('button', {
             type: 'button', class: 'pill-btn pill-btn--soft',
             onclick: () => openDescriptionEditor(container, repository, artifact, sequence)
@@ -1581,6 +1598,7 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
                     ? el('span', {}, t('maven.signedFiles', {count: Number(details.signed_file_count)}))
                     : null,
                 project?.packaging ? el('code', {}, project.packaging) : null,
+                isDeprecated ? createPackageDeprecationBadge() : null,
                 artifact.mirrored ? createRepositoryMirrorBadge(t('common.fromMirror')) : null,
                 artifact.publisher ? el('span', {}, t('maven.publishedBy'), createUserIdentity(artifact.publisher)) : null
             )
@@ -1625,8 +1643,9 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
         });
         await replaceRepositoryView(container, [
             hero,
+            isDeprecated ? createPackageDeprecationNotice() : null,
             detail
-        ], {duration: 280, enterDuration: 420});
+        ].filter(Boolean), {duration: 280, enterDuration: 420});
     } catch (error) {
         if (sequence !== mavenLoadSequence) return;
         await replaceRepositoryView(container, [

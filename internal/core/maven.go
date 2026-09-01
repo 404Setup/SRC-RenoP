@@ -105,6 +105,7 @@ type MavenArtifact struct {
 	VersionCount    int    `json:"version_count"`
 	TotalSize       int64  `json:"total_size"`
 	Mirrored        bool   `json:"mirrored"`
+	Deprecated      bool   `json:"deprecated,omitempty"`
 	SuperTeamPrefix string `json:"super_team_prefix,omitempty"`
 	CreatedAt       int64  `json:"created_at"`
 	UpdatedAt       int64  `json:"updated_at"`

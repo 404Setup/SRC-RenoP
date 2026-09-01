@@ -12,16 +12,40 @@
 package docker
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
 
+	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/repositorygate"
 )
 
 // SetupDockerRoutes registers all Docker/OCI registry v2 endpoints on the Fiber router.
 func SetupDockerRoutes(app fiber.Router, state *core.AppState, store Store) {
 	h := &Handler{Store: store}
+	mutateImage := func(c fiber.Ctx, name string, handler func() error) error {
+		repository, image := ParseRepositoryAndImage(name)
+		if repository == "" || image == "" {
+			return handler()
+		}
+		release := repositorygate.AcquireMutation(repository)
+		defer release()
+		if state == nil || state.GetDB() == nil {
+			return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported,
+				"package state is unavailable", nil)
+		}
+		if err := state.GetDB().EnsurePackageMutable(config.RepositoryFormatDocker, repository, image); err != nil {
+			if errors.Is(err, core.ErrPackageDeprecated) {
+				return RespondError(c, fiber.StatusConflict, ErrCodeDenied,
+					"image is permanently deprecated and pull-only", nil)
+			}
+			return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported,
+				"failed to inspect package state", nil)
+		}
+		return handler()
+	}
 
 	baseHandler := func(c fiber.Ctx) error {
 		return h.HandleBase(c)
@@ -74,9 +98,9 @@ func SetupDockerRoutes(app fiber.Router, state *core.AppState, store Store) {
 			case fiber.MethodGet, fiber.MethodHead:
 				return h.HandleGetManifest(c, state)
 			case fiber.MethodPut:
-				return h.HandlePutManifest(c, state)
+				return mutateImage(c, name, func() error { return h.HandlePutManifest(c, state) })
 			case fiber.MethodDelete:
-				return h.HandleDeleteManifest(c, state)
+				return mutateImage(c, name, func() error { return h.HandleDeleteManifest(c, state) })
 			default:
 				return RespondError(c, fiber.StatusMethodNotAllowed, ErrCodeUnsupported, "method not allowed", nil)
 			}
@@ -89,7 +113,7 @@ func SetupDockerRoutes(app fiber.Router, state *core.AppState, store Store) {
 			c.Locals("name", name)
 			if rest == "" {
 				if c.Method() == fiber.MethodPost {
-					return h.HandlePostUpload(c, state)
+					return mutateImage(c, name, func() error { return h.HandlePostUpload(c, state) })
 				}
 				return RespondError(c, fiber.StatusMethodNotAllowed, ErrCodeUnsupported, "method not allowed", nil)
 			}
@@ -97,13 +121,13 @@ func SetupDockerRoutes(app fiber.Router, state *core.AppState, store Store) {
 			c.Locals("uuid", rest)
 			switch c.Method() {
 			case fiber.MethodPatch:
-				return h.HandlePatchUpload(c, state)
+				return mutateImage(c, name, func() error { return h.HandlePatchUpload(c, state) })
 			case fiber.MethodPut:
-				return h.HandlePutUpload(c, state)
+				return mutateImage(c, name, func() error { return h.HandlePutUpload(c, state) })
 			case fiber.MethodGet:
-				return h.HandleGetUploadStatus(c, state)
+				return mutateImage(c, name, func() error { return h.HandleGetUploadStatus(c, state) })
 			case fiber.MethodDelete:
-				return h.HandleDeleteUpload(c, state)
+				return mutateImage(c, name, func() error { return h.HandleDeleteUpload(c, state) })
 			default:
 				return RespondError(c, fiber.StatusMethodNotAllowed, ErrCodeUnsupported, "method not allowed", nil)
 			}
@@ -119,7 +143,7 @@ func SetupDockerRoutes(app fiber.Router, state *core.AppState, store Store) {
 			case fiber.MethodGet, fiber.MethodHead:
 				return h.HandleGetBlob(c, state)
 			case fiber.MethodDelete:
-				return h.HandleDeleteBlob(c, state)
+				return mutateImage(c, name, func() error { return h.HandleDeleteBlob(c, state) })
 			default:
 				return RespondError(c, fiber.StatusMethodNotAllowed, ErrCodeUnsupported, "method not allowed", nil)
 			}

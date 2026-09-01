@@ -8,14 +8,13 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-@import "./browser/header.css";
-@import "./browser/file-list.css";
-@import "./browser/details.css";
-@import "./browser/package-detail-tabs.css";
-@import "./browser/package-deprecation.css";
-@import "./browser/maven.css";
-@import "./browser/cargo.css";
-@import "./browser/docker.css";
-@import "./browser/npm.css";
-@import "./browser/upload.css";
-@import "./browser/languages.css";
+package core
+
+import "errors"
+
+var (
+	ErrPackageDeprecated          = errors.New("package is permanently deprecated")
+	ErrPackageDeprecationInvalid  = errors.New("package deprecation target is invalid")
+	ErrPackageDeprecationPending  = errors.New("package has a pending review")
+	ErrPackageDeprecationConflict = errors.New("package deprecation key conflicts with another resource")
+)

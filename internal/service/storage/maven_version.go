@@ -129,6 +129,13 @@ func RemoveMavenVersion(state *core.AppState, repository, groupID, artifactID, v
 	}
 	releaseMutation := repositorygate.AcquireMutation(repository)
 	defer releaseMutation()
+	if state.GetDB() == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	if err := state.GetDB().EnsurePackageMutable(config.RepositoryFormatMaven, repository,
+		groupID+":"+artifactID); err != nil {
+		return err
+	}
 	cfg := state.Inner.Config.Load()
 	if cfg == nil || cfg.Maven.Repositories[repository] == nil ||
 		cfg.Maven.Repositories[repository].NormalizedFormat() != config.RepositoryFormatMaven {

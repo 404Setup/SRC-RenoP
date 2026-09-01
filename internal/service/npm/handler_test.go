@@ -156,6 +156,7 @@ func setupNPMTestApp(t *testing.T) (*fiber.App, *core.AppState, *memoryStore) {
 		c.Locals("user", &config.User{Username: "alice", Roles: []string{"base", "canupdate:npm"}})
 		return c.Next()
 	})
+	SetupRoutes(app.Group("/api"), state, store)
 	app.All("/:repo/*", func(c fiber.Ctx) error {
 		handled, err := handler.Handle(c, state, cfg.Maven.Repositories["npm"], cfg.StoragePath, c.Params("*"))
 		if handled {
@@ -172,6 +173,65 @@ func setupNPMTestApp(t *testing.T) (*fiber.App, *core.AppState, *memoryStore) {
 		return c.SendStream(reader)
 	})
 	return app, state, store
+}
+
+func TestNPMPermanentDeprecationKeepsTarballAndBlocksMutations(t *testing.T) {
+	app, state, _ := setupNPMTestApp(t)
+	publish := func(version string) *http.Response {
+		t.Helper()
+		tarball := npmTestTarball(t, "demo", version)
+		document := map[string]any{
+			"_id": "demo", "name": "demo", "dist-tags": map[string]string{"latest": version},
+			"versions": map[string]any{version: map[string]any{"name": "demo", "version": version}},
+			"_attachments": map[string]any{"demo-" + version + ".tgz": map[string]any{
+				"content_type": "application/octet-stream", "length": len(tarball),
+				"data": base64.StdEncoding.EncodeToString(tarball),
+			}},
+		}
+		body, err := json.Marshal(document)
+		require.NoError(t, err)
+		request := httptest.NewRequest(http.MethodPut, "http://registry.example/npm/demo", bytes.NewReader(body))
+		request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+		response, err := app.Test(request)
+		require.NoError(t, err)
+		return response
+	}
+	response := publish("1.0.0")
+	require.Equal(t, http.StatusCreated, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+
+	response, err := app.Test(httptest.NewRequest(http.MethodPut,
+		"/api/npm/repositories/npm/packages/deprecate?package=demo", nil))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	require.ErrorIs(t, state.GetDB().EnsurePackageMutable(config.RepositoryFormatNPM, "npm", "demo"),
+		core.ErrPackageDeprecated)
+	response, err = app.Test(httptest.NewRequest(http.MethodGet,
+		"/api/npm/repositories/npm/packages?package=demo", nil))
+	require.NoError(t, err)
+	var details core.NPMPackageDetails
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&details))
+	require.NoError(t, response.Body.Close())
+	require.NotNil(t, details.Package)
+	assert.True(t, details.Package.Deprecated)
+
+	response, err = app.Test(httptest.NewRequest(http.MethodGet,
+		"http://registry.example/npm/demo/-/demo-1.0.0.tgz", nil))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	response = publish("2.0.0")
+	assert.Equal(t, http.StatusConflict, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	update := httptest.NewRequest(http.MethodPut,
+		"/api/npm/repositories/npm/packages?package=demo", bytes.NewBufferString(`{"description":"blocked"}`))
+	update.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err = app.Test(update)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusConflict, response.StatusCode)
+	assert.Equal(t, "package_deprecated", response.Header.Get(npmAPIErrorCodeHeader))
+	require.NoError(t, response.Body.Close())
 }
 
 func TestNPMPackageCreationRequiresMatchingGlobalTeamScope(t *testing.T) {

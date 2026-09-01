@@ -34,6 +34,11 @@ import {decodePathSegment, encodePathSegment, encodeRelativePath, formatBytes} f
 import {resolveUserDisplayName} from '../user-profiles.js';
 import {createSuperTeamPublicLink} from '../profile-links.js';
 import {
+    createDeprecatePackageButton,
+    createPackageDeprecationBadge,
+    createPackageDeprecationNotice
+} from '../package-deprecation.js';
+import {
     createRepositoryBackButton,
     createRepositoryMirrorBadge,
     ensureRepositoryView,
@@ -666,12 +671,14 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         const members = details.members || [];
         const permissionLevel = Number(details.permission_level || 0);
         const isAdministrator = Boolean(details.administrator);
+        const isDeprecated = image.deprecated === true;
         const currentUsername = String(localStorage.getItem('username') || '').trim().toLowerCase();
 
-        const canManageL2 = isAdministrator || permissionLevel >= 2;
-        const canManageL3 = isAdministrator || permissionLevel >= 3;
-        const canTransferOwnership = isAdministrator || permissionLevel === 4;
-        const canPush = isAdministrator || permissionLevel >= 1;
+        const canDeprecate = isAdministrator || permissionLevel >= 3;
+        const canManageL2 = !isDeprecated && (isAdministrator || permissionLevel >= 2);
+        const canManageL3 = !isDeprecated && canDeprecate;
+        const canTransferOwnership = !isDeprecated && (isAdministrator || permissionLevel === 4);
+        const canPush = !isDeprecated && (isAdministrator || permissionLevel >= 1);
 
         const latestTag = visibleTags[0]?.tag || 'latest';
         const clientCommand = visibleTags.length > 0
@@ -739,6 +746,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             metaRow.appendChild(el('div', {class: 'docker-meta-chip is-private'},
                 createIcon('ssl', {class: 'icon-svg'}), el('span', {}, t('docker.private'))));
         }
+        if (isDeprecated) metaRow.appendChild(createPackageDeprecationBadge());
         let transferBtn = null;
         if (canTransferOwnership && !image.mirrored) {
             transferBtn = el('button', {
@@ -749,7 +757,13 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                 })
             }, createIcon('refresh'), el('span', {}, t('review.transferOwnership')));
         }
-        const headerActions = el('div', {class: 'docker-page-actions'}, transferBtn, deleteImgBtn);
+        const deprecateBtn = canDeprecate && !image.mirrored && !isDeprecated
+            ? createDeprecatePackageButton(
+                () => apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images/deprecate?image=${encodeURIComponent(imageName)}`, {method: 'PUT'}),
+                () => renderImageDetailsView(container, repoName, imageName, seq)
+            )
+            : null;
+        const headerActions = el('div', {class: 'docker-page-actions'}, deprecateBtn, transferBtn, deleteImgBtn);
         if (image.super_team_prefix) {
             metaRow.appendChild(el('div', {class: 'docker-meta-chip'},
                 createIcon('identity', {class: 'icon-svg'}),
@@ -1067,7 +1081,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                     memberControls.appendChild(
                         el('span', {class: 'docker-permission-badge'}, levelLabel)
                     );
-                    if (!canManageL3 && isSelf && memberLevel < 4) {
+                    if (!isDeprecated && !canManageL3 && isSelf && memberLevel < 4) {
                         memberControls.appendChild(el('button', {
                             class: 'docker-action-btn docker-action-btn--delete',
                             type: 'button',
@@ -1201,7 +1215,9 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             },
         });
 
-        await replaceRepositoryView(container, [hero, detail], {duration: 280, enterDuration: 440});
+        await replaceRepositoryView(container,
+            [hero, isDeprecated ? createPackageDeprecationNotice() : null, detail].filter(Boolean),
+            {duration: 280, enterDuration: 440});
     } catch (err) {
         if (seq !== dockerLoadSequence) return;
         console.error('Failed to load Docker image details', err);

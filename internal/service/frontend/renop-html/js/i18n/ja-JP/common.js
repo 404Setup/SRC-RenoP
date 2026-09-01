@@ -62,6 +62,13 @@ export default Object.freeze({
     "main.updateAvailableDesc": "新しい Web インターフェースを利用できます。現在のサーバーバージョンで続行するには再読み込みしてください。",
     "main.forceUpdate": "インターフェースを再読み込み",
     "common.unknown": "不明",
+    "package.deprecated": "非推奨",
+    "package.deprecationNotice": "このパッケージは永久に非推奨です。メタデータ、チーム、公開、削除の操作は無効になり、既存のダウンロードとプルのみ利用できます。",
+    "package.deprecate": "永久に非推奨にする",
+    "package.deprecateConfirm": "このパッケージを永久に非推奨にしますか？この操作は取り消せません。既存のダウンロードとプルのみ利用可能になります。",
+    "package.deprecatedSuccess": "パッケージを永久に非推奨にしました。",
+    "package.deprecateFailed": "パッケージを非推奨にできませんでした。",
+    "package.reviewPending": "このパッケージを非推奨にする前に、保留中のレビューをすべて完了してください。",
     "common.unknownSize": "不明なサイズ",
     "common.fromMirror": "ミラー取得",
 });

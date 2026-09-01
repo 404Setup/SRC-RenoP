@@ -26,6 +26,8 @@ const commonErrorCodeKeys = Object.freeze({
     API_TOKEN_NAME_CONFLICT: 'profile.apiTokenNameConflict',
     GITHUB_LAST_LOGIN_METHOD: 'profile.githubOnlyLogin',
     MAVEN_USER_NOT_FOUND: 'maven.userNotFound',
+    package_deprecated: 'package.deprecationNotice',
+    review_pending: 'package.reviewPending',
     publication_file_quota: 'publicationQuota.fileExceeded',
     publication_byte_quota: 'publicationQuota.byteExceeded',
     publication_count_quota: 'publicationQuota.countExceeded',

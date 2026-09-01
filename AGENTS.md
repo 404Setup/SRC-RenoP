@@ -59,6 +59,9 @@
   when the optional `latest` dist-tag is absent, including automatic repair of older empty summary rows. Docker list
   and search results hydrate owners, tag counts, latest tags, legacy publisher fallbacks, and private-image membership
   through bounded batch queries rather than per-image metadata or authorization lookups.
+  Immutable `package_deprecations` records permanently freeze exact Cargo, npm, Docker, and Maven coordinates across
+  every database driver. Deprecation is rejected while a transfer or publication review is pending, atomically cancels
+  package-team invitations, and has no delete or restore path.
   Engine-independent global teams reserve an immutable prefix, store T1-T4 memberships, per-member public visibility,
   and invitations exclusively by immutable user ID, preserve creator display after account deletion, and enforce global
   or per-account creation and membership limits on SQLite, PostgreSQL, MySQL, and native ClickHouse. User and global-team
@@ -108,6 +111,8 @@
   `Cargo.toml` declaration into package metadata without loading the crate archive into memory. Optional new-package or
   every-version publication review commits and hides the crate archive first, then atomically writes the sparse index
   and catalog metadata before approval exposes it; rejection removes the hidden archive and mirrors bypass review.
+  L3/L4 crate managers may permanently deprecate a local crate; existing downloads remain available while publication,
+  metadata, version, documentation, team, transfer, archive, and deletion mutations are rejected.
   Raw HTML rendering scans only the final 64 KiB for a closing tag and inserts the external-link guard through a
   composed file stream, avoiding the former full-file read and second allocation for entries up to 64 MiB.
 - **`internal/service/maven/`**: Process-wide Maven domain registry with DNS/GitHub/GitLab ownership verification,
@@ -123,7 +128,9 @@
   catalog and restores the prior Maven layout and publication policy. Artifact detail responses summarize bounded
   primary-file, checksum, and signature metadata from the in-memory index and stream-parse the latest POM up to 2 MiB;
   project collections are capped before they reach the frontend. Artifact teams can maintain a separate bounded
-  package-level Markdown README without replacing the short catalog/POM description.
+  package-level Markdown README without replacing the short catalog/POM description. L3/L4 artifact managers may
+  permanently deprecate a local artifact; storage publication, metadata, versions, transfers, reviews, and deletion
+  become read-only while existing files remain downloadable.
 - **`internal/service/docker/`**: OCI & Docker Registry v2 specification implementation (`/v2/...`), token-based
   Bearer authentication, explicitly reserved images, L0-L4 image teams, per-image private visibility, image-scoped
   blob references, chunked uploads, authorized cross-repository mounting, upstream mirror proxying, and catalog
@@ -139,7 +146,9 @@
   manifest metadata, blob links, the tag, and the review decision. Existing digest files are never hidden by another
   pending tag, rejection leaves shared blobs untouched, and mirror imports bypass review. Local names
   containing `/` require a matching global team prefix. T3/T4 members reserve directly unless repository review is
-  enabled; T2 members enter the ordered team-approval workflow. Unprefixed images may remain personally owned.
+  enabled; T2 members enter the ordered team-approval workflow. Unprefixed images may remain personally owned. L3/L4
+  image managers may permanently deprecate a local image, after which registry and browser mutations are rejected but
+  existing manifests and blobs remain pullable.
 - **`internal/service/npm/`**: npm-compatible per-repository registry with explicitly reserved public or scoped-private
   packages, immutable semantic versions, validated streaming tarball publication, dist-tags, deprecation/unpublish
   workflows, L0-L4 package teams, upstream packument/tarball mirrors, and full/abbreviated metadata negotiation.
@@ -150,11 +159,13 @@
   `new_packages` stops after creation approval, while `every_version` also hides each committed tarball and bounded
   manifest/dist-tag payload until a repository moderator approves the same immutable publication transaction. Creation
   and publication decisions are atomic, and decision failure restores the exact prior package summary and revision.
+  L3/L4 package managers may permanently deprecate a local package; tarballs and packuments remain readable while
+  publication, dist-tag, metadata, version, team, transfer, archive, and deletion mutations are rejected.
 - **`internal/service/proxy/` & `internal/service/outboundproxy/`**: Outbound HTTP/HTTPS/SOCKS5 proxy management with
   client connection pooling and per-mirror routing.
 - **`internal/service/repositorygate/`**: Bounded striped read/write gates that serialize repository engine and storage
   configuration changes with uploads, deletes, GPG publication, npm publish/dist-tag mutations, Docker manifest
-  publication, review decisions, and mirror cache commits.
+  publication, permanent package deprecation, review decisions, and mirror cache commits.
 - **`internal/service/storage/` & `internal/service/gpg/`**: Multi-backend storage (Disk/S3), OpenPGP signature
   verification, and quarantined publication queue (`.renop.tmp.gpg`). The independent `files` repository format
   provides unstructured replaceable file storage and mirrors without checksum generation or signature processing.
@@ -314,8 +325,10 @@
   scrollable.
   `js/response-errors.js` is the shared boundary for user-facing HTTP failures: it reads only bounded error bodies,
   accepts registered stable codes or known localized messages, maps common statuses, and never exposes unknown backend
-  text or runtime exception strings in the UI. Its regression test automatically discovers every handwritten frontend
-  JS module. `js/privacy-policy-response.js` is the DOM-free streaming decoder for successful same-origin plain text;
+  text or runtime exception strings in the UI. `js/package-deprecation.js` supplies the irreversible confirmation,
+  localized notice, status badge, and refresh boundary shared by Cargo, npm, Maven, and Docker package details. Its
+  regression test automatically discovers every handwritten frontend JS module. `js/privacy-policy-response.js` is the
+  DOM-free streaming decoder for successful same-origin plain text;
   `js/privacy-policy.js` coalesces modal loads and localizes HTTP, media-type, encoding, and size failures under the same
   512 KiB contract. `js/api.js` treats 401 as invalid authentication by default, while 403
   remains an ordinary authorization result unless a caller explicitly opts into logout; concurrent permission failures

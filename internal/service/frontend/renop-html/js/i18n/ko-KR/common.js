@@ -62,6 +62,13 @@ export default Object.freeze({
     "main.updateAvailableDesc": "새로운 웹 인터페이스를 사용할 수 있습니다. 현재 서버 버전으로 계속하려면 다시 불러오세요.",
     "main.forceUpdate": "인터페이스 다시 불러오기",
     "common.unknown": "알 수 없음",
+    "package.deprecated": "사용 중단",
+    "package.deprecationNotice": "이 패키지는 영구적으로 사용 중단되었습니다. 메타데이터, 팀, 게시 및 삭제 작업은 비활성화되며 기존 다운로드와 가져오기만 유지됩니다.",
+    "package.deprecate": "영구 사용 중단",
+    "package.deprecateConfirm": "이 패키지를 영구적으로 사용 중단할까요? 이 작업은 되돌릴 수 없으며 기존 다운로드와 가져오기만 유지됩니다.",
+    "package.deprecatedSuccess": "패키지가 영구적으로 사용 중단되었습니다.",
+    "package.deprecateFailed": "패키지를 사용 중단할 수 없습니다.",
+    "package.reviewPending": "이 패키지를 사용 중단하기 전에 대기 중인 검토를 모두 처리하세요.",
     "common.unknownSize": "알 수 없는 크기",
     "common.fromMirror": "미러에서 가져옴",
 });

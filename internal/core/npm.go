@@ -48,6 +48,7 @@ type NPMPackage struct {
 	VersionCount    int    `json:"version_count"`
 	Private         bool   `json:"private"`
 	Archived        bool   `json:"archived"`
+	Deprecated      bool   `json:"deprecated,omitempty"`
 	Mirrored        bool   `json:"mirrored"`
 	PublishEnabled  bool   `json:"publish_enabled"`
 	SuperTeamPrefix string `json:"super_team_prefix,omitempty"`

@@ -62,6 +62,13 @@ export default Object.freeze({
     "main.updateAvailableDesc": "A newer web interface is available. Reload to continue with the current server version.",
     "main.forceUpdate": "Reload interface",
     "common.unknown": "Unknown",
+    "package.deprecated": "Deprecated",
+    "package.deprecationNotice": "This package is permanently deprecated. Metadata, team, publication, and deletion operations are disabled; existing downloads and pulls remain available.",
+    "package.deprecate": "Permanently deprecate",
+    "package.deprecateConfirm": "Permanently deprecate this package? This cannot be undone. Only existing downloads and pulls will remain available.",
+    "package.deprecatedSuccess": "Package permanently deprecated.",
+    "package.deprecateFailed": "Could not deprecate the package.",
+    "package.reviewPending": "Resolve all pending reviews before deprecating this package.",
     "common.unknownSize": "Unknown size",
     "common.fromMirror": "From mirror",
 });

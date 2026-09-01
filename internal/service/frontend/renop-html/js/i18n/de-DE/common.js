@@ -62,6 +62,13 @@ export default Object.freeze({
     "main.updateAvailableDesc": "Eine neuere Benutzeroberfläche ist verfügbar. Laden Sie die Seite neu, um mit der aktuellen Serverversion fortzufahren.",
     "main.forceUpdate": "Benutzeroberfläche neu laden",
     "common.unknown": "Unbekannt",
+    "package.deprecated": "Veraltet",
+    "package.deprecationNotice": "Dieses Paket ist dauerhaft veraltet. Metadaten-, Team-, Veröffentlichungs- und Löschvorgänge sind deaktiviert; vorhandene Downloads und Abrufe bleiben verfügbar.",
+    "package.deprecate": "Dauerhaft als veraltet markieren",
+    "package.deprecateConfirm": "Dieses Paket dauerhaft als veraltet markieren? Dies kann nicht rückgängig gemacht werden. Nur vorhandene Downloads und Abrufe bleiben verfügbar.",
+    "package.deprecatedSuccess": "Paket dauerhaft als veraltet markiert.",
+    "package.deprecateFailed": "Das Paket konnte nicht als veraltet markiert werden.",
+    "package.reviewPending": "Schließen Sie alle ausstehenden Prüfungen ab, bevor Sie dieses Paket als veraltet markieren.",
     "common.unknownSize": "Unbekannte Größe",
     "common.fromMirror": "Aus Spiegelquelle",
 });

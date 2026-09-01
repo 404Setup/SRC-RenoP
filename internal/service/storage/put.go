@@ -84,6 +84,15 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 	}
 	releaseMutation := repositorygate.AcquireMutation(repo.Name)
 	defer releaseMutation()
+	if repo.NormalizedFormat() == config.RepositoryFormatMaven && MavenMutationGuard != nil {
+		path, ok := utils.SanitizePath(c.Params("*"))
+		if !ok {
+			return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+		}
+		if err := MavenMutationGuard(state, repo, path); err != nil {
+			return mavenMutationError(c, err)
+		}
+	}
 	lockKey := filepath.ToSlash(GPGUploadLockPath(localFilePath))
 	upload := state.Inner.InFlightDownloads.AcquirePath(lockKey)
 	uploadSucceeded := false

@@ -55,6 +55,11 @@ func HandleDelete(c fiber.Ctx, state *core.AppState, repo *config.Repository, pa
 	if currentRepo.NormalizedFormat() != repo.NormalizedFormat() {
 		return c.Status(fiber.StatusConflict).SendString(ErrRepositoryFormatChanged.Error())
 	}
+	if currentRepo.NormalizedFormat() == config.RepositoryFormatMaven && MavenMutationGuard != nil {
+		if err := MavenMutationGuard(state, currentRepo, path); err != nil {
+			return mavenMutationError(c, err)
+		}
+	}
 	gpgReleaseStorageMutation.Lock()
 	defer gpgReleaseStorageMutation.Unlock()
 

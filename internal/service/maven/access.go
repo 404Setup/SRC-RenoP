@@ -165,6 +165,12 @@ func AuthorizeMutation(state *core.AppState, user *config.User, repo *config.Rep
 		domain.Member = true
 		domain.PermissionLevel = level
 	}
+	if groupID, artifactID, ok := pathArtifactCandidate(path); ok {
+		if err := db.EnsurePackageMutable(config.RepositoryFormatMaven, repo.Name,
+			groupID+":"+artifactID); err != nil {
+			return nil, err
+		}
+	}
 	return domain, nil
 }
 

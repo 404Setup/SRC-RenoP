@@ -30,6 +30,11 @@ import {npmResponseError} from '../npm-errors.js';
 import {openReviewCenter, openSuperTeamTransferDialog} from '../reviews.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {createSuperTeamPublicLink} from '../profile-links.js';
+import {
+    createDeprecatePackageButton,
+    createPackageDeprecationBadge,
+    createPackageDeprecationNotice
+} from '../package-deprecation.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {createPackageDetailTabs} from './package-detail-tabs.js';
 import {
@@ -474,7 +479,14 @@ function packageHero(pkg) {
     const actions = el('div', {class: 'npm-page-actions'});
     const canLifecycle = packageDetails.administrator || Number(pkg.permission_level) >= 2;
     const canOwn = packageDetails.administrator || Number(pkg.permission_level) >= 4;
-    if (canLifecycle && !pkg.mirrored) {
+    const canDeprecate = packageDetails.administrator || Number(pkg.permission_level) >= 3;
+    if (canDeprecate && !pkg.mirrored && !pkg.deprecated) {
+        actions.appendChild(createDeprecatePackageButton(
+            () => apiRequest(npmAPI('packages/deprecate', pkg.name), {method: 'PUT'}),
+            refreshPackage
+        ));
+    }
+    if (canLifecycle && !pkg.mirrored && !pkg.deprecated) {
         const edit = createButton(t('npm.editDescription'), {
             class: 'pill-btn pill-btn--soft pill-btn--sm',
             icon: 'edit'
@@ -482,7 +494,7 @@ function packageHero(pkg) {
         edit.addEventListener('click', showDescriptionDialog);
         actions.appendChild(edit);
     }
-    if (canOwn && !pkg.mirrored) {
+    if (canOwn && !pkg.mirrored && !pkg.deprecated) {
         const transfer = createButton(t('review.transferOwnership'), {
             class: 'pill-btn pill-btn--soft pill-btn--sm', icon: 'refresh'
         });
@@ -598,7 +610,8 @@ function versionsSection() {
     );
     const list = el('div', {class: 'npm-version-list'});
     const pager = el('div', {class: 'npm-version-pagination'});
-    const canDelete = packageDetails.administrator || Number(packageDetails.package.permission_level) >= 2;
+    const canDelete = !packageDetails.package.deprecated &&
+        (packageDetails.administrator || Number(packageDetails.package.permission_level) >= 2);
     const tagsByVersion = new Map();
     for (const [tag, target] of Object.entries(packageDetails.dist_tags || {})) {
         if (!tagsByVersion.has(target)) tagsByVersion.set(target, []);
@@ -873,7 +886,7 @@ function renderPackage() {
     const information = el('div', {class: 'npm-information-grid'}, facts, distTagsSection());
     const readme = readmeSection();
     const project = projectMetadataSection();
-    const canManageTeam = !pkg.mirrored &&
+    const canManageTeam = !pkg.mirrored && !pkg.deprecated &&
         (packageDetails.administrator || Number(pkg.permission_level) >= 3);
     const detail = createPackageDetailTabs({
         id: 'npm-package-detail', active: npmPackageView,
@@ -891,7 +904,7 @@ function renderPackage() {
         },
     });
     return [
-        packageHero(pkg), detail
+        packageHero(pkg), pkg.deprecated ? createPackageDeprecationNotice() : null, detail
     ].filter(Boolean);
 }
 

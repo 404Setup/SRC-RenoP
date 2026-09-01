@@ -73,6 +73,65 @@ func mavenRequest(t *testing.T, app *fiber.App, method, path, body string) *http
 	return response
 }
 
+func TestMavenPermanentDeprecationKeepsDownloadsAndBlocksMutations(t *testing.T) {
+	state, _ := newMavenRouteState(t)
+	currentUser := &config.User{Username: "admin", Roles: []string{"manager"}}
+	now := time.Now().UnixMilli()
+	domain := &core.MavenDomain{
+		Domain: "com.example", VerificationType: core.MavenVerificationDNS,
+		VerificationHost: "example.com", VerificationCode: "renop-verification=frozen", CreatedAt: now,
+	}
+	require.NoError(t, state.GetDB().CreateMavenDomain(domain, "admin"))
+	require.NoError(t, state.GetDB().MarkMavenDomainVerified(domain.Domain, domain.VerificationCode, now+1))
+
+	app := fiber.New()
+	app.Use(func(c fiber.Ctx) error {
+		c.Locals("user", currentUser)
+		return c.Next()
+	})
+	SetupRoutes(app.Group("/api"), state)
+	storage.SetupRoutes(app, state)
+
+	response := mavenRequest(t, app, http.MethodPut,
+		"/releases/com/example/demo/1.0/demo-1.0.jar", "artifact")
+	require.Equal(t, http.StatusCreated, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	response = mavenRequest(t, app, http.MethodPut,
+		"/api/maven/repositories/releases/package/deprecate?group=com.example&artifact=demo", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+
+	response = mavenRequest(t, app, http.MethodGet,
+		"/api/maven/repositories/releases/package?group=com.example&artifact=demo", "")
+	var details core.MavenArtifactDetails
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&details))
+	require.NoError(t, response.Body.Close())
+	require.NotNil(t, details.Artifact)
+	assert.True(t, details.Artifact.Deprecated)
+
+	response = mavenRequest(t, app, http.MethodGet,
+		"/releases/com/example/demo/1.0/demo-1.0.jar", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	response = func() *http.Response {
+		authorizer := storage.MavenMutationAuthorizer
+		storage.MavenMutationAuthorizer = func(_ *core.AppState, _ *config.User,
+			_ *config.Repository, _ string, _ int) error {
+			return nil // Simulate a mutation authorized immediately before deprecation won the repository gate.
+		}
+		defer func() { storage.MavenMutationAuthorizer = authorizer }()
+		return mavenRequest(t, app, http.MethodPut,
+			"/releases/com/example/demo/2.0/demo-2.0.jar", "blocked")
+	}()
+	assert.Equal(t, http.StatusConflict, response.StatusCode)
+	assert.Equal(t, "package_deprecated", response.Header.Get("X-Renop-Error-Code"))
+	require.NoError(t, response.Body.Close())
+	response = mavenRequest(t, app, http.MethodDelete,
+		"/api/maven/repositories/releases/versions?group=com.example&artifact=demo&version=1.0", "")
+	assert.Equal(t, http.StatusConflict, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+}
+
 func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {
 	state, currentUser := newMavenRouteState(t)
 	const projectPOM = `<project><modelVersion>4.0.0</modelVersion><name>Demo Project</name><packaging>jar</packaging><url>https://example.com/demo</url><licenses><license><name>Apache-2.0</name></license></licenses></project>`

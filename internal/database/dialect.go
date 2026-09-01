@@ -16,6 +16,17 @@ import (
 	"strings"
 )
 
+func initPackageDeprecationTable(db *sql.DB) error {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS package_deprecations (
+		id VARCHAR(64) PRIMARY KEY,
+		format VARCHAR(16) NOT NULL,
+		repository VARCHAR(255) NOT NULL,
+		package_key TEXT NOT NULL,
+		deprecated_at BIGINT NOT NULL
+	);`)
+	return err
+}
+
 func initDockerImageBlobTables(db *sql.DB) error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS docker_image_blobs (
 		repository VARCHAR(64) NOT NULL,

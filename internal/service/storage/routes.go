@@ -31,6 +31,20 @@ import (
 // Wired from main to avoid a storage → frontend import cycle.
 var HTMLFallback func(c fiber.Ctx, state *core.AppState) error
 
+func mavenMutationError(c fiber.Ctx, err error) error {
+	if errors.Is(err, core.ErrPackageDeprecated) {
+		c.Set("X-Renop-Error-Code", "package_deprecated")
+		return c.Status(fiber.StatusConflict).SendString("Maven artifact is permanently deprecated and read-only")
+	}
+	if errors.Is(err, core.ErrMavenDomainUnverified) {
+		return c.Status(fiber.StatusConflict).SendString("Maven domain must be verified before publication")
+	}
+	if errors.Is(err, core.ErrDatabaseUnavailable) {
+		return c.Status(fiber.StatusServiceUnavailable).SendString("Maven domain authorization is unavailable")
+	}
+	return c.Status(fiber.StatusForbidden).SendString("Maven domain permission denied")
+}
+
 func SetupRoutes(app fiber.Router, state *core.AppState) {
 	handler := func(c fiber.Ctx) error {
 		return HandleRepository(c, state)
@@ -135,13 +149,7 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 			requiredLevel = core.MavenPermissionVersion
 		}
 		if err := MavenMutationAuthorizer(state, user, repo, sanitized, requiredLevel); err != nil {
-			if errors.Is(err, core.ErrMavenDomainUnverified) {
-				return c.Status(fiber.StatusConflict).SendString("Maven domain must be verified before publication")
-			}
-			if errors.Is(err, core.ErrDatabaseUnavailable) {
-				return c.Status(fiber.StatusServiceUnavailable).SendString("Maven domain authorization is unavailable")
-			}
-			return c.Status(fiber.StatusForbidden).SendString("Maven domain permission denied")
+			return mavenMutationError(c, err)
 		}
 	} else if !isCargo && !isDocker && !isNPM && !user.CheckUpdatePermission(repoName) {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")

@@ -62,6 +62,13 @@ export default Object.freeze({
     "main.updateAvailableDesc": "偵測到新版管理介面。請重新載入頁面，以繼續使用目前的伺服器版本。",
     "main.forceUpdate": "重新載入介面",
     "common.unknown": "未知",
+    "package.deprecated": "已棄用",
+    "package.deprecationNotice": "此套件已永久棄用。中繼資料、團隊、發布及刪除操作均已停用；現有下載與拉取仍然可用。",
+    "package.deprecate": "永久棄用",
+    "package.deprecateConfirm": "永久棄用此套件？此操作無法復原，之後只保留現有下載與拉取。",
+    "package.deprecatedSuccess": "套件已永久棄用。",
+    "package.deprecateFailed": "無法棄用套件。",
+    "package.reviewPending": "請先處理所有待審核工作，再棄用此套件。",
     "common.unknownSize": "未知大小",
     "common.fromMirror": "來自鏡像來源",
 });

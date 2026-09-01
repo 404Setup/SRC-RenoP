@@ -24,6 +24,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	"renop/internal/core"
+	"renop/internal/service/repositorygate"
 )
 
 var (
@@ -73,7 +74,13 @@ func getCachedPolicy() []byte {
 // SetupAPIRoutes registers the general application API endpoints.
 func SetupAPIRoutes(router fiber.Router, state *core.AppState) {
 	dockerRoute := func(handler func(fiber.Ctx, *core.AppState) error) fiber.Handler {
-		return withDockerAPIErrorCode(func(c fiber.Ctx) error { return handler(c, state) })
+		return withDockerAPIErrorCode(func(c fiber.Ctx) error {
+			if c.Method() != fiber.MethodGet && c.Method() != fiber.MethodHead {
+				release := repositorygate.AcquireMutation(c.Params("repo_name"))
+				defer release()
+			}
+			return handler(c, state)
+		})
 	}
 	router.Get("/maven/details", func(c fiber.Ctx) error { return GetDetailsAllRepos(c, state) })
 	router.Get("/maven/details/", func(c fiber.Ctx) error { return GetDetailsAllRepos(c, state) })
@@ -97,6 +104,7 @@ func SetupAPIRoutes(router fiber.Router, state *core.AppState) {
 	router.Post("/docker/repositories/:repo_name/images", dockerRoute(CreateDockerImageAPI))
 	router.Get("/docker/repositories/:repo_name/images/*", dockerRoute(GetDockerImageDetailsAPI))
 	router.Put("/docker/repositories/:repo_name/images", dockerRoute(UpdateDockerImageDescriptionAPI))
+	router.Put("/docker/repositories/:repo_name/images/deprecate", dockerRoute(DeprecateDockerImageAPI))
 	router.Put("/docker/repositories/:repo_name/images/*", dockerRoute(UpdateDockerImageDescriptionAPI))
 	router.Get("/docker/repositories/:repo_name/manifests", dockerRoute(GetDockerManifestAPI))
 	router.Get("/docker/repositories/:repo_name/manifests/*", dockerRoute(GetDockerManifestAPI))

@@ -127,6 +127,9 @@ func setupTestAPIDockerApp(t *testing.T) (*fiber.App, *core.AppState) {
 	app.Put("/api/docker/repositories/:repo_name/images", func(c fiber.Ctx) error {
 		return UpdateDockerImageDescriptionAPI(c, state)
 	})
+	app.Put("/api/docker/repositories/:repo_name/images/deprecate", func(c fiber.Ctx) error {
+		return DeprecateDockerImageAPI(c, state)
+	})
 	app.Put("/api/docker/repositories/:repo_name/images/*", func(c fiber.Ctx) error {
 		return UpdateDockerImageDescriptionAPI(c, state)
 	})
@@ -181,6 +184,43 @@ func TestDockerAPIErrorCodeFallback(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, ok.Header.Get(dockerAPIErrorCodeHeader))
 	require.NoError(t, ok.Body.Close())
+}
+
+func TestDockerPermanentDeprecationBlocksManagement(t *testing.T) {
+	app, state := setupTestAPIDockerApp(t)
+	_, err := state.GetDB().CreateDockerImage("docker-pub", "frozen", "admin", false,
+		time.Now().UnixMilli())
+	require.NoError(t, err)
+
+	request := httptest.NewRequest(http.MethodPut,
+		"/api/docker/repositories/docker-pub/images/deprecate?image=frozen", nil)
+	request.Header.Set(fiber.HeaderAuthorization, "Bearer admin-test-token")
+	response, err := app.Test(request)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+
+	request = httptest.NewRequest(http.MethodGet,
+		"/api/docker/repositories/docker-pub/images?image=frozen", nil)
+	request.Header.Set(fiber.HeaderAuthorization, "Bearer admin-test-token")
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	var details core.DockerImageDetails
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&details))
+	require.NoError(t, response.Body.Close())
+	require.NotNil(t, details.Image)
+	assert.True(t, details.Image.Deprecated)
+
+	request = httptest.NewRequest(http.MethodPut,
+		"/api/docker/repositories/docker-pub/images?image=frozen",
+		strings.NewReader(`{"description":"blocked"}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	request.Header.Set(fiber.HeaderAuthorization, "Bearer admin-test-token")
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusConflict, response.StatusCode)
+	assert.Equal(t, "package_deprecated", response.Header.Get(dockerAPIErrorCodeHeader))
+	require.NoError(t, response.Body.Close())
 }
 
 func TestCreateDockerImageRejectsLocalAndUpstreamNameConflicts(t *testing.T) {

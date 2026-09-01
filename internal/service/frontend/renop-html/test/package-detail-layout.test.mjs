@@ -70,3 +70,20 @@ test('Docker digest feedback preserves the stable SHA pill', () => {
     assert.match(docker, /preserveContent: element\.classList\.contains\('docker-tag-digest'\)/);
     assert.match(styles, /\.docker-tag-digest\.copied/);
 });
+
+test('all package details share one irreversible deprecation control', () => {
+    const helper = source('js', 'package-deprecation.js');
+    const browserStyles = source('css', 'browser.css');
+    assert.match(helper, /window\.showConfirm\(t\('package\.deprecateConfirm'\), \{danger: true}\)/);
+    assert.match(helper, /responseErrorMessage/);
+    assert.match(helper, /createPackageDeprecationNotice/);
+    assert.match(browserStyles, /package-deprecation\.css/);
+    for (const format of ['npm', 'cargo', 'maven', 'docker']) {
+        const script = source('js', 'browser', `${format}.js`);
+        assert.match(script, /from '\.\.\/package-deprecation\.js'/, format);
+        assert.match(script, /createDeprecatePackageButton/, format);
+        assert.match(script, /createPackageDeprecationBadge/, format);
+        assert.match(script, /createPackageDeprecationNotice/, format);
+        assert.match(script, /deprecated/, format);
+    }
+});

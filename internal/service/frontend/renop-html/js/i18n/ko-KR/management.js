@@ -91,6 +91,7 @@ export default Object.freeze({
     "audit.action.USER_PERMISSION_UPDATE": "권한 변경",
     "audit.action.USER_BAN": "계정 정지",
     "audit.action.USER_UNBAN": "계정 정지 해제",
+    "audit.action.PACKAGE_DEPRECATE": "패키지 영구 사용 중단",
     "audit.action.LOG_CLEAR": "기록 지우기",
     "audit.action.GPG_UPDATE": "GPG 키 업데이트",
     "audit.action.UPLOAD_QUEUED_GPG": "GPG 업로드 대기",

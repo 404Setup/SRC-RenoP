@@ -66,6 +66,13 @@ func (h Handler) Handle(c fiber.Ctx, state *core.AppState, repo *config.Reposito
 
 func (h Handler) handleCrateAPI(c fiber.Ctx, state *core.AppState, repo *config.Repository, storagePath string, parts []string) (bool, error) {
 	crateName := parts[3]
+	deprecationRequest := len(parts) == 5 && parts[4] == "deprecate" && c.Method() == fiber.MethodPut
+	if !deprecationRequest && c.Method() != fiber.MethodGet && c.Method() != fiber.MethodHead {
+		if err := state.GetDB().EnsurePackageMutable(config.RepositoryFormatCargo, repo.Name,
+			normalizeCrateName(crateName)); err != nil {
+			return true, cargoError(c, err)
+		}
+	}
 	switch {
 	case len(parts) == 4 && c.Method() == fiber.MethodGet:
 		return true, h.packageInfo(c, state, repo, storagePath, crateName)
@@ -83,6 +90,8 @@ func (h Handler) handleCrateAPI(c fiber.Ctx, state *core.AppState, repo *config.
 		return true, h.setPackageArchived(c, state, repo, storagePath, crateName, true)
 	case len(parts) == 5 && parts[4] == "archive" && c.Method() == fiber.MethodDelete:
 		return true, h.setPackageArchived(c, state, repo, storagePath, crateName, false)
+	case deprecationRequest:
+		return true, h.deprecatePackage(c, state, repo, crateName)
 	case len(parts) == 5 && c.Method() == fiber.MethodDelete:
 		return true, h.deleteVersion(c, state, repo, storagePath, crateName, parts[4])
 	case len(parts) == 6 && parts[4] == "owners" && c.Method() == fiber.MethodPut:

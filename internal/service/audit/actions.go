@@ -28,6 +28,7 @@ const (
 	ActionUserPermissionUpdate   = "USER_PERMISSION_UPDATE"
 	ActionUserBan                = "USER_BAN"
 	ActionUserUnban              = "USER_UNBAN"
+	ActionPackageDeprecate       = "PACKAGE_DEPRECATE"
 	ActionLogClear               = "LOG_CLEAR"
 	ActionGPGUpdate              = "GPG_UPDATE"
 	ActionProfileUpdate          = "PROFILE_UPDATE"
@@ -128,6 +129,7 @@ func KnownActions() []string {
 		ActionUserPermissionUpdate,
 		ActionUserBan,
 		ActionUserUnban,
+		ActionPackageDeprecate,
 		ActionLogClear,
 		ActionGPGUpdate,
 		ActionProfileUpdate,

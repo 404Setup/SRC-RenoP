@@ -1,0 +1,40 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+.package-deprecation-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.22rem 0.55rem;
+    border: 1px solid color-mix(in srgb, #ef4444 25%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, #ef4444 9%, transparent);
+    color: #ef4444;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.package-deprecation-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    margin: 0 0 1rem;
+    padding: 0.8rem 0.9rem;
+    border: 1px solid color-mix(in srgb, #ef4444 25%, var(--border-color));
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, #ef4444 6%, var(--card-bg));
+    color: var(--text-color);
+    font-size: 0.84rem;
+    line-height: 1.45;
+}
+
+.package-deprecation-notice renop-icon {
+    color: #ef4444;
+    flex-shrink: 0;
+}

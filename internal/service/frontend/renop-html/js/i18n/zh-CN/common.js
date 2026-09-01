@@ -62,6 +62,13 @@ export default Object.freeze({
     "main.updateAvailableDesc": "检测到新版管理界面。请重新加载页面，以继续使用当前服务器版本。",
     "main.forceUpdate": "重新加载界面",
     "common.unknown": "未知",
+    "package.deprecated": "已弃用",
+    "package.deprecationNotice": "此包已被永久弃用。元数据、团队、发布和删除操作均已禁用；现有下载与拉取仍然可用。",
+    "package.deprecate": "永久弃用",
+    "package.deprecateConfirm": "永久弃用此包？此操作无法撤销，之后仅保留现有下载与拉取。",
+    "package.deprecatedSuccess": "软件包已永久弃用。",
+    "package.deprecateFailed": "无法弃用软件包。",
+    "package.reviewPending": "请先处理完所有待审核任务，再弃用此包。",
     "common.unknownSize": "未知大小",
     "common.fromMirror": "来自镜像源",
 });

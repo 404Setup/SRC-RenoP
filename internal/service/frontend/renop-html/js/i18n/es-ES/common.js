@@ -62,6 +62,13 @@ export default Object.freeze({
     "main.updateAvailableDesc": "Hay una versión más reciente de la interfaz web. Recargue la página para continuar con la versión actual del servidor.",
     "main.forceUpdate": "Recargar interfaz",
     "common.unknown": "Desconocido",
+    "package.deprecated": "Obsoleto",
+    "package.deprecationNotice": "Este paquete está obsoleto de forma permanente. Las operaciones de metadatos, equipo, publicación y eliminación están deshabilitadas; las descargas existentes siguen disponibles.",
+    "package.deprecate": "Marcar como obsoleto permanentemente",
+    "package.deprecateConfirm": "¿Marcar este paquete como obsoleto permanentemente? No se puede deshacer. Solo seguirán disponibles las descargas existentes.",
+    "package.deprecatedSuccess": "Paquete marcado como obsoleto permanentemente.",
+    "package.deprecateFailed": "No se pudo marcar el paquete como obsoleto.",
+    "package.reviewPending": "Resuelva todas las revisiones pendientes antes de marcar este paquete como obsoleto.",
     "common.unknownSize": "Tamaño desconocido",
     "common.fromMirror": "Desde un origen espejo",
 });

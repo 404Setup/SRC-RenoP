@@ -73,6 +73,8 @@ func reviewError(c fiber.Ctx, err error) error {
 		status, code = fiber.StatusConflict, "transfer_restricted"
 	case errors.Is(err, core.ErrReviewResourceConflict):
 		status, code = fiber.StatusConflict, "resource_changed"
+	case errors.Is(err, core.ErrPackageDeprecated):
+		status, code = fiber.StatusConflict, "package_deprecated"
 	case errors.Is(err, core.ErrSuperTeamBindingMismatch):
 		status, code = fiber.StatusBadRequest, "super_team_mismatch"
 	case errors.Is(err, docker.ErrUpstreamImageProbeUnavailable):
@@ -82,6 +84,21 @@ func reviewError(c fiber.Ctx, err error) error {
 	}
 	c.Set("X-Renop-Error-Code", code)
 	return c.Status(status).SendString(code)
+}
+
+func reviewPackageFormat(resourceType string) string {
+	switch resourceType {
+	case core.ReviewResourceCargoPackage:
+		return config.RepositoryFormatCargo
+	case core.ReviewResourceNPMPackage:
+		return config.RepositoryFormatNPM
+	case core.ReviewResourceDockerImage:
+		return config.RepositoryFormatDocker
+	case core.ReviewResourceMavenArtifact:
+		return config.RepositoryFormatMaven
+	default:
+		return ""
+	}
 }
 
 func currentUser(c fiber.Ctx) (string, bool, error) {
@@ -186,6 +203,13 @@ func createTransfer(c fiber.Ctx, state *core.AppState) error {
 	}
 	if !administrator && request.Repository != "" {
 		administrator = auth.GetUser(c).CheckUpdatePermission(request.Repository)
+	}
+	if format := reviewPackageFormat(request.ResourceType); format != "" {
+		release := repositorygate.AcquireMutation(request.Repository)
+		defer release()
+		if err := state.GetDB().EnsurePackageMutable(format, request.Repository, request.ResourceKey); err != nil {
+			return reviewError(c, err)
+		}
 	}
 	task, err := state.GetDB().CreateSuperTeamTransferReview(
 		request, username, administrator, time.Now().UnixMilli())

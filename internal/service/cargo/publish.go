@@ -131,6 +131,9 @@ func (h Handler) publish(c fiber.Ctx, state *core.AppState, repo *config.Reposit
 		if details == nil || details.Package == nil || details.Package.PermissionLevel < core.CargoPermissionPublish {
 			return cargoError(c, core.ErrCargoPermissionDenied)
 		}
+		if err := db.EnsurePackageMutable(config.RepositoryFormatCargo, repo.Name, normalizedName); err != nil {
+			return cargoError(c, err)
+		}
 		if details.Package.Archived {
 			return cargoError(c, core.ErrCargoPackageArchived)
 		}

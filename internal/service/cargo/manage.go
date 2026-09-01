@@ -25,6 +25,27 @@ import (
 	"renop/internal/utils"
 )
 
+func (h Handler) deprecatePackage(c fiber.Ctx, state *core.AppState, repo *config.Repository, crateName string) error {
+	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionManage)
+	if err != nil {
+		return cargoError(c, err)
+	}
+	if details.Package.Mirrored {
+		return cargoError(c, core.ErrCargoPermissionDenied)
+	}
+	if details.Package.Deprecated {
+		return cargoError(c, core.ErrPackageDeprecated)
+	}
+	deprecatedAt := time.Now().UnixMilli()
+	if err := state.GetDB().DeprecatePackage(config.RepositoryFormatCargo, repo.Name,
+		details.Package.NormalizedName, deprecatedAt); err != nil {
+		return cargoError(c, err)
+	}
+	logCargoAudit(c, state, audit.ActionPackageDeprecate,
+		"Format: cargo, repository: "+repo.Name+", package: "+details.Package.Name+", actor: "+user.Username)
+	return c.JSON(OperationResponse{OK: true})
+}
+
 func (h Handler) deleteVersion(c fiber.Ctx, state *core.AppState, repo *config.Repository, storagePath, crateName, version string) error {
 	if err := validatePackage(crateName, version); err != nil {
 		return errorResponse(c, fiber.StatusBadRequest, err.Error())

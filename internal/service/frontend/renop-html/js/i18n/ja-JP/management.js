@@ -91,6 +91,7 @@ export default Object.freeze({
     "audit.action.USER_PERMISSION_UPDATE": "権限更新",
     "audit.action.USER_BAN": "アカウント停止",
     "audit.action.USER_UNBAN": "アカウント停止解除",
+    "audit.action.PACKAGE_DEPRECATE": "パッケージ永久非推奨",
     "audit.action.LOG_CLEAR": "ログ消去",
     "audit.action.GPG_UPDATE": "GPG キー更新",
     "audit.action.UPLOAD_QUEUED_GPG": "GPG アップロード待機",

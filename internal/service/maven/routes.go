@@ -26,6 +26,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
+	"renop/internal/service/repositorygate"
 	"renop/internal/service/storage"
 	"renop/internal/utils"
 )
@@ -51,6 +52,17 @@ func wireStorageHooks() {
 	storage.MavenMutationAuthorizer = func(state *core.AppState, user *config.User, repo *config.Repository, path string, requiredLevel int) error {
 		_, err := AuthorizeMutation(state, user, repo, path, requiredLevel)
 		return err
+	}
+	storage.MavenMutationGuard = func(state *core.AppState, repo *config.Repository, path string) error {
+		if state == nil || state.GetDB() == nil {
+			return core.ErrDatabaseUnavailable
+		}
+		groupID, artifactID, ok := pathArtifactCandidate(path)
+		if !ok {
+			return nil
+		}
+		return state.GetDB().EnsurePackageMutable(config.RepositoryFormatMaven, repo.Name,
+			groupID+":"+artifactID)
 	}
 	storage.MavenPublicationQuotaOwner = func(state *core.AppState, username string, repo *config.Repository, path string) (string, error) {
 		domain, err := AuthorizeMutation(state, &config.User{Username: username}, repo, path, core.MavenPermissionPublish)
@@ -92,6 +104,7 @@ func SetupRoutes(router fiber.Router, state *core.AppState) {
 	base.Get("/packages", func(c fiber.Ctx) error { return listArtifacts(c, state) })
 	base.Get("/package", func(c fiber.Ctx) error { return getArtifact(c, state) })
 	base.Put("/package", func(c fiber.Ctx) error { return updateArtifact(c, state) })
+	base.Put("/package/deprecate", func(c fiber.Ctx) error { return deprecateArtifact(c, state) })
 	base.Delete("/versions", func(c fiber.Ctx) error { return deleteVersion(c, state) })
 }
 
@@ -168,6 +181,12 @@ func apiError(c fiber.Ctx, err error) error {
 		return c.Status(fiber.StatusTooManyRequests).SendString(err.Error())
 	case errors.Is(err, core.ErrMavenPermissionDenied):
 		return c.Status(fiber.StatusForbidden).SendString("Maven domain permission denied")
+	case errors.Is(err, core.ErrPackageDeprecated):
+		c.Set("X-Renop-Error-Code", "package_deprecated")
+		return c.Status(fiber.StatusConflict).SendString("Maven artifact is permanently deprecated and read-only")
+	case errors.Is(err, core.ErrPackageDeprecationPending):
+		c.Set("X-Renop-Error-Code", "review_pending")
+		return c.Status(fiber.StatusConflict).SendString("Resolve pending reviews before deprecating this artifact")
 	case errors.Is(err, core.ErrDatabaseUnavailable), errors.Is(err, fiber.ErrServiceUnavailable):
 		return c.Status(fiber.StatusServiceUnavailable).SendString("Maven metadata is unavailable")
 	default:
@@ -617,6 +636,12 @@ func getArtifact(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return apiError(c, err)
 	}
+	deprecated, err := state.GetDB().IsPackageDeprecated(config.RepositoryFormatMaven, repo.Name,
+		groupID+":"+artifactID)
+	if err != nil {
+		return apiError(c, err)
+	}
+	details.Artifact.Deprecated = deprecated
 	if err := enrichMavenArtifactDetails(state, repo.Name, details); err != nil {
 		log.Printf("failed to enrich Maven artifact %s:%s in %s: %v", groupID, artifactID, repo.Name, err)
 	}
@@ -639,6 +664,41 @@ func getArtifact(c fiber.Ctx, state *core.AppState) error {
 	return c.JSON(details)
 }
 
+func deprecateArtifact(c fiber.Ctx, state *core.AppState) error {
+	repo, err := repository(c, state)
+	if err != nil {
+		return apiError(c, err)
+	}
+	groupID, artifactID := strings.TrimSpace(c.Query("group")), strings.TrimSpace(c.Query("artifact"))
+	if groupID == "" || artifactID == "" {
+		return apiError(c, fiber.ErrBadRequest)
+	}
+	release := repositorygate.AcquireMutation(repo.Name)
+	defer release()
+	user, err := authenticated(c)
+	if err != nil {
+		return apiError(c, err)
+	}
+	if _, err := AuthorizeArtifact(state, user, repo, groupID, artifactID,
+		core.MavenPermissionManage, true); err != nil {
+		return apiError(c, err)
+	}
+	details, err := state.GetDB().GetMavenArtifactDetails(repo.Name, groupID, artifactID)
+	if err != nil || details == nil || details.Artifact == nil {
+		return apiError(c, core.ErrMavenArtifactNotFound)
+	}
+	if details.Artifact.Mirrored {
+		return apiError(c, core.ErrMavenPermissionDenied)
+	}
+	if err := state.GetDB().DeprecatePackage(config.RepositoryFormatMaven, repo.Name,
+		groupID+":"+artifactID, time.Now().UnixMilli()); err != nil {
+		return apiError(c, err)
+	}
+	logAudit(c, state, audit.ActionPackageDeprecate,
+		fmt.Sprintf("Format: maven, repository: %s, package: %s:%s", repo.Name, groupID, artifactID))
+	return c.JSON(fiber.Map{"ok": true})
+}
+
 func updateArtifact(c fiber.Ctx, state *core.AppState) error {
 	repo, err := repository(c, state)
 	if err != nil {
@@ -649,6 +709,15 @@ func updateArtifact(c fiber.Ctx, state *core.AppState) error {
 		return apiError(c, err)
 	}
 	groupID, artifactID := strings.TrimSpace(c.Query("group")), strings.TrimSpace(c.Query("artifact"))
+	if groupID == "" || artifactID == "" {
+		return apiError(c, fiber.ErrBadRequest)
+	}
+	release := repositorygate.AcquireMutation(repo.Name)
+	defer release()
+	if err := state.GetDB().EnsurePackageMutable(config.RepositoryFormatMaven, repo.Name,
+		groupID+":"+artifactID); err != nil {
+		return apiError(c, err)
+	}
 	if _, err := AuthorizeArtifact(
 		state, user, repo, groupID, artifactID, core.MavenPermissionVersion, true); err != nil {
 		return apiError(c, err)

@@ -137,6 +137,11 @@ func packageDetailsAPI(c fiber.Ctx, state *core.AppState, repo *config.Repositor
 	if err != nil || details == nil || details.Package == nil {
 		return npmAPIError(c, fiber.StatusNotFound, "package_not_found", "Package not found")
 	}
+	deprecated, err := state.GetDB().IsPackageDeprecated(config.RepositoryFormatNPM, repo.Name, packageName)
+	if err != nil {
+		return npmAPIError(c, fiber.StatusInternalServerError, "internal_error", "Failed to inspect package state")
+	}
+	details.Package.Deprecated = deprecated
 	if details.Member || user.CheckModeratePermission(repo.Name) {
 		if err := AddPendingPublicationVersions(state, details); err != nil {
 			return npmAPIError(c, fiber.StatusInternalServerError, "review_unavailable", "Publication review is unavailable")
@@ -288,6 +293,44 @@ type updatePackageRequest struct {
 	Archived    *bool   `json:"archived"`
 }
 
+func beginNPMPackageMutation(state *core.AppState, repo *config.Repository, packageName string) (func(), error) {
+	release := repositorygate.AcquireMutation(repo.Name)
+	if err := state.GetDB().EnsurePackageMutable(config.RepositoryFormatNPM, repo.Name, packageName); err != nil {
+		release()
+		return nil, err
+	}
+	return release, nil
+}
+
+func deprecatePackageAPI(c fiber.Ctx, state *core.AppState) error {
+	repo, err := npmRepository(c, state)
+	packageName, valid := npmPackageQuery(c)
+	if err != nil || !valid {
+		return npmAPIError(c, fiber.StatusBadRequest, "invalid_request", "Invalid npm package")
+	}
+	release := repositorygate.AcquireMutation(repo.Name)
+	defer release()
+	user := auth.GetUser(c)
+	administrator, _, level, err := teamAccess(state, repo, packageName, user)
+	if err != nil || !administrator && level < core.NPMPermissionTeam {
+		return npmAPIError(c, fiber.StatusForbidden, "permission_denied", "L3 or L4 package permission is required")
+	}
+	pkg, err := state.GetDB().GetNPMPackage(repo.Name, packageName)
+	if err != nil || pkg == nil {
+		return npmAPIError(c, fiber.StatusNotFound, "package_not_found", "npm package was not found")
+	}
+	if pkg.Mirrored {
+		return npmAPIError(c, fiber.StatusForbidden, "permission_denied", "Mirrored packages cannot be deprecated")
+	}
+	if err := state.GetDB().DeprecatePackage(config.RepositoryFormatNPM, repo.Name, packageName,
+		time.Now().UnixMilli()); err != nil {
+		return npmManagementError(c, err)
+	}
+	logNPMAudit(c, state, audit.ActionPackageDeprecate,
+		"Format: npm, repository: "+repo.Name+", package: "+packageName)
+	return c.JSON(operationResponse{OK: true, ID: packageName})
+}
+
 func updatePackageAPI(c fiber.Ctx, state *core.AppState) error {
 	repo, err := npmRepository(c, state)
 	if err != nil {
@@ -297,6 +340,11 @@ func updatePackageAPI(c fiber.Ctx, state *core.AppState) error {
 	if !valid {
 		return npmAPIError(c, fiber.StatusBadRequest, "invalid_package_name", "Invalid npm package name")
 	}
+	release, err := beginNPMPackageMutation(state, repo, packageName)
+	if err != nil {
+		return npmManagementError(c, err)
+	}
+	defer release()
 	var request updatePackageRequest
 	if err := utils.ReadJSONLimited(c, &request, 8192); err != nil {
 		return npmAPIError(c, fiber.StatusBadRequest, "invalid_request", "Invalid request body")
@@ -349,6 +397,11 @@ func deletePackageAPI(c fiber.Ctx, state *core.AppState, store Store) error {
 	if !valid {
 		return npmAPIError(c, fiber.StatusBadRequest, "invalid_package_name", "Invalid npm package name")
 	}
+	release, err := beginNPMPackageMutation(state, repo, packageName)
+	if err != nil {
+		return npmManagementError(c, err)
+	}
+	defer release()
 	user := auth.GetUser(c)
 	paths, err := state.GetDB().DeleteNPMPackage(repo.Name, packageName, npmMutationActor(user, repo.Name), 0)
 	if err != nil {
@@ -370,6 +423,11 @@ func deleteVersionAPI(c fiber.Ctx, state *core.AppState, store Store) error {
 	if !valid || !validNPMVersion(version) {
 		return npmAPIError(c, fiber.StatusBadRequest, "invalid_request", "Invalid npm package or version")
 	}
+	release, err := beginNPMPackageMutation(state, repo, packageName)
+	if err != nil {
+		return npmManagementError(c, err)
+	}
+	defer release()
 	user := auth.GetUser(c)
 	path, err := state.GetDB().UnpublishNPMVersion(repo.Name, packageName, version,
 		npmMutationActor(user, repo.Name), 0)
@@ -388,6 +446,10 @@ func npmManagementError(c fiber.Ctx, err error) error {
 		return npmAPIError(c, fiber.StatusNotFound, "package_not_found", "npm package or version not found")
 	case errors.Is(err, core.ErrNPMPermissionDenied):
 		return npmAPIError(c, fiber.StatusForbidden, "permission_denied", "Insufficient npm package permission")
+	case errors.Is(err, core.ErrPackageDeprecated):
+		return npmAPIError(c, fiber.StatusConflict, "package_deprecated", "npm package is permanently deprecated and read-only")
+	case errors.Is(err, core.ErrPackageDeprecationPending):
+		return npmAPIError(c, fiber.StatusConflict, "review_pending", "Resolve pending reviews before deprecating this package")
 	case errors.Is(err, core.ErrNPMLastFullMember), errors.Is(err, core.ErrNPMOwnerCannotLeave):
 		return npmAPIError(c, fiber.StatusConflict, "last_owner", err.Error())
 	case errors.Is(err, core.ErrNPMMemberExists):
@@ -438,6 +500,11 @@ func inviteMembersAPI(c fiber.Ctx, state *core.AppState) error {
 	if err != nil || !valid {
 		return npmAPIError(c, fiber.StatusBadRequest, "invalid_request", "Invalid npm package")
 	}
+	release, err := beginNPMPackageMutation(state, repo, packageName)
+	if err != nil {
+		return npmManagementError(c, err)
+	}
+	defer release()
 	var request inviteRequest
 	if err := utils.ReadJSONLimited(c, &request, 8192); err != nil || len(request.Users) == 0 || len(request.Users) > 20 ||
 		request.Level < core.NPMPermissionRead || request.Level > core.NPMPermissionOwner {
@@ -532,6 +599,11 @@ func setMemberLevelAPI(c fiber.Ctx, state *core.AppState) error {
 	if err != nil || !valid || resolveErr != nil {
 		return npmAPIError(c, fiber.StatusBadRequest, "invalid_request", "Invalid npm package member")
 	}
+	release, err := beginNPMPackageMutation(state, repo, packageName)
+	if err != nil {
+		return npmManagementError(c, err)
+	}
+	defer release()
 	var request levelRequest
 	if err := utils.ReadJSONLimited(c, &request, 1024); err != nil ||
 		request.Level < core.NPMPermissionRead || request.Level > core.NPMPermissionOwner {
@@ -561,6 +633,11 @@ func removeMemberAPI(c fiber.Ctx, state *core.AppState) error {
 	if err != nil || !valid || resolveErr != nil {
 		return npmAPIError(c, fiber.StatusBadRequest, "invalid_request", "Invalid npm package member")
 	}
+	release, err := beginNPMPackageMutation(state, repo, packageName)
+	if err != nil {
+		return npmManagementError(c, err)
+	}
+	defer release()
 	user := auth.GetUser(c)
 	administrator, member, level, err := teamAccess(state, repo, packageName, user)
 	isSelf := strings.EqualFold(target, user.Username)
@@ -639,6 +716,7 @@ func SetupRoutes(router fiber.Router, state *core.AppState, store Store) {
 	base.Get("/packages", wrap(func(c fiber.Ctx) error { return listPackagesAPI(c, state) }))
 	base.Post("/packages", wrap(func(c fiber.Ctx) error { return createPackageAPI(c, state) }))
 	base.Put("/packages", wrap(func(c fiber.Ctx) error { return updatePackageAPI(c, state) }))
+	base.Put("/packages/deprecate", wrap(func(c fiber.Ctx) error { return deprecatePackageAPI(c, state) }))
 	base.Delete("/packages", wrap(func(c fiber.Ctx) error { return deletePackageAPI(c, state, store) }))
 	base.Delete("/versions", wrap(func(c fiber.Ctx) error { return deleteVersionAPI(c, state, store) }))
 	base.Get("/owners", wrap(func(c fiber.Ctx) error { return listMembersAPI(c, state) }))

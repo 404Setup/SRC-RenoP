@@ -91,6 +91,7 @@ export default Object.freeze({
     "audit.action.USER_PERMISSION_UPDATE": "Mise à jour des permissions",
     "audit.action.USER_BAN": "Compte suspendu",
     "audit.action.USER_UNBAN": "Suspension du compte levée",
+    "audit.action.PACKAGE_DEPRECATE": "Paquet définitivement obsolète",
     "audit.action.LOG_CLEAR": "Nettoyage des journaux",
     "audit.action.GPG_UPDATE": "Mise à jour de clé GPG",
     "audit.action.UPLOAD_QUEUED_GPG": "Téléversement GPG en attente",

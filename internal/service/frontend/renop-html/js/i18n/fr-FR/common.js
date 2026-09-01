@@ -62,6 +62,13 @@ export default Object.freeze({
     "main.updateAvailableDesc": "Une version plus récente de l’interface web est disponible. Rechargez la page pour continuer avec la version actuelle du serveur.",
     "main.forceUpdate": "Recharger l’interface",
     "common.unknown": "Inconnu",
+    "package.deprecated": "Obsolète",
+    "package.deprecationNotice": "Ce paquet est définitivement obsolète. Les opérations sur les métadonnées, l’équipe, la publication et la suppression sont désactivées ; les téléchargements existants restent disponibles.",
+    "package.deprecate": "Rendre définitivement obsolète",
+    "package.deprecateConfirm": "Rendre ce paquet définitivement obsolète ? Cette action est irréversible. Seuls les téléchargements existants resteront disponibles.",
+    "package.deprecatedSuccess": "Paquet rendu définitivement obsolète.",
+    "package.deprecateFailed": "Impossible de rendre le paquet obsolète.",
+    "package.reviewPending": "Traitez toutes les révisions en attente avant de rendre ce paquet obsolète.",
     "common.unknownSize": "Taille inconnue",
     "common.fromMirror": "Issu d’une source miroir",
 });

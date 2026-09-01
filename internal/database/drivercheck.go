@@ -89,6 +89,13 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		if err := db.SetAccountBan(username, nil); err != nil {
 			return err
 		}
+		deprecationKey := "driver-check-" + suffix
+		if err := db.DeprecatePackage(config.RepositoryFormatCargo, "driver-check", deprecationKey, now); err != nil {
+			return err
+		}
+		if err := db.EnsurePackageMutable(config.RepositoryFormatCargo, "driver-check", deprecationKey); !errors.Is(err, core.ErrPackageDeprecated) {
+			return errorsOrMissing(err, "permanent package deprecation")
+		}
 		return nil
 	}); err != nil {
 		return results, err

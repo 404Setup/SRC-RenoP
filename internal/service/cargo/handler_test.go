@@ -790,6 +790,62 @@ func TestCargoPackageInfoIsPublicAndHidesTeamFromNonMembers(t *testing.T) {
 	}
 }
 
+func TestCargoPermanentDeprecationLeavesCrateDownloadAndBlocksMutations(t *testing.T) {
+	storagePath := testutil.TempDir(t)
+	store := newMemoryStore()
+	repo := &config.Repository{Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"}
+	state := core.NewAppState()
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "cargo-deprecation.db"),
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	state.Inner.DB = db
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "owner", Permissions: []string{"canupdate:cargo"}}))
+	app := cargoTestApp(t, Handler{Store: store}, state, repo, storagePath,
+		&config.User{Username: "owner", Roles: []string{"canupdate:cargo"}})
+	publish := func(version string) int {
+		crate := makeCrateArchive(t, map[string]string{
+			"demo-" + version + "/Cargo.toml": "[package]\nname = \"demo\"\nversion = \"" + version + "\"\n",
+		})
+		body := makePublishBody(t, PublishMetadata{
+			Name: "demo", Version: version, Deps: []PublishDependency{}, Features: map[string][]string{},
+		}, crate)
+		response, requestErr := app.Test(httptest.NewRequest(http.MethodPut,
+			"http://registry.example/cargo/api/v1/crates/new", bytes.NewReader(body)))
+		require.NoError(t, requestErr)
+		defer response.Body.Close()
+		return response.StatusCode
+	}
+	require.Equal(t, fiber.StatusOK, publish("1.0.0"))
+	response, err := app.Test(httptest.NewRequest(http.MethodPut,
+		"http://registry.example/cargo/api/v1/crates/demo/deprecate", nil))
+	require.NoError(t, err)
+	require.Equal(t, fiber.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+
+	details, err := packageDetails(state, "cargo", "demo", "owner")
+	require.NoError(t, err)
+	assert.True(t, details.Package.Deprecated)
+	cratePath := filepath.Join(storagePath, "cargo", "api", "v1", "crates", "demo", "1.0.0", "download")
+	exists, err := store.Exists(cratePath)
+	require.NoError(t, err)
+	assert.True(t, exists)
+	for _, mutation := range []struct{ method, path string }{
+		{http.MethodPut, "/cargo/api/v1/crates/demo/archive"},
+		{http.MethodDelete, "/cargo/api/v1/crates/demo/1.0.0/yank"},
+		{http.MethodDelete, "/cargo/api/v1/crates/demo/1.0.0"},
+		{http.MethodDelete, "/cargo/api/v1/crates/demo"},
+	} {
+		blocked, requestErr := app.Test(httptest.NewRequest(mutation.method,
+			"http://registry.example"+mutation.path, nil))
+		require.NoError(t, requestErr)
+		assert.Equal(t, fiber.StatusConflict, blocked.StatusCode, mutation.path)
+		require.NoError(t, blocked.Body.Close())
+	}
+	assert.Equal(t, fiber.StatusConflict, publish("2.0.0"))
+}
+
 func TestCargoAdministratorLifecycleLocksCannotBeRestoredByOwner(t *testing.T) {
 	storagePath := testutil.TempDir(t)
 	store := newMemoryStore()

@@ -12,6 +12,7 @@
 package npm
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -150,6 +151,24 @@ func handleSecurityAudit(c fiber.Ctx) error {
 	})
 }
 
+func ensureMutableNPMPackage(state *core.AppState, repo *config.Repository, packageName string) error {
+	if state == nil || state.GetDB() == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	return state.GetDB().EnsurePackageMutable(config.RepositoryFormatNPM, repo.Name, packageName)
+}
+
+func npmPackageMutationError(c fiber.Ctx, err error) error {
+	if errors.Is(err, core.ErrPackageDeprecated) {
+		return npmError(c, fiber.StatusConflict, "package_deprecated",
+			"npm package is permanently deprecated and read-only")
+	}
+	if errors.Is(err, core.ErrDatabaseUnavailable) {
+		return npmError(c, fiber.StatusServiceUnavailable, "database_unavailable", "npm package state is unavailable")
+	}
+	return npmError(c, fiber.StatusInternalServerError, "metadata_failure", "Failed to inspect npm package state")
+}
+
 func handleSearch(c fiber.Ctx, state *core.AppState, repo *config.Repository) error {
 	if state.GetDB() == nil {
 		return npmError(c, fiber.StatusServiceUnavailable, "database unavailable", "npm search is unavailable")
@@ -255,9 +274,19 @@ func (handler Handler) Handle(c fiber.Ctx, state *core.AppState, repo *config.Re
 		return true, c.JSON(fiber.Map{"public": !pkg.Private})
 	}
 	if packageName, tag, ok := parseDistTagPath(requestPath); ok {
+		if c.Method() != fiber.MethodGet && c.Method() != fiber.MethodHead {
+			if err := ensureMutableNPMPackage(state, repo, packageName); err != nil {
+				return true, npmPackageMutationError(c, err)
+			}
+		}
 		return true, handleDistTags(c, state, repo, packageName, tag)
 	}
 	if packageName, revision, tarball, ok := parseRevisionPath(requestPath); ok {
+		if c.Method() != fiber.MethodGet && c.Method() != fiber.MethodHead {
+			if err := ensureMutableNPMPackage(state, repo, packageName); err != nil {
+				return true, npmPackageMutationError(c, err)
+			}
+		}
 		return true, handleRevisionRequest(c, state, repo, handler.Store, packageName, revision, tarball)
 	}
 	if packageName, ok := packageFromTarballPath(requestPath); ok {
@@ -278,6 +307,9 @@ func (handler Handler) Handle(c fiber.Ctx, state *core.AppState, repo *config.Re
 		case fiber.MethodGet, fiber.MethodHead:
 			return true, servePackument(c, state, repo, packageName)
 		case fiber.MethodPut:
+			if err := ensureMutableNPMPackage(state, repo, packageName); err != nil {
+				return true, npmPackageMutationError(c, err)
+			}
 			return true, publish(c, state, repo, handler.Store, storagePath, packageName)
 		default:
 			return true, npmError(c, fiber.StatusMethodNotAllowed, "method not allowed", "npm package endpoint does not support this method")
