@@ -208,6 +208,8 @@ export default Object.freeze({
     "dashboard.restartFailed": "Ошибка перезапуска службы: {error}",
     "sessions.methodGithub": "GitHub",
     "audit.action.TOKEN_REVOKE": "Отзыв токена",
+    "audit.action.TOKEN_DISABLE": "Отключение токена",
+    "audit.action.TOKEN_ENABLE": "Повторное включение токена",
     "users.roleModeratorAllTitle": "Модерировать все репозитории",
     "users.roleModeratorAllDesc": "Проверять ожидающие пакеты и версии во всех репозиториях без изменения системных настроек",
     "users.roleModerate": "Модерировать",

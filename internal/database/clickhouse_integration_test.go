@@ -281,6 +281,18 @@ func TestClickHouseNativeSecurityIdentityAndGPGMatrix(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, credential)
 	require.Equal(t, apiToken.ID, credential.Token.ID)
+	require.NoError(t, db.SetAPITokenDisabled("alice", apiToken.ID, true))
+	apiTokens, err := db.ListAPITokens("alice")
+	require.NoError(t, err)
+	require.Len(t, apiTokens, 1)
+	require.True(t, apiTokens[0].Disabled)
+	credential, err = db.GetAPITokenByHash(hex.EncodeToString(digest[:]), "alice")
+	require.NoError(t, err)
+	require.Nil(t, credential)
+	require.NoError(t, db.SetAPITokenDisabled("alice", apiToken.ID, false))
+	credential, err = db.GetAPITokenByHash(hex.EncodeToString(digest[:]), "alice")
+	require.NoError(t, err)
+	require.NotNil(t, credential)
 
 	const fingerprint = "1462C0512352DEC38A39D0793586B4EB0FDA2EA9"
 	const keyID = "3586B4EB0FDA2EA9"

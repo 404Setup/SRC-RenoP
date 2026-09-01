@@ -208,6 +208,8 @@ export default Object.freeze({
     "dashboard.restartFailed": "Failed to restart service: {error}",
     "sessions.methodGithub": "GitHub",
     "audit.action.TOKEN_REVOKE": "Token Revoke",
+    "audit.action.TOKEN_DISABLE": "Token Disable",
+    "audit.action.TOKEN_ENABLE": "Token Re-enable",
     "users.roleModeratorAllTitle": "Moderate All Repos",
     "users.roleModeratorAllDesc": "Review queued packages and versions in every repository without changing system settings",
     "users.roleModerate": "Moderate",

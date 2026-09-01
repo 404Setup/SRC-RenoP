@@ -423,7 +423,7 @@ function openCreateAPITokenDialog(catalog, onCreated) {
 }
 
 /**
- * Render token metadata cards and their immediate revocation actions.
+ * Render token metadata cards and their state and revocation actions.
  * @param {HTMLElement} list - List container.
  * @param {object[]} tokens - Non-secret token metadata.
  * @param {() => Promise<void>} reload - List refresh callback.
@@ -438,6 +438,7 @@ function renderAPITokenList(list, tokens, reload) {
     const now = Date.now();
     tokens.forEach(token => {
         const expired = Number(token.expires_at) > 0 && Number(token.expires_at) <= now;
+        const disabled = token.disabled === true;
         const scopeList = el('div', {class: 'profile-api-token-badges'},
             ...(Array.isArray(token.scopes) ? token.scopes : []).map(scope =>
                 el('span', {
@@ -470,21 +471,50 @@ function renderAPITokenList(list, tokens, reload) {
                 await reload();
             });
         });
+        const stateButton = el('button', {
+            type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm', disabled: expired,
+        }, t(disabled ? 'profile.apiTokenEnable' : 'profile.apiTokenDisable'));
+        stateButton.addEventListener('click', () => {
+            void runButtonAction(stateButton, async () => {
+                const nextDisabled = !disabled;
+                if (nextDisabled && !(await window.showConfirm(
+                    t('profile.apiTokenDisableConfirm', {name: token.name})))) return;
+                const response = await apiRequest(
+                    `/api/auth/profile/api-tokens/${encodeURIComponent(token.id)}/state`, {
+                        method: 'PUT', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({disabled: nextDisabled})
+                    }
+                );
+                if (!response.ok) {
+                    showAlert(t('profile.apiTokenStateFailed'), 'error');
+                    return;
+                }
+                showAlert(t(nextDisabled ? 'profile.apiTokenDisabledSuccess' : 'profile.apiTokenEnabledSuccess'),
+                    'success');
+                await reload();
+            });
+        });
         const expiryText = token.expires_at
             ? t(expired ? 'profile.apiTokenExpiredAt' : 'profile.apiTokenExpiresAt', {
                 date: formatTimestamp(token.expires_at, {fallback: t('common.unknown')})
             })
             : t('profile.apiTokenNeverExpires');
-        list.appendChild(el('article', {class: `profile-api-token-card${expired ? ' is-expired' : ''}`},
+        const stateBadge = disabled
+            ? el('span', {class: 'profile-api-token-state is-disabled'}, t('profile.apiTokenDisabled'))
+            : null;
+        list.appendChild(el('article', {
+                class: `profile-api-token-card${expired ? ' is-expired' : ''}${disabled ? ' is-disabled' : ''}`
+            },
             el('div', {class: 'profile-api-token-card-head'},
                 el('div', {},
-                    el('strong', {}, token.name || t('common.unknown')),
+                    el('div', {class: 'profile-api-token-title'},
+                        el('strong', {}, token.name || t('common.unknown')), stateBadge),
                     el('p', {class: 'profile-security-hint'},
                         t('profile.apiTokenCreatedAt', {
                             date: formatTimestamp(token.created_at, {fallback: t('common.unknown')})
                         }))
                 ),
-                revoke
+                el('div', {class: 'profile-api-token-card-actions'}, stateButton, revoke)
             ),
             scopeList,
             ...(targetList ? [targetList] : []),

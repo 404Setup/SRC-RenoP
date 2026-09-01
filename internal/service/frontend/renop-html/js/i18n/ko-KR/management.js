@@ -208,6 +208,8 @@ export default Object.freeze({
     "dashboard.restartFailed": "서비스 재시작 실패: {error}",
     "sessions.methodGithub": "GitHub",
     "audit.action.TOKEN_REVOKE": "토큰 폐기",
+    "audit.action.TOKEN_DISABLE": "토큰 비활성화",
+    "audit.action.TOKEN_ENABLE": "토큰 재활성화",
     "users.roleModeratorAllTitle": "모든 저장소 검토",
     "users.roleModeratorAllDesc": "시스템 설정을 변경하지 않고 모든 저장소의 대기 중인 패키지와 버전을 검토합니다",
     "users.roleModerate": "검토",

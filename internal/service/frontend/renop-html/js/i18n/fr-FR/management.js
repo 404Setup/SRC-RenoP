@@ -208,6 +208,8 @@ export default Object.freeze({
     "dashboard.restartFailed": "Échec du redémarrage du service : {error}",
     "sessions.methodGithub": "GitHub",
     "audit.action.TOKEN_REVOKE": "Révocation de jeton",
+    "audit.action.TOKEN_DISABLE": "Désactivation du jeton",
+    "audit.action.TOKEN_ENABLE": "Réactivation du jeton",
     "users.roleModeratorAllTitle": "Modérer tous les dépôts",
     "users.roleModeratorAllDesc": "Examiner les paquets et versions en attente dans tous les dépôts sans modifier les paramètres système",
     "users.roleModerate": "Modérer",

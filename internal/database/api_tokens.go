@@ -119,7 +119,8 @@ func scanAPIToken(scanner interface{ Scan(...any) error }) (*core.APIToken, erro
 	token := &core.APIToken{}
 	var scopesJSON string
 	var expiresAt sql.NullInt64
-	if err := scanner.Scan(&token.ID, &token.Name, &scopesJSON, &token.CreatedAt, &expiresAt); err != nil {
+	var disabled int
+	if err := scanner.Scan(&token.ID, &token.Name, &scopesJSON, &token.CreatedAt, &expiresAt, &disabled); err != nil {
 		return nil, err
 	}
 	if err := decodeStoredAPITokenAuthorization(scopesJSON, token); err != nil {
@@ -129,13 +130,14 @@ func scanAPIToken(scanner interface{ Scan(...any) error }) (*core.APIToken, erro
 		value := expiresAt.Int64
 		token.ExpiresAt = &value
 	}
+	token.Disabled = disabled != 0
 	return token, nil
 }
 
 // ListAPITokens returns non-secret token metadata for an account.
 func (db *DB) ListAPITokens(username string) ([]*core.APIToken, error) {
 	username = strings.ToLower(strings.TrimSpace(username))
-	rows, err := db.Query(`SELECT api.id, api.name, api.scopes_json, api.created_at, api.expires_at
+	rows, err := db.Query(`SELECT api.id, api.name, api.scopes_json, api.created_at, api.expires_at, api.disabled
 		FROM user_api_tokens api JOIN user_profiles profile ON profile.user_id = api.user_id
 		WHERE profile.username = ? ORDER BY api.created_at DESC, api.id`, username)
 	if err != nil {
@@ -154,6 +156,41 @@ func (db *DB) ListAPITokens(username string) ([]*core.APIToken, error) {
 		return nil, fmt.Errorf("iterate API tokens for %s: %w", username, err)
 	}
 	return tokens, nil
+}
+
+// SetAPITokenDisabled changes one owned token's authentication state without rotating its secret.
+func (db *DB) SetAPITokenDisabled(username, tokenID string, disabled bool) error {
+	username = strings.ToLower(strings.TrimSpace(username))
+	if uuid.Validate(tokenID) != nil {
+		return core.ErrAPITokenNotFound
+	}
+	var current int
+	err := db.QueryRow(`SELECT api.disabled FROM user_api_tokens api
+		JOIN user_profiles profile ON profile.user_id = api.user_id
+		WHERE api.id = ? AND profile.username = ?`, tokenID, username).Scan(&current)
+	if errors.Is(err, sql.ErrNoRows) {
+		return core.ErrAPITokenNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("inspect API token state: %w", err)
+	}
+	next := boolInt(disabled)
+	if current == next {
+		return nil
+	}
+	result, err := db.Exec(`UPDATE user_api_tokens SET disabled = ? WHERE id = ? AND user_id = (
+		SELECT user_id FROM user_profiles WHERE username = ?)`, next, tokenID, username)
+	if err != nil {
+		return fmt.Errorf("update API token state: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("count updated API tokens: %w", err)
+	}
+	if affected != 1 {
+		return core.ErrAPITokenNotFound
+	}
+	return nil
 }
 
 // CreateAPIToken stores one pre-hashed high-entropy credential.
@@ -249,7 +286,7 @@ func (db *DB) GetAPITokenByHash(secretHash, username string) (*core.APITokenCred
 		FROM user_api_tokens api
 		JOIN user_profiles profile ON profile.user_id = api.user_id
 		JOIN tokens account ON account.name = profile.username
-		WHERE api.secret_hash = ?`
+		WHERE api.secret_hash = ? AND api.disabled = 0`
 	arguments := []any{secretHash}
 	if username != "" {
 		query += ` AND profile.username = ?`

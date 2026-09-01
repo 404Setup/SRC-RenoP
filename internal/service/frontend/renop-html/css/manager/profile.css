@@ -598,9 +598,36 @@
     opacity: 0.68;
 }
 
+.profile-api-token-card.is-disabled {
+    border-style: dashed;
+    background: color-mix(in srgb, var(--text-muted) 7%, transparent);
+}
+
 .profile-api-token-card-head strong {
     color: var(--text-color);
     overflow-wrap: anywhere;
+}
+
+.profile-api-token-title,
+.profile-api-token-card-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.profile-api-token-card-actions {
+    justify-content: flex-end;
+    flex-shrink: 0;
+}
+
+.profile-api-token-state {
+    padding: 0.2rem 0.42rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-muted) 14%, transparent);
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-weight: 650;
 }
 
 .profile-api-token-badges {
@@ -854,6 +881,12 @@
 
     .profile-api-token-manager-toolbar .pill-btn,
     .profile-api-token-card-head .pill-btn {
+        width: 100%;
+    }
+
+    .profile-api-token-card-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         width: 100%;
     }
 

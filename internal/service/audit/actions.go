@@ -23,6 +23,8 @@ const (
 	ActionSessionRevoke          = "SESSION_REVOKE"
 	ActionTokenGenerate          = "TOKEN_GENERATE"
 	ActionTokenRevoke            = "TOKEN_REVOKE"
+	ActionTokenDisable           = "TOKEN_DISABLE"
+	ActionTokenEnable            = "TOKEN_ENABLE"
 	ActionUserPermissionUpdate   = "USER_PERMISSION_UPDATE"
 	ActionLogClear               = "LOG_CLEAR"
 	ActionGPGUpdate              = "GPG_UPDATE"
@@ -119,6 +121,8 @@ func KnownActions() []string {
 		ActionSessionRevoke,
 		ActionTokenGenerate,
 		ActionTokenRevoke,
+		ActionTokenDisable,
+		ActionTokenEnable,
 		ActionUserPermissionUpdate,
 		ActionLogClear,
 		ActionGPGUpdate,

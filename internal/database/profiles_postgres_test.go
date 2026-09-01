@@ -291,6 +291,18 @@ func TestPostgresAccountSecuritySerialization(t *testing.T) {
 	require.Equal(t, apiToken.ID, apiCredential.Token.ID)
 	require.Equal(t, []string{"releases"}, apiCredential.Token.Targets[core.APITokenScopeRepositoryPublish])
 	require.Equal(t, "security_pg", apiCredential.Account.Name)
+	require.NoError(t, db.SetAPITokenDisabled("security_pg", apiToken.ID, true))
+	apiTokens, err := db.ListAPITokens("security_pg")
+	require.NoError(t, err)
+	require.Len(t, apiTokens, 1)
+	require.True(t, apiTokens[0].Disabled)
+	apiCredential, err = db.GetAPITokenByHash(core.HashAPITokenSecret(apiSecret), "security_pg")
+	require.NoError(t, err)
+	require.Nil(t, apiCredential)
+	require.NoError(t, db.SetAPITokenDisabled("security_pg", apiToken.ID, false))
+	apiCredential, err = db.GetAPITokenByHash(core.HashAPITokenSecret(apiSecret), "security_pg")
+	require.NoError(t, err)
+	require.NotNil(t, apiCredential)
 	require.NoError(t, db.DeleteAPIToken("security_pg", apiToken.ID))
 }
 

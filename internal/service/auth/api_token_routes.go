@@ -33,11 +33,52 @@ type createAPITokenRequest struct {
 	ExpiresAt *int64              `json:"expires_at"`
 }
 
+type updateAPITokenStateRequest struct {
+	Disabled *bool `json:"disabled"`
+}
+
 func setupAPITokenRoutes(auth fiber.Router, state *core.AppState) {
 	auth.Get("/profile/api-tokens", func(c fiber.Ctx) error { return listProfileAPITokens(c, state) })
 	auth.Get("/profile/api-tokens/scopes", func(c fiber.Ctx) error { return listProfileAPITokenScopes(c, state) })
 	auth.Post("/profile/api-tokens", func(c fiber.Ctx) error { return createProfileAPIToken(c, state) })
+	auth.Put("/profile/api-tokens/:token_id/state", func(c fiber.Ctx) error {
+		return updateProfileAPITokenState(c, state)
+	})
 	auth.Delete("/profile/api-tokens/:token_id", func(c fiber.Ctx) error { return deleteProfileAPIToken(c, state) })
+}
+
+func updateProfileAPITokenState(c fiber.Ctx, state *core.AppState) error {
+	user, err := requireAccountSession(c)
+	if err != nil {
+		return accountSessionError(c, err)
+	}
+	var request updateAPITokenStateRequest
+	if err := utils.ReadJSONLimited(c, &request, 1024); err != nil || request.Disabled == nil {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid API token state")
+	}
+	tokenID := strings.TrimSpace(c.Params("token_id"))
+	if err := state.GetDB().SetAPITokenDisabled(user.Username, tokenID, *request.Disabled); errors.Is(err, core.ErrAPITokenNotFound) {
+		return c.SendStatus(fiber.StatusNotFound)
+	} else if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update API token state")
+	}
+	state.InvalidateAPITokenAuthCache(tokenID)
+	if !*request.Disabled {
+		state.InvalidateAccountAuthCache(true, user.Username)
+	}
+	username, operator, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
+	action := audit.ActionTokenDisable
+	details := "Disabled API token " + tokenID
+	if !*request.Disabled {
+		action = audit.ActionTokenEnable
+		details = "Enabled API token " + tokenID
+	}
+	audit.Log(state, &core.AuditLogEntry{
+		Username: username, Operator: operator, Action: action, Details: details,
+		AuthMethod: authMethod, SessionID: sessionID, IP: ip,
+	})
+	setPrivateResponseHeaders(c)
+	return c.JSON(fiber.Map{"disabled": *request.Disabled})
 }
 
 func validAPITokenName(value string) bool {

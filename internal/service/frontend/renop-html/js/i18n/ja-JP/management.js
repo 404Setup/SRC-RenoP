@@ -208,6 +208,8 @@ export default Object.freeze({
     "dashboard.restartFailed": "サービスの再起動に失敗しました: {error}",
     "sessions.methodGithub": "GitHub",
     "audit.action.TOKEN_REVOKE": "トークン失効",
+    "audit.action.TOKEN_DISABLE": "トークン無効化",
+    "audit.action.TOKEN_ENABLE": "トークン再有効化",
     "users.roleModeratorAllTitle": "すべてのリポジトリを審査",
     "users.roleModeratorAllDesc": "システム設定を変更せず、すべてのリポジトリの保留中パッケージとバージョンを審査します",
     "users.roleModerate": "審査",

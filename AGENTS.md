@@ -82,7 +82,8 @@
   `github_routes.go`, `github_client.go`, and `github_account.go`; access tokens are never persisted. Account recovery
   uses twelve 160-bit codes, Argon2id verifiers, four-code atomic consumption, and session revocation; password login
   may be disabled only while a GitHub identity or Passkey remains available. API tokens use one-time 256-bit secrets,
-  optional expiration, current-account-permission intersection, and immediate revocation. Capabilities separately
+  optional expiration, reversible owner-managed suspension, current-account-permission intersection, and immediate
+  cache invalidation on suspension or revocation. Capabilities separately
   gate repository reads/publication/deletion, package creation/metadata/lifecycle, team administration, and Maven-domain
   reading/creation/verification/deletion. Each target-aware scope can additionally carry bounded exact repository,
   package, team, or domain restrictions in the backward-compatible authorization JSON; legacy broad package/domain
@@ -300,8 +301,9 @@
   password recovery as a secondary link and groups
   Passkey and optional GitHub controls in one provider section below the `or` divider; visible copy uses Passkey while
   stable FIDO/WebAuthn routes and audit identifiers remain unchanged.
-  `js/api-tokens.js` owns the bounded token manager, scope selection, expiration, one-time secret display, shared
-  clipboard feedback, immediate revocation, and live language refresh without exposing stored credential material.
+  `js/api-tokens.js` owns the bounded token manager, scope selection, expiration, reversible suspension, one-time secret
+  display, shared clipboard feedback, immediate revocation, and live language refresh without exposing stored
+  credential material.
   Its repository/package/team/domain target editors and parameterized errors share the height-animation primitives;
   the creation dialog grows naturally until the viewport clamp takes over, then keeps the footer fixed and body
   scrollable.

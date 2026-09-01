@@ -129,7 +129,7 @@ func (state *AppState) InvalidateAccountAuthCache(clearFailures bool, usernames 
 	})
 }
 
-// InvalidateAPITokenAuthCache removes only authentication results produced by one revoked API token.
+// InvalidateAPITokenAuthCache removes only authentication results produced by one revoked or suspended API token.
 func (state *AppState) InvalidateAPITokenAuthCache(tokenID string) {
 	if state == nil || state.Inner == nil || tokenID == "" {
 		return

@@ -64,6 +64,7 @@ type StateDB interface {
 	ListAPITokens(username string) ([]*APIToken, error)
 	CreateAPIToken(username string, token *APIToken, secretHash string) error
 	DeleteAPIToken(username, tokenID string) error
+	SetAPITokenDisabled(username, tokenID string, disabled bool) error
 	GetAPITokenByHash(secretHash, username string) (*APITokenCredential, error)
 	CountAPITokens(username string) (int, error)
 	CountAPITokensByUsername() (map[string]int, error)

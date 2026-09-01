@@ -87,6 +87,25 @@ func TestAPITokenLifecycleAndLegacyMigration(t *testing.T) {
 	wrongOwner, err := db.GetAPITokenByHash(apiTokenDigest(secret), "bobby")
 	require.NoError(t, err)
 	assert.Nil(t, wrongOwner)
+	require.NoError(t, db.SetAPITokenDisabled("alice", created.ID, true))
+	require.NoError(t, db.SetAPITokenDisabled("alice", created.ID, true), "repeating the same state is idempotent")
+	require.ErrorIs(t, db.SetAPITokenDisabled("bobby", created.ID, true), core.ErrAPITokenNotFound)
+	tokens, err = db.ListAPITokens("alice")
+	require.NoError(t, err)
+	disabled := false
+	for _, token := range tokens {
+		if token.ID == created.ID {
+			disabled = token.Disabled
+		}
+	}
+	assert.True(t, disabled)
+	credential, err = db.GetAPITokenByHash(apiTokenDigest(secret), "alice")
+	require.NoError(t, err)
+	assert.Nil(t, credential)
+	require.NoError(t, db.SetAPITokenDisabled("alice", created.ID, false))
+	credential, err = db.GetAPITokenByHash(apiTokenDigest(secret), "alice")
+	require.NoError(t, err)
+	require.NotNil(t, credential)
 
 	count, err := db.CountAPITokens("alice")
 	require.NoError(t, err)

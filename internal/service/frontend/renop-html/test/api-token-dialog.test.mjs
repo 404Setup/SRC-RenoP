@@ -32,6 +32,20 @@ test('API token target editors and errors animate natural dialog height', () => 
     assert.match(styles, /\.profile-api-token-target-editor\s*\{[^}]*overflow: hidden;/s);
 });
 
+test('API token cards expose reversible suspension without replacing the credential', () => {
+    const source = readFileSync(join(frontendRoot, 'js/api-tokens.js'), 'utf8');
+    const styles = readFileSync(join(frontendRoot, 'css/manager/profile.css'), 'utf8');
+    const routes = readFileSync(join(repositoryRoot, 'internal/service/auth/api_token_routes.go'), 'utf8');
+    const database = readFileSync(join(repositoryRoot, 'internal/database/api_tokens.go'), 'utf8');
+
+    assert.match(source, /api-tokens\/\$\{encodeURIComponent\(token\.id\)\}\/state/);
+    assert.match(source, /JSON\.stringify\(\{disabled: nextDisabled\}\)/);
+    assert.match(styles, /\.profile-api-token-card\.is-disabled\s*\{/);
+    assert.match(routes, /SetAPITokenDisabled\(user\.Username, tokenID, \*request\.Disabled\)/);
+    assert.match(routes, /InvalidateAPITokenAuthCache\(tokenID\)/);
+    assert.match(database, /WHERE api\.secret_hash = \? AND api\.disabled = 0/);
+});
+
 test('server-approved API token scopes retain exact repository, package, team, and domain targets', () => {
     const backend = readFileSync(join(repositoryRoot, 'internal/service/auth/api_token.go'), 'utf8');
     const definitions = backend.match(/var apiTokenScopeDefinitions = \[\]apiTokenScopeDefinition\{([\s\S]*?)\n\}/)?.[1] || '';

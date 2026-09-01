@@ -215,6 +215,37 @@ func TestFineGrainedAPITokenRoutesAndAuthorizationBoundaries(t *testing.T) {
 	require.Len(t, listed.Tokens, 1)
 	assert.NotContains(t, string(mustJSONMarshal(t, listed)), created.Secret)
 
+	response = apiTokenJSONRequest(t, app, http.MethodPut,
+		"/api/auth/profile/api-tokens/"+created.Token.ID+"/state", sessionToken,
+		map[string]any{"disabled": true})
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	response = apiTokenJSONRequest(t, app, http.MethodGet, "/api/auth/profile/api-tokens", sessionToken, nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	listed.Tokens = nil
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&listed))
+	require.NoError(t, response.Body.Close())
+	require.Len(t, listed.Tokens, 1)
+	assert.True(t, listed.Tokens[0].Disabled)
+	request = httptest.NewRequest(http.MethodGet, "/files/artifact", nil)
+	request.SetBasicAuth("alice", created.Secret)
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusUnauthorized, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+
+	response = apiTokenJSONRequest(t, app, http.MethodPut,
+		"/api/auth/profile/api-tokens/"+created.Token.ID+"/state", sessionToken,
+		map[string]any{"disabled": false})
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	request = httptest.NewRequest(http.MethodGet, "/files/artifact", nil)
+	request.SetBasicAuth("alice", created.Secret)
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+
 	response = apiTokenJSONRequest(t, app, http.MethodDelete,
 		"/api/auth/profile/api-tokens/"+created.Token.ID, sessionToken, nil)
 	assert.Equal(t, http.StatusNoContent, response.StatusCode)

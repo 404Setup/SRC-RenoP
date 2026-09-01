@@ -80,6 +80,7 @@ type APIToken struct {
 	Targets   map[string][]string `json:"targets,omitempty"`
 	CreatedAt int64               `json:"created_at"`
 	ExpiresAt *int64              `json:"expires_at,omitempty"`
+	Disabled  bool                `json:"disabled"`
 }
 
 // APITokenCredential combines token metadata with its owning account during authentication.

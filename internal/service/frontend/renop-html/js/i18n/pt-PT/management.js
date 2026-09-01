@@ -208,6 +208,8 @@ export default Object.freeze({
     "dashboard.restartFailed": "Erro ao reiniciar o serviço: {error}",
     "sessions.methodGithub": "GitHub",
     "audit.action.TOKEN_REVOKE": "Revogação de token",
+    "audit.action.TOKEN_DISABLE": "Desativação de token",
+    "audit.action.TOKEN_ENABLE": "Reativação de token",
     "users.roleModeratorAllTitle": "Moderar todos os repositórios",
     "users.roleModeratorAllDesc": "Rever pacotes e versões pendentes em todos os repositórios sem alterar as definições do sistema",
     "users.roleModerate": "Moderar",

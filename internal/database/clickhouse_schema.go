@@ -204,7 +204,7 @@ func clickHouseSchemas() []clickHouseTableSchema {
 		}},
 		{name: "user_api_tokens", keyColumns: []string{"id"}, columns: []string{
 			"`id` String", "`user_id` String", "`name` String", "`secret_hash` String", "`scopes_json` String",
-			"`created_at` Int64", "`expires_at` Nullable(Int64)",
+			"`created_at` Int64", "`expires_at` Nullable(Int64)", "`disabled` Int64 DEFAULT 0",
 		}},
 		{name: "download_statistics", keyColumns: []string{"id"}, columns: []string{
 			"`id` String", "`user_id` String", "`username` String", "`repository` String", "`format` String",
