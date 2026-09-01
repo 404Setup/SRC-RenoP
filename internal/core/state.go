@@ -192,6 +192,7 @@ type StateDB interface {
 	RecordMavenMirrorPublication(artifact *MavenArtifact, version *MavenVersion) error
 	MavenArtifactExists(repository, groupID, artifactID string) (bool, error)
 	ListMavenArtifacts(repository, domain, query string, limit, offset int) ([]*MavenArtifact, int, error)
+	ListMavenDomainArtifacts(repositories []string, domain string, limit, offset int) ([]*MavenArtifact, int, error)
 	GetMavenArtifactDetails(repository, groupID, artifactID string) (*MavenArtifactDetails, error)
 	GetMavenArtifactTeamAccess(repository, groupID, artifactID, username string) (string, bool, int, error)
 	UpdateMavenArtifactDescription(repository, groupID, artifactID, description string) error

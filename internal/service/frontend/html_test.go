@@ -322,6 +322,8 @@ func TestMavenDomainsUseGlobalAccountCenter(t *testing.T) {
 	for _, required := range []string{
 		"export function openMavenDomainCenter", "export async function loadMavenDomainCenterPage",
 		"export function mavenDomainRouteFromPath", "view: 'managed'", "domainCenterPagination",
+		"export function publicMavenDomainRouteFromPath", "export async function loadPublicMavenDomainPage",
+		"/api/maven/domains/${encodeURIComponent(domainName)}/packages", "showRepository: true",
 		"/api/maven/repositories/${encodeURIComponent(repository)}/domains", "maven.inviteRequired",
 	} {
 		if !strings.Contains(mavenText, required) {
@@ -331,6 +333,20 @@ func TestMavenDomainsUseGlobalAccountCenter(t *testing.T) {
 	if !strings.Contains(string(indexSource), `id="tab-content-maven-domains"`) ||
 		!strings.Contains(string(indexSource), `id="maven-domain-home"`) {
 		t.Fatal("Maven domain settings are missing the routed page or home navigation")
+	}
+	profileSource, err := os.ReadFile(filepath.Join("renop-html", "js", "profile.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(profileSource), "return `/domain/domain/${name}`") {
+		t.Fatal("public profile Maven memberships do not use the standalone domain route")
+	}
+	profileCSS, err := os.ReadFile(filepath.Join("renop-html", "css", "manager", "profile.css"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if regexp.MustCompile(`(?s)\.profile-membership-list\s*\{[^}]*min-height`).Match(profileCSS) {
+		t.Fatal("loaded profile membership lists retain a forced minimum height")
 	}
 	if strings.Contains(mavenText, "maven-domain-center-dialog") {
 		t.Fatal("Maven domain settings still open in a dialog")
@@ -1140,6 +1156,7 @@ func TestRoutedPagesServeSPAIndex(t *testing.T) {
 	SetupFrontendRoutes(app, state)
 	for _, path := range []string{
 		"/user/alice", "/user/alice/edit", "/user/alice/maven", "/user/alice/cargo", "/user/alice/docker", "/user/alice/npm",
+		"/domain/domain/com.example",
 		"/account/reviews", "/account/teams", "/account/teams/core", "/account/maven-domains", "/account/maven-domains/com.example",
 	} {
 		response, err := app.Test(httptest.NewRequest(http.MethodGet, path, nil))

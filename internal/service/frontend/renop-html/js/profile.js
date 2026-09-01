@@ -674,9 +674,9 @@ function openProfilePackage(event) {
  * @returns {string} Encoded application path.
  */
 function profileMembershipTarget(membership) {
-    const repository = encodeURIComponent(String(membership.repository || ''));
     const name = String(membership.name || '').split('/').filter(Boolean).map(encodeURIComponent).join('/');
-    if (membership.format === 'maven') return `/${repository}/domains/${name}`;
+    if (membership.format === 'maven') return `/domain/domain/${name}`;
+    const repository = encodeURIComponent(String(membership.repository || ''));
     if (membership.format === 'cargo') return `/${repository}/packages/${name}`;
     if (membership.format === 'npm') return `/${repository}/packages/${name}`;
     return `/${repository}/${name}`;
@@ -751,10 +751,13 @@ async function renderProfileMemberships(profile, format, sequence) {
                     },
                     el('span', {class: 'profile-membership-main'},
                         el('strong', {}, String(membership.name || '')),
-                        el('span', {}, membership.description || membership.repository)
+                        el('span', {}, membership.description || (format === 'maven'
+                            ? t('maven.domainScopeGlobal') : membership.repository))
                     ),
                     el('span', {class: 'profile-membership-meta'},
-                        el('span', {class: 'profile-membership-repository'}, membership.repository || ''),
+                        membership.repository
+                            ? el('span', {class: 'profile-membership-repository'}, membership.repository)
+                            : null,
                         el('span', {class: 'profile-membership-role'},
                             profileMembershipRole(format, membership.permission_level)),
                         createIcon('chevron')

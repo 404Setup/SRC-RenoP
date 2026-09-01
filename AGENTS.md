@@ -98,8 +98,9 @@
   composed file stream, avoiding the former full-file read and second allocation for entries up to 64 MiB.
 - **`internal/service/maven/`**: Process-wide Maven domain registry with DNS/GitHub/GitLab ownership verification,
   global L0-L4 domain teams shared by every Maven repository, invitation workflows, catalog/version management, and
-  automatic migration of repository-scoped legacy domains. Upstream mirror discovery persists unverified global
-  domains so administrators can filter, inspect, and explicitly approve them. Maven and Cargo mirror downloads are
+  automatic migration of repository-scoped legacy domains. Verified domains expose a public bounded cross-repository
+  artifact catalog filtered to repositories readable by the current viewer. Upstream mirror discovery persists
+  unverified global domains so administrators can filter, inspect, and explicitly approve them. Maven and Cargo mirror downloads are
   cataloged through
   the format-aware proxy completion hook in `internal/service/storage/mirror.go` without buffering artifact bodies.
   Maven repositories support modern domain-catalog and classic file-tree layouts while enforcing the same verified
@@ -242,7 +243,9 @@
 - **`internal/testutil/`**: Shared test-only helpers, including retrying temporary-directory cleanup that runs before
   Go's parent `testing.TempDir` cleanup so transient Windows `ERROR_DIR_NOT_EMPTY` results do not fail SQLite tests.
 - **`web/` & `internal/service/frontend/`**: Embedded SPA with username-based `/user/<username>` profile, edit, and
-  package-membership routes plus shared nickname-first identity components. The five-minute profile cache retains at
+  package-membership routes plus shared nickname-first identity components. Global Maven memberships open the standalone
+  `/domain/domain/<domain>` public route, whose artifact links retain each readable repository's canonical package path.
+  The five-minute profile cache retains at
   most 256 accounts, prunes expired/oldest entries, and is generation-cleared on logout so private responses cannot be
   restored by an in-flight request. Directory prefetch keeps at most 128 URLs and removes completed or evicted link
   nodes. Maven repositories use a domain catalog by default and can switch to the classic file-tree presentation.
@@ -352,8 +355,9 @@
   `js/repository-formats.js` owns canonical per-engine icons, `js/repository-list.js` owns deterministic repository
   name ordering plus engine filtering and bounded pagination, while `js/components/icon.js` maps detailed file types
   into a bounded set of shared visual families. The top navigation and routed application content share one
-  border-box shell width and gutter, keeping the home brand aligned with page content at desktop widths. npm, Cargo,
-  and Docker team invitations
+  border-box shell width and gutter, keeping the home brand aligned with page content at desktop widths; the main
+  browser grid animates between sidebar and full-width states while retaining a single column on narrow screens. npm,
+  Cargo, and Docker team invitations
   share the keyboard-accessible, viewport-aware `js/browser/user-suggestions.js` controller and component stylesheet.
   All frontend clipboard writes and seconds/milliseconds/ISO timestamp normalization flow through `js/clipboard.js`
   and `js/time.js`. The server-rendered H5 shell is cached at bootstrap and regenerated atomically after frontend

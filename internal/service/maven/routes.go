@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -77,7 +78,9 @@ func wireStorageHooks() {
 // SetupRoutes registers Maven domain and catalog management APIs.
 func SetupRoutes(router fiber.Router, state *core.AppState) {
 	wireStorageHooks()
-	registerDomainRoutes(router.Group("/maven"), state)
+	global := router.Group("/maven")
+	registerDomainRoutes(global, state)
+	global.Get("/domains/:domain/packages", func(c fiber.Ctx) error { return listDomainArtifacts(c, state) })
 	base := router.Group("/maven/repositories/:repo_name")
 	base.Use(func(c fiber.Ctx) error {
 		if _, err := repository(c, state); err != nil {
@@ -410,7 +413,7 @@ func authorizedDomain(c fiber.Ctx, state *core.AppState, required int) (*config.
 	return user, details, nil
 }
 
-func getDomain(c fiber.Ctx, state *core.AppState) error {
+func visibleDomain(c fiber.Ctx, state *core.AppState) (*core.MavenDomainDetails, error) {
 	user := auth.GetUser(c)
 	username := ""
 	administrator := false
@@ -420,14 +423,14 @@ func getDomain(c fiber.Ctx, state *core.AppState) error {
 	}
 	domain, err := NormalizeDomain(c.Params("domain"))
 	if err != nil {
-		return apiError(c, fiber.ErrBadRequest)
+		return nil, fiber.ErrBadRequest
 	}
 	details, err := state.GetDB().GetMavenDomainDetails(domain, username)
 	if err != nil {
-		return apiError(c, err)
+		return nil, err
 	}
 	if !details.Domain.Verified && !administrator && !details.Domain.Member {
-		return apiError(c, core.ErrMavenDomainNotFound)
+		return nil, core.ErrMavenDomainNotFound
 	}
 	if administrator {
 		details.Administrator = true
@@ -436,8 +439,54 @@ func getDomain(c fiber.Ctx, state *core.AppState) error {
 	if !administrator && details.Domain.PermissionLevel < core.MavenPermissionManage {
 		details.Members = nil
 	}
+	return details, nil
+}
+
+func getDomain(c fiber.Ctx, state *core.AppState) error {
+	details, err := visibleDomain(c, state)
+	if err != nil {
+		return apiError(c, err)
+	}
 	c.Set(fiber.HeaderCacheControl, "no-store")
 	return c.JSON(details)
+}
+
+func listDomainArtifacts(c fiber.Ctx, state *core.AppState) error {
+	if _, err := visibleDomain(c, state); err != nil {
+		return apiError(c, err)
+	}
+	limit, err := strconv.Atoi(c.Query("limit", "30"))
+	if err != nil {
+		return apiError(c, fiber.ErrBadRequest)
+	}
+	offset, err := strconv.Atoi(c.Query("offset", "0"))
+	if err != nil {
+		return apiError(c, fiber.ErrBadRequest)
+	}
+	cfg := state.Inner.Config.Load()
+	if cfg == nil {
+		return apiError(c, fiber.ErrServiceUnavailable)
+	}
+	repositories := make([]string, 0, len(cfg.Maven.Repositories))
+	for name, repo := range cfg.Maven.Repositories {
+		if repo == nil || repo.NormalizedFormat() != config.RepositoryFormatMaven {
+			continue
+		}
+		allowed, readErr := CanReadRepository(state, auth.GetUser(c), repo, "", true)
+		if readErr != nil {
+			return apiError(c, readErr)
+		}
+		if allowed {
+			repositories = append(repositories, name)
+		}
+	}
+	slices.Sort(repositories)
+	artifacts, total, err := state.GetDB().ListMavenDomainArtifacts(repositories, c.Params("domain"), limit, offset)
+	if err != nil {
+		return apiError(c, err)
+	}
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return c.JSON(fiber.Map{"artifacts": artifacts, "total": total})
 }
 
 func verifyDomain(c fiber.Ctx, state *core.AppState) error {

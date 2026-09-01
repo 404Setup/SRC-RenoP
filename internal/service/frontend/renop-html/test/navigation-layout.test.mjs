@@ -26,3 +26,10 @@ test('navigation and routed content use the same desktop shell geometry', () => 
     assert.match(navigation, /\.top-nav\s*\{[\s\S]*?padding:\s*1\.75rem var\(--app-shell-gutter\) 0\.75rem/);
     assert.match(structure, /#app\s*\{[\s\S]*?max-width:\s*var\(--app-shell-max-width\)[\s\S]*?padding:\s*0 var\(--app-shell-gutter\) 2rem[\s\S]*?box-sizing:\s*border-box/);
 });
+
+test('the main file browser animates sidebar width changes without retaining a mobile column', () => {
+    assert.match(structure, /\.layout-two-col\s*\{[\s\S]*?transition:\s*grid-template-columns/);
+    assert.match(structure, /\.layout-two-col\.no-sidebar,[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\) minmax\(0, 0fr\)/);
+    assert.match(structure, /@media \(max-width: 1024px\)[\s\S]*?\.layout-two-col:has\(\.col-right\[hidden\]\)[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\)/);
+    assert.match(structure, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.layout-two-col\s*\{[\s\S]*?transition:\s*none/);
+});

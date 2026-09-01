@@ -894,16 +894,43 @@ func (db *DB) recordMavenPublication(artifact *core.MavenArtifact, version *core
 
 // ListMavenArtifacts returns a bounded catalog page and total count.
 func (db *DB) ListMavenArtifacts(repository, domain, query string, limit, offset int) ([]*core.MavenArtifact, int, error) {
+	return db.listMavenArtifacts([]string{repository}, domain, query, limit, offset)
+}
+
+// ListMavenDomainArtifacts returns one bounded domain catalog across the supplied repositories.
+func (db *DB) ListMavenDomainArtifacts(repositories []string, domain string, limit, offset int) ([]*core.MavenArtifact, int, error) {
+	if domain = sanitizeMavenDomain(domain); domain == "" {
+		return nil, 0, errors.New("maven domain is invalid")
+	}
+	return db.listMavenArtifacts(repositories, domain, "", limit, offset)
+}
+
+func (db *DB) listMavenArtifacts(repositories []string, domain, query string, limit, offset int) ([]*core.MavenArtifact, int, error) {
 	if db == nil || db.SQLDB == nil {
 		return nil, 0, core.ErrDatabaseUnavailable
 	}
-	repository, domain = sanitizeMavenRepository(repository), sanitizeMavenDomain(domain)
+	normalizedRepositories := make([]string, 0, len(repositories))
+	for _, repository := range repositories {
+		if repository = sanitizeMavenRepository(repository); repository != "" {
+			normalizedRepositories = append(normalizedRepositories, repository)
+		}
+	}
+	slices.Sort(normalizedRepositories)
+	normalizedRepositories = slices.Compact(normalizedRepositories)
+	if len(normalizedRepositories) == 0 {
+		return []*core.MavenArtifact{}, 0, nil
+	}
+	domain = sanitizeMavenDomain(domain)
 	query = SanitizeInputString(strings.ToLower(strings.TrimSpace(query)), 128)
 	if limit < 1 || limit > 100 || offset < 0 {
 		return nil, 0, errors.New("maven artifact page is invalid")
 	}
-	where := ` WHERE repository = ?`
-	args := []any{repository}
+	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(normalizedRepositories)), ",")
+	where := ` WHERE repository IN (` + placeholders + `)`
+	args := make([]any, len(normalizedRepositories))
+	for i, repository := range normalizedRepositories {
+		args[i] = repository
+	}
 	if domain != "" {
 		where += ` AND domain = ?`
 		args = append(args, domain)
@@ -922,7 +949,7 @@ func (db *DB) ListMavenArtifacts(repository, domain, query string, limit, offset
 		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id),
 		COALESCE((SELECT SUM(v.size) FROM maven_versions v WHERE v.repository = maven_artifacts.repository
 		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id), 0),
-		super_team_prefix, mirrored, created_at, updated_at FROM maven_artifacts`+where+` ORDER BY group_id, artifact_id LIMIT ? OFFSET ?`,
+		super_team_prefix, mirrored, created_at, updated_at FROM maven_artifacts`+where+` ORDER BY group_id, artifact_id, repository LIMIT ? OFFSET ?`,
 		append(args, limit, offset)...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list Maven artifacts: %w", err)

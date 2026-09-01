@@ -232,7 +232,6 @@ func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {
 	require.NoError(t, response.Body.Close())
 	require.Len(t, snapshotDomains.Domains, 1)
 	assert.Equal(t, 1, snapshotDomains.Domains[0].ArtifactCount)
-
 	response = mavenRequest(t, app, http.MethodGet, "/api/maven/domains/com.example", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var crossRepositoryDetails core.MavenDomainDetails
@@ -242,6 +241,10 @@ func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {
 	assert.Equal(t, 2, crossRepositoryDetails.Domain.ArtifactCount)
 	assert.Equal(t, 2, crossRepositoryDetails.Domain.RepositoryCount)
 	assert.Equal(t, 2, crossRepositoryDetails.Domain.MemberCount)
+	response = mavenRequest(t, app, http.MethodPut,
+		"/private/com/example/secret/1.0/secret-1.0.jar", "private artifact")
+	require.Equal(t, http.StatusCreated, response.StatusCode)
+	require.NoError(t, response.Body.Close())
 
 	currentUser = &config.User{Username: "guest", Roles: []string{"guest"}}
 	response = mavenRequest(t, app, http.MethodGet, "/api/maven/domains/com.example", "")
@@ -254,6 +257,25 @@ func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {
 	assert.Zero(t, publicDomainDetails.Domain.RepositoryCount)
 	assert.Equal(t, 2, publicDomainDetails.Domain.MemberCount)
 	assert.Empty(t, publicDomainDetails.Members)
+	response = mavenRequest(t, app, http.MethodGet,
+		"/api/maven/domains/com.example/packages?limit=1&offset=0", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var publicDomainCatalog struct {
+		Artifacts []*core.MavenArtifact `json:"artifacts"`
+		Total     int                   `json:"total"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&publicDomainCatalog))
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, 2, publicDomainCatalog.Total)
+	require.Len(t, publicDomainCatalog.Artifacts, 1)
+	assert.Equal(t, "releases", publicDomainCatalog.Artifacts[0].Repository)
+	response = mavenRequest(t, app, http.MethodGet,
+		"/api/maven/domains/com.example/packages?limit=1&offset=1", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&publicDomainCatalog))
+	require.NoError(t, response.Body.Close())
+	require.Len(t, publicDomainCatalog.Artifacts, 1)
+	assert.Equal(t, "snapshots", publicDomainCatalog.Artifacts[0].Repository)
 	response = mavenRequest(t, app, http.MethodGet, "/api/maven/repositories/releases/domains", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var publicRepositoryDomains struct {

@@ -47,6 +47,12 @@ let domainCenterOffset = 0;
 const domainCenterPageSize = 12;
 const domainCenterFilters = new Set();
 const domainCenterRouteRoot = '/account/maven-domains';
+const publicDomainRouteRoot = '/domain/domain';
+const publicDomainPageSize = 20;
+let publicDomainBody = null;
+let publicDomainSequence = 0;
+let publicDomainOffset = 0;
+let publicDomainName = '';
 let artifactVersionPage = 0;
 let artifactVersionKey = '';
 
@@ -67,6 +73,37 @@ export function mavenDomainRouteFromPath(pathname = window.location.pathname) {
     } catch {
         return null;
     }
+}
+
+/**
+ * Parse the public Maven-domain route.
+ * @param {string} [pathname=window.location.pathname]
+ * @returns {{domain: string}|null}
+ */
+export function publicMavenDomainRouteFromPath(pathname = window.location.pathname) {
+    const normalized = String(pathname || '/').replace(/\/+$/, '') || '/';
+    if (!normalized.startsWith(`${publicDomainRouteRoot}/`)) return null;
+    const segment = normalized.slice(publicDomainRouteRoot.length + 1);
+    if (!segment || segment.includes('/')) return null;
+    try {
+        const domain = decodeURIComponent(segment).trim().toLowerCase();
+        return domain ? {domain} : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Navigate through the application shell without importing the browser module back into itself.
+ * @param {string} path - Absolute application path.
+ * @returns {void}
+ */
+function navigateApplicationPath(path) {
+    if (!path || !path.startsWith('/')) return;
+    if (window.location.pathname !== path || window.location.search || window.location.hash) {
+        window.history.pushState(null, '', path);
+    }
+    window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
 /**
@@ -235,13 +272,16 @@ function domainCard(repository, domain, onSelect) {
  * Build one Maven artifact card.
  * @param {string} repository
  * @param {object} artifact
+ * @param {object} [options]
+ * @param {(path: string) => void} [options.navigate]
+ * @param {boolean} [options.showRepository=false]
  * @returns {HTMLElement}
  */
-function artifactCard(repository, artifact) {
+function artifactCard(repository, artifact, {navigate = activeNavigate, showRepository = false} = {}) {
     const coordinate = `${artifact.group_id}:${artifact.artifact_id}`;
     return el('button', {
             type: 'button', class: 'maven-artifact-card',
-            onclick: () => activeNavigate?.(`/${encodePathSegment(repository)}/packages/${encodePathSegment(artifact.group_id)}/${encodePathSegment(artifact.artifact_id)}`)
+            onclick: () => navigate?.(`/${encodePathSegment(repository)}/packages/${encodePathSegment(artifact.group_id)}/${encodePathSegment(artifact.artifact_id)}`)
         },
         el('span', {class: 'maven-artifact-icon'}, createIcon('filePackage')),
         el('span', {class: 'maven-artifact-main'},
@@ -249,6 +289,7 @@ function artifactCard(repository, artifact) {
             el('span', {}, artifact.description || t('maven.noDescription'))
         ),
         el('span', {class: 'maven-artifact-meta'},
+            showRepository ? el('code', {}, repository) : null,
             artifact.mirrored ? createRepositoryMirrorBadge(t('common.fromMirror')) : null,
             artifact.latest_version ? el('code', {}, artifact.latest_version) : null,
             el('span', {}, t('maven.versionCount', {count: Number(artifact.version_count) || 0})),
@@ -767,35 +808,54 @@ function domainFilterButton(filter, label, container) {
 }
 
 /**
- * Build bounded previous/next controls for the domain list.
+ * Build bounded previous/next controls for a server-backed Maven collection.
+ * @param {object} options
+ * @param {number} options.offset
+ * @param {number} options.total
+ * @param {number} options.pageSize
+ * @param {string} options.label
+ * @param {(state: {page: number, pages: number, total: number}) => string} options.summary
+ * @param {(offset: number) => void} options.onPage
+ * @returns {HTMLElement|null}
+ */
+function mavenServerPagination({offset, total, pageSize, label, summary, onPage}) {
+    if (total <= pageSize) return null;
+    const pageCount = Math.max(1, Math.ceil(total / pageSize));
+    const page = Math.floor(offset / pageSize) + 1;
+    const previous = el('button', {
+        type: 'button', class: 'maven-pagination-btn', disabled: offset === 0,
+        onclick: () => onPage(Math.max(0, offset - pageSize))
+    }, createIcon('chevronLeft'), el('span', {}, t('common.prev')));
+    const next = el('button', {
+        type: 'button', class: 'maven-pagination-btn',
+        disabled: offset + pageSize >= total,
+        onclick: () => onPage(offset + pageSize)
+    }, el('span', {}, t('common.next')), createIcon('chevronRight'));
+    return el('nav', {class: 'maven-domain-pagination', 'aria-label': label},
+        previous,
+        el('span', {class: 'maven-pagination-info'}, summary({page, pages: pageCount, total})),
+        next
+    );
+}
+
+/**
+ * Build the account-domain pager.
  * @param {HTMLElement} container
  * @param {number} total
  * @returns {HTMLElement|null}
  */
 function domainCenterPagination(container, total) {
-    if (total <= domainCenterPageSize) return null;
-    const pageCount = Math.max(1, Math.ceil(total / domainCenterPageSize));
-    const page = Math.floor(domainCenterOffset / domainCenterPageSize) + 1;
-    const previous = el('button', {
-        type: 'button', class: 'maven-pagination-btn', disabled: domainCenterOffset === 0,
-        onclick: () => {
-            domainCenterOffset = Math.max(0, domainCenterOffset - domainCenterPageSize);
+    return mavenServerPagination({
+        offset: domainCenterOffset,
+        total,
+        pageSize: domainCenterPageSize,
+        label: t('maven.paginationLabel'),
+        summary: state => t('maven.pagination', state),
+        onPage: offset => {
+            domainCenterOffset = offset;
             void renderDomainCenterList(container);
         }
-    }, createIcon('chevronLeft'), el('span', {}, t('common.prev')));
-    const next = el('button', {
-        type: 'button', class: 'maven-pagination-btn',
-        disabled: domainCenterOffset + domainCenterPageSize >= total,
-        onclick: () => {
-            domainCenterOffset += domainCenterPageSize;
-            void renderDomainCenterList(container);
-        }
-    }, el('span', {}, t('common.next')), createIcon('chevronRight'));
-    return el('nav', {class: 'maven-domain-pagination', 'aria-label': t('maven.paginationLabel')},
-        previous,
-        el('span', {class: 'maven-pagination-info'}, t('maven.pagination', {page, pages: pageCount, total})),
-        next
-    );
+    });
 }
 
 /**
@@ -1044,6 +1104,98 @@ export async function loadMavenDomainCenterPage() {
     if (!route) return;
     if (route.domain) await renderManagedDomain(container, route.domain);
     else await renderDomainCenterList(container);
+}
+
+/**
+ * Render a public Maven domain and its readable cross-repository artifact page.
+ * @param {HTMLElement} container
+ * @param {string} domainName
+ * @returns {Promise<void>}
+ */
+async function renderPublicMavenDomain(container, domainName) {
+    const sequence = ++publicDomainSequence;
+    if (!container.firstElementChild) container.replaceChildren(createSkeleton('list', 3));
+    setRepositoryViewBusy(container, true);
+    try {
+        const packagesURL = `/api/maven/domains/${encodeURIComponent(domainName)}/packages` +
+            `?limit=${publicDomainPageSize}&offset=${publicDomainOffset}`;
+        const [domainResponse, artifactsResponse] = await Promise.all([
+            apiRequest(`/api/maven/domains/${encodeURIComponent(domainName)}`),
+            apiRequest(packagesURL)
+        ]);
+        if (sequence !== publicDomainSequence || container !== publicDomainBody) return;
+        if (!domainResponse.ok) throw await localizedResponseError(domainResponse, 'maven.domainLoadFailed');
+        const details = await domainResponse.json();
+        const artifactData = await readArtifactPage(artifactsResponse);
+        const domain = details.domain;
+        const artifacts = artifactData.artifacts;
+        const hero = el('section', {class: 'maven-hero'},
+            el('button', {type: 'button', class: 'maven-back-btn', onclick: () => navigateApplicationPath('/')},
+                createIcon('chevronLeft'), el('span', {}, t('nav.backHome'))),
+            el('div', {class: 'maven-hero-heading'},
+                el('div', {}, el('span', {class: 'maven-kicker'}, t('maven.domainKicker')),
+                    el('h2', {}, createIcon('network'), el('span', {}, domain.domain)))),
+            el('div', {class: 'maven-stats'},
+                el('span', {class: `maven-status-badge is-${domain.verified ? 'verified' : 'pending'}`},
+                    domain.verified ? t('maven.verified') : t('maven.pending')),
+                el('span', {}, t('maven.artifactCount', {count: artifactData.total})))
+        );
+        const artifactList = el('div', {class: 'maven-artifact-list'});
+        if (artifacts.length === 0) {
+            artifactList.appendChild(el('div', {class: 'maven-empty'}, t('maven.noDomainArtifacts')));
+        } else {
+            artifacts.forEach(artifact => artifactList.appendChild(artifactCard(artifact.repository, artifact, {
+                navigate: navigateApplicationPath,
+                showRepository: true
+            })));
+        }
+        const pagination = mavenServerPagination({
+            offset: publicDomainOffset,
+            total: artifactData.total,
+            pageSize: publicDomainPageSize,
+            label: t('common.pagination', {
+                page: Math.floor(publicDomainOffset / publicDomainPageSize) + 1,
+                pages: Math.max(1, Math.ceil(artifactData.total / publicDomainPageSize)),
+                total: artifactData.total
+            }),
+            summary: state => t('common.pagination', state),
+            onPage: offset => {
+                publicDomainOffset = offset;
+                void renderPublicMavenDomain(container, domainName);
+            }
+        });
+        await replaceRepositoryView(container, [
+            hero,
+            domainInformationSection(details),
+            el('section', {class: 'maven-section'},
+                el('h3', {}, t('maven.artifactsTitle')), artifactList, pagination)
+        ], {duration: 280, enterDuration: 420});
+    } catch (error) {
+        if (sequence !== publicDomainSequence || container !== publicDomainBody) return;
+        await replaceRepositoryView(container, [
+            el('button', {type: 'button', class: 'maven-back-btn', onclick: () => navigateApplicationPath('/')},
+                createIcon('chevronLeft'), el('span', {}, t('nav.backHome'))),
+            el('div', {class: 'maven-error'}, caughtErrorMessage(error, 'maven.domainLoadFailed'))
+        ], {duration: 240, enterDuration: 380});
+    } finally {
+        if (sequence === publicDomainSequence) setRepositoryViewBusy(container, false);
+    }
+}
+
+/**
+ * Render the current public Maven-domain route.
+ * @returns {Promise<void>}
+ */
+export async function loadPublicMavenDomainPage() {
+    const route = publicMavenDomainRouteFromPath();
+    const container = document.getElementById('public-maven-domain-page-content');
+    if (!route || !container) return;
+    if (publicDomainName !== route.domain) {
+        publicDomainName = route.domain;
+        publicDomainOffset = 0;
+    }
+    publicDomainBody = container;
+    await renderPublicMavenDomain(container, route.domain);
 }
 
 /**

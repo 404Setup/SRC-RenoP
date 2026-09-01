@@ -126,13 +126,16 @@ header.main-header {
 
 .layout-two-col {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
     gap: 2rem;
+    transition: grid-template-columns 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+        gap 0.32s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .layout-two-col.no-sidebar,
 .layout-two-col:has(.col-right[hidden]) {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0fr);
+    gap: 0;
 }
 
 .col-left, .col-right {
@@ -193,8 +196,17 @@ footer {
  * details column inherit the file list's height, leaving a large blank area
  * before the footer. */
 @media (max-width: 1024px) {
-    .layout-two-col {
+    .layout-two-col,
+    .layout-two-col.no-sidebar,
+    .layout-two-col:has(.col-right[hidden]) {
         grid-template-columns: minmax(0, 1fr);
+        gap: 2rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .layout-two-col {
+        transition: none;
     }
 }
 

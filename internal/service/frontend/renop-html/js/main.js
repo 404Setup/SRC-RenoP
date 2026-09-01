@@ -23,7 +23,13 @@ import {initRepositories} from './repositories.js';
 import {fetchTokens} from './users.js';
 import {setupProfile} from './profile.js';
 import {loadDirectory} from './browser.js';
-import {loadMavenDomainCenterPage, mavenDomainRouteFromPath, openMavenDomainCenter} from './browser/maven.js';
+import {
+    loadMavenDomainCenterPage,
+    loadPublicMavenDomainPage,
+    mavenDomainRouteFromPath,
+    openMavenDomainCenter,
+    publicMavenDomainRouteFromPath
+} from './browser/maven.js';
 import {loadSuperTeamCenterPage, openSuperTeamCenter, superTeamRouteFromPath} from './super-teams.js';
 import {loadReviewCenterPage, openReviewCenter, reviewRouteFromPath} from './reviews.js';
 import {initMessageCenter, openMessageCenter} from './messages.js';
@@ -75,7 +81,8 @@ $(window).on('languageChanged', async () => {
 
     const currentTab = profileRouteFromPath(window.location.pathname)
         ? 'profile'
-        : (accountTabFromPath() || localStorage.getItem('selectedTab') || 'overview');
+        : (publicMavenDomainRouteFromPath() ? 'maven-domain'
+            : (accountTabFromPath() || localStorage.getItem('selectedTab') || 'overview'));
     await switchTab(currentTab);
 
     if (currentTab === 'dashboard') {
@@ -286,6 +293,9 @@ export async function switchTab(tabId) {
     if (tabId === 'overview' && profileRouteFromPath(window.location.pathname)) {
         tabId = 'profile';
     }
+    if (tabId === 'overview' && publicMavenDomainRouteFromPath(window.location.pathname)) {
+        tabId = 'maven-domain';
+    }
     if (tabId === 'overview' && accountTabFromPath()) {
         tabId = accountTabFromPath();
     }
@@ -317,7 +327,9 @@ export async function switchTab(tabId) {
         }
     });
 
-    if (tabId !== 'profile' && !isAccountTab(tabId)) localStorage.setItem('selectedTab', tabId);
+    if (tabId !== 'profile' && tabId !== 'maven-domain' && !isAccountTab(tabId)) {
+        localStorage.setItem('selectedTab', tabId);
+    }
 
     if (tabId === 'dashboard') {
         startDashboardRefresh();
@@ -343,6 +355,9 @@ export async function switchTab(tabId) {
     }
     if (tabId === 'maven-domains') {
         await loadMavenDomainCenterPage();
+    }
+    if (tabId === 'maven-domain') {
+        await loadPublicMavenDomainPage();
     }
     if (tabId === 'super-teams') {
         await loadSuperTeamCenterPage();
@@ -372,6 +387,10 @@ tabs.forEach(tab => {
 window.addEventListener('popstate', () => {
     if (profileRouteFromPath(window.location.pathname)) {
         void switchTab('profile');
+        return;
+    }
+    if (publicMavenDomainRouteFromPath(window.location.pathname)) {
+        void switchTab('maven-domain');
         return;
     }
     const accountTab = accountTabFromPath();

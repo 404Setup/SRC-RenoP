@@ -984,7 +984,7 @@
     height: 1.2rem;
 }
 
-.profile-membership-list {
+.profile-membership-list > .profile-route-loading {
     min-height: 8rem;
 }
 
