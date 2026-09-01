@@ -81,6 +81,11 @@ func TestPostgresUserProfileIntegration(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "PostgreSQL User", profile.Nickname)
 	stableUserID := profile.UserID
+	profile, err = db.UpdateUserProfileLinks("profile_pg", core.PublicLinks{
+		Website: "https://profile.pg.example", GitHub: "https://github.com/profile-pg",
+	}, changedAt+1)
+	require.NoError(t, err)
+	require.Equal(t, "https://github.com/profile-pg", profile.Links.GitHub)
 	require.NoError(t, db.StoreGitHubIdentity(stableUserID, 9001, "profile-pg", []core.GitHubPrincipal{
 		{Type: core.GitHubPrincipalUser, GitHubID: 9001, Login: "profile-pg"},
 		{Type: core.GitHubPrincipalOrganization, GitHubID: 9002, Login: "renop-pg"},
@@ -152,6 +157,7 @@ func TestPostgresUserProfileIntegration(t *testing.T) {
 	byID, err := db.GetUserProfileByID(stableUserID)
 	require.NoError(t, err)
 	require.Equal(t, "profile_pg_two", byID.Username)
+	require.Equal(t, "https://profile.pg.example", byID.Links.Website)
 	cargoMemberships, err := db.ListUserPackageMemberships(stableUserID, config.RepositoryFormatCargo)
 	require.NoError(t, err)
 	require.Len(t, cargoMemberships, 1)

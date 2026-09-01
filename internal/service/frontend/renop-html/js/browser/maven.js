@@ -22,6 +22,7 @@ import {SUPER_TEAM_ERROR_KEYS} from '../super-team-errors.js';
 import {openSuperTeamTransferDialog} from '../reviews.js';
 import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
 import {getRepositoryFormat} from '../repository-formats.js';
+import {createSuperTeamPublicLink} from '../profile-links.js';
 import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '../response-errors.js';
 import {exitProtectedRouteOnDenial} from '../protected-route.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
@@ -343,7 +344,7 @@ function domainInformationSection(details, {repository = '', repositoryArtifactC
         : (domain.member ? permissionLabel(domain.permission_level) : t('maven.readOnlyAccess'));
     const facts = [
         {label: t('maven.domainScope'), value: t('maven.domainScopeGlobal')},
-        {label: t('superTeam.domainOwner'), value: domain.super_team_prefix || null, code: true},
+        {label: t('superTeam.domainOwner'), value: createSuperTeamPublicLink(domain.super_team_prefix)},
         {label: t('maven.verificationMethod'), value: verificationMethodLabel(domain.verification_type)},
         {label: t('maven.verificationTarget'), value: domain.verification_host, code: true},
         {label: t('maven.domainStatus'), value: domain.verified ? t('maven.verified') : t('maven.pending')},
@@ -380,7 +381,7 @@ function artifactInformationSection(details, repository) {
         {label: t('maven.domainLabel'), value: artifact.domain, code: true},
         {label: t('maven.groupId'), value: artifact.group_id, code: true},
         {label: t('maven.artifactId'), value: artifact.artifact_id, code: true},
-        {label: t('superTeam.projectOwner'), value: artifact.super_team_prefix || null, code: true},
+        {label: t('superTeam.projectOwner'), value: createSuperTeamPublicLink(artifact.super_team_prefix)},
         {
             label: t('maven.latestVersion'),
             value: artifact.latest_version || t('common.unknown'),

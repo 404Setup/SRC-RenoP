@@ -35,6 +35,7 @@ import {refreshAPITokenSummary} from './api-tokens.js';
 import {createProfileSuperTeamLimits} from './super-teams.js';
 import {createPublicationQuotaPanel, openPublicationQuotaDialog} from './publication-quota.js';
 import {createProfileAvatarEditor} from './profile-avatar.js';
+import {createPublicProfileLinks, createPublicProfileLinksEditor} from './profile-links.js';
 import {
     caughtErrorMessage,
     LocalizedResponseError,
@@ -830,6 +831,7 @@ function renderPublicProfile(profile) {
                     el('h2', {class: 'profile-public-name', title: displayName}, displayName),
                     el('p', {class: 'profile-public-username'}, `@${profile.username}`),
                     el('p', {class: 'profile-public-description'}, t('profile.publicDescription')),
+                    createPublicProfileLinks(profile.links),
                     actions.childElementCount ? actions : null
                 ),
                 el('dl', {class: 'profile-public-meta'},
@@ -1103,6 +1105,59 @@ function buildProfileIdentityEditor(profile) {
 }
 
 /**
+ * Build the independent public-link editor after the identity card.
+ * @param {object} profile - Own profile payload.
+ * @param {HTMLElement|null} identityCard - Identity card insertion anchor.
+ * @returns {HTMLDetailsElement|null} Public-link section.
+ */
+function buildProfileLinksEditor(profile, identityCard) {
+    const settingsCard = document.querySelector('#profile-edit-view .profile-settings-card');
+    if (!settingsCard) return null;
+    settingsCard.querySelector('.profile-links-card')?.remove();
+    const editor = createPublicProfileLinksEditor(profile.links);
+    const saveButton = el('button', {type: 'button', class: 'pill-btn pill-btn--primary'}, t('common.save'));
+    saveButton.addEventListener('click', async () => {
+        const links = editor.value();
+        if (!links) {
+            showAlert(t('profile.linksInvalid'), 'error');
+            return;
+        }
+        saveButton.disabled = true;
+        try {
+            const response = await apiRequest('/api/auth/profile/links', {
+                method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(links)
+            });
+            if (!response.ok) throw await localizedResponseError(response, 'profile.linksUpdateFailed');
+            profile.links = await response.json();
+            syncUserProfile(profile);
+            showAlert(t('profile.linksUpdated'), 'success');
+        } catch (error) {
+            showAlert(caughtErrorMessage(error, 'profile.linksUpdateFailed'), 'error');
+        } finally {
+            saveButton.disabled = false;
+        }
+    });
+    const card = el('details', {class: 'profile-settings-section profile-links-card profile-collapsible-card'},
+        el('summary', {class: 'profile-section-card-header profile-collapsible-summary'},
+            el('div', {class: 'profile-section-icon'}, createIcon('network')),
+            el('div', {class: 'profile-section-meta'},
+                el('h3', {class: 'profile-section-title'}, t('profile.linksTitle')),
+                el('p', {class: 'profile-section-desc'}, t('profile.linksDescription'))
+            ),
+            createIcon('chevronDown', {class: 'profile-collapse-chevron'})
+        ),
+        el('div', {class: 'profile-collapsible-content', hidden: true},
+            el('div', {class: 'profile-section-body'},
+                el('div', {class: 'profile-links-form'}, editor.element,
+                    el('div', {class: 'profile-identity-actions'}, saveButton)))
+        )
+    );
+    if (identityCard) identityCard.after(card);
+    else settingsCard.prepend(card);
+    return card;
+}
+
+/**
  * Switch an own profile from its public view to editing controls.
  * @param {object} profile - Own profile payload.
  * @returns {void}
@@ -1114,7 +1169,8 @@ function showProfileEdit(profile) {
     publicView.hidden = true;
     editView.hidden = false;
     updateProfileEditHeading(profile);
-    buildProfileIdentityEditor(profile);
+    const identityCard = buildProfileIdentityEditor(profile);
+    buildProfileLinksEditor(profile, identityCard);
     editView.querySelectorAll('details.profile-collapsible-card').forEach(card => {
         resetProfileDisclosure(card);
         wireProfileDisclosure(card);

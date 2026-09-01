@@ -24,7 +24,10 @@ func TestSuperTeamLifecycleLimitsAndImmutableMemberships(t *testing.T) {
 	db := newMavenDB(t)
 	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "charlie", CreatedAt: time.Now().Format(time.RFC3339)}))
 	now := time.Now().UnixMilli()
-	team := &core.SuperTeam{Prefix: "platform-team", Name: "Platform Team", Description: "Shared packages", CreatedAt: now}
+	team := &core.SuperTeam{
+		Prefix: "platform-team", Name: "Platform Team", Description: "Shared packages", CreatedAt: now,
+		Links: core.PublicLinks{Website: "https://platform.example", GitHub: "https://github.com/platform"},
+	}
 	require.NoError(t, db.CreateSuperTeam(team, "alice", 1, 3))
 	assert.Equal(t, core.SuperTeamRoleOwner, team.RoleLevel)
 	assert.Equal(t, 1, team.MemberCount)
@@ -58,6 +61,8 @@ func TestSuperTeamLifecycleLimitsAndImmutableMemberships(t *testing.T) {
 
 	details, err := db.GetSuperTeamDetails("platform-team", "bob", false)
 	require.NoError(t, err)
+	require.Equal(t, "https://platform.example", details.Team.Links.Website)
+	require.Equal(t, "https://github.com/platform", details.Team.Links.GitHub)
 	assert.Equal(t, core.SuperTeamRoleWrite, details.Team.RoleLevel)
 	require.Len(t, details.Members, 2)
 	require.NoError(t, db.SetSuperTeamMemberLevel("platform-team", "admin", "bob", core.SuperTeamRoleManage, true))

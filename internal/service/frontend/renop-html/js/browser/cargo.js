@@ -30,6 +30,7 @@ import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '
 import {copyWithFeedback} from './copy-feedback.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
 import {resolveUserDisplayName} from '../user-profiles.js';
+import {createSuperTeamPublicLink} from '../profile-links.js';
 import {
     createRepositoryMirrorBadge,
     formatRepositoryTimestamp,
@@ -445,7 +446,7 @@ function buildCargoVersionFactsSection() {
         if (packageRecord?.super_team_prefix) {
             items.push(el('div', {class: 'cargo-fact-item'},
                 el('span', {class: 'cargo-fact-label'}, t('superTeam.projectOwner')),
-                el('code', {class: 'cargo-fact-value'}, packageRecord.super_team_prefix)
+                el('span', {class: 'cargo-fact-value'}, createSuperTeamPublicLink(packageRecord.super_team_prefix))
             ));
         }
 

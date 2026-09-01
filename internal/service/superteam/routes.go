@@ -37,14 +37,16 @@ const (
 )
 
 type createRequest struct {
-	Prefix      string `json:"prefix"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Prefix      string           `json:"prefix"`
+	Name        string           `json:"name"`
+	Description string           `json:"description"`
+	Links       core.PublicLinks `json:"links"`
 }
 
 type updateRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Name        string           `json:"name"`
+	Description string           `json:"description"`
+	Links       core.PublicLinks `json:"links"`
 }
 
 type membersRequest struct {
@@ -209,11 +211,12 @@ func createTeam(c fiber.Ctx, state *core.AppState) error {
 	name, nameValid := core.NormalizeSuperTeamText(request.Name, core.MaxSuperTeamNameRunes, false)
 	description, descriptionValid := core.NormalizeSuperTeamText(
 		request.Description, core.MaxSuperTeamDescription, true)
-	if !prefixValid || !nameValid || !descriptionValid {
+	links, linksValid := core.NormalizePublicLinks(request.Links)
+	if !prefixValid || !nameValid || !descriptionValid || !linksValid {
 		return apiError(c, fiber.ErrBadRequest)
 	}
 	team := &core.SuperTeam{
-		Prefix: prefix, Name: name, Description: description, CreatedAt: time.Now().UnixMilli(),
+		Prefix: prefix, Name: name, Description: description, Links: links, CreatedAt: time.Now().UnixMilli(),
 	}
 	if !auth.CurrentCredentialHasScopeTarget(c, core.APITokenScopeTeamManage, "global/"+prefix) {
 		c.Set("X-Renop-Required-Scope", core.APITokenScopeTeamManage)
@@ -259,11 +262,12 @@ func updateTeam(c fiber.Ctx, state *core.AppState) error {
 	name, nameValid := core.NormalizeSuperTeamText(request.Name, core.MaxSuperTeamNameRunes, false)
 	description, descriptionValid := core.NormalizeSuperTeamText(
 		request.Description, core.MaxSuperTeamDescription, true)
-	if !nameValid || !descriptionValid {
+	links, linksValid := core.NormalizePublicLinks(request.Links)
+	if !nameValid || !descriptionValid || !linksValid {
 		return apiError(c, fiber.ErrBadRequest)
 	}
 	prefix := c.Params("prefix")
-	if err := state.GetDB().UpdateSuperTeam(prefix, user.Username, name, description,
+	if err := state.GetDB().UpdateSuperTeam(prefix, user.Username, name, description, links,
 		user.IsManager(), time.Now().UnixMilli()); err != nil {
 		return apiError(c, err)
 	}

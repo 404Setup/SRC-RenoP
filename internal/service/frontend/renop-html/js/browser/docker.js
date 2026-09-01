@@ -31,6 +31,7 @@ import {openReviewCenter, openSuperTeamTransferDialog} from '../reviews.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {decodePathSegment, encodePathSegment, encodeRelativePath, formatBytes} from './utils.js';
 import {resolveUserDisplayName} from '../user-profiles.js';
+import {createSuperTeamPublicLink} from '../profile-links.js';
 import {
     createRepositoryBackButton,
     createRepositoryMirrorBadge,
@@ -747,7 +748,8 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         if (image.super_team_prefix) {
             metaRow.appendChild(el('div', {class: 'docker-meta-chip'},
                 createIcon('identity', {class: 'icon-svg'}),
-                el('span', {}, `${t('superTeam.projectOwner')}: ${image.super_team_prefix}`)));
+                el('span', {}, `${t('superTeam.projectOwner')}:`),
+                createSuperTeamPublicLink(image.super_team_prefix)));
         }
         if (image.mirrored === true) {
             metaRow.appendChild(createRepositoryMirrorBadge(t('common.fromMirror')));
@@ -1195,4 +1197,3 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             {duration: 260, enter: false});
     }
 }
-

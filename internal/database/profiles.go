@@ -49,6 +49,7 @@ func (db *DB) GetUserProfileByID(userID string) (*core.UserProfile, error) {
 func (db *DB) getUserProfile(whereClause, value string) (*core.UserProfile, error) {
 	profile := &core.UserProfile{}
 	err := db.QueryRow(`SELECT p.user_id, p.username, t.created_at, p.nickname,
+		p.website_url, p.github_url, p.discord_url, p.custom_link_name, p.custom_link_url,
 		p.rename_window_started_at, p.rename_count,
 		(SELECT COUNT(*) FROM maven_domain_members mm JOIN maven_domains md
 			ON md.repository = mm.repository AND md.domain = mm.domain
@@ -60,6 +61,8 @@ func (db *DB) getUserProfile(whereClause, value string) (*core.UserProfile, erro
 		FROM user_profiles p JOIN tokens t ON t.name = p.username
 		LEFT JOIN user_avatars a ON a.user_id = p.user_id WHERE `+whereClause, value).Scan(
 		&profile.UserID, &profile.Username, &profile.CreatedAt, &profile.Nickname,
+		&profile.Links.Website, &profile.Links.GitHub, &profile.Links.Discord,
+		&profile.Links.CustomName, &profile.Links.CustomURL,
 		&profile.UsernameChangeWindowAt, &profile.UsernameChangeCount,
 		&profile.MavenDomainCount, &profile.CargoPackageCount, &profile.DockerImageCount, &profile.NPMPackageCount,
 		&profile.AvatarHash,
@@ -170,6 +173,29 @@ func (db *DB) ListUserPackageMemberships(userID, format string) ([]*core.UserPac
 		return nil, fmt.Errorf("iterate %s memberships for user %s: %w", format, userID, err)
 	}
 	return memberships, nil
+}
+
+// UpdateUserProfileLinks replaces the bounded public links for one account.
+func (db *DB) UpdateUserProfileLinks(username string, links core.PublicLinks, updatedAt int64) (*core.UserProfile, error) {
+	if db == nil || db.SQLDB == nil {
+		return nil, core.ErrDatabaseUnavailable
+	}
+	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
+	var valid bool
+	if links, valid = core.NormalizePublicLinks(links); username == "" || !valid || updatedAt <= 0 {
+		return nil, errors.New("user profile links are invalid")
+	}
+	if _, err := db.userIDForExistingAccount(username); err != nil {
+		return nil, core.ErrUserProfileNotFound
+	}
+	_, err := db.Exec(`UPDATE user_profiles SET website_url = ?, github_url = ?, discord_url = ?,
+		custom_link_name = ?, custom_link_url = ?, updated_at = ? WHERE username = ?`,
+		links.Website, links.GitHub, links.Discord, links.CustomName, links.CustomURL, updatedAt, username)
+	if err != nil {
+		return nil, fmt.Errorf("update public links for %s: %w", username, err)
+	}
+	db.invalidateUserProfileCaches(username)
+	return db.GetUserProfile(username)
 }
 
 // GetUserProfiles loads a bounded account batch for nickname-first list rendering.

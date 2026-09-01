@@ -48,14 +48,15 @@ var (
 
 // SuperTeam is a global, engine-independent package publishing team.
 type SuperTeam struct {
-	Prefix      string `json:"prefix"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	CreatedBy   string `json:"created_by"`
-	RoleLevel   int    `json:"role_level"`
-	MemberCount int    `json:"member_count"`
-	CreatedAt   int64  `json:"created_at"`
-	UpdatedAt   int64  `json:"updated_at"`
+	Prefix      string      `json:"prefix"`
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	Links       PublicLinks `json:"links"`
+	CreatedBy   string      `json:"created_by"`
+	RoleLevel   int         `json:"role_level"`
+	MemberCount int         `json:"member_count"`
+	CreatedAt   int64       `json:"created_at"`
+	UpdatedAt   int64       `json:"updated_at"`
 }
 
 // SuperTeamMember is one immutable-user membership in a global team.

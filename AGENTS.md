@@ -59,7 +59,9 @@
   through bounded batch queries rather than per-image metadata or authorization lookups.
   Engine-independent global teams reserve an immutable prefix, store T1-T4 memberships and invitations exclusively by
   immutable user ID, preserve creator display after account deletion, and enforce global or per-account creation and
-  membership limits on SQLite, PostgreSQL, MySQL, and native ClickHouse. Cargo crates, Docker images, npm packages,
+  membership limits on SQLite, PostgreSQL, MySQL, and native ClickHouse. User and global-team profiles persist the same
+  bounded website, GitHub, Discord, and single named custom-link model; only credential-free HTTP(S) URLs are accepted,
+  and branded links are restricted to their official domains. Cargo crates, Docker images, npm packages,
   Maven artifacts, and Maven publishing domains use one optional indexed `super_team_prefix`; effective authorization
   takes the higher of an explicit package permission and the live T1-T4 mapping without copying team members. Durable
   `review_tasks` preserve immutable request identities, bounded filters, source/target bindings, and a pending-state
@@ -336,7 +338,8 @@
   `Vary: Accept-Encoding`, and fall back to the identity file without enabling runtime response compression.
   The routed `/account/teams` center owns global-team pagination, immutable-prefix creation, responsive T1-T4 member
   controls, shared username suggestions, invitation actions, and embedded profile usage limits; `/team/<prefix>`
-  reuses its detail layout as a read-only public page without exposing quota controls. System settings load
+  reuses its detail layout as a read-only public page without exposing quota controls. `js/profile-links.js` owns shared
+  profile-link editing, safe external rendering, and routed global-team links on bound package pages. System settings load
   global team defaults through a separate JSON domain without expanding the protobuf settings schema; all 12 frontend
   locales include global-team UI, message, error, and audit text. The shared selector exposes T2+ teams for Docker/npm
   creation and T3+ teams for Maven-domain creation; namespace validation, live role checks, ordered approval stages,

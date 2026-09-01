@@ -50,8 +50,9 @@ test('mobile public profiles keep identity copy above the edit action', () => {
         profile.indexOf("class: 'profile-public-meta'"));
     assert.ok(heading.indexOf("class: 'profile-public-username'") < heading.lastIndexOf('actions'));
     assert.ok(heading.indexOf("class: 'profile-public-description'") < heading.lastIndexOf('actions'));
+    assert.ok(heading.indexOf('createPublicProfileLinks(profile.links)') < heading.lastIndexOf('actions'));
     assert.match(styles, /\.profile-public-heading\s*\{[^}]*display: grid;[^}]*grid-template-columns:/s);
-    assert.match(styles, /@media \(max-width: 640px\)[\s\S]*?\.profile-public-actions\s*\{[^}]*grid-row: 4;/);
+    assert.match(styles, /@media \(max-width: 640px\)[\s\S]*?\.profile-public-actions\s*\{[^}]*grid-row: auto;/);
 });
 
 test('password controls live inside the account security card', () => {

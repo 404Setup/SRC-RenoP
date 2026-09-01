@@ -79,6 +79,8 @@ func clickHouseSchemas() []clickHouseTableSchema {
 		}},
 		{name: "user_profiles", keyColumns: []string{"user_id"}, columns: []string{
 			"`user_id` String", "`username` String", "`nickname` String DEFAULT ''",
+			"`website_url` String DEFAULT ''", "`github_url` String DEFAULT ''", "`discord_url` String DEFAULT ''",
+			"`custom_link_name` String DEFAULT ''", "`custom_link_url` String DEFAULT ''",
 			"`rename_window_started_at` Int64 DEFAULT 0", "`rename_count` Int64 DEFAULT 0", "`updated_at` Int64 DEFAULT 0",
 		}},
 		{name: "user_avatars", keyColumns: []string{"user_id"}, columns: []string{
@@ -210,7 +212,9 @@ func clickHouseSchemas() []clickHouseTableSchema {
 			"`download_bytes` Int64 DEFAULT 0", "`updated_at` Int64",
 		}},
 		{name: "super_teams", keyColumns: []string{"prefix"}, columns: []string{
-			"`prefix` String", "`name` String", "`description` String", "`created_by` String", "`created_by_name` String",
+			"`prefix` String", "`name` String", "`description` String", "`website_url` String DEFAULT ''",
+			"`github_url` String DEFAULT ''", "`discord_url` String DEFAULT ''", "`custom_link_name` String DEFAULT ''",
+			"`custom_link_url` String DEFAULT ''", "`created_by` String", "`created_by_name` String",
 			"`created_at` Int64", "`updated_at` Int64",
 		}},
 		{name: "super_team_members", keyColumns: []string{"team_prefix", "user_id"}, columns: []string{

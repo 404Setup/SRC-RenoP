@@ -97,11 +97,13 @@ func TestSuperTeamRoutesLifecycleInvitationAndVisibility(t *testing.T) {
 
 	response = superTeamRequest(t, app, http.MethodPost, "/api/super-teams", "alice", map[string]any{
 		"prefix": "platform", "name": "Platform", "description": "Shared packages",
+		"links": map[string]any{"website": "https://platform.example", "github": "https://github.com/platform"},
 	})
 	require.Equal(t, http.StatusCreated, response.StatusCode)
 	var created core.SuperTeam
 	decodeSuperTeamResponse(t, response, &created)
 	assert.Equal(t, "platform", created.Prefix)
+	assert.Equal(t, "https://platform.example", created.Links.Website)
 	assert.Equal(t, core.SuperTeamRoleOwner, created.RoleLevel)
 	response = superTeamRequest(t, app, http.MethodGet, "/api/super-teams/platform", "", nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
@@ -109,6 +111,7 @@ func TestSuperTeamRoutesLifecycleInvitationAndVisibility(t *testing.T) {
 	decodeSuperTeamResponse(t, response, &publicDetails)
 	assert.Zero(t, publicDetails.Team.RoleLevel)
 	assert.False(t, publicDetails.Administrator)
+	assert.Equal(t, "https://github.com/platform", publicDetails.Team.Links.GitHub)
 	require.Len(t, publicDetails.Members, 1)
 	assert.Equal(t, "alice", publicDetails.Members[0].Username)
 	response = superTeamRequest(t, app, http.MethodGet,

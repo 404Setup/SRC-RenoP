@@ -34,17 +34,18 @@ var (
 
 // UserProfile contains public account identity and durable username-change state.
 type UserProfile struct {
-	UserID                 string `json:"user_id"`
-	Username               string `json:"username"`
-	Nickname               string `json:"nickname"`
-	CreatedAt              string `json:"created_at"`
-	MavenDomainCount       int    `json:"maven_domain_count"`
-	CargoPackageCount      int    `json:"cargo_package_count"`
-	DockerImageCount       int    `json:"docker_image_count"`
-	NPMPackageCount        int    `json:"npm_package_count"`
-	AvatarHash             string `json:"-"`
-	UsernameChangeCount    int    `json:"-"`
-	UsernameChangeWindowAt int64  `json:"-"`
+	UserID                 string      `json:"user_id"`
+	Username               string      `json:"username"`
+	Nickname               string      `json:"nickname"`
+	CreatedAt              string      `json:"created_at"`
+	MavenDomainCount       int         `json:"maven_domain_count"`
+	CargoPackageCount      int         `json:"cargo_package_count"`
+	DockerImageCount       int         `json:"docker_image_count"`
+	NPMPackageCount        int         `json:"npm_package_count"`
+	Links                  PublicLinks `json:"links"`
+	AvatarHash             string      `json:"-"`
+	UsernameChangeCount    int         `json:"-"`
+	UsernameChangeWindowAt int64       `json:"-"`
 }
 
 // UserAvatar is one sanitized server-cached profile image.

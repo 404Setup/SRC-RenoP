@@ -49,9 +49,14 @@ func normalizeSuperTeam(team *core.SuperTeam) error {
 	if !valid {
 		return errors.New("global team description is invalid")
 	}
+	links, valid := core.NormalizePublicLinks(team.Links)
+	if !valid {
+		return errors.New("global team links are invalid")
+	}
 	team.Prefix = prefix
 	team.Name = name
 	team.Description = description
+	team.Links = links
 	return nil
 }
 
@@ -221,8 +226,10 @@ func (db *DB) CreateSuperTeam(team *core.SuperTeam, owner string, globalCreateLi
 		return core.ErrSuperTeamJoinLimit
 	}
 	if _, err := tx.Exec(`INSERT INTO super_teams
-		(prefix, name, description, created_by, created_by_name, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		team.Prefix, team.Name, team.Description, ownerID, strings.ToLower(strings.TrimSpace(owner)),
+		(prefix, name, description, website_url, github_url, discord_url, custom_link_name, custom_link_url,
+		created_by, created_by_name, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		team.Prefix, team.Name, team.Description, team.Links.Website, team.Links.GitHub, team.Links.Discord,
+		team.Links.CustomName, team.Links.CustomURL, ownerID, strings.ToLower(strings.TrimSpace(owner)),
 		team.CreatedAt, team.CreatedAt); err != nil {
 		return fmt.Errorf("create global team: %w", err)
 	}
@@ -244,9 +251,23 @@ func (db *DB) CreateSuperTeam(team *core.SuperTeam, owner string, globalCreateLi
 const superTeamSelectColumns = `t.prefix, t.name, t.description, COALESCE(creator.username, t.created_by_name),
 	COALESCE(member.role_level, 0), COALESCE(member_counts.member_count, 0), t.created_at, t.updated_at`
 
+const superTeamDetailsSelectColumns = `t.prefix, t.name, t.description, t.website_url, t.github_url, t.discord_url,
+	t.custom_link_name, t.custom_link_url, COALESCE(creator.username, t.created_by_name),
+	COALESCE(member.role_level, 0), COALESCE(member_counts.member_count, 0), t.created_at, t.updated_at`
+
 func scanSuperTeam(scanner row) (*core.SuperTeam, error) {
 	team := &core.SuperTeam{}
 	if err := scanner.Scan(&team.Prefix, &team.Name, &team.Description, &team.CreatedBy,
+		&team.RoleLevel, &team.MemberCount, &team.CreatedAt, &team.UpdatedAt); err != nil {
+		return nil, err
+	}
+	return team, nil
+}
+
+func scanSuperTeamDetails(scanner row) (*core.SuperTeam, error) {
+	team := &core.SuperTeam{}
+	if err := scanner.Scan(&team.Prefix, &team.Name, &team.Description, &team.Links.Website,
+		&team.Links.GitHub, &team.Links.Discord, &team.Links.CustomName, &team.Links.CustomURL, &team.CreatedBy,
 		&team.RoleLevel, &team.MemberCount, &team.CreatedAt, &team.UpdatedAt); err != nil {
 		return nil, err
 	}
@@ -286,10 +307,9 @@ func (db *DB) ListSuperTeams(username string, administrator bool, limit, offset 
 	defer rows.Close()
 	teams := make([]*core.SuperTeam, 0, min(limit, total))
 	for rows.Next() {
-		team := &core.SuperTeam{}
-		if err := rows.Scan(&team.Prefix, &team.Name, &team.Description, &team.CreatedBy,
-			&team.RoleLevel, &team.MemberCount, &team.CreatedAt, &team.UpdatedAt); err != nil {
-			return nil, 0, fmt.Errorf("scan global team: %w", err)
+		team, scanErr := scanSuperTeam(rows)
+		if scanErr != nil {
+			return nil, 0, fmt.Errorf("scan global team: %w", scanErr)
 		}
 		teams = append(teams, team)
 	}
@@ -394,7 +414,7 @@ func (db *DB) getSuperTeamDetails(prefix, username string, administrator, public
 	} else if !public {
 		return nil, core.ErrUserProfileNotFound
 	}
-	team, err := scanSuperTeam(db.QueryRow(`SELECT `+superTeamSelectColumns+`
+	team, err := scanSuperTeamDetails(db.QueryRow(`SELECT `+superTeamDetailsSelectColumns+`
 		FROM super_teams t
 		LEFT JOIN user_profiles creator ON creator.user_id = t.created_by
 		LEFT JOIN super_team_members member ON member.team_prefix = t.prefix AND member.user_id = ?
@@ -460,14 +480,17 @@ func (db *DB) ListSuperTeamReviewerNames(prefix string) ([]string, error) {
 }
 
 // UpdateSuperTeam changes mutable display metadata while preserving the namespace prefix.
-func (db *DB) UpdateSuperTeam(prefix, actor, name, description string, administrator bool, updatedAt int64) error {
+func (db *DB) UpdateSuperTeam(prefix, actor, name, description string, links core.PublicLinks,
+	administrator bool, updatedAt int64,
+) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	prefix, valid := sanitizeSuperTeamPrefix(prefix)
 	name, nameValid := core.NormalizeSuperTeamText(name, core.MaxSuperTeamNameRunes, false)
 	description, descriptionValid := core.NormalizeSuperTeamText(description, core.MaxSuperTeamDescription, true)
-	if !valid || !nameValid || !descriptionValid || updatedAt <= 0 {
+	links, linksValid := core.NormalizePublicLinks(links)
+	if !valid || !nameValid || !descriptionValid || !linksValid || updatedAt <= 0 {
 		return errors.New("global team update is invalid")
 	}
 	actorID, err := db.userIDForExistingAccount(actor)
@@ -491,8 +514,10 @@ func (db *DB) UpdateSuperTeam(prefix, actor, name, description string, administr
 			return fmt.Errorf("inspect global team owner: %w", err)
 		}
 	}
-	result, err := tx.Exec(`UPDATE super_teams SET name = ?, description = ?, updated_at = ? WHERE prefix = ?`,
-		name, description, updatedAt, prefix)
+	result, err := tx.Exec(`UPDATE super_teams SET name = ?, description = ?, website_url = ?, github_url = ?,
+		discord_url = ?, custom_link_name = ?, custom_link_url = ?, updated_at = ? WHERE prefix = ?`,
+		name, description, links.Website, links.GitHub, links.Discord, links.CustomName, links.CustomURL,
+		updatedAt, prefix)
 	if err != nil {
 		return fmt.Errorf("update global team: %w", err)
 	}

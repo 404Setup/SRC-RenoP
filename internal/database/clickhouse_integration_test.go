@@ -230,6 +230,19 @@ func TestClickHouseNativeSecurityIdentityAndGPGMatrix(t *testing.T) {
 
 	profile, err := db.GetUserProfile("alice")
 	require.NoError(t, err)
+	profile, err = db.UpdateUserProfileLinks("alice", core.PublicLinks{
+		Website: "https://alice.example", GitHub: "https://github.com/alice",
+	}, time.Now().UnixMilli())
+	require.NoError(t, err)
+	require.Equal(t, "https://alice.example", profile.Links.Website)
+	team := &core.SuperTeam{
+		Prefix: "clickhouse-team", Name: "ClickHouse Team", CreatedAt: time.Now().UnixMilli(),
+		Links: core.PublicLinks{Discord: "https://discord.gg/clickhouse"},
+	}
+	require.NoError(t, db.CreateSuperTeam(team, "alice", 2, 2))
+	teamDetails, err := db.GetPublicSuperTeamDetails(team.Prefix, "alice", false)
+	require.NoError(t, err)
+	require.Equal(t, "https://discord.gg/clickhouse", teamDetails.Team.Links.Discord)
 	require.NoError(t, db.StoreGitHubIdentity(profile.UserID, 101, "alice-gh", []core.GitHubPrincipal{
 		{Type: core.GitHubPrincipalUser, GitHubID: 101, Login: "alice-gh"},
 		{Type: core.GitHubPrincipalOrganization, GitHubID: 202, Login: "example-org"},

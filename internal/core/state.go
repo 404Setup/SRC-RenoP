@@ -80,6 +80,7 @@ type StateDB interface {
 	PutUserAvatar(username string, avatar *UserAvatar) error
 	DeleteUserAvatar(username string) error
 	ListUserPackageMemberships(userID, format string) ([]*UserPackageMembership, error)
+	UpdateUserProfileLinks(username string, links PublicLinks, updatedAt int64) (*UserProfile, error)
 	UpdateUserProfile(oldUsername, newUsername, nickname string, token *AccessToken, changedAt int64, changes AccountTokenChanges) (*UserProfile, error)
 	GetSession(sessionToken string) (*Session, error)
 	SaveSession(session *Session, sessionToken string) error
@@ -161,7 +162,7 @@ type StateDB interface {
 	GetSuperTeamDetails(prefix, username string, administrator bool) (*SuperTeamDetails, error)
 	GetPublicSuperTeamDetails(prefix, username string, administrator bool) (*SuperTeamDetails, error)
 	ListSuperTeamReviewerNames(prefix string) ([]string, error)
-	UpdateSuperTeam(prefix, actor, name, description string, administrator bool, updatedAt int64) error
+	UpdateSuperTeam(prefix, actor, name, description string, links PublicLinks, administrator bool, updatedAt int64) error
 	DeleteSuperTeam(prefix, actor string, administrator bool, actedAt int64) error
 	CreateSuperTeamInvitations(invitations []*SuperTeamInvitation, messages []*UserMessage) error
 	ForceAddSuperTeamMembers(prefix, actor string, usernames []string, level, globalCreateLimit, globalJoinLimit int, actedAt int64) error

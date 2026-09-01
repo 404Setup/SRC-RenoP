@@ -100,6 +100,12 @@ func TestUserProfileRenameIsDurableAndPreservesReferences(t *testing.T) {
 	require.Equal(t, 0, profile.UsernameChangeCount)
 	stableUserID := profile.UserID
 	require.NotEmpty(t, stableUserID)
+	profile, err = db.UpdateUserProfileLinks("alice", core.PublicLinks{
+		Website: "https://alice.example", GitHub: "https://github.com/alice",
+		Discord: "https://discord.gg/alice", CustomName: "Docs", CustomURL: "https://docs.alice.example",
+	}, changedAt+1)
+	require.NoError(t, err)
+	require.Equal(t, "https://github.com/alice", profile.Links.GitHub)
 
 	session := &core.Session{
 		PublicID: "public-session", Username: "alice", IP: "127.0.0.1",
@@ -141,6 +147,8 @@ func TestUserProfileRenameIsDurableAndPreservesReferences(t *testing.T) {
 	require.Equal(t, 1, profile.UsernameChangeCount)
 	richProfile, err := db.GetUserProfileByID(stableUserID)
 	require.NoError(t, err)
+	require.Equal(t, "https://alice.example", richProfile.Links.Website)
+	require.Equal(t, "Docs", richProfile.Links.CustomName)
 	require.Equal(t, 1, richProfile.CargoPackageCount)
 	require.Equal(t, 1, richProfile.DockerImageCount)
 	require.Equal(t, 1, richProfile.NPMPackageCount)

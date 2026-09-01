@@ -29,6 +29,7 @@ import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
 import {npmResponseError} from '../npm-errors.js';
 import {openReviewCenter, openSuperTeamTransferDialog} from '../reviews.js';
 import {getRepositoryFormat} from '../repository-formats.js';
+import {createSuperTeamPublicLink} from '../profile-links.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {
     createRepositoryBackButton,
@@ -855,7 +856,7 @@ function renderPackage() {
         {label: t('npm.packageName'), value: pkg.name, code: true, wide: true},
         {label: t('npm.repository'), value: pkg.repository, code: true},
         {label: t('npm.scope'), value: scope || t('npm.unscoped'), code: Boolean(scope)},
-        {label: t('superTeam.projectOwner'), value: pkg.super_team_prefix || null, code: true},
+        {label: t('superTeam.projectOwner'), value: createSuperTeamPublicLink(pkg.super_team_prefix)},
         {label: t('npm.latestVersion'), value: pkg.latest_version || t('npm.noVersions'), code: true},
         {label: t('npm.versionCount'), value: pkg.version_count},
         {label: t('npm.distTagCount'), value: Object.keys(packageDetails.dist_tags || {}).length},

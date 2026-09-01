@@ -152,6 +152,11 @@ func (d *PostgresDialect) InitTables(db *sql.DB) error {
 		user_id VARCHAR(36) PRIMARY KEY,
 		username VARCHAR(255) NOT NULL UNIQUE,
 		nickname VARCHAR(144) NOT NULL DEFAULT '',
+		website_url VARCHAR(2048) NOT NULL DEFAULT '',
+		github_url VARCHAR(2048) NOT NULL DEFAULT '',
+		discord_url VARCHAR(2048) NOT NULL DEFAULT '',
+		custom_link_name VARCHAR(160) NOT NULL DEFAULT '',
+		custom_link_url VARCHAR(2048) NOT NULL DEFAULT '',
 		rename_window_started_at BIGINT NOT NULL DEFAULT 0,
 		rename_count INT NOT NULL DEFAULT 0,
 		updated_at BIGINT NOT NULL DEFAULT 0

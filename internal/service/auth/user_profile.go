@@ -43,11 +43,44 @@ type userProfileResponse struct {
 	CargoPackageCount            int                          `json:"cargo_package_count"`
 	DockerImageCount             int                          `json:"docker_image_count"`
 	NPMPackageCount              int                          `json:"npm_package_count"`
+	Links                        core.PublicLinks             `json:"links"`
 	AvatarURL                    string                       `json:"avatar_url,omitempty"`
 	AvatarMaxSizeBytes           uint32                       `json:"avatar_max_size_bytes,omitempty"`
 	GitHub                       *githubProfileStatus         `json:"github,omitempty"`
 	SuperTeamLimits              *core.SuperTeamLimitStatus   `json:"super_team_limits,omitempty"`
 	PublicationQuota             *core.PublicationQuotaStatus `json:"publication_quota,omitempty"`
+}
+
+func updateOwnUserProfileLinks(c fiber.Ctx, state *core.AppState) error {
+	user := GetUser(c)
+	if user == nil || user.Username == "" || strings.EqualFold(user.Username, "guest") {
+		return c.Status(fiber.StatusUnauthorized).SendString("Unauthorized")
+	}
+	if len(c.Body()) > 10<<10 {
+		return c.Status(fiber.StatusRequestEntityTooLarge).SendString("Profile links are too large")
+	}
+	var links core.PublicLinks
+	var valid bool
+	if err := c.Bind().Body(&links); err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid profile links")
+	}
+	if links, valid = core.NormalizePublicLinks(links); !valid {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid profile links")
+	}
+	updated, err := state.GetDB().UpdateUserProfileLinks(user.Username, links, time.Now().UnixMilli())
+	if errors.Is(err, core.ErrUserProfileNotFound) {
+		return c.Status(fiber.StatusNotFound).SendString("User profile not found")
+	}
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update profile links")
+	}
+	_, operator, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
+	audit.Log(state, &core.AuditLogEntry{
+		Username: updated.Username, Operator: operator, Action: audit.ActionProfileUpdate,
+		Details: "Public profile links updated", AuthMethod: authMethod, SessionID: sessionID, IP: ip,
+	})
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return c.JSON(updated.Links)
 }
 
 func publicUserProfile(c fiber.Ctx, state *core.AppState) error {
@@ -384,6 +417,7 @@ func profileResponse(profile *core.UserProfile, own bool, now int64) userProfile
 		CreatedAt: profile.CreatedAt, OwnProfile: own,
 		MavenDomainCount: profile.MavenDomainCount, CargoPackageCount: profile.CargoPackageCount,
 		DockerImageCount: profile.DockerImageCount, NPMPackageCount: profile.NPMPackageCount,
+		Links: profile.Links,
 	}
 	if profile.AvatarHash != "" {
 		response.AvatarURL = "/api/users/" + profile.Username + "/avatar?v=" + profile.AvatarHash

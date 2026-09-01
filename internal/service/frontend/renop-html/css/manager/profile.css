@@ -126,6 +126,67 @@
     line-height: 1.55;
 }
 
+.public-profile-links {
+    display: flex;
+    grid-column: 1 / -1;
+    grid-row: 4;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.65rem;
+}
+
+.public-profile-link,
+.super-team-public-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: fit-content;
+    color: var(--link-hover-color);
+    text-decoration: none;
+}
+
+.public-profile-link {
+    padding: 0.32rem 0.55rem;
+    border: 1px solid color-mix(in srgb, var(--link-hover-color) 24%, var(--border-color));
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--link-hover-color) 5%, transparent);
+    font-size: 0.76rem;
+    font-weight: 620;
+}
+
+.public-profile-link:hover,
+.public-profile-link:focus-visible,
+.super-team-public-link:hover,
+.super-team-public-link:focus-visible {
+    color: var(--link-hover-color);
+    text-decoration: underline;
+    outline: none;
+}
+
+.profile-links-form,
+.profile-links-editor {
+    display: grid;
+    gap: 0.8rem;
+    min-width: 0;
+}
+
+.profile-links-editor {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.profile-links-editor label {
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+    color: var(--text-color);
+    font-size: 0.82rem;
+    font-weight: 650;
+}
+
+.profile-links-editor label:last-child {
+    grid-column: 1 / -1;
+}
+
 .profile-public-actions {
     grid-column: 2;
     grid-row: 1;
@@ -254,6 +315,7 @@
 }
 
 .profile-identity-card,
+.profile-links-card,
 .profile-account-security-section,
 #profile-github-section {
     grid-column: 1 / -1;
@@ -1153,6 +1215,7 @@
     }
 
     .profile-identity-card,
+    .profile-links-card,
     .profile-account-security-section,
     #profile-github-section {
         grid-column: auto;
@@ -1178,13 +1241,18 @@
 
     .profile-public-actions {
         grid-column: 1;
-        grid-row: 4;
+        grid-row: auto;
         margin-top: 1rem;
     }
 
     .profile-public-meta,
-    .profile-identity-form {
+    .profile-identity-form,
+    .profile-links-editor {
         grid-template-columns: 1fr;
+    }
+
+    .profile-links-editor label:last-child {
+        grid-column: auto;
     }
 
     .profile-settings-section:not(.profile-collapsible-card) {

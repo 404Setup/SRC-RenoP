@@ -20,6 +20,7 @@ import {RepositoryUserSuggestions} from './browser/user-suggestions.js';
 import {SUPER_TEAM_ERROR_KEYS} from './super-team-errors.js';
 import {exitProtectedRouteOnDenial} from './protected-route.js';
 import {createPublicationQuotaPanel, openPublicationQuotaDialog} from './publication-quota.js';
+import {createPublicProfileLinks, createPublicProfileLinksEditor} from './profile-links.js';
 
 const routeRoot = '/account/teams';
 const publicRouteRoot = '/team';
@@ -278,11 +279,13 @@ function openCreateDialog() {
         maxlength: '512',
         rows: '3'
     });
+    const linksEditor = createPublicProfileLinksEditor(null);
     const form = el('div', {class: 'super-team-dialog-form'},
         el('label', {}, el('span', {}, t('superTeam.prefix')), prefix,
             el('small', {}, t('superTeam.prefixHint'))),
         el('label', {}, el('span', {}, t('superTeam.name')), name),
-        el('label', {}, el('span', {}, t('superTeam.description')), description)
+        el('label', {}, el('span', {}, t('superTeam.description')), description),
+        linksEditor.element
     );
     RenopDialog.show({
         id: 'super-team-create-dialog', maxWidth: '560px', icon: 'identity',
@@ -296,9 +299,11 @@ function openCreateDialog() {
                         prefix: prefix.value.trim().toLowerCase(),
                         name: name.value.trim(),
                         description: description.value.trim(),
+                        links: linksEditor.value(),
                     };
-                    if (!payload.prefix || !payload.name) {
-                        (payload.prefix ? name : prefix).focus();
+                    if (!payload.prefix || !payload.name || !payload.links) {
+                        if (!payload.prefix) prefix.focus();
+                        else if (!payload.name) name.focus();
                         showAlert(t('superTeam.invalidRequest'), 'error');
                         return;
                     }
@@ -380,21 +385,28 @@ function openEditDialog(details) {
         rows: '3',
         value: details.team.description || ''
     });
+    const linksEditor = createPublicProfileLinksEditor(details.team.links);
     RenopDialog.show({
         id: 'super-team-edit-dialog', maxWidth: '560px', icon: 'edit', title: t('superTeam.edit'),
         body: el('div', {class: 'super-team-dialog-form'},
             el('label', {}, el('span', {}, t('superTeam.name')), name),
-            el('label', {}, el('span', {}, t('superTeam.description')), description)
+            el('label', {}, el('span', {}, t('superTeam.description')), description),
+            linksEditor.element
         ),
         footer: [
             {text: t('common.cancel'), className: 'action-btn', onClick: (event, dialog) => dialog.close(false)},
             {
                 text: t('common.save'), className: 'action-btn primary-btn',
                 onClick: async (event, dialog) => runButtonAction(event.currentTarget, async () => {
+                    const links = linksEditor.value();
+                    if (!links) {
+                        showAlert(t('profile.linksInvalid'), 'error');
+                        return;
+                    }
                     try {
                         const response = await apiRequest(`/api/super-teams/${encodeURIComponent(details.team.prefix)}`, {
                             method: 'PUT', headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({name: name.value.trim(), description: description.value.trim()})
+                            body: JSON.stringify({name: name.value.trim(), description: description.value.trim(), links})
                         });
                         if (!response.ok) throw await localizedResponseError(response, 'superTeam.updateFailed', {}, SUPER_TEAM_ERROR_KEYS);
                         dialog.close(true);
@@ -641,7 +653,8 @@ function teamDetailContent(details, prefix, {publicView = false, quotaStatus = n
             el('span', {class: 'super-team-detail-icon'}, createIcon('identity')),
             el('div', {}, el('span', {class: 'super-team-prefix'}, team.prefix || prefix),
                 el('h2', {}, team.name || prefix),
-                el('p', {}, team.description || t('superTeam.noDescription'))),
+                el('p', {}, team.description || t('superTeam.noDescription')),
+                createPublicProfileLinks(team.links)),
             actions.childElementCount ? actions : null
         ),
         el('div', {class: 'super-team-facts'},
