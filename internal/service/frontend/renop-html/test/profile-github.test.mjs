@@ -43,6 +43,17 @@ test('profile edit cards use a compact responsive grid', () => {
     assert.match(styles, /#profile-edit-view \.profile-hero\s*\{[^}]*margin-bottom: 1\.25rem;/s);
 });
 
+test('mobile public profiles keep identity copy above the edit action', () => {
+    const profile = readFileSync(join(frontendRoot, 'js/profile.js'), 'utf8');
+    const styles = readFileSync(join(frontendRoot, 'css/manager/profile.css'), 'utf8');
+    const heading = profile.slice(profile.indexOf("class: 'profile-public-heading'"),
+        profile.indexOf("class: 'profile-public-meta'"));
+    assert.ok(heading.indexOf("class: 'profile-public-username'") < heading.lastIndexOf('actions'));
+    assert.ok(heading.indexOf("class: 'profile-public-description'") < heading.lastIndexOf('actions'));
+    assert.match(styles, /\.profile-public-heading\s*\{[^}]*display: grid;[^}]*grid-template-columns:/s);
+    assert.match(styles, /@media \(max-width: 640px\)[\s\S]*?\.profile-public-actions\s*\{[^}]*grid-row: 4;/);
+});
+
 test('password controls live inside the account security card', () => {
     const page = readFileSync(join(frontendRoot, 'index.html'), 'utf8');
     const security = readFileSync(join(frontendRoot, 'js/account-security.js'), 'utf8');

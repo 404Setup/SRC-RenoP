@@ -831,12 +831,10 @@ function renderPublicProfile(profile) {
             el('div', {class: 'profile-public-content'},
                 el('div', {class: 'profile-public-avatar', 'aria-hidden': 'true'}, profileAvatarLetter(profile)),
                 el('div', {class: 'profile-public-heading'},
-                    el('div', {class: 'profile-public-name-row'},
-                        el('h2', {class: 'profile-public-name', title: displayName}, displayName),
-                        actions
-                    ),
+                    el('h2', {class: 'profile-public-name', title: displayName}, displayName),
                     el('p', {class: 'profile-public-username'}, `@${profile.username}`),
-                    el('p', {class: 'profile-public-description'}, t('profile.publicDescription'))
+                    el('p', {class: 'profile-public-description'}, t('profile.publicDescription')),
+                    actions.childElementCount ? actions : null
                 ),
                 el('dl', {class: 'profile-public-meta'},
                     el('div', {class: 'profile-public-meta-item'},
