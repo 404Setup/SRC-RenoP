@@ -338,7 +338,7 @@ func TestMavenDomainsUseGlobalAccountCenter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(profileSource), "return `/domain/domain/${name}`") {
+	if !strings.Contains(string(profileSource), "return `/domain/${name}`") {
 		t.Fatal("public profile Maven memberships do not use the standalone domain route")
 	}
 	profileCSS, err := os.ReadFile(filepath.Join("renop-html", "css", "manager", "profile.css"))
@@ -1156,7 +1156,7 @@ func TestRoutedPagesServeSPAIndex(t *testing.T) {
 	SetupFrontendRoutes(app, state)
 	for _, path := range []string{
 		"/user/alice", "/user/alice/edit", "/user/alice/maven", "/user/alice/cargo", "/user/alice/docker", "/user/alice/npm",
-		"/domain/domain/com.example",
+		"/domain/com.example",
 		"/account/reviews", "/account/teams", "/account/teams/core", "/account/maven-domains", "/account/maven-domains/com.example",
 	} {
 		response, err := app.Test(httptest.NewRequest(http.MethodGet, path, nil))

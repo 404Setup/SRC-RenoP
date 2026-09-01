@@ -244,7 +244,7 @@
   Go's parent `testing.TempDir` cleanup so transient Windows `ERROR_DIR_NOT_EMPTY` results do not fail SQLite tests.
 - **`web/` & `internal/service/frontend/`**: Embedded SPA with username-based `/user/<username>` profile, edit, and
   package-membership routes plus shared nickname-first identity components. Global Maven memberships open the standalone
-  `/domain/domain/<domain>` public route, whose artifact links retain each readable repository's canonical package path.
+  `/domain/<domain>` public route, whose artifact links retain each readable repository's canonical package path.
   The five-minute profile cache retains at
   most 256 accounts, prunes expired/oldest entries, and is generation-cleared on logout so private responses cannot be
   restored by an in-flight request. Directory prefetch keeps at most 128 URLs and removes completed or evicted link

@@ -675,7 +675,7 @@ function openProfilePackage(event) {
  */
 function profileMembershipTarget(membership) {
     const name = String(membership.name || '').split('/').filter(Boolean).map(encodeURIComponent).join('/');
-    if (membership.format === 'maven') return `/domain/domain/${name}`;
+    if (membership.format === 'maven') return `/domain/${name}`;
     const repository = encodeURIComponent(String(membership.repository || ''));
     if (membership.format === 'cargo') return `/${repository}/packages/${name}`;
     if (membership.format === 'npm') return `/${repository}/packages/${name}`;
