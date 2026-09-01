@@ -546,6 +546,9 @@ func (db *DB) DeleteToken(name string) error {
 	if _, err := tx.Exec(`DELETE FROM user_messages WHERE recipient = ?`, lowerName); err != nil {
 		return fmt.Errorf("failed to delete messages for token (%s): %w", lowerName, err)
 	}
+	if _, err := tx.Exec(`DELETE FROM user_avatars WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("failed to delete avatar for token (%s): %w", lowerName, err)
+	}
 	if _, err := tx.Exec(`DELETE FROM user_profiles WHERE username = ?`, lowerName); err != nil {
 		return fmt.Errorf("failed to delete user profile for token (%s): %w", lowerName, err)
 	}

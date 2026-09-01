@@ -34,6 +34,7 @@ import {refreshAccountSecurity} from './account-security.js';
 import {refreshAPITokenSummary} from './api-tokens.js';
 import {createProfileSuperTeamLimits} from './super-teams.js';
 import {createPublicationQuotaPanel, openPublicationQuotaDialog} from './publication-quota.js';
+import {createProfileAvatarEditor} from './profile-avatar.js';
 import {
     caughtErrorMessage,
     LocalizedResponseError,
@@ -44,9 +45,9 @@ import {collapseElement, expandElement, morphElementHeight} from '@renop/ui/heig
 import {
     getUserProfile,
     navigateToUserProfile,
-    profileAvatarText,
     profileDisplayName,
     profileRouteFromPath,
+    renderProfileAvatar,
     syncUserProfile,
 } from './user-profiles.js';
 
@@ -605,7 +606,7 @@ function updateProfileEditHeading(profile) {
     const avatar = document.getElementById('profile-avatar-initials');
     const heading = document.getElementById('profile-display-name');
     const subtitle = editView.querySelector('.profile-hero-sub');
-    if (avatar) avatar.textContent = profileAvatarText(profile, 1);
+    renderProfileAvatar(avatar, profile, {length: 1});
     if (heading) heading.textContent = profileDisplayName(profile);
     if (subtitle) subtitle.textContent = `@${profile.username} · ${t('profile.editSubtitle')}`;
 }
@@ -699,6 +700,8 @@ async function renderProfileMemberships(profile, format, sequence) {
     const publicView = document.getElementById('profile-public-view');
     if (!publicView) return;
     const displayName = profileDisplayName(profile);
+    const publicAvatar = el('div', {class: 'profile-public-avatar', 'aria-hidden': 'true'});
+    renderProfileAvatar(publicAvatar, profile, {length: 1});
     const titleKey = `profile.${format}MembershipsTitle`;
     const list = el('div', {class: 'profile-membership-list'},
         el('div', {class: 'profile-route-loading'},
@@ -805,6 +808,8 @@ function renderPublicProfile(profile) {
     editView.hidden = true;
     publicView.hidden = false;
     const displayName = profileDisplayName(profile);
+    const publicAvatar = el('div', {class: 'profile-public-avatar', 'aria-hidden': 'true'});
+    renderProfileAvatar(publicAvatar, profile, {length: 1});
     const actions = el('div', {class: 'profile-public-actions'});
     if (profile.own_profile) {
         actions.appendChild(el('button', {
@@ -820,7 +825,7 @@ function renderPublicProfile(profile) {
         el('article', {class: 'profile-public-card'},
             el('div', {class: 'profile-public-banner', 'aria-hidden': 'true'}),
             el('div', {class: 'profile-public-content'},
-                el('div', {class: 'profile-public-avatar', 'aria-hidden': 'true'}, profileAvatarText(profile, 1)),
+                publicAvatar,
                 el('div', {class: 'profile-public-heading'},
                     el('h2', {class: 'profile-public-name', title: displayName}, displayName),
                     el('p', {class: 'profile-public-username'}, `@${profile.username}`),
@@ -998,6 +1003,10 @@ function buildProfileIdentityEditor(profile) {
         type: 'submit', class: 'pill-btn pill-btn--primary'
     }, t('users.saveBtn'));
     const form = el('form', {class: 'profile-identity-form', action: 'javascript:void(0);'},
+        createProfileAvatarEditor(profile, {onUpdated: updated => {
+            profile = updated;
+            updateProfileEditHeading(profile);
+        }}),
         el('div', {class: 'profile-field'},
             el('div', {class: 'profile-field-label-row'},
                 el('label', {for: 'profile-nickname'}, t('profile.nicknameLabel')),
@@ -1174,7 +1183,7 @@ function wireProfileEditActions(profile) {
         usernameHiddenEl.value = username;
     }
     if (avatarEl) {
-        avatarEl.textContent = profileAvatarText(profile, 1);
+        renderProfileAvatar(avatarEl, profile, {length: 1});
     }
     if (displayNameEl) {
         displayNameEl.textContent = profileDisplayName(profile);

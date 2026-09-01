@@ -999,6 +999,20 @@ function renderServerSettings(container, data) {
     });
     perfFields.appendChild(createFieldRow(t('settings.maxActiveReq'), t('settings.maxActiveReqHint'), maxReqInput));
 
+    const avatarLimitMiB = Math.round((Number(data.avatar_max_size_bytes) || 1048576) / 65536) / 16;
+    const avatarLimitInput = buildInput('number', avatarLimitMiB, '1', e => {
+        const n = Number(e.target.value);
+        if (!Number.isFinite(n) || n < 0.0625 || n > 16) return;
+        currentConfig.avatar_max_size_bytes = Math.round(n * 1048576);
+        enableSave();
+    });
+    avatarLimitInput.min = '0.0625';
+    avatarLimitInput.max = '16';
+    avatarLimitInput.step = '0.0625';
+    perfFields.appendChild(createFieldRow(
+        t('settings.avatarMaxSize'), t('settings.avatarMaxSizeHint'), avatarLimitInput
+    ));
+
     const debugSection = createSection(
         createIcon('performance'),
         t('settings.debugTitle'),

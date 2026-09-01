@@ -119,6 +119,8 @@ export default Object.freeze({
     "settings.fileCacheSizeHint": "메모리 내 파일 캐시 제한 — 재시작 필요",
     "settings.maxActiveReq": "최대 활성 요청 수",
     "settings.maxActiveReqHint": "동시에 처리되는 최대 요청 수",
+    "settings.avatarMaxSize": "프로필 사진 제한 (MiB)",
+    "settings.avatarMaxSizeHint": "업로드하거나 동기화할 프로필 사진의 최대 크기(0.0625~16 MiB)",
     "settings.debugTitle": "진단 디버그",
     "settings.debugSubtitle": "메모리 및 런타임 문제를 조사하기 위한 개발자 도구",
     "settings.debugMode": "디버그 모드 사용",

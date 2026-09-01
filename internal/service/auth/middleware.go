@@ -307,6 +307,7 @@ func isSessionOnlyAPIPath(path string) bool {
 		"/api/auth/profile/sessions",
 		"/api/auth/profile/fido",
 		"/api/auth/profile/github",
+		"/api/auth/profile/avatar",
 		"/api/auth/profile/gpg",
 		"/api/auth/profile/api-tokens",
 		"/api/auth/github/start",

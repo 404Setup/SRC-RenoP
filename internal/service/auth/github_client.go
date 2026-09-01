@@ -41,12 +41,14 @@ type githubOAuthProvider struct {
 	AuthorizeURL string
 	TokenURL     string
 	APIURL       string
+	AvatarURL    string
 }
 
 var defaultGitHubOAuthProvider = githubOAuthProvider{
 	AuthorizeURL: "https://github.com/login/oauth/authorize",
 	TokenURL:     "https://github.com/login/oauth/access_token",
 	APIURL:       "https://api.github.com",
+	AvatarURL:    "https://avatars.githubusercontent.com/u",
 }
 
 type githubTokenResponse struct {

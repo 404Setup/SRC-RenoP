@@ -30,6 +30,19 @@ func TestDefaultSuperTeamConfigAndDeepCopy(t *testing.T) {
 	}
 }
 
+func TestDefaultAvatarLimitAndDeepCopy(t *testing.T) {
+	t.Parallel()
+	cfg := DefaultConfig()
+	if cfg.Server.AvatarMaxSizeBytes != DefaultAvatarMaxSizeBytes {
+		t.Fatalf("unexpected avatar size default: %d", cfg.Server.AvatarMaxSizeBytes)
+	}
+	copy := cfg.DeepCopy()
+	copy.Server.AvatarMaxSizeBytes = 2 << 20
+	if cfg.Server.AvatarMaxSizeBytes != DefaultAvatarMaxSizeBytes {
+		t.Fatal("avatar size limit was not copied independently")
+	}
+}
+
 func TestDefaultPublicationQuotaConfigAndDeepCopy(t *testing.T) {
 	t.Parallel()
 	cfg := DefaultConfig()

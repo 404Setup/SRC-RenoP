@@ -119,6 +119,8 @@ export default Object.freeze({
     "settings.fileCacheSizeHint": "In-memory file cache limit — requires restart",
     "settings.maxActiveReq": "Max Active Requests",
     "settings.maxActiveReqHint": "Maximum simultaneous requests handled",
+    "settings.avatarMaxSize": "Profile Photo Limit (MiB)",
+    "settings.avatarMaxSizeHint": "Maximum uploaded or synchronized profile photo size, from 0.0625 to 16 MiB",
     "settings.debugTitle": "Diagnostics",
     "settings.debugSubtitle": "Developer tooling for investigating memory and runtime issues",
     "settings.debugMode": "Enable debug mode",

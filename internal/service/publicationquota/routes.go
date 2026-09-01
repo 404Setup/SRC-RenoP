@@ -20,7 +20,6 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
-	"renop/internal/service/auth"
 )
 
 const (
@@ -48,7 +47,7 @@ func quotaAPIError(c fiber.Ctx, err error) error {
 }
 
 func authenticatedQuotaUser(c fiber.Ctx) (*config.User, error) {
-	user := auth.GetUser(c)
+	user, _ := c.Locals("user").(*config.User)
 	if user == nil || user.Username == "" || strings.EqualFold(user.Username, "guest") {
 		return nil, fiber.ErrUnauthorized
 	}

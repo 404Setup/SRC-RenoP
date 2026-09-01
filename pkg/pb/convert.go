@@ -252,22 +252,23 @@ func FromAuditLogConfig(a config.AuditLogConfig) *AuditLogConfig {
 
 func FromServerConfig(s config.ServerConfig, d config.DatabaseConfig, a config.AuditLogConfig) *ServerConfig {
 	return &ServerConfig{
-		Host:              s.Host,
-		Port:              uint32(s.Port),
-		SslEnabled:        s.SslEnabled,
-		SslCertPath:       s.SslCertPath,
-		SslKeyPath:        s.SslKeyPath,
-		Domains:           append([]string(nil), s.Domains...),
-		EnableCompression: s.EnableCompression,
-		FileCacheSizeMb:   s.FileCacheSizeMb,
-		MaxActiveRequests: s.MaxActiveRequests,
-		TrustedProxies:    append([]string(nil), s.TrustedProxies...),
-		CdnIpHeader:       s.CdnIPHeader,
-		CorsOrigins:       append([]string(nil), s.CorsOrigins...),
-		DebugMode:         s.DebugMode,
-		Database:          FromDatabaseConfig(d),
-		AuditLog:          FromAuditLogConfig(a),
-		Gpg:               FromGPGConfig(s.GPG),
+		Host:               s.Host,
+		Port:               uint32(s.Port),
+		SslEnabled:         s.SslEnabled,
+		SslCertPath:        s.SslCertPath,
+		SslKeyPath:         s.SslKeyPath,
+		Domains:            append([]string(nil), s.Domains...),
+		EnableCompression:  s.EnableCompression,
+		FileCacheSizeMb:    s.FileCacheSizeMb,
+		MaxActiveRequests:  s.MaxActiveRequests,
+		TrustedProxies:     append([]string(nil), s.TrustedProxies...),
+		CdnIpHeader:        s.CdnIPHeader,
+		CorsOrigins:        append([]string(nil), s.CorsOrigins...),
+		DebugMode:          s.DebugMode,
+		Database:           FromDatabaseConfig(d),
+		AuditLog:           FromAuditLogConfig(a),
+		Gpg:                FromGPGConfig(s.GPG),
+		AvatarMaxSizeBytes: s.AvatarMaxSizeBytes,
 	}
 }
 
@@ -286,6 +287,7 @@ func ApplyServerConfig(dstServer *config.ServerConfig, dstDB *config.DatabaseCon
 	dstServer.EnableCompression = src.EnableCompression
 	dstServer.FileCacheSizeMb = src.FileCacheSizeMb
 	dstServer.MaxActiveRequests = src.MaxActiveRequests
+	dstServer.AvatarMaxSizeBytes = src.AvatarMaxSizeBytes
 	dstServer.TrustedProxies = append([]string(nil), src.TrustedProxies...)
 	dstServer.CdnIPHeader = src.CdnIpHeader
 	dstServer.CorsOrigins = append([]string(nil), src.CorsOrigins...)

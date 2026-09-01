@@ -119,6 +119,8 @@ export default Object.freeze({
     "settings.fileCacheSizeHint": "Лимит кэша файлов в ОЗУ — требуется перезапуск",
     "settings.maxActiveReq": "Макс. активных запросов",
     "settings.maxActiveReqHint": "Максимальное количество одновременных запросов",
+    "settings.avatarMaxSize": "Лимит фото профиля (МиБ)",
+    "settings.avatarMaxSizeHint": "Максимальный размер загружаемого или синхронизируемого фото: от 0,0625 до 16 МиБ",
     "settings.debugTitle": "Диагностика",
     "settings.debugSubtitle": "Инструменты разработчика для исследования памяти и runtime",
     "settings.debugMode": "Включить режим отладки",

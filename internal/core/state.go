@@ -76,6 +76,9 @@ type StateDB interface {
 	GetUserProfile(username string) (*UserProfile, error)
 	GetUserProfileByID(userID string) (*UserProfile, error)
 	GetUserProfiles(usernames []string) (map[string]*UserProfile, error)
+	GetUserAvatar(username string) (*UserAvatar, error)
+	PutUserAvatar(username string, avatar *UserAvatar) error
+	DeleteUserAvatar(username string) error
 	ListUserPackageMemberships(userID, format string) ([]*UserPackageMembership, error)
 	UpdateUserProfile(oldUsername, newUsername, nickname string, token *AccessToken, changedAt int64, changes AccountTokenChanges) (*UserProfile, error)
 	GetSession(sessionToken string) (*Session, error)

@@ -85,6 +85,7 @@ func setSessionCookie(c fiber.Ctx, value string, maxAge int) {
 func SetupAuthRoutes(app fiber.Router, state *core.AppState, opChan chan<- token.TokenOp) {
 	app.Get("/users/profiles", func(c fiber.Ctx) error { return publicUserProfiles(c, state) })
 	app.Get("/users/:username/profile", func(c fiber.Ctx) error { return publicUserProfile(c, state) })
+	app.Get("/users/:username/avatar", func(c fiber.Ctx) error { return getPublicAvatar(c, state) })
 	app.Get("/users/:username/memberships", func(c fiber.Ctx) error { return publicUserMemberships(c, state) })
 	auth := app.Group("/auth")
 	auth.Post("/login", func(c fiber.Ctx) error { return PostAuthLogin(c, state, opChan) })
@@ -92,6 +93,7 @@ func SetupAuthRoutes(app fiber.Router, state *core.AppState, opChan chan<- token
 	auth.Get("/me", func(c fiber.Ctx) error { return GetAuthMe(c) })
 	auth.Get("/profile", func(c fiber.Ctx) error { return ownUserProfile(c, state) })
 	auth.Put("/profile", func(c fiber.Ctx) error { return updateOwnUserProfile(c, state, opChan) })
+	setupAvatarRoutes(auth, state)
 	auth.Put("/profile/password", func(c fiber.Ctx) error { return UpdatePassword(c, state, opChan) })
 	auth.Post("/profile/token", func(c fiber.Ctx) error { return GenerateUploadToken(c, state, opChan) })
 	auth.Get("/profile/sessions", func(c fiber.Ctx) error { return ListSessions(c, state) })

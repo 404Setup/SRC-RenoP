@@ -138,19 +138,20 @@ func DefaultMavenSettings() MavenSettings {
 
 func DefaultServerConfig() ServerConfig {
 	sc := ServerConfig{
-		Host:              "0.0.0.0",
-		Port:              3000,
-		SslEnabled:        false,
-		SslCertPath:       "",
-		SslKeyPath:        "",
-		Domains:           DefaultDomains(),
-		CorsOrigins:       DefaultCorsOrigins(),
-		EnableCompression: false,
-		FileCacheSizeMb:   16,
-		MaxActiveRequests: 512,
-		TrustedProxies:    []string{},
-		CdnIPHeader:       DefaultCdnIPHeader(),
-		GPG:               GPGConfig{KeyServers: DefaultGPGKeyServers()},
+		Host:               "0.0.0.0",
+		Port:               3000,
+		SslEnabled:         false,
+		SslCertPath:        "",
+		SslKeyPath:         "",
+		Domains:            DefaultDomains(),
+		CorsOrigins:        DefaultCorsOrigins(),
+		EnableCompression:  false,
+		FileCacheSizeMb:    16,
+		MaxActiveRequests:  512,
+		AvatarMaxSizeBytes: DefaultAvatarMaxSizeBytes,
+		TrustedProxies:     []string{},
+		CdnIPHeader:        DefaultCdnIPHeader(),
+		GPG:                GPGConfig{KeyServers: DefaultGPGKeyServers()},
 	}
 	sc.ParseTrustedProxies()
 	return sc

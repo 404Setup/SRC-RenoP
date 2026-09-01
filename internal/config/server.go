@@ -20,6 +20,12 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
+const (
+	DefaultAvatarMaxSizeBytes uint32 = 1 << 20
+	MinAvatarMaxSizeBytes     uint32 = 64 << 10
+	MaxAvatarMaxSizeBytes     uint32 = 16 << 20
+)
+
 type ServerConfig struct {
 	Host        string `json:"host" yaml:"host"`
 	SslCertPath string `json:"ssl_cert_path" yaml:"ssl_cert_path"`
@@ -39,6 +45,7 @@ type ServerConfig struct {
 	ParsedTrustedProxies []*net.IPNet `json:"-" yaml:"-"`
 	FileCacheSizeMb      uint32       `json:"file_cache_size_mb" yaml:"file_cache_size_mb"`
 	MaxActiveRequests    uint32       `json:"max_active_requests" yaml:"max_active_requests"`
+	AvatarMaxSizeBytes   uint32       `json:"avatar_max_size_bytes" yaml:"avatar_max_size_bytes"`
 	Port                 uint16       `json:"port" yaml:"port"`
 	SslEnabled           bool         `json:"ssl_enabled" yaml:"ssl_enabled"`
 	EnableCompression    bool         `json:"enable_compression" yaml:"enable_compression"`
@@ -57,22 +64,23 @@ type ServerConfig struct {
 // serverConfigWire is used for JSON/YAML unmarshalling so we can accept the
 // legacy singular "domain" key while serializing only "domains".
 type serverConfigWire struct {
-	Host              string             `json:"host" yaml:"host"`
-	SslCertPath       string             `json:"ssl_cert_path" yaml:"ssl_cert_path"`
-	SslKeyPath        string             `json:"ssl_key_path" yaml:"ssl_key_path"`
-	Domain            string             `json:"domain" yaml:"domain"`
-	Domains           []string           `json:"domains" yaml:"domains"`
-	CorsOrigins       []string           `json:"cors_origins" yaml:"cors_origins"`
-	CdnIPHeader       string             `json:"cdn_ip_header" yaml:"cdn_ip_header"`
-	TrustedProxies    []string           `json:"trusted_proxies" yaml:"trusted_proxies"`
-	FileCacheSizeMb   uint32             `json:"file_cache_size_mb" yaml:"file_cache_size_mb"`
-	MaxActiveRequests uint32             `json:"max_active_requests" yaml:"max_active_requests"`
-	Port              uint16             `json:"port" yaml:"port"`
-	SslEnabled        bool               `json:"ssl_enabled" yaml:"ssl_enabled"`
-	EnableCompression bool               `json:"enable_compression" yaml:"enable_compression"`
-	DebugMode         bool               `json:"debug_mode" yaml:"debug_mode"`
-	GPG               *GPGConfig         `json:"gpg" yaml:"gpg"`
-	GitHubOAuth       *GitHubOAuthConfig `json:"github_oauth" yaml:"github_oauth"`
+	Host               string             `json:"host" yaml:"host"`
+	SslCertPath        string             `json:"ssl_cert_path" yaml:"ssl_cert_path"`
+	SslKeyPath         string             `json:"ssl_key_path" yaml:"ssl_key_path"`
+	Domain             string             `json:"domain" yaml:"domain"`
+	Domains            []string           `json:"domains" yaml:"domains"`
+	CorsOrigins        []string           `json:"cors_origins" yaml:"cors_origins"`
+	CdnIPHeader        string             `json:"cdn_ip_header" yaml:"cdn_ip_header"`
+	TrustedProxies     []string           `json:"trusted_proxies" yaml:"trusted_proxies"`
+	FileCacheSizeMb    uint32             `json:"file_cache_size_mb" yaml:"file_cache_size_mb"`
+	MaxActiveRequests  uint32             `json:"max_active_requests" yaml:"max_active_requests"`
+	AvatarMaxSizeBytes uint32             `json:"avatar_max_size_bytes" yaml:"avatar_max_size_bytes"`
+	Port               uint16             `json:"port" yaml:"port"`
+	SslEnabled         bool               `json:"ssl_enabled" yaml:"ssl_enabled"`
+	EnableCompression  bool               `json:"enable_compression" yaml:"enable_compression"`
+	DebugMode          bool               `json:"debug_mode" yaml:"debug_mode"`
+	GPG                *GPGConfig         `json:"gpg" yaml:"gpg"`
+	GitHubOAuth        *GitHubOAuthConfig `json:"github_oauth" yaml:"github_oauth"`
 }
 
 func (s *ServerConfig) applyWire(w *serverConfigWire) {
@@ -87,6 +95,7 @@ func (s *ServerConfig) applyWire(w *serverConfigWire) {
 	s.TrustedProxies = w.TrustedProxies
 	s.FileCacheSizeMb = w.FileCacheSizeMb
 	s.MaxActiveRequests = w.MaxActiveRequests
+	s.AvatarMaxSizeBytes = w.AvatarMaxSizeBytes
 	s.Port = w.Port
 	s.SslEnabled = w.SslEnabled
 	s.EnableCompression = w.EnableCompression
@@ -128,6 +137,9 @@ func (s *ServerConfig) setDefaults() {
 	}
 	if s.MaxActiveRequests == 0 {
 		s.MaxActiveRequests = 512
+	}
+	if s.AvatarMaxSizeBytes < MinAvatarMaxSizeBytes || s.AvatarMaxSizeBytes > MaxAvatarMaxSizeBytes {
+		s.AvatarMaxSizeBytes = DefaultAvatarMaxSizeBytes
 	}
 	if s.TrustedProxies == nil {
 		s.TrustedProxies = DefaultTrustedProxies()
@@ -424,18 +436,19 @@ func (s *ServerConfig) IsTrustedProxy(ipStr string) bool {
 
 func (s *ServerConfig) DeepCopy() ServerConfig {
 	cloned := ServerConfig{
-		Host:              strings.Clone(s.Host),
-		Port:              s.Port,
-		SslEnabled:        s.SslEnabled,
-		SslCertPath:       strings.Clone(s.SslCertPath),
-		SslKeyPath:        strings.Clone(s.SslKeyPath),
-		EnableCompression: s.EnableCompression,
-		FileCacheSizeMb:   s.FileCacheSizeMb,
-		MaxActiveRequests: s.MaxActiveRequests,
-		CdnIPHeader:       strings.Clone(s.CdnIPHeader),
-		DebugMode:         s.DebugMode,
-		GPG:               s.GPG.DeepCopy(),
-		GitHubOAuth:       s.GitHubOAuth.DeepCopy(),
+		Host:               strings.Clone(s.Host),
+		Port:               s.Port,
+		SslEnabled:         s.SslEnabled,
+		SslCertPath:        strings.Clone(s.SslCertPath),
+		SslKeyPath:         strings.Clone(s.SslKeyPath),
+		EnableCompression:  s.EnableCompression,
+		FileCacheSizeMb:    s.FileCacheSizeMb,
+		MaxActiveRequests:  s.MaxActiveRequests,
+		AvatarMaxSizeBytes: s.AvatarMaxSizeBytes,
+		CdnIPHeader:        strings.Clone(s.CdnIPHeader),
+		DebugMode:          s.DebugMode,
+		GPG:                s.GPG.DeepCopy(),
+		GitHubOAuth:        s.GitHubOAuth.DeepCopy(),
 	}
 	if s.Domains != nil {
 		cloned.Domains = make([]string, len(s.Domains))

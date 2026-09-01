@@ -347,6 +347,9 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 	if _, err := db.Exec(userProfilesTable); err != nil {
 		return err
 	}
+	if err := initUserAvatarTable(db, "BLOB"); err != nil {
+		return err
+	}
 	if _, err := db.Exec(sessionsTable); err != nil {
 		return err
 	}

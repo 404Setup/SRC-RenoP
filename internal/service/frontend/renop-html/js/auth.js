@@ -17,7 +17,7 @@ import {loadDirectory} from './browser.js';
 import {stopDashboardRefresh} from './dashboard.js';
 import {LoginRequest, SessionDetails} from './proto/index.js';
 import {base64urlToBuffer, bufferToBase64url} from './fido-utils.js';
-import {clearUserProfileCache, getUserProfile, profileAvatarText, profileDisplayName} from './user-profiles.js';
+import {clearUserProfileCache, getUserProfile, profileDisplayName, renderProfileAvatar} from './user-profiles.js';
 import {responseErrorMessage} from './response-errors.js';
 import {runButtonAction} from './components/button.js';
 import {requestProtectedRouteExit} from './protected-route.js';
@@ -76,7 +76,7 @@ function applyNavProfile(profile) {
     const startWidth = profileTrigger?.getBoundingClientRect().width || 0;
     if (usernameDisplay) usernameDisplay.textContent = displayName;
     const avatarDot = document.getElementById('user-avatar-dot');
-    if (avatarDot) avatarDot.textContent = profileAvatarText(profile, 1);
+    renderProfileAvatar(avatarDot, profile, {length: 1});
     if (!profileTrigger || !previousName || previousName === displayName ||
         typeof profileTrigger.animate !== 'function' ||
         window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
@@ -252,7 +252,11 @@ export function updateAuthUI(isLoggedIn, name = '', isManager = false, permissio
         if (loginBtn) loginBtn.style.display = 'inline-flex';
         if (userInfo) userInfo.style.display = 'none';
         if (usernameDisplay) usernameDisplay.textContent = '';
-        if (avatarDot) avatarDot.textContent = '';
+        if (avatarDot) {
+            avatarDot.replaceChildren();
+            avatarDot.classList.remove('has-profile-avatar');
+            avatarDot.dataset.avatarUrl = '';
+        }
         navProfile = null;
         navProfileAnimation?.cancel();
         navProfileAnimation = null;

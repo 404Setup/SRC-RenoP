@@ -159,6 +159,52 @@ export function profileAvatarText(profile, length = 2) {
 }
 
 /**
+ * Return a same-origin cached avatar URL from a public profile payload.
+ * @param {object|null} profile - User profile.
+ * @returns {string} Safe local avatar URL or an empty string.
+ */
+export function profileAvatarURL(profile) {
+    const value = String(profile?.avatar_url || '').trim();
+    if (!value.startsWith('/api/users/')) return '';
+    try {
+        const url = new URL(value, window.location.origin);
+        return url.origin === window.location.origin && url.pathname.startsWith('/api/users/') ? url.href : '';
+    } catch {
+        return '';
+    }
+}
+
+/**
+ * Render a cached avatar image with the shared initials fallback.
+ * @param {HTMLElement|null} element - Avatar host.
+ * @param {object|null} profile - User profile.
+ * @param {{length?: number}} [options] - Initials length.
+ * @returns {void}
+ */
+export function renderProfileAvatar(element, profile, {length = 2} = {}) {
+    if (!element) return;
+    const fallback = profileAvatarText(profile, length);
+    const avatarURL = profileAvatarURL(profile);
+    if (avatarURL && element.dataset.avatarUrl === avatarURL && element.querySelector('img')) return;
+    element.dataset.avatarUrl = avatarURL;
+    element.replaceChildren(document.createTextNode(fallback));
+    element.classList.toggle('has-profile-avatar', Boolean(avatarURL));
+    if (!avatarURL) return;
+    const image = document.createElement('img');
+    image.src = avatarURL;
+    image.alt = '';
+    image.decoding = 'async';
+    image.draggable = false;
+    image.addEventListener('error', () => {
+        if (element.dataset.avatarUrl !== avatarURL || !element.contains(image)) return;
+        image.remove();
+        element.classList.remove('has-profile-avatar');
+        element.dataset.avatarUrl = '';
+    }, {once: true});
+    element.appendChild(image);
+}
+
+/**
  * Resolve one username to its nickname-first public label.
  * @param {string} username - Account username.
  * @returns {Promise<string>} Public display label.

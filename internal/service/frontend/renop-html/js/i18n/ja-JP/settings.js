@@ -119,6 +119,8 @@ export default Object.freeze({
     "settings.fileCacheSizeHint": "メモリ内ファイルキャッシュの上限 — 再起動が必要",
     "settings.maxActiveReq": "最大アクティブリクエスト数",
     "settings.maxActiveReqHint": "同時に処理される最大リクエスト数",
+    "settings.avatarMaxSize": "プロフィール画像の上限（MiB）",
+    "settings.avatarMaxSizeHint": "アップロードまたは同期するプロフィール画像の最大サイズ（0.0625～16 MiB）",
     "settings.debugTitle": "診断デバッグ",
     "settings.debugSubtitle": "メモリとランタイムの問題を調査するための開発者向けツール",
     "settings.debugMode": "デバッグモードを有効化",

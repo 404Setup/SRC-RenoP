@@ -573,18 +573,19 @@ func TestFullServerUpdate(t *testing.T) {
 	app, appState := setupSettingsTestApp(t, cfg)
 
 	respPut := protoPUT(t, app, "/domain/server", &pb.ServerConfig{
-		Host:              cfg.Server.Host,
-		Port:              8080,
-		SslEnabled:        cfg.Server.SslEnabled,
-		SslCertPath:       cfg.Server.SslCertPath,
-		SslKeyPath:        cfg.Server.SslKeyPath,
-		Domains:           []string{"myrepo.custom.com", "cdn.myrepo.custom.com"},
-		EnableCompression: cfg.Server.EnableCompression,
-		FileCacheSizeMb:   256,
-		MaxActiveRequests: cfg.Server.MaxActiveRequests,
-		TrustedProxies:    append([]string(nil), cfg.Server.TrustedProxies...),
-		CdnIpHeader:       cfg.Server.CdnIPHeader,
-		CorsOrigins:       []string{"*.myrepo.custom.com", "https://partner.example.com"},
+		Host:               cfg.Server.Host,
+		Port:               8080,
+		SslEnabled:         cfg.Server.SslEnabled,
+		SslCertPath:        cfg.Server.SslCertPath,
+		SslKeyPath:         cfg.Server.SslKeyPath,
+		Domains:            []string{"myrepo.custom.com", "cdn.myrepo.custom.com"},
+		EnableCompression:  cfg.Server.EnableCompression,
+		FileCacheSizeMb:    256,
+		MaxActiveRequests:  cfg.Server.MaxActiveRequests,
+		AvatarMaxSizeBytes: 2 << 20,
+		TrustedProxies:     append([]string(nil), cfg.Server.TrustedProxies...),
+		CdnIpHeader:        cfg.Server.CdnIPHeader,
+		CorsOrigins:        []string{"*.myrepo.custom.com", "https://partner.example.com"},
 	})
 	if respPut.StatusCode != http.StatusOK {
 		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
@@ -602,6 +603,17 @@ func TestFullServerUpdate(t *testing.T) {
 	}
 	if updatedCfg.Server.FileCacheSizeMb != 256 {
 		t.Fatalf("expected FileCacheSizeMb to be updated to 256, got %d", updatedCfg.Server.FileCacheSizeMb)
+	}
+	if updatedCfg.Server.AvatarMaxSizeBytes != 2<<20 {
+		t.Fatalf("expected AvatarMaxSizeBytes to be updated to 2 MiB, got %d", updatedCfg.Server.AvatarMaxSizeBytes)
+	}
+	legacy := pb.FromServerConfig(updatedCfg.Server, updatedCfg.Database, updatedCfg.AuditLog)
+	legacy.AvatarMaxSizeBytes = 0
+	if response := protoPUT(t, app, "/domain/server", legacy); response.StatusCode != http.StatusOK {
+		t.Fatalf("expected legacy PUT 200, got %d", response.StatusCode)
+	}
+	if got := appState.Inner.Config.Load().Server.AvatarMaxSizeBytes; got != 2<<20 {
+		t.Fatalf("legacy update reset AvatarMaxSizeBytes to %d", got)
 	}
 }
 

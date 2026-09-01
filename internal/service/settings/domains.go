@@ -142,6 +142,10 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 		if msg.MaxActiveRequests == 0 {
 			return c.Status(fiber.StatusBadRequest).SendString("Max active requests must be positive")
 		}
+		if msg.AvatarMaxSizeBytes != 0 && (msg.AvatarMaxSizeBytes < config.MinAvatarMaxSizeBytes ||
+			msg.AvatarMaxSizeBytes > config.MaxAvatarMaxSizeBytes) {
+			return c.Status(fiber.StatusBadRequest).SendString("Avatar size limit must be between 64 KiB and 16 MiB")
+		}
 		if msg.Database != nil {
 			driver := strings.ToLower(strings.TrimSpace(msg.Database.Driver))
 			if driver != "sqlite3" && driver != "sqlite" && driver != "mysql" && driver != "postgres" && driver != "postgresql" && driver != "pgx" && driver != "pg" && driver != "clickhouse" && driver != "ch" {
@@ -220,6 +224,9 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 			newConfig.Frontend = newConfig.Frontend.DeepCopy()
 			frontendservice.RefreshIndexHTMLCache(&newConfig.Frontend)
 		case "server":
+			if serverMsg.AvatarMaxSizeBytes == 0 {
+				serverMsg.AvatarMaxSizeBytes = oldConfig.Server.AvatarMaxSizeBytes
+			}
 			pb.ApplyServerConfig(&newConfig.Server, &newConfig.Database, &newConfig.AuditLog, serverMsg)
 			newConfig.Server = newConfig.Server.DeepCopy()
 			newConfig.GPG = newConfig.Server.GPG.DeepCopy()

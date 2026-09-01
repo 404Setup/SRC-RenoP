@@ -119,6 +119,8 @@ export default Object.freeze({
     "settings.fileCacheSizeHint": "記憶體檔案快取上限 — 需要重啟服務",
     "settings.maxActiveReq": "最大活躍請求數",
     "settings.maxActiveReqHint": "允許同時處理嘅最大請求數",
+    "settings.avatarMaxSize": "頭像大小上限（MiB）",
+    "settings.avatarMaxSizeHint": "上載或同步頭像嘅最大大小，可以設定做 0.0625 至 16 MiB",
     "settings.debugTitle": "診斷調試",
     "settings.debugSubtitle": "用嚟排查記憶體同 runtime 問題嘅開發者工具",
     "settings.debugMode": "啟用調試模式",

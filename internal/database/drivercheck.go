@@ -12,6 +12,8 @@ package database
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -38,7 +40,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	suffix := uuid.NewString()[:8]
 	username := "dbcheck-" + suffix
 	now := time.Now().UnixMilli()
-	results := make([]DriverCheckResult, 0, 8)
+	results := make([]DriverCheckResult, 0, 9)
 	run := func(name string, check func() error) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -92,6 +94,26 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		profile, err := db.GetUserProfile(rollbackUsername)
 		if err == nil || profile != nil {
 			return fmt.Errorf("rolled-back profile remained visible")
+		}
+		return nil
+	}); err != nil {
+		return results, err
+	}
+	if err := run("profile avatars", func() error {
+		data := []byte("driver-check-sanitized-avatar")
+		sum := sha256.Sum256(data)
+		if err := db.PutUserAvatar(username, &core.UserAvatar{
+			ContentType: "image/png", Data: data, Size: int64(len(data)),
+			SHA256: hex.EncodeToString(sum[:]), UpdatedAt: now,
+		}); err != nil {
+			return err
+		}
+		avatar, err := db.GetUserAvatar(username)
+		if err != nil || avatar == nil || !strings.EqualFold(avatar.SHA256, hex.EncodeToString(sum[:])) {
+			return errorsOrMissing(err, "profile avatar")
+		}
+		if err := db.DeleteUserAvatar(username); err != nil {
+			return err
 		}
 		return nil
 	}); err != nil {

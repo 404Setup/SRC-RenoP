@@ -8,6 +8,8 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {renderProfileAvatar} from '../user-profiles.js';
+
 /**
  * Initials avatar custom element with deterministic gradient color.
  */
@@ -42,7 +44,6 @@ export class RenopUserAvatar extends HTMLElement {
     render() {
         const name = this.getAttribute('name') || '';
         this.className = 'user-avatar';
-        this.textContent = Array.from(name).slice(0, 2).join('').toUpperCase();
 
         const colors = [
             'linear-gradient(135deg, #6366f1, #a855f7)',
@@ -57,6 +58,17 @@ export class RenopUserAvatar extends HTMLElement {
         }
         const colorIndex = Math.abs(hash) % colors.length;
         this.style.background = colors[colorIndex];
+        renderProfileAvatar(this, this._profile || {nickname: name}, {length: 2});
+    }
+
+    /**
+     * Apply one shared public profile, including its cached avatar URL.
+     * @param {object} profile - Public profile payload.
+     * @returns {void}
+     */
+    setProfile(profile) {
+        this._profile = profile;
+        this.render();
     }
 }
 

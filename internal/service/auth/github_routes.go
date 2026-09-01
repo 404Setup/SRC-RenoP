@@ -52,6 +52,7 @@ func setupGitHubRoutesWithProvider(auth fiber.Router, state *core.AppState, opCh
 	})
 	auth.Get("/profile/github", func(c fiber.Ctx) error { return getProfileGitHub(c, state) })
 	auth.Delete("/profile/github", func(c fiber.Ctx) error { return deleteProfileGitHub(c, state) })
+	auth.Post("/profile/avatar/github", func(c fiber.Ctx) error { return syncGitHubAvatar(c, state, provider) })
 }
 
 func getGitHubStatus(c fiber.Ctx, state *core.AppState) error {

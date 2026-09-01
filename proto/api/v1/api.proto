@@ -302,6 +302,7 @@ message ServerConfig {
   DatabaseConfig database = 14;
   AuditLogConfig audit_log = 15;
   GpgConfig gpg = 16;
+  uint32 avatar_max_size_bytes = 17;
 }
 
 message StorageConfig {

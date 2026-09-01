@@ -52,6 +52,30 @@
     font-weight: 700;
 }
 
+.user-avatar > img,
+.user-avatar-dot > img,
+.profile-public-avatar > img,
+.profile-avatar-inner > img,
+.profile-avatar-editor-preview > img {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    object-fit: cover;
+}
+
+.user-avatar.has-profile-avatar,
+.user-avatar-dot.has-profile-avatar,
+.profile-public-avatar.has-profile-avatar,
+.profile-avatar-inner.has-profile-avatar,
+.profile-avatar-editor-preview.has-profile-avatar {
+    position: relative;
+    overflow: hidden;
+    color: transparent;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .password-strength.password-strength--animate,
     .password-strength.password-strength--leaving,

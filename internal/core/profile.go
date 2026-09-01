@@ -27,6 +27,7 @@ const (
 
 var (
 	ErrUserProfileNotFound       = errors.New("user profile was not found")
+	ErrUserAvatarNotFound        = errors.New("user avatar was not found")
 	ErrUsernameAlreadyExists     = errors.New("username already exists")
 	ErrUsernameChangeRateLimited = errors.New("username change rate limit exceeded")
 )
@@ -41,8 +42,19 @@ type UserProfile struct {
 	CargoPackageCount      int    `json:"cargo_package_count"`
 	DockerImageCount       int    `json:"docker_image_count"`
 	NPMPackageCount        int    `json:"npm_package_count"`
+	AvatarHash             string `json:"-"`
 	UsernameChangeCount    int    `json:"-"`
 	UsernameChangeWindowAt int64  `json:"-"`
+}
+
+// UserAvatar is one sanitized server-cached profile image.
+type UserAvatar struct {
+	UserID      string
+	ContentType string
+	Data        []byte
+	Size        int64
+	SHA256      string
+	UpdatedAt   int64
 }
 
 // UserPackageMembership describes one package team linked through an immutable user ID.

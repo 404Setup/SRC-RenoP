@@ -43,6 +43,8 @@ type userProfileResponse struct {
 	CargoPackageCount            int                          `json:"cargo_package_count"`
 	DockerImageCount             int                          `json:"docker_image_count"`
 	NPMPackageCount              int                          `json:"npm_package_count"`
+	AvatarURL                    string                       `json:"avatar_url,omitempty"`
+	AvatarMaxSizeBytes           uint32                       `json:"avatar_max_size_bytes,omitempty"`
 	GitHub                       *githubProfileStatus         `json:"github,omitempty"`
 	SuperTeamLimits              *core.SuperTeamLimitStatus   `json:"super_team_limits,omitempty"`
 	PublicationQuota             *core.PublicationQuotaStatus `json:"publication_quota,omitempty"`
@@ -290,6 +292,7 @@ func updateOwnUserProfile(c fiber.Ctx, state *core.AppState, opChan chan<- token
 	if newUsername == current.Username && nickname == current.Nickname {
 		response := profileResponse(current, true, time.Now().UnixMilli())
 		response.PrivateDetails = true
+		response.AvatarMaxSizeBytes = state.Inner.Config.Load().Server.AvatarMaxSizeBytes
 		response.AdministratorView = user.IsManager()
 		response.GitHub = &github
 		c.Set(fiber.HeaderCacheControl, "no-store")
@@ -320,6 +323,7 @@ func updateOwnUserProfile(c fiber.Ctx, state *core.AppState, opChan chan<- token
 	c.Set(fiber.HeaderCacheControl, "no-store")
 	response := profileResponse(updated, true, changedAt)
 	response.PrivateDetails = true
+	response.AvatarMaxSizeBytes = state.Inner.Config.Load().Server.AvatarMaxSizeBytes
 	response.AdministratorView = user.IsManager()
 	response.GitHub = &github
 	limits := state.Inner.Config.Load().SuperTeams
@@ -344,6 +348,7 @@ func profileResponseWithPrivateDetails(state *core.AppState, profile *core.UserP
 			return userProfileResponse{}, err
 		}
 		response.GitHub = &github
+		response.AvatarMaxSizeBytes = state.Inner.Config.Load().Server.AvatarMaxSizeBytes
 	}
 	if !private {
 		return response, nil
@@ -379,6 +384,9 @@ func profileResponse(profile *core.UserProfile, own bool, now int64) userProfile
 		CreatedAt: profile.CreatedAt, OwnProfile: own,
 		MavenDomainCount: profile.MavenDomainCount, CargoPackageCount: profile.CargoPackageCount,
 		DockerImageCount: profile.DockerImageCount, NPMPackageCount: profile.NPMPackageCount,
+	}
+	if profile.AvatarHash != "" {
+		response.AvatarURL = "/api/users/" + profile.Username + "/avatar?v=" + profile.AvatarHash
 	}
 	if !own {
 		return response

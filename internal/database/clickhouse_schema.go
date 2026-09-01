@@ -81,6 +81,10 @@ func clickHouseSchemas() []clickHouseTableSchema {
 			"`user_id` String", "`username` String", "`nickname` String DEFAULT ''",
 			"`rename_window_started_at` Int64 DEFAULT 0", "`rename_count` Int64 DEFAULT 0", "`updated_at` Int64 DEFAULT 0",
 		}},
+		{name: "user_avatars", keyColumns: []string{"user_id"}, columns: []string{
+			"`user_id` String", "`content_type` String", "`image_data` String", "`size` Int64",
+			"`sha256` String", "`updated_at` Int64",
+		}},
 		{name: "sessions", keyColumns: []string{"session_token"}, columns: []string{
 			"`session_token` String", "`public_id` String", "`username` String", "`ip` String", "`user_agent` String",
 			"`created_at` Int64", "`last_active` Int64", "`login_method` String DEFAULT 'password'",

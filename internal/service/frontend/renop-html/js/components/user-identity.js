@@ -90,7 +90,10 @@ export class RenopUserIdentity extends HTMLElement {
             label.classList.remove('is-loading');
         }
         const avatar = this.querySelector('renop-user-avatar');
-        if (avatar) avatar.setAttribute('name', displayName);
+        if (avatar) {
+            avatar.setAttribute('name', displayName);
+            avatar.setProfile(profile);
+        }
     }
 }
 

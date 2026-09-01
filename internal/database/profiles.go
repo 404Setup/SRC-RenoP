@@ -55,11 +55,14 @@ func (db *DB) getUserProfile(whereClause, value string) (*core.UserProfile, erro
 			WHERE mm.user_id = p.user_id AND md.repository = '' AND md.verified = 1),
 		(SELECT COUNT(*) FROM cargo_members cm WHERE cm.user_id = p.user_id),
 		(SELECT COUNT(*) FROM docker_members dm WHERE dm.user_id = p.user_id),
-		(SELECT COUNT(*) FROM npm_members nm WHERE nm.user_id = p.user_id)
-		FROM user_profiles p JOIN tokens t ON t.name = p.username WHERE `+whereClause, value).Scan(
+		(SELECT COUNT(*) FROM npm_members nm WHERE nm.user_id = p.user_id),
+		COALESCE(a.sha256, '')
+		FROM user_profiles p JOIN tokens t ON t.name = p.username
+		LEFT JOIN user_avatars a ON a.user_id = p.user_id WHERE `+whereClause, value).Scan(
 		&profile.UserID, &profile.Username, &profile.CreatedAt, &profile.Nickname,
 		&profile.UsernameChangeWindowAt, &profile.UsernameChangeCount,
 		&profile.MavenDomainCount, &profile.CargoPackageCount, &profile.DockerImageCount, &profile.NPMPackageCount,
+		&profile.AvatarHash,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, core.ErrUserProfileNotFound
@@ -78,7 +81,7 @@ func profileSummary(profile *core.UserProfile) core.UserProfile {
 	return core.UserProfile{
 		UserID: profile.UserID, Username: profile.Username, CreatedAt: profile.CreatedAt,
 		Nickname: profile.Nickname, UsernameChangeWindowAt: profile.UsernameChangeWindowAt,
-		UsernameChangeCount: profile.UsernameChangeCount,
+		UsernameChangeCount: profile.UsernameChangeCount, AvatarHash: profile.AvatarHash,
 	}
 }
 
@@ -217,8 +220,9 @@ func (db *DB) GetUserProfiles(usernames []string) (map[string]*core.UserProfile,
 		placeholders[index] = "?"
 	}
 	rows, err := db.Query(`SELECT p.user_id, p.username, t.created_at, p.nickname,
-		p.rename_window_started_at, p.rename_count
+		p.rename_window_started_at, p.rename_count, COALESCE(a.sha256, '')
 		FROM user_profiles p JOIN tokens t ON t.name = p.username
+		LEFT JOIN user_avatars a ON a.user_id = p.user_id
 		WHERE p.username IN (`+strings.Join(placeholders, ",")+`)`, arguments...)
 	if err != nil {
 		return nil, fmt.Errorf("load user profile batch: %w", err)
@@ -228,7 +232,7 @@ func (db *DB) GetUserProfiles(usernames []string) (map[string]*core.UserProfile,
 	for rows.Next() {
 		profile := &core.UserProfile{}
 		if err := rows.Scan(&profile.UserID, &profile.Username, &profile.CreatedAt, &profile.Nickname,
-			&profile.UsernameChangeWindowAt, &profile.UsernameChangeCount); err != nil {
+			&profile.UsernameChangeWindowAt, &profile.UsernameChangeCount, &profile.AvatarHash); err != nil {
 			return nil, fmt.Errorf("scan user profile batch: %w", err)
 		}
 		profiles[profile.Username] = profile

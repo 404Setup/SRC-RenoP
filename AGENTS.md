@@ -47,7 +47,8 @@
   creation results. A repository-wide AST regression test rejects production Go SQL containing any `DELETE FROM`
   statement that cannot statically demonstrate a `WHERE` clause. Includes
   zero-alloc SQL parameter rebinding (`RebindPostgres`), unified transaction wrappers, schema migrations, public user
-  profiles, immutable user identities for package ownership, private normalized login emails, serialized login-method
+  profiles, immutable user identities for package ownership, and sanitized `user_avatars` blobs whose small metadata
+  joins profile summaries without loading image bytes. Private normalized login emails, serialized login-method
   invariants, masked account-token/profile mutations, irreversible one-time recovery-code verifiers, and hashed,
   expiring fine-grained API credentials. Legacy plaintext upload tokens migrate transactionally to scoped hashes;
   durable GitHub identity/principal snapshots and username-change throttling remain bound to immutable user IDs.
@@ -88,6 +89,10 @@
   repository writes or system-manager authority; `manager` remains the only global configuration bypass.
   Authentication-result invalidation is scoped to the changed account or revoked API token so unrelated hot entries
   remain available; validity-changing operations also remove bounded negative credential results.
+  Profile photos accept bounded square PNG, JPEG, or WebP images from 256 to 1000 pixels. RenoP validates container
+  boundaries and decoded dimensions, then re-encodes pixels with the standard image encoders so original metadata,
+  trailing archives, and other embedded payloads are never stored. Uploads and explicit one-shot GitHub synchronizations
+  consume user file/byte quota without consuming publication count; public versioned avatar responses are immutable-cacheable.
 - **`internal/service/cargo/` & `internal/service/cargodocs/`**: Sparse Cargo registry implementation, crate lifecycle,
   authoritative upstream name-conflict checks, mirrored-crate provenance, upstream proxying, and sandboxed documentation
   extraction/viewer (`/cargodoc/...`). Local publication streams a bounded Markdown README selected by the validated
@@ -245,7 +250,9 @@
   Go's parent `testing.TempDir` cleanup so transient Windows `ERROR_DIR_NOT_EMPTY` results do not fail SQLite tests.
 - **`web/` & `internal/service/frontend/`**: Embedded SPA with username-based `/user/<username>` profile, edit, and
   package-membership routes plus shared nickname-first identity components backed by one bounded profile cache and
-  immediate profile update/invalidation events. Global Maven memberships open the standalone
+  immediate profile update/invalidation events. The same renderer applies cached profile photos or deterministic
+  initials everywhere, while the own-profile editor uploads, removes, or explicitly synchronizes a GitHub photo.
+  Global Maven memberships open the standalone
   `/domain/<domain>` public route, whose artifact links retain each readable repository's canonical package path.
   The five-minute profile cache retains at
   most 256 accounts, prunes expired/oldest entries, and is generation-cleared on logout so private responses cannot be

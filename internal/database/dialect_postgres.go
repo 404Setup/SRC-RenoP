@@ -468,6 +468,9 @@ func (d *PostgresDialect) InitTables(db *sql.DB) error {
 			return err
 		}
 	}
+	if err := initUserAvatarTable(db, "BYTEA"); err != nil {
+		return err
+	}
 	if err := initDockerImageBlobTables(db); err != nil {
 		return err
 	}

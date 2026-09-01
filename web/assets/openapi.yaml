@@ -605,6 +605,13 @@ components:
         npm_package_count:
           type: integer
           minimum: 0
+        avatar_url:
+          type: string
+          description: Same-origin URL for the sanitized cached profile photo, versioned by its content hash.
+        avatar_max_size_bytes:
+          type: integer
+          format: int64
+          description: Configured source and normalized image limit; present only on the account's own profile.
         publication_quota:
           allOf:
             - $ref: "#/components/schemas/PublicationQuotaStatus"
@@ -2695,6 +2702,44 @@ paths:
         "404":
           $ref: "#/components/responses/PlainNotFound"
 
+  /api/users/{username}/avatar:
+    get:
+      tags: [ auth ]
+      summary: Get a sanitized cached profile photo
+      description: Returns only server-reencoded PNG or JPEG bytes. Original upload metadata and embedded payloads are never retained.
+      operationId: getPublicUserAvatar
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: v
+          in: query
+          schema:
+            type: string
+          description: Content SHA-256 from `avatar_url`; matching versions receive immutable caching.
+      responses:
+        "200":
+          description: Sanitized profile photo.
+          headers:
+            ETag:
+              schema:
+                type: string
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        "304":
+          description: The supplied ETag is current.
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+
   /api/users/profiles:
     get:
       tags: [ auth ]
@@ -2777,6 +2822,90 @@ paths:
               schema:
                 type: integer
               description: Seconds until the current rename window resets.
+
+  /api/auth/profile/avatar:
+    put:
+      tags: [ auth ]
+      summary: Upload and sanitize the current user's profile photo
+      description: |
+        Accepts PNG, JPEG, or WebP up to the configured byte limit. The decoded image must be square and between
+        256 × 256 and 1000 × 1000 pixels. RenoP validates the container, decodes bounded pixels, and re-encodes a new
+        PNG or JPEG; original metadata, trailing archives, and other embedded payloads are discarded. The normalized
+        file consumes one file and its actual byte size from the user's quota, but consumes no publication count.
+      operationId: putOwnUserAvatar
+      security:
+        - sessionCookie: [ ]
+      requestBody:
+        required: true
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+          image/webp:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: Updated own profile with a new versioned `avatar_url` and quota status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "400":
+          description: Unsupported, malformed, unsafe, non-square, or out-of-range image.
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+        "413":
+          description: Source or normalized image exceeds the configured byte limit.
+        "429":
+          description: User file-count or byte quota is exhausted.
+    delete:
+      tags: [ auth ]
+      summary: Remove the current user's profile photo
+      operationId: deleteOwnUserAvatar
+      security:
+        - sessionCookie: [ ]
+      responses:
+        "200":
+          description: Updated own profile without an `avatar_url`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+
+  /api/auth/profile/avatar/github:
+    post:
+      tags: [ auth ]
+      summary: Explicitly synchronize the linked GitHub profile photo
+      description: Fetches and sanitizes the current GitHub photo once. RenoP never updates it automatically; each call consumes file and byte quota like an upload.
+      operationId: postOwnGitHubAvatarSync
+      security:
+        - sessionCookie: [ ]
+      responses:
+        "200":
+          description: Updated own profile with the newly cached GitHub photo.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+        "409":
+          description: No GitHub identity is linked.
+        "413":
+          description: GitHub source or normalized image exceeds the configured byte limit.
+        "429":
+          description: User file-count or byte quota is exhausted.
+        "502":
+          description: GitHub photo retrieval failed.
 
   /api/auth/profile/password:
     put:

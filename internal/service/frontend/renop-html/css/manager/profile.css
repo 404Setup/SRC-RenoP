@@ -861,6 +861,57 @@
     gap: 1rem 1.2rem;
 }
 
+.profile-avatar-editor {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 1rem;
+    grid-column: 1 / -1;
+    padding: 0.9rem;
+    border: 1px solid color-mix(in srgb, var(--border-color) 82%, transparent);
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--text-color) 2.5%, transparent);
+}
+
+.profile-avatar-editor-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: 750;
+}
+
+.profile-avatar-editor-copy {
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.profile-avatar-editor-copy > p {
+    margin: 0;
+    color: var(--muted-text);
+    font-size: 0.76rem;
+    line-height: 1.45;
+}
+
+.profile-avatar-editor-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.25rem;
+}
+
+.profile-avatar-editor-actions .pill-btn {
+    min-height: 2rem;
+    padding: 0.42rem 0.7rem;
+    font-size: 0.76rem;
+}
+
 .profile-field {
     min-width: 0;
 }
@@ -1111,6 +1162,10 @@
 @media (max-width: 640px) {
     .profile-public-content {
         padding: 0 1.1rem 1.25rem;
+    }
+
+    .profile-avatar-editor {
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .profile-public-banner {
