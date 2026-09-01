@@ -13,7 +13,7 @@ import {makeCustomSelect} from '@renop/ui/custom-select';
 import {morphElementHeight} from '@renop/ui/height-anim';
 import {apiRequest} from './api.js';
 import {showAlert, showConfirm} from './alert.js';
-import {createIcon, RenopDialog, runButtonAction} from './components.js';
+import {createIcon, createUserIdentity, RenopDialog, runButtonAction} from './components.js';
 import {t} from './i18n.js';
 import {caughtErrorMessage, localizedResponseError} from './response-errors.js';
 import {RepositoryUserSuggestions} from './browser/user-suggestions.js';
@@ -569,12 +569,8 @@ function memberRow(details, member, {readOnly = false} = {}) {
         }, createIcon('delete')));
     }
     return el('div', {class: 'super-team-member-row'},
-        el('span', {
-            class: 'super-team-member-avatar',
-            'aria-hidden': 'true'
-        }, String(member.username || '?')[0].toUpperCase()),
         el('span', {class: 'super-team-member-name'},
-            el('strong', {}, member.username || ''),
+            createUserIdentity(member.username, {avatar: true}),
             el('small', {}, t(`superTeam.roleT${memberLevel}Desc`))
         ),
         controls
@@ -651,7 +647,9 @@ function teamDetailContent(details, prefix, {publicView = false, quotaStatus = n
         el('div', {class: 'super-team-facts'},
             actorLevel ? el('span', {}, roleLabel(actorLevel)) : null,
             el('span', {}, t('superTeam.memberCount', {count: Number(team.member_count) || 0})),
-            el('span', {}, t('superTeam.createdBy', {name: team.created_by || t('common.unknown')}))
+            team.created_by
+                ? createUserIdentity(team.created_by, {template: 'superTeam.createdBy'})
+                : el('span', {}, t('superTeam.createdBy', {name: t('common.unknown')}))
         )
     );
     const members = Array.isArray(details.members) ? details.members : [];

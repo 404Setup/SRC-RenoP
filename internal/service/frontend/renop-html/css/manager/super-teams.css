@@ -359,7 +359,7 @@
 
 .super-team-member-row {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 0.65rem;
     min-width: 0;
@@ -369,24 +369,12 @@
     background: color-mix(in srgb, var(--text-color) 2.5%, var(--card-bg));
 }
 
-.super-team-member-avatar {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
-    background: color-mix(in srgb, var(--text-color) 9%, var(--card-bg));
-    font-size: 0.78rem;
-    font-weight: 700;
-}
-
 .super-team-member-name {
     display: grid;
+    gap: 0.18rem;
     min-width: 0;
 }
 
-.super-team-member-name strong,
 .super-team-member-name small {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -543,10 +531,6 @@
 
     .super-team-member-row {
         align-items: start;
-    }
-
-    .super-team-member-avatar {
-        display: none;
     }
 
     .super-team-member-controls {

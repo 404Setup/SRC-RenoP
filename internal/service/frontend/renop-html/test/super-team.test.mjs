@@ -64,6 +64,9 @@ test('global team controls share bounded dialogs, user suggestions, errors, and 
     assert.doesNotMatch(script, /own \|\| canManage/);
     assert.match(script, /SUPER_TEAM_ERROR_KEYS/);
     assert.match(script, /morphElementHeight/);
+    assert.match(script, /createUserIdentity\(member\.username, \{avatar: true\}\)/);
+    assert.match(script, /createUserIdentity\(team\.created_by, \{template: 'superTeam\.createdBy'\}\)/);
+    assert.doesNotMatch(script, /String\(member\.username \|\| '\?'\)\[0\]/);
     assert.match(messages, /registerMessageActionHandler\('super_team_invite'/);
     assert.match(styles, /@media \(max-width: 560px\)/);
     assert.match(styles, /\.super-team-member-row\s*\{[\s\S]*?grid-template-columns/);

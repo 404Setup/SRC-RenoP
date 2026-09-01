@@ -43,10 +43,11 @@ import {
 import {collapseElement, expandElement, morphElementHeight} from '@renop/ui/height-anim';
 import {
     getUserProfile,
-    invalidateUserProfiles,
     navigateToUserProfile,
+    profileAvatarText,
     profileDisplayName,
     profileRouteFromPath,
+    syncUserProfile,
 } from './user-profiles.js';
 
 let profileFidoLoadSeq = 0;
@@ -594,16 +595,6 @@ function formatProfileCreatedAt(value) {
 }
 
 /**
- * Return the first visible character for the profile avatar.
- * @param {object} profile - Public profile payload.
- * @returns {string} Uppercase avatar character.
- */
-function profileAvatarLetter(profile) {
-    const characters = Array.from(profileDisplayName(profile));
-    return characters[0]?.toUpperCase() || '?';
-}
-
-/**
  * Update the account heading shown above the profile editor.
  * @param {object} profile - Own profile payload.
  * @returns {void}
@@ -614,7 +605,7 @@ function updateProfileEditHeading(profile) {
     const avatar = document.getElementById('profile-avatar-initials');
     const heading = document.getElementById('profile-display-name');
     const subtitle = editView.querySelector('.profile-hero-sub');
-    if (avatar) avatar.textContent = profileAvatarLetter(profile);
+    if (avatar) avatar.textContent = profileAvatarText(profile, 1);
     if (heading) heading.textContent = profileDisplayName(profile);
     if (subtitle) subtitle.textContent = `@${profile.username} · ${t('profile.editSubtitle')}`;
 }
@@ -829,7 +820,7 @@ function renderPublicProfile(profile) {
         el('article', {class: 'profile-public-card'},
             el('div', {class: 'profile-public-banner', 'aria-hidden': 'true'}),
             el('div', {class: 'profile-public-content'},
-                el('div', {class: 'profile-public-avatar', 'aria-hidden': 'true'}, profileAvatarLetter(profile)),
+                el('div', {class: 'profile-public-avatar', 'aria-hidden': 'true'}, profileAvatarText(profile, 1)),
                 el('div', {class: 'profile-public-heading'},
                     el('h2', {class: 'profile-public-name', title: displayName}, displayName),
                     el('p', {class: 'profile-public-username'}, `@${profile.username}`),
@@ -1058,10 +1049,7 @@ function buildProfileIdentityEditor(profile) {
             const oldUsername = profile.username;
             profile = {...profile, ...updated};
             localStorage.setItem('username', updated.username);
-            invalidateUserProfiles(oldUsername, updated.username);
-            window.dispatchEvent(new CustomEvent('profileUpdated', {
-                detail: {...updated, old_username: oldUsername}
-            }));
+            syncUserProfile(profile, {oldUsername});
             showAlert(t('profile.updated'), 'success');
             if (oldUsername !== updated.username) {
                 const route = profileRouteFromPath(window.location.pathname);
@@ -1186,7 +1174,7 @@ function wireProfileEditActions(profile) {
         usernameHiddenEl.value = username;
     }
     if (avatarEl) {
-        avatarEl.textContent = profileAvatarLetter(profile);
+        avatarEl.textContent = profileAvatarText(profile, 1);
     }
     if (displayNameEl) {
         displayNameEl.textContent = profileDisplayName(profile);

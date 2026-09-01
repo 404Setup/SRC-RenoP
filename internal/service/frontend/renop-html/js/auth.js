@@ -17,7 +17,7 @@ import {loadDirectory} from './browser.js';
 import {stopDashboardRefresh} from './dashboard.js';
 import {LoginRequest, SessionDetails} from './proto/index.js';
 import {base64urlToBuffer, bufferToBase64url} from './fido-utils.js';
-import {clearUserProfileCache, getUserProfile, profileDisplayName} from './user-profiles.js';
+import {clearUserProfileCache, getUserProfile, profileAvatarText, profileDisplayName} from './user-profiles.js';
 import {responseErrorMessage} from './response-errors.js';
 import {runButtonAction} from './components/button.js';
 import {requestProtectedRouteExit} from './protected-route.js';
@@ -31,6 +31,7 @@ const closeLoginModal = document.getElementById('close-login-modal');
 const loginForm = document.getElementById('login-form');
 const loginError = document.getElementById('login-error');
 const btnFidoLogin = document.getElementById('btn-fido-login');
+const profileTrigger = document.getElementById('profile-trigger');
 
 export let cachedIsLoggedIn = false;
 export let cachedIsManager = false;
@@ -60,6 +61,8 @@ export function isManagerTab(tabId) {
 let switchTabHandler = null;
 let navProfileLoadSequence = 0;
 let logoutPromise = null;
+let navProfile = null;
+let navProfileAnimation = null;
 
 /**
  * Apply a public profile identity to the compact navigation control.
@@ -68,9 +71,25 @@ let logoutPromise = null;
  */
 function applyNavProfile(profile) {
     const displayName = profileDisplayName(profile);
+    navProfile = profile;
+    const previousName = usernameDisplay?.textContent || '';
+    const startWidth = profileTrigger?.getBoundingClientRect().width || 0;
     if (usernameDisplay) usernameDisplay.textContent = displayName;
     const avatarDot = document.getElementById('user-avatar-dot');
-    if (avatarDot) avatarDot.textContent = Array.from(displayName)[0]?.toUpperCase() || '?';
+    if (avatarDot) avatarDot.textContent = profileAvatarText(profile, 1);
+    if (!profileTrigger || !previousName || previousName === displayName ||
+        typeof profileTrigger.animate !== 'function' ||
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const targetWidth = profileTrigger.getBoundingClientRect().width;
+    if (Math.abs(startWidth - targetWidth) < 0.5) return;
+    navProfileAnimation?.cancel();
+    navProfileAnimation = profileTrigger.animate([
+        {width: `${startWidth}px`},
+        {width: `${targetWidth}px`}
+    ], {duration: 280, easing: 'cubic-bezier(0.16, 1, 0.3, 1)'});
+    navProfileAnimation.addEventListener('finish', () => {
+        navProfileAnimation = null;
+    }, {once: true});
 }
 
 /**
@@ -80,22 +99,30 @@ function applyNavProfile(profile) {
  */
 async function refreshNavProfile(username) {
     const sequence = ++navProfileLoadSequence;
-    applyNavProfile(null);
     try {
-        const profile = await getUserProfile(username, {refresh: true});
+        const profile = await getUserProfile(username);
         if (sequence === navProfileLoadSequence) applyNavProfile(profile);
     } catch {
-        if (sequence === navProfileLoadSequence) applyNavProfile(null);
+        if (sequence === navProfileLoadSequence && !navProfile) applyNavProfile(null);
     }
 }
 
-window.addEventListener('profileUpdated', event => {
+window.addEventListener('userProfileChanged', event => {
+    const detail = event instanceof CustomEvent ? event.detail : null;
+    const currentUsername = String(localStorage.getItem('username') || '').toLowerCase();
+    if (detail?.username !== currentUsername) return;
     navProfileLoadSequence++;
-    applyNavProfile(event instanceof CustomEvent ? event.detail : null);
+    applyNavProfile(detail.profile);
+});
+
+window.addEventListener('userProfilesInvalidated', event => {
+    const usernames = event instanceof CustomEvent ? event.detail?.usernames : null;
+    const currentUsername = String(localStorage.getItem('username') || '').toLowerCase();
+    if (Array.isArray(usernames) && usernames.includes(currentUsername)) void refreshNavProfile(currentUsername);
 });
 
 window.addEventListener('languageChanged', () => {
-    if (cachedIsLoggedIn) void refreshNavProfile(localStorage.getItem('username') || '');
+    if (cachedIsLoggedIn && navProfile) applyNavProfile(navProfile);
 });
 
 /**
@@ -226,6 +253,9 @@ export function updateAuthUI(isLoggedIn, name = '', isManager = false, permissio
         if (userInfo) userInfo.style.display = 'none';
         if (usernameDisplay) usernameDisplay.textContent = '';
         if (avatarDot) avatarDot.textContent = '';
+        navProfile = null;
+        navProfileAnimation?.cancel();
+        navProfileAnimation = null;
     }
 
     for (const element of document.querySelectorAll('.manager-only')) {

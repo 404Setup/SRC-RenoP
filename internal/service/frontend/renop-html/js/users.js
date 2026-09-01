@@ -25,6 +25,7 @@ import {formatTimestamp, timestampMilliseconds} from './time.js';
 import {responseErrorMessage} from './response-errors.js';
 import {exitProtectedRouteOnDenial} from './protected-route.js';
 import {openPublicationQuotaDialog} from './publication-quota.js';
+import {invalidateUserProfiles} from './user-profiles.js';
 
 let previousStats = {total: -1, admin: -1, key: -1};
 let allTokens = [];
@@ -660,6 +661,7 @@ export async function deleteToken(name) {
         const headers = getAuthHeaders();
         const response = await fetch(`/api/tokens/${name}`, {method: 'DELETE', headers});
         if (response.ok) {
+            invalidateUserProfiles(name);
             setTimeout(() => {
                 fetchTokens();
             }, 200);

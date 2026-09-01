@@ -148,6 +148,17 @@ export function profileDisplayName(profile) {
 }
 
 /**
+ * Return a shared initials fallback for identity avatars.
+ * @param {object|null} profile - User profile.
+ * @param {number} [length=2] - Maximum visible characters.
+ * @returns {string} Uppercase avatar fallback.
+ */
+export function profileAvatarText(profile, length = 2) {
+    const boundedLength = Math.max(1, Math.min(2, Math.trunc(Number(length) || 2)));
+    return Array.from(profileDisplayName(profile)).slice(0, boundedLength).join('').toUpperCase() || '?';
+}
+
+/**
  * Resolve one username to its nickname-first public label.
  * @param {string} username - Account username.
  * @returns {Promise<string>} Public display label.
@@ -166,10 +177,34 @@ export async function resolveUserDisplayName(username) {
  * @returns {void}
  */
 export function invalidateUserProfiles(...usernames) {
+    const invalidated = [];
     for (const username of usernames) {
         const normalized = String(username || '').trim().toLowerCase();
-        if (normalized) profileCache.delete(normalized);
+        if (normalized) {
+            profileCache.delete(normalized);
+            invalidated.push(normalized);
+        }
     }
+    if (invalidated.length > 0) {
+        window.dispatchEvent(new CustomEvent('userProfilesInvalidated', {detail: {usernames: invalidated}}));
+    }
+}
+
+/**
+ * Publish one authoritative profile update to the shared cache and every mounted identity.
+ * @param {object} profile - Updated public profile payload.
+ * @param {{oldUsername?: string}} [options] - Previous route identity after a rename.
+ * @returns {void}
+ */
+export function syncUserProfile(profile, {oldUsername = ''} = {}) {
+    const username = String(profile?.username || '').trim().toLowerCase();
+    if (!username) return;
+    const previous = String(oldUsername || '').trim().toLowerCase();
+    if (previous && previous !== username) profileCache.delete(previous);
+    cacheUserProfile(username, profile);
+    window.dispatchEvent(new CustomEvent('userProfileChanged', {
+        detail: {profile, username, oldUsername: previous}
+    }));
 }
 
 /**

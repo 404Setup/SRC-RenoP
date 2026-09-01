@@ -39,3 +39,28 @@ test('profile and prefetch caches have explicit lifecycle and capacity bounds', 
     assert.match(alert, /import \{formatBytes} from '\.\/browser\/utils\.js'/);
     assert.doesNotMatch(alert, /export function formatBytes/);
 });
+
+test('all mounted user identities share profile updates without language refetch flicker', () => {
+    const profiles = readFileSync(join(frontendRoot, 'js/user-profiles.js'), 'utf8');
+    const profile = readFileSync(join(frontendRoot, 'js/profile.js'), 'utf8');
+    const auth = readFileSync(join(frontendRoot, 'js/auth.js'), 'utf8');
+    const identity = readFileSync(join(frontendRoot, 'js/components/user-identity.js'), 'utf8');
+    const userRow = readFileSync(join(frontendRoot, 'js/components/user-row.js'), 'utf8');
+    const users = readFileSync(join(frontendRoot, 'js/users.js'), 'utf8');
+
+    assert.match(profiles, /export function syncUserProfile/);
+    assert.match(profiles, /new CustomEvent\('userProfileChanged'/);
+    assert.match(profiles, /new CustomEvent\('userProfilesInvalidated'/);
+    assert.match(profile, /syncUserProfile\(profile, \{oldUsername\}\)/);
+    assert.doesNotMatch(profile, /new CustomEvent\('profileUpdated'/);
+    assert.match(identity, /identity\.applyProfile\(detail\.profile\)/);
+    assert.match(identity, /if \(identity\._profile\) identity\.applyProfile\(identity\._profile\)/);
+    assert.match(userRow, /createUserIdentity\(token\.name, \{avatar: true\}\)/);
+    assert.match(users, /if \(response\.ok\) \{\s*invalidateUserProfiles\(name\)/);
+    const languageListenerStart = auth.indexOf("window.addEventListener('languageChanged'");
+    const languageListener = auth.slice(languageListenerStart, auth.indexOf('});', languageListenerStart) + 3);
+    assert.match(languageListener, /applyNavProfile\(navProfile\)/);
+    assert.doesNotMatch(languageListener, /refreshNavProfile/);
+    assert.match(auth, /profileTrigger\.animate\(\[/);
+    assert.doesNotMatch(auth, /applyNavProfile\(null\);[\s\S]*?getUserProfile/);
+});

@@ -90,6 +90,10 @@ a {
     -moz-user-select: none;
 }
 
+html:not([data-i18n-ready="true"]) [data-i18n] {
+    visibility: hidden;
+}
+
 a.selectable,
 p, span, .user-name, .file-name, code, pre {
     -webkit-user-select: text;

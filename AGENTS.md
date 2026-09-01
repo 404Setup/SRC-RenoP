@@ -244,7 +244,8 @@
 - **`internal/testutil/`**: Shared test-only helpers, including retrying temporary-directory cleanup that runs before
   Go's parent `testing.TempDir` cleanup so transient Windows `ERROR_DIR_NOT_EMPTY` results do not fail SQLite tests.
 - **`web/` & `internal/service/frontend/`**: Embedded SPA with username-based `/user/<username>` profile, edit, and
-  package-membership routes plus shared nickname-first identity components. Global Maven memberships open the standalone
+  package-membership routes plus shared nickname-first identity components backed by one bounded profile cache and
+  immediate profile update/invalidation events. Global Maven memberships open the standalone
   `/domain/<domain>` public route, whose artifact links retain each readable repository's canonical package path.
   The five-minute profile cache retains at
   most 256 accounts, prunes expired/oldest entries, and is generation-cleared on logout so private responses cannot be
@@ -378,8 +379,9 @@
   snippet card while retaining storage and mirror statistics. Shared
   select controls pair `@renop/ui/custom-select` with its canonical package stylesheet; `@renop/ui/toggle` likewise
   owns the shared bounded switch track, focus, and disabled states. Native option popups are not used for styled
-  application dialogs. The i18n runtime incrementally translates asynchronously inserted declarative UI nodes, while
-  shared modal CSS clamps dialogs to the dynamic viewport and device safe areas. Shared asynchronous actions use the
+  application dialogs. The i18n runtime hides declarative fallback copy until the detected lazy locale is applied,
+  incrementally translates asynchronously inserted nodes, and exposes picker progress while a catalog loads. Shared
+  modal CSS clamps dialogs to the dynamic viewport and device safe areas. Shared asynchronous actions use the
   button-state helper exported by `js/components/button.js`, which restores controls after both successful and failed
   requests. `js/backend-availability.js` confirms same-origin request failures with foreground health probes so browser
   suspension cannot produce a stale blocking offline state. Docker management

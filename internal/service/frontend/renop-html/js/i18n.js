@@ -153,6 +153,21 @@ function updateLanguageUI() {
 }
 
 /**
+ * Expose language-catalog loading state in the picker and prevent duplicate selections.
+ * @param {boolean} loading - Whether a locale request is active.
+ * @returns {void}
+ */
+function setLanguageLoading(loading) {
+    const modal = document.getElementById('language-modal');
+    const progress = document.getElementById('language-load-progress');
+    if (modal) modal.toggleAttribute('aria-busy', loading);
+    if (progress) progress.hidden = !loading;
+    document.querySelectorAll('#language-grid .lang-card').forEach(card => {
+        card.disabled = loading;
+    });
+}
+
+/**
  * Normalize and match a language code to a supported entry in the registry.
  * @param {string} lang - Raw language tag (e.g. 'zh', 'en-US', 'yue-HK').
  * @returns {string|null} Matched registry key, or null if unsupported.
@@ -523,6 +538,8 @@ export function translateError(errorText) {
 export function updatePageTranslations() {
     translateSubtree(document);
     updateLanguageUI();
+    document.documentElement.lang = currentLang;
+    document.documentElement.dataset.i18nReady = 'true';
 }
 
 /**
@@ -536,40 +553,45 @@ export async function setLanguage(lang) {
     let source = 'user-set';
     const available = getAvailableLanguages();
     const requestID = ++languageRequestID;
-
-    if (!resolved) {
-        console.warn(`[i18n] Language '${lang}' is not supported. Defaulting to '${DEFAULT_LANG}'. Available languages: ${available.join(', ')}`);
-        currentLang = DEFAULT_LANG;
-        currentSource = 'fallback';
-        localStorage.setItem(STORAGE_KEY, DEFAULT_LANG);
-        const langSelect = document.getElementById('lang-select');
-        if (langSelect && langSelect.value !== DEFAULT_LANG) {
-            langSelect.value = DEFAULT_LANG;
-        }
-        updatePageTranslations();
-        return DEFAULT_LANG;
-    }
+    setLanguageLoading(true);
 
     try {
-        await ensureLanguage(resolved);
-    } catch (error) {
-        console.error(`[i18n] Failed to load language '${resolved}'.`, error);
-        resolved = DEFAULT_LANG;
-        source = 'fallback';
-    }
-    if (requestID !== languageRequestID) return currentLang;
+        if (!resolved) {
+            console.warn(`[i18n] Language '${lang}' is not supported. Defaulting to '${DEFAULT_LANG}'. Available languages: ${available.join(', ')}`);
+            currentLang = DEFAULT_LANG;
+            currentSource = 'fallback';
+            localStorage.setItem(STORAGE_KEY, DEFAULT_LANG);
+            const langSelect = document.getElementById('lang-select');
+            if (langSelect && langSelect.value !== DEFAULT_LANG) {
+                langSelect.value = DEFAULT_LANG;
+            }
+            updatePageTranslations();
+            return DEFAULT_LANG;
+        }
 
-    currentLang = resolved;
-    currentSource = source;
-    localStorage.setItem(STORAGE_KEY, resolved);
-    const langSelect = document.getElementById('lang-select');
-    if (langSelect && langSelect.value !== resolved) {
-        langSelect.value = resolved;
+        try {
+            await ensureLanguage(resolved);
+        } catch (error) {
+            console.error(`[i18n] Failed to load language '${resolved}'.`, error);
+            resolved = DEFAULT_LANG;
+            source = 'fallback';
+        }
+        if (requestID !== languageRequestID) return currentLang;
+
+        currentLang = resolved;
+        currentSource = source;
+        localStorage.setItem(STORAGE_KEY, resolved);
+        const langSelect = document.getElementById('lang-select');
+        if (langSelect && langSelect.value !== resolved) {
+            langSelect.value = resolved;
+        }
+        updatePageTranslations();
+        window.dispatchEvent(new CustomEvent('languageChanged', {detail: {lang: resolved}}));
+        console.log(`[i18n] Language changed to '${resolved}'.`);
+        return resolved;
+    } finally {
+        if (requestID === languageRequestID) setLanguageLoading(false);
     }
-    updatePageTranslations();
-    window.dispatchEvent(new CustomEvent('languageChanged', {detail: {lang: resolved}}));
-    console.log(`[i18n] Language changed to '${resolved}'.`);
-    return resolved;
 }
 
 /**
@@ -663,7 +685,7 @@ export async function initI18n() {
         updatePageTranslations();
     };
 
-    if (document.readyState === 'loading') {
+    if (!document.body) {
         document.addEventListener('DOMContentLoaded', setupLanguageModal);
     } else {
         setupLanguageModal();
@@ -672,4 +694,3 @@ export async function initI18n() {
     console.log(`[i18n] Initialized language '${currentLang}' (source: ${currentSource}). Available: ${getAvailableLanguages().join(', ')}.`);
     return currentLang;
 }
-

@@ -9,13 +9,15 @@
  */
 
 import assert from 'node:assert/strict';
-import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
-import {pathToFileURL} from 'node:url';
+import {dirname, join, resolve} from 'node:path';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'node:test';
 
 import {generateI18nCatalog, scanI18nCatalog} from '../scripts/i18n-catalog.mjs';
+
+const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 /**
  * Write a minimal locale fragment fixture.
@@ -117,5 +119,23 @@ test('generated catalog keeps English eager and loads other locales on demand', 
         await assert.rejects(catalog.loadLocale('invalid'), /unsupported locale: invalid/);
     } finally {
         rmSync(root, {recursive: true, force: true});
+    }
+});
+
+test('initial translations and language changes expose deterministic loading state', () => {
+    const runtime = readFileSync(join(frontendRoot, 'js/i18n.js'), 'utf8');
+    const page = readFileSync(join(frontendRoot, 'index.html'), 'utf8');
+    const baseStyles = readFileSync(join(frontendRoot, 'css/layout/base.css'), 'utf8');
+    const settingsStyles = readFileSync(join(frontendRoot, 'css/manager/settings.css'), 'utf8');
+
+    assert.match(page, /id="language-load-progress"[^>]*role="progressbar"/);
+    assert.match(runtime, /setLanguageLoading\(true\)/);
+    assert.match(runtime, /finally \{[\s\S]*?setLanguageLoading\(false\)/);
+    assert.match(runtime, /document\.documentElement\.dataset\.i18nReady = 'true'/);
+    assert.match(runtime, /if \(!document\.body\)[\s\S]*?else \{\s*setupLanguageModal\(\)/);
+    assert.match(baseStyles, /html:not\(\[data-i18n-ready="true"\]\) \[data-i18n\][^}]*visibility: hidden/s);
+    assert.match(settingsStyles, /\.language-load-progress > span[^}]*animation: languageLoadProgress/s);
+    for (const key of ['users.thUser', 'users.thPermissions', 'users.thCreatedAt']) {
+        assert.match(page, new RegExp(`data-i18n="${key}"`));
     }
 });

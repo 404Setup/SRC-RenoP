@@ -66,18 +66,31 @@ export class RenopUserIdentity extends HTMLElement {
         this.appendChild(link);
         void getUserProfile(username).then(profile => {
             if (!this.isConnected || this.dataset.renderVersion !== version) return;
-            const displayName = profileDisplayName(profile);
-            const template = this.getAttribute('template') || '';
-            label.textContent = template ? t(template, {name: displayName}) : displayName;
-            label.title = displayName;
-            label.classList.remove('is-loading');
-            const avatar = link.querySelector('renop-user-avatar');
-            if (avatar) avatar.setAttribute('name', displayName);
+            this.applyProfile(profile);
         }).catch(() => {
             if (!this.isConnected || this.dataset.renderVersion !== version) return;
             label.textContent = '—';
             label.classList.remove('is-loading');
         });
+    }
+
+    /**
+     * Apply an already resolved shared profile without replacing the identity DOM.
+     * @param {object} profile - Public profile payload.
+     * @returns {void}
+     */
+    applyProfile(profile) {
+        this._profile = profile;
+        const displayName = profileDisplayName(profile);
+        const template = this.getAttribute('template') || '';
+        const label = this.querySelector('.user-identity-name');
+        if (label) {
+            label.textContent = template ? t(template, {name: displayName}) : displayName;
+            label.title = displayName;
+            label.classList.remove('is-loading');
+        }
+        const avatar = this.querySelector('renop-user-avatar');
+        if (avatar) avatar.setAttribute('name', displayName);
     }
 }
 
@@ -86,19 +99,28 @@ if (!customElements.get('renop-user-identity')) {
 }
 
 window.addEventListener('languageChanged', () => {
-    document.querySelectorAll('renop-user-identity').forEach(identity => identity.render());
+    document.querySelectorAll('renop-user-identity').forEach(identity => {
+        if (identity._profile) identity.applyProfile(identity._profile);
+    });
 });
 
-window.addEventListener('profileUpdated', event => {
+window.addEventListener('userProfileChanged', event => {
     const detail = event instanceof CustomEvent ? event.detail : null;
-    const oldUsername = String(detail?.old_username || '').toLowerCase();
+    const oldUsername = String(detail?.oldUsername || '').toLowerCase();
     const newUsername = String(detail?.username || '').toLowerCase();
     document.querySelectorAll('renop-user-identity').forEach(identity => {
         if (oldUsername && identity.getAttribute('username') === oldUsername) {
             identity.setAttribute('username', newUsername);
-        } else if (identity.getAttribute('username') === newUsername) {
-            identity.render();
         }
+        if (identity.getAttribute('username') === newUsername) identity.applyProfile(detail.profile);
+    });
+});
+
+window.addEventListener('userProfilesInvalidated', event => {
+    const usernames = event instanceof CustomEvent ? event.detail?.usernames : null;
+    if (!Array.isArray(usernames)) return;
+    document.querySelectorAll('renop-user-identity').forEach(identity => {
+        if (usernames.includes(String(identity.getAttribute('username') || '').toLowerCase())) identity.render();
     });
 });
 
