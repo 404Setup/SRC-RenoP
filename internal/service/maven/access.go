@@ -51,6 +51,12 @@ func AuthorizeGroup(state *core.AppState, user *config.User, repo *config.Reposi
 		if domain == nil {
 			return nil, core.ErrMavenDomainNotFound
 		}
+		if domain.ClosedAt != 0 {
+			return nil, core.ErrMavenDomainClosed
+		}
+		if domain.ClaimStatus != "" {
+			return nil, core.ErrMavenDomainUnverified
+		}
 		return domain, nil
 	}
 	domains, err := state.GetDB().ListMavenDomains(user.Username, false)
@@ -58,6 +64,9 @@ func AuthorizeGroup(state *core.AppState, user *config.User, repo *config.Reposi
 		return nil, err
 	}
 	domain := matchingDomain(domains, strings.ToLower(strings.TrimSpace(groupID)))
+	if domain != nil && domain.ClosedAt != 0 {
+		return nil, core.ErrMavenDomainClosed
+	}
 	if domain == nil || !domain.Member || domain.PermissionLevel < requiredLevel {
 		return nil, core.ErrMavenPermissionDenied
 	}
@@ -76,7 +85,8 @@ func AuthorizeArtifact(state *core.AppState, user *config.User, repo *config.Rep
 		return domain, nil
 	}
 	if state == nil || user == nil || repo == nil || state.GetDB() == nil ||
-		errors.Is(err, core.ErrMavenDomainNotFound) || errors.Is(err, core.ErrMavenDomainUnverified) {
+		errors.Is(err, core.ErrMavenDomainNotFound) || errors.Is(err, core.ErrMavenDomainUnverified) ||
+		errors.Is(err, core.ErrMavenDomainClosed) {
 		return nil, err
 	}
 	domains, listErr := state.GetDB().ListMavenDomains(user.Username, false)
@@ -142,6 +152,9 @@ func AuthorizeMutation(state *core.AppState, user *config.User, repo *config.Rep
 	domain := matchingDomain(domains, candidate)
 	if domain == nil {
 		return nil, core.ErrMavenPermissionDenied
+	}
+	if domain.ClosedAt != 0 {
+		return nil, core.ErrMavenDomainClosed
 	}
 	if !domain.Verified {
 		return nil, core.ErrMavenDomainUnverified

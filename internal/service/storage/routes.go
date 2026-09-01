@@ -36,6 +36,10 @@ func mavenMutationError(c fiber.Ctx, err error) error {
 		c.Set("X-Renop-Error-Code", "package_deprecated")
 		return c.Status(fiber.StatusConflict).SendString("Maven artifact is permanently deprecated and read-only")
 	}
+	if errors.Is(err, core.ErrMavenDomainClosed) {
+		c.Set("X-Renop-Error-Code", "maven_domain_closed")
+		return c.Status(fiber.StatusConflict).SendString("Maven publishing domain is closed")
+	}
 	if errors.Is(err, core.ErrMavenDomainUnverified) {
 		return c.Status(fiber.StatusConflict).SendString("Maven domain must be verified before publication")
 	}

@@ -117,8 +117,12 @@
   composed file stream, avoiding the former full-file read and second allocation for entries up to 64 MiB.
 - **`internal/service/maven/`**: Process-wide Maven domain registry with DNS/GitHub/GitLab ownership verification,
   global L0-L4 domain teams shared by every Maven repository, invitation workflows, catalog/version management, and
-  automatic migration of repository-scoped legacy domains. Verified domains expose a public bounded cross-repository
-  artifact catalog filtered to repositories readable by the current viewer. Upstream mirror discovery persists
+  automatic migration of repository-scoped legacy domains. Publishing domains cannot be deleted or reopened: an L4
+  owner or system administrator may close one immediately, which makes every local artifact mutation read-only while
+  preserving downloads and holds the name for 31 days. Release is derived from the durable timestamp without a polling
+  task; the first later claimant atomically replaces the old domain team, must verify current ownership, and remains
+  unable to publish until a system administrator approves the claim. Verified domains expose a public bounded
+  cross-repository artifact catalog filtered to repositories readable by the current viewer. Upstream mirror discovery persists
   unverified global domains so administrators can filter, inspect, and explicitly approve them. Maven and Cargo mirror downloads are
   cataloged through
   the format-aware proxy completion hook in `internal/service/storage/mirror.go` without buffering artifact bodies.
@@ -286,7 +290,9 @@
   Repository catalogs list only domains containing
   artifacts in that repository, while global Maven domain and team configuration lives in the signed-in account menu.
   The account menu opens the routed `/account/maven-domains` subpage, whose server-backed multi-select permission/source
-  filters and pagination keep large domain registries bounded.
+  filters and pagination keep large domain registries bounded. The same page shows closed/released timestamps, performs
+  irreversible domain closure, and gives system administrators a filtered queue plus explicit approve/reject controls
+  for ownership-verified released-domain claims.
   The signed-in account menu owns profile navigation, messages, logout, Maven domains, global teams, reviews,
   administrator pages, and the standalone administrator notification composer. `js/messages.js` is limited to the
   user message center and unread polling; `js/notification-composer.js` independently owns manager gating, recipient

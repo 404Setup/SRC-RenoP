@@ -96,17 +96,19 @@ const (
 	ActionNPMInviteAccept   = "NPM_INVITE_ACCEPT"
 	ActionNPMInviteReject   = "NPM_INVITE_REJECT"
 
-	ActionMavenDomainCreate      = "MAVEN_DOMAIN_CREATE"
-	ActionMavenDomainVerify      = "MAVEN_DOMAIN_VERIFY"
-	ActionMavenDomainForceVerify = "MAVEN_DOMAIN_FORCE_VERIFY"
-	ActionMavenDomainDelete      = "MAVEN_DOMAIN_DELETE"
-	ActionMavenArtifactUpdate    = "MAVEN_ARTIFACT_UPDATE"
-	ActionMavenVersionDelete     = "MAVEN_VERSION_DELETE"
-	ActionMavenTeamAdd           = "MAVEN_TEAM_ADD"
-	ActionMavenTeamInvite        = "MAVEN_TEAM_INVITE"
-	ActionMavenTeamLevel         = "MAVEN_TEAM_LEVEL"
-	ActionMavenTeamRemove        = "MAVEN_TEAM_REMOVE"
-	ActionMavenTeamInvitation    = "MAVEN_TEAM_INVITATION"
+	ActionMavenDomainCreate       = "MAVEN_DOMAIN_CREATE"
+	ActionMavenDomainVerify       = "MAVEN_DOMAIN_VERIFY"
+	ActionMavenDomainForceVerify  = "MAVEN_DOMAIN_FORCE_VERIFY"
+	ActionMavenDomainClose        = "MAVEN_DOMAIN_CLOSE"
+	ActionMavenDomainClaimApprove = "MAVEN_DOMAIN_CLAIM_APPROVE"
+	ActionMavenDomainClaimReject  = "MAVEN_DOMAIN_CLAIM_REJECT"
+	ActionMavenArtifactUpdate     = "MAVEN_ARTIFACT_UPDATE"
+	ActionMavenVersionDelete      = "MAVEN_VERSION_DELETE"
+	ActionMavenTeamAdd            = "MAVEN_TEAM_ADD"
+	ActionMavenTeamInvite         = "MAVEN_TEAM_INVITE"
+	ActionMavenTeamLevel          = "MAVEN_TEAM_LEVEL"
+	ActionMavenTeamRemove         = "MAVEN_TEAM_REMOVE"
+	ActionMavenTeamInvitation     = "MAVEN_TEAM_INVITATION"
 )
 
 // KnownActions returns every stable action identifier emitted by the audit service.
@@ -196,7 +198,9 @@ func KnownActions() []string {
 		ActionMavenDomainCreate,
 		ActionMavenDomainVerify,
 		ActionMavenDomainForceVerify,
-		ActionMavenDomainDelete,
+		ActionMavenDomainClose,
+		ActionMavenDomainClaimApprove,
+		ActionMavenDomainClaimReject,
 		ActionMavenArtifactUpdate,
 		ActionMavenVersionDelete,
 		ActionMavenTeamAdd,

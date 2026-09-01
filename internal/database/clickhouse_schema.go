@@ -285,7 +285,8 @@ func clickHouseSchemas() []clickHouseTableSchema {
 		{name: "maven_domains", keyColumns: []string{"repository", "domain"}, columns: []string{
 			"`repository` String", "`domain` String", "`verification_type` String", "`verification_host` String",
 			"`verification_code` String", "`super_team_prefix` String DEFAULT ''", "`verified` Int64 DEFAULT 0", "`created_at` Int64",
-			"`verified_at` Int64 DEFAULT 0", "`last_check_at` Int64 DEFAULT 0",
+			"`verified_at` Int64 DEFAULT 0", "`last_check_at` Int64 DEFAULT 0", "`closed_at` Int64 DEFAULT 0",
+			"`release_at` Int64 DEFAULT 0", "`claim_status` String DEFAULT ''", "`claim_verified_at` Int64 DEFAULT 0",
 		}},
 		{name: "maven_domain_members", keyColumns: []string{"repository", "domain", "user_id"}, columns: []string{
 			"`repository` String", "`domain` String", "`username` String", "`user_id` Nullable(String)",

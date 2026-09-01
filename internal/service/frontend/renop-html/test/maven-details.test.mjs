@@ -57,3 +57,13 @@ test('Maven metadata layouts remain responsive and bounded', () => {
         assert.ok(styles.includes(selector), `Maven metadata styles are missing ${selector}`);
     }
 });
+
+test('Maven domains close permanently and released claims require administrator review', () => {
+    const source = readFileSync(join(frontendRoot, 'js/browser/maven.js'), 'utf8');
+    assert.match(source, /\/domains\/\$\{encodeURIComponent\(domain\.domain\)\}\/close`, \{method: 'POST'}\)/);
+    assert.match(source, /\/domains\/\$\{encodeURIComponent\(domain\.domain\)\}\/claim`/);
+    assert.match(source, /body: JSON\.stringify\(\{decision}\)/);
+    assert.match(source, /domain\.claim_status === 'pending'/);
+    assert.match(source, /Number\(domain\?\.closed_at\) > 0/);
+    assert.doesNotMatch(source, /deleteDomain|deleteDomainConfirm/);
+});

@@ -11,6 +11,7 @@
 package database_test
 
 import (
+	"database/sql"
 	"errors"
 	"path/filepath"
 	"strings"
@@ -35,6 +36,39 @@ func newMavenDB(t *testing.T) *database.DB {
 		require.NoError(t, db.SaveToken(&core.AccessToken{Name: username, CreatedAt: time.Now().Format(time.RFC3339)}))
 	}
 	return db
+}
+
+func TestMavenDomainLifecycleColumnsMigrateFromLegacySchema(t *testing.T) {
+	databasePath := filepath.Join(testutil.TempDir(t), "legacy-maven-domain.db")
+	rawDB, err := sql.Open("sqlite", databasePath)
+	require.NoError(t, err)
+	_, err = rawDB.Exec(`CREATE TABLE maven_domains (
+		repository VARCHAR(64) NOT NULL, domain VARCHAR(253) NOT NULL,
+		verification_type VARCHAR(16) NOT NULL, verification_host VARCHAR(253) NOT NULL,
+		verification_code VARCHAR(128) NOT NULL, super_team_prefix VARCHAR(64) NOT NULL DEFAULT '',
+		verified INT NOT NULL DEFAULT 0, created_at BIGINT NOT NULL,
+		verified_at BIGINT NOT NULL DEFAULT 0, last_check_at BIGINT NOT NULL DEFAULT 0,
+		PRIMARY KEY (repository, domain)
+	)`)
+	require.NoError(t, err)
+	_, err = rawDB.Exec(`INSERT INTO maven_domains
+		(repository, domain, verification_type, verification_host, verification_code, verified, created_at)
+		VALUES ('', 'com.legacy', 'dns', 'legacy.com', 'legacy-code', 1, 1)`)
+	require.NoError(t, err)
+	require.NoError(t, rawDB.Close())
+
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "sqlite", Dsn: databasePath, MaxOpenConns: 1, MaxIdleConns: 1,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	details, err := db.GetMavenDomainDetails("com.legacy", "")
+	require.NoError(t, err)
+	assert.True(t, details.Domain.Verified)
+	assert.Zero(t, details.Domain.ClosedAt)
+	assert.Zero(t, details.Domain.ReleaseAt)
+	assert.Empty(t, details.Domain.ClaimStatus)
+	assert.Zero(t, details.Domain.ClaimVerifiedAt)
 }
 
 func TestManagedMavenDomainsFilterPaginationAndMirrorClaim(t *testing.T) {
@@ -201,6 +235,81 @@ func TestMavenDomainOwnershipAndCatalog(t *testing.T) {
 	require.NoError(t, db.DeleteMavenRepository("releases"))
 	_, err = db.GetMavenDomainDetails("com.example", "bob")
 	require.NoError(t, err)
+}
+
+func TestMavenDomainCloseReleaseAndReviewedReclaim(t *testing.T) {
+	db := newMavenDB(t)
+	now := time.Now().UnixMilli()
+	domain := &core.MavenDomain{
+		Domain: "com.lifecycle", VerificationType: core.MavenVerificationDNS,
+		VerificationHost: "lifecycle.com", VerificationCode: "renop-verification=alice",
+		CreatedAt: now,
+	}
+	require.NoError(t, db.CreateMavenDomain(domain, "alice"))
+	require.NoError(t, db.MarkMavenDomainVerified(domain.Domain, domain.VerificationCode, now+1))
+	require.NoError(t, db.RecordMavenPublication(&core.MavenArtifact{
+		Repository: "releases", Domain: domain.Domain, GroupID: domain.Domain, ArtifactID: "demo",
+		CreatedAt: now + 2, UpdatedAt: now + 2,
+	}, &core.MavenVersion{
+		Repository: "releases", GroupID: domain.Domain, ArtifactID: "demo", Version: "1.0.0",
+		Publisher: "alice", CreatedAt: now + 2,
+	}))
+	closedAt := now + 3
+	require.NoError(t, db.CloseMavenDomain(domain.Domain, "alice", false, closedAt))
+	details, err := db.GetMavenDomainDetails(domain.Domain, "alice")
+	require.NoError(t, err)
+	assert.False(t, details.Domain.Verified)
+	assert.Equal(t, closedAt, details.Domain.ClosedAt)
+	assert.Equal(t, closedAt+core.MavenDomainReleaseLockMillis, details.Domain.ReleaseAt)
+
+	claim := &core.MavenDomain{
+		Domain: domain.Domain, VerificationType: core.MavenVerificationDNS,
+		VerificationHost: "lifecycle.com", VerificationCode: "renop-verification=bob",
+		CreatedAt: details.Domain.ReleaseAt - 1,
+	}
+	require.ErrorIs(t, db.CreateMavenDomain(claim, "bob"), core.ErrMavenDomainLocked)
+	claim.CreatedAt = details.Domain.ReleaseAt
+	require.NoError(t, db.CreateMavenDomain(claim, "bob"))
+	details, err = db.GetMavenDomainDetails(domain.Domain, "bob")
+	require.NoError(t, err)
+	assert.False(t, details.Domain.Verified)
+	assert.Equal(t, core.MavenDomainClaimAwaitingVerification, details.Domain.ClaimStatus)
+	require.Len(t, details.Members, 1)
+	assert.Equal(t, "bob", details.Members[0].Username)
+	artifact, err := db.GetMavenArtifactDetails("releases", domain.Domain, "demo")
+	require.NoError(t, err)
+	require.NotNil(t, artifact.Artifact)
+
+	require.NoError(t, db.MarkMavenDomainVerified(domain.Domain, claim.VerificationCode, claim.CreatedAt+1))
+	details, err = db.GetMavenDomainDetails(domain.Domain, "bob")
+	require.NoError(t, err)
+	assert.False(t, details.Domain.Verified)
+	assert.Equal(t, core.MavenDomainClaimPending, details.Domain.ClaimStatus)
+	require.NoError(t, db.ReviewMavenDomainClaim(domain.Domain, core.ReviewStatusRejected, claim.CreatedAt+2))
+	require.NoError(t, db.MarkMavenDomainVerified(domain.Domain, claim.VerificationCode, claim.CreatedAt+3))
+	require.NoError(t, db.ReviewMavenDomainClaim(domain.Domain, core.ReviewStatusApproved, claim.CreatedAt+4))
+	details, err = db.GetMavenDomainDetails(domain.Domain, "bob")
+	require.NoError(t, err)
+	assert.True(t, details.Domain.Verified)
+	assert.Empty(t, details.Domain.ClaimStatus)
+	assert.Equal(t, claim.CreatedAt+4, details.Domain.VerifiedAt)
+
+	pendingDomain := &core.MavenDomain{
+		Domain: "com.pending", VerificationType: core.MavenVerificationDNS,
+		VerificationHost: "pending.com", VerificationCode: "renop-verification=pending",
+		CreatedAt: claim.CreatedAt + 5,
+	}
+	require.NoError(t, db.CreateMavenDomain(pendingDomain, "alice"))
+	_, err = db.CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+		ResourceType: core.ReviewResourceMavenArtifact, Repository: "releases",
+		ResourceKey: "com.pending:demo", ResourceName: "com.pending:demo", Version: "1.0.0",
+		RequestedBy: "alice", Policy: config.PublicationReviewEveryVersion,
+		Files:     []*core.ReviewFile{{Path: "com/pending/demo/1.0/demo-1.0.jar", Size: 10}},
+		CreatedAt: claim.CreatedAt + 6,
+	})
+	require.NoError(t, err)
+	require.ErrorIs(t, db.CloseMavenDomain(pendingDomain.Domain, "alice", false, claim.CreatedAt+7),
+		core.ErrMavenDomainReviewPending)
 }
 
 func TestMavenArtifactMovesToMostSpecificDomain(t *testing.T) {

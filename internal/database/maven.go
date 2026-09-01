@@ -38,6 +38,7 @@ func sanitizeMavenUsername(value string) string {
 
 const mavenDomainSelectPrefix = `d.repository, d.domain, d.verification_type, d.verification_host,
 	d.verification_code, d.super_team_prefix, d.verified, d.created_at, d.verified_at, d.last_check_at,
+	d.closed_at, d.release_at, d.claim_status, d.claim_verified_at,
 	COALESCE(m.permission_level, 0), CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END,
 	COALESCE(stm.role_level, 0), CASE WHEN stm.user_id IS NULL THEN 0 ELSE 1 END,`
 
@@ -66,11 +67,13 @@ func scanMavenDomain(scanner mavenDomainScanner) (*core.MavenDomain, error) {
 	var verified, explicitLevel, explicitMember, superRole, superMember int
 	if err := scanner.Scan(&domain.Repository, &domain.Domain, &domain.VerificationType,
 		&domain.VerificationHost, &domain.VerificationCode, &domain.SuperTeamPrefix, &verified,
-		&domain.CreatedAt, &domain.VerifiedAt, &domain.LastCheckAt, &explicitLevel, &explicitMember,
+		&domain.CreatedAt, &domain.VerifiedAt, &domain.LastCheckAt, &domain.ClosedAt, &domain.ReleaseAt,
+		&domain.ClaimStatus, &domain.ClaimVerifiedAt, &explicitLevel, &explicitMember,
 		&superRole, &superMember, &domain.ArtifactCount, &domain.RepositoryCount, &domain.MemberCount); err != nil {
 		return nil, err
 	}
 	domain.Verified = verified != 0
+	domain.Released = domain.ClosedAt > 0 && domain.ReleaseAt > 0 && domain.ReleaseAt <= time.Now().UnixMilli()
 	domain.PermissionLevel, domain.Member = effectiveBoundPermission(
 		explicitLevel, explicitMember != 0, superRole, superMember != 0)
 	return domain, nil
@@ -123,13 +126,17 @@ func (db *DB) EnsureImportedMavenDomain(domain *core.MavenDomain) error {
 	}
 	domain.Repository = globalMavenRepository
 	var existingVerified int
-	err := db.QueryRow(`SELECT verified FROM maven_domains WHERE repository = ? AND domain = ?`, globalMavenRepository, name).Scan(&existingVerified)
+	var closedAt int64
+	var claimStatus string
+	err := db.QueryRow(`SELECT verified, closed_at, claim_status FROM maven_domains WHERE repository = ? AND domain = ?`,
+		globalMavenRepository, name).Scan(&existingVerified, &closedAt, &claimStatus)
 	if err == nil {
-		if existingVerified != 0 {
+		if existingVerified != 0 || closedAt != 0 || claimStatus != "" {
 			return nil
 		}
 		_, err = db.Exec(`UPDATE maven_domains SET verification_type = ?, verification_host = ?,
-			verification_code = ?, verified = 1, verified_at = ? WHERE repository = ? AND domain = ?`,
+			verification_code = ?, verified = 1, verified_at = ? WHERE repository = ? AND domain = ?
+			AND closed_at = 0 AND claim_status = ''`,
 			SanitizeInputString(domain.VerificationType, 16), SanitizeInputString(domain.VerificationHost, 253),
 			SanitizeInputString(domain.VerificationCode, 128), domain.VerifiedAt, globalMavenRepository, name)
 		if err != nil {
@@ -232,40 +239,84 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string) error {
 	}
 	var existingType string
 	var existingVerified int
-	mirroredReservation := false
-	if err := tx.QueryRow(`SELECT verification_type, verified FROM maven_domains WHERE repository = ? AND domain = ?`,
-		domain.Repository, domain.Domain).Scan(&existingType, &existingVerified); err == nil {
-		mirroredReservation = existingType == core.MavenVerificationMirror && existingVerified == 0
-		if !mirroredReservation {
-			return core.ErrMavenDomainExists
+	var existingClosedAt, existingReleaseAt int64
+	var existingClaimStatus string
+	existing := false
+	loadExisting := func() error {
+		return tx.QueryRow(`SELECT verification_type, verified, closed_at, release_at, claim_status
+			FROM maven_domains WHERE repository = ? AND domain = ?`, domain.Repository, domain.Domain).
+			Scan(&existingType, &existingVerified, &existingClosedAt, &existingReleaseAt, &existingClaimStatus)
+	}
+	if err := loadExisting(); err == nil {
+		existing = true
+		if err := lockMavenDomain(tx, domain.Domain); err != nil {
+			return err
+		}
+		if err := loadExisting(); err != nil {
+			return fmt.Errorf("reload Maven domain claim: %w", err)
 		}
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("inspect Maven domain: %w", err)
 	}
+	mirroredReservation := existing && existingType == core.MavenVerificationMirror && existingVerified == 0 &&
+		existingClosedAt == 0 && existingClaimStatus == ""
+	releasedReservation := existing && existingClosedAt > 0 && existingReleaseAt > 0 &&
+		existingReleaseAt <= domain.CreatedAt
+	if existing && !mirroredReservation && !releasedReservation {
+		if existingClosedAt > 0 {
+			return core.ErrMavenDomainLocked
+		}
+		return core.ErrMavenDomainExists
+	}
 	var owned int
-	if err := tx.QueryRow(`SELECT COUNT(*) FROM maven_domain_members WHERE user_id = ? AND permission_level = ?`,
-		ownerID, core.MavenPermissionOwner).Scan(&owned); err != nil {
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM maven_domain_members WHERE user_id = ? AND permission_level = ?
+		AND NOT (repository = ? AND domain = ?)`, ownerID, core.MavenPermissionOwner,
+		globalMavenRepository, domain.Domain).Scan(&owned); err != nil {
 		return fmt.Errorf("count Maven domain ownerships: %w", err)
 	}
 	if owned >= maxMavenDomainsPerOwner {
 		return errors.New("maven domain ownership limit reached")
 	}
 	verified := 0
+	storedVerifiedAt := domain.VerifiedAt
 	if domain.Verified {
 		verified = 1
 	}
-	if mirroredReservation {
+	claimStatus := ""
+	claimVerifiedAt := int64(0)
+	if releasedReservation {
+		verified = 0
+		storedVerifiedAt = 0
+		claimStatus = core.MavenDomainClaimAwaitingVerification
+		if domain.Verified {
+			claimStatus = core.MavenDomainClaimPending
+			claimVerifiedAt = domain.VerifiedAt
+		}
+		if err := cancelMavenInvitations(tx, `repository = ? AND domain = ?`,
+			[]any{globalMavenRepository, domain.Domain}, domain.CreatedAt); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`DELETE FROM maven_domain_members WHERE repository = ? AND domain = ?`,
+			globalMavenRepository, domain.Domain); err != nil {
+			return fmt.Errorf("replace released Maven domain members: %w", err)
+		}
+	}
+	if mirroredReservation || releasedReservation {
 		result, err := tx.Exec(`UPDATE maven_domains SET verification_type = ?, verification_host = ?,
-			verification_code = ?, super_team_prefix = ?, verified = ?, created_at = ?, verified_at = ?, last_check_at = 0
-			WHERE repository = ? AND domain = ? AND verification_type = ? AND verified = 0`,
+			verification_code = ?, super_team_prefix = ?, verified = ?, created_at = ?, verified_at = ?, last_check_at = 0,
+			closed_at = 0, release_at = 0, claim_status = ?, claim_verified_at = ?
+			WHERE repository = ? AND domain = ? AND verified = 0 AND
+			((verification_type = ? AND closed_at = 0 AND claim_status = '') OR
+			(closed_at = ? AND release_at = ? AND release_at <= ?))`,
 			domain.VerificationType, domain.VerificationHost, domain.VerificationCode, domain.SuperTeamPrefix, verified,
-			domain.CreatedAt, domain.VerifiedAt, domain.Repository, domain.Domain, core.MavenVerificationMirror)
+			domain.CreatedAt, storedVerifiedAt, claimStatus, claimVerifiedAt, domain.Repository, domain.Domain,
+			core.MavenVerificationMirror, existingClosedAt, existingReleaseAt, domain.CreatedAt)
 		if err != nil {
-			return fmt.Errorf("claim mirrored Maven domain: %w", err)
+			return fmt.Errorf("claim Maven domain: %w", err)
 		}
 		changed, err := result.RowsAffected()
 		if err != nil {
-			return fmt.Errorf("count claimed mirrored Maven domains: %w", err)
+			return fmt.Errorf("count claimed Maven domains: %w", err)
 		}
 		if changed != 1 {
 			return core.ErrMavenDomainExists
@@ -285,6 +336,14 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string) error {
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit Maven domain creation: %w", err)
+	}
+	if releasedReservation {
+		domain.Verified = false
+		domain.VerifiedAt = 0
+		domain.ClosedAt = 0
+		domain.ReleaseAt = 0
+		domain.ClaimStatus = claimStatus
+		domain.ClaimVerifiedAt = claimVerifiedAt
 	}
 	return nil
 }
@@ -359,7 +418,7 @@ func (db *DB) ListManagedMavenDomains(options core.MavenDomainListOptions) ([]*c
 		where = append(where, "(m.user_id IS NOT NULL OR stm.user_id IS NOT NULL)")
 	}
 	if options.Filtered {
-		filters := make([]string, 0, len(options.PermissionLevels)+2)
+		filters := make([]string, 0, len(options.PermissionLevels)+3)
 		for _, level := range options.PermissionLevels {
 			if level < core.MavenPermissionRead || level > core.MavenPermissionOwner {
 				continue
@@ -373,6 +432,10 @@ func (db *DB) ListManagedMavenDomains(options core.MavenDomainListOptions) ([]*c
 		if options.IncludeMirrored {
 			filters = append(filters, "d.verification_type = ?")
 			args = append(args, core.MavenVerificationMirror)
+		}
+		if options.IncludeClaimReview {
+			filters = append(filters, "d.claim_status = ?")
+			args = append(args, core.MavenDomainClaimPending)
 		}
 		if len(filters) == 0 {
 			return []*core.MavenDomain{}, 0, nil
@@ -570,7 +633,8 @@ func (db *DB) ReserveMavenVerificationAttempt(domain, actor string, administrato
 			}
 		}
 		result, err := tx.Exec(`UPDATE maven_domains SET last_check_at = ? WHERE repository = ? AND domain = ?
-			AND verified = 0 AND last_check_at <= ?`, checkedAt, globalMavenRepository, domain, minimumPrevious)
+			AND verified = 0 AND closed_at = 0 AND claim_status <> ? AND last_check_at <= ?`, checkedAt,
+			globalMavenRepository, domain, core.MavenDomainClaimPending, minimumPrevious)
 		if err != nil {
 			return fmt.Errorf("reserve ClickHouse Maven verification attempt: %w", err)
 		}
@@ -590,19 +654,21 @@ func (db *DB) ReserveMavenVerificationAttempt(domain, actor string, administrato
 	var err error
 	if administrator {
 		updateResult, err = db.Exec(`UPDATE maven_domains SET last_check_at = ? WHERE repository = ? AND domain = ?
-			AND verified = 0 AND last_check_at <= ?`, checkedAt, globalMavenRepository, domain, minimumPrevious)
+			AND verified = 0 AND closed_at = 0 AND claim_status <> ? AND last_check_at <= ?`, checkedAt,
+			globalMavenRepository, domain, core.MavenDomainClaimPending, minimumPrevious)
 	} else {
 		actorID, identityErr := db.userIDForUsername(actor)
 		if identityErr != nil {
 			return core.ErrMavenPermissionDenied
 		}
 		updateResult, err = db.Exec(`UPDATE maven_domains SET last_check_at = ? WHERE repository = ? AND domain = ?
-			AND verified = 0 AND last_check_at <= ? AND (EXISTS (
+			AND verified = 0 AND closed_at = 0 AND claim_status <> ? AND last_check_at <= ? AND (EXISTS (
 				SELECT 1 FROM maven_domain_members m WHERE m.repository = maven_domains.repository
 				AND m.domain = maven_domains.domain AND m.user_id = ? AND m.permission_level = ?
 			) OR EXISTS (SELECT 1 FROM super_team_members stm
 				WHERE stm.team_prefix = maven_domains.super_team_prefix AND stm.user_id = ? AND stm.role_level = ?
-			))`, checkedAt, globalMavenRepository, domain, minimumPrevious, actorID, core.MavenPermissionOwner,
+			))`, checkedAt, globalMavenRepository, domain, core.MavenDomainClaimPending, minimumPrevious,
+			actorID, core.MavenPermissionOwner,
 			actorID, core.SuperTeamRoleOwner)
 	}
 	if err != nil {
@@ -623,33 +689,108 @@ func (db *DB) MarkMavenDomainVerified(domain, code string, verifiedAt int64) err
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
-	result, err := db.Exec(`UPDATE maven_domains SET verified = 1, verified_at = ?
-		WHERE repository = ? AND domain = ? AND verification_code = ? AND verified = 0`,
-		verifiedAt, globalMavenRepository, sanitizeMavenDomain(domain),
-		SanitizeInputString(strings.TrimSpace(code), 128))
+	domain = sanitizeMavenDomain(domain)
+	code = SanitizeInputString(strings.TrimSpace(code), 128)
+	if domain == "" || verifiedAt <= 0 {
+		return core.ErrMavenVerificationFailed
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin Maven domain verification: %w", err)
+	}
+	defer tx.Rollback()
+	if err := lockMavenDomain(tx, domain); err != nil {
+		return err
+	}
+	var storedCode, claimStatus string
+	var verified int
+	var closedAt int64
+	if err := tx.QueryRow(`SELECT verification_code, verified, closed_at, claim_status FROM maven_domains
+		WHERE repository = ? AND domain = ?`, globalMavenRepository, domain).
+		Scan(&storedCode, &verified, &closedAt, &claimStatus); err != nil {
+		return fmt.Errorf("inspect Maven domain verification state: %w", err)
+	}
+	if storedCode != code || verified != 0 {
+		return core.ErrMavenVerificationFailed
+	}
+	if closedAt != 0 {
+		return core.ErrMavenDomainClosed
+	}
+	var result result
+	switch claimStatus {
+	case "":
+		result, err = tx.Exec(`UPDATE maven_domains SET verified = 1, verified_at = ?
+			WHERE repository = ? AND domain = ? AND verification_code = ? AND verified = 0
+			AND closed_at = 0 AND claim_status = ''`, verifiedAt, globalMavenRepository, domain, code)
+	case core.MavenDomainClaimAwaitingVerification, core.MavenDomainClaimRejected:
+		result, err = tx.Exec(`UPDATE maven_domains SET claim_status = ?, claim_verified_at = ?
+			WHERE repository = ? AND domain = ? AND verification_code = ? AND verified = 0
+			AND closed_at = 0 AND claim_status = ?`, core.MavenDomainClaimPending, verifiedAt,
+			globalMavenRepository, domain, code, claimStatus)
+	default:
+		return core.ErrMavenClaimReviewInvalid
+	}
 	if err != nil {
 		return fmt.Errorf("verify Maven domain: %w", err)
 	}
 	changed, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("count Maven domain verification: %w", err)
-	}
-	if changed == 0 {
+	if err != nil || changed != 1 {
 		return core.ErrMavenVerificationFailed
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit Maven domain verification: %w", err)
 	}
 	return nil
 }
 
-// DeleteMavenDomain deletes an empty namespace after owner or administrator authorization.
-func (db *DB) DeleteMavenDomain(domain, actor string, administrator bool, actedAt int64) error {
+func hasPendingMavenDomainReviewTx(tx *Tx, domain string) (bool, error) {
+	rows, err := tx.Query(`SELECT kind, resource_type, resource_key FROM review_tasks WHERE status = ?
+		AND resource_type IN (?, ?)`, core.ReviewStatusPending,
+		core.ReviewResourceMavenDomain, core.ReviewResourceMavenArtifact)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var kind, resourceType, resourceKey string
+		if err := rows.Scan(&kind, &resourceType, &resourceKey); err != nil {
+			return false, err
+		}
+		if resourceType == core.ReviewResourceMavenDomain {
+			if sanitizeMavenDomain(resourceKey) == domain {
+				return true, nil
+			}
+			continue
+		}
+		if kind == core.ReviewKindPublication {
+			decoded, _, valid := decodePublicationReviewKey(resourceKey)
+			if !valid {
+				continue
+			}
+			resourceKey = decoded
+		}
+		groupID, _, valid := splitMavenArtifactReviewKey(resourceKey)
+		if valid && (groupID == domain || strings.HasPrefix(groupID, domain+".")) {
+			return true, nil
+		}
+	}
+	return false, rows.Err()
+}
+
+// CloseMavenDomain makes a namespace read-only and reserves it for 31 days before another claim is accepted.
+func (db *DB) CloseMavenDomain(domain, actor string, administrator bool, closedAt int64) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	domain = sanitizeMavenDomain(domain)
 	actor = sanitizeMavenUsername(actor)
+	if domain == "" || actor == "" || closedAt <= 0 ||
+		closedAt > (1<<63-1)-core.MavenDomainReleaseLockMillis {
+		return core.ErrMavenPermissionDenied
+	}
 	tx, err := db.Begin()
 	if err != nil {
-		return fmt.Errorf("begin Maven domain deletion: %w", err)
+		return fmt.Errorf("begin Maven domain closure: %w", err)
 	}
 	defer tx.Rollback()
 	if err := lockMavenDomain(tx, domain); err != nil {
@@ -664,24 +805,94 @@ func (db *DB) DeleteMavenDomain(domain, actor string, administrator bool, actedA
 			return err
 		}
 	}
-	var artifacts int
-	if err := tx.QueryRow(`SELECT COUNT(*) FROM maven_artifacts WHERE domain = ?`, domain).Scan(&artifacts); err != nil {
-		return fmt.Errorf("count Maven domain artifacts: %w", err)
+	var verificationType string
+	var existingClosedAt int64
+	if err := tx.QueryRow(`SELECT verification_type, closed_at FROM maven_domains WHERE repository = ? AND domain = ?`,
+		globalMavenRepository, domain).Scan(&verificationType, &existingClosedAt); err != nil {
+		return fmt.Errorf("inspect Maven domain closure state: %w", err)
 	}
-	if artifacts != 0 {
-		return core.ErrMavenDomainNotEmpty
+	if verificationType == core.MavenVerificationMirror {
+		return core.ErrMavenPermissionDenied
 	}
-	if err := cancelMavenInvitations(tx, `repository = ? AND domain = ?`, []any{globalMavenRepository, domain}, actedAt); err != nil {
+	if existingClosedAt != 0 {
+		return core.ErrMavenDomainClosed
+	}
+	pending, err := hasPendingMavenDomainReviewTx(tx, domain)
+	if err != nil {
+		return fmt.Errorf("inspect pending Maven domain reviews: %w", err)
+	}
+	if pending {
+		return core.ErrMavenDomainReviewPending
+	}
+	if err := cancelMavenInvitations(tx, `repository = ? AND domain = ?`,
+		[]any{globalMavenRepository, domain}, closedAt); err != nil {
 		return err
 	}
-	if _, err := tx.Exec(`DELETE FROM maven_domain_members WHERE repository = ? AND domain = ?`, globalMavenRepository, domain); err != nil {
-		return fmt.Errorf("delete Maven domain members: %w", err)
+	result, err := tx.Exec(`UPDATE maven_domains SET verified = 0, closed_at = ?, release_at = ?,
+		claim_status = '', claim_verified_at = 0, last_check_at = 0
+		WHERE repository = ? AND domain = ? AND closed_at = 0`, closedAt,
+		closedAt+core.MavenDomainReleaseLockMillis, globalMavenRepository, domain)
+	if err != nil {
+		return fmt.Errorf("close Maven domain: %w", err)
 	}
-	if _, err := tx.Exec(`DELETE FROM maven_domains WHERE repository = ? AND domain = ?`, globalMavenRepository, domain); err != nil {
-		return fmt.Errorf("delete Maven domain: %w", err)
+	changed, err := result.RowsAffected()
+	if err != nil || changed != 1 {
+		return core.ErrMavenDomainClosed
 	}
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit Maven domain deletion: %w", err)
+		return fmt.Errorf("commit Maven domain closure: %w", err)
+	}
+	return nil
+}
+
+// ReviewMavenDomainClaim activates or rejects a released-domain claim after ownership proof.
+func (db *DB) ReviewMavenDomainClaim(domain, decision string, reviewedAt int64) error {
+	if db == nil || db.SQLDB == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	domain = sanitizeMavenDomain(domain)
+	decision = strings.ToLower(strings.TrimSpace(decision))
+	if domain == "" || reviewedAt <= 0 ||
+		(decision != core.ReviewStatusApproved && decision != core.ReviewStatusRejected) {
+		return core.ErrMavenClaimReviewInvalid
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin Maven domain claim review: %w", err)
+	}
+	defer tx.Rollback()
+	if err := lockMavenDomain(tx, domain); err != nil {
+		return err
+	}
+	var claimStatus string
+	var closedAt int64
+	if err := tx.QueryRow(`SELECT claim_status, closed_at FROM maven_domains WHERE repository = ? AND domain = ?`,
+		globalMavenRepository, domain).Scan(&claimStatus, &closedAt); err != nil {
+		return fmt.Errorf("inspect Maven domain claim review: %w", err)
+	}
+	if closedAt != 0 || claimStatus != core.MavenDomainClaimPending {
+		return core.ErrMavenClaimReviewInvalid
+	}
+	verified := 0
+	verifiedAt := int64(0)
+	nextStatus := core.MavenDomainClaimRejected
+	if decision == core.ReviewStatusApproved {
+		verified = 1
+		verifiedAt = reviewedAt
+		nextStatus = ""
+	}
+	result, err := tx.Exec(`UPDATE maven_domains SET verified = ?, verified_at = ?, claim_status = ?
+		WHERE repository = ? AND domain = ? AND closed_at = 0 AND claim_status = ?`, verified,
+		verifiedAt, nextStatus, globalMavenRepository, domain, core.MavenDomainClaimPending)
+	if err != nil {
+		return fmt.Errorf("review Maven domain claim: %w", err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil || changed != 1 {
+		return core.ErrMavenClaimReviewInvalid
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit Maven domain claim review: %w", err)
 	}
 	return nil
 }

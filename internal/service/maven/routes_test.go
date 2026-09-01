@@ -132,6 +132,91 @@ func TestMavenPermanentDeprecationKeepsDownloadsAndBlocksMutations(t *testing.T)
 	require.NoError(t, response.Body.Close())
 }
 
+func TestMavenDomainCloseKeepsDownloadsAndReleasedClaimNeedsReview(t *testing.T) {
+	state, _ := newMavenRouteState(t)
+	currentUser := &config.User{Username: "alice", Roles: []string{"base"}}
+	now := time.Now().UnixMilli()
+	domain := &core.MavenDomain{
+		Domain: "com.closed", VerificationType: core.MavenVerificationDNS,
+		VerificationHost: "closed.com", VerificationCode: "renop-verification=closed", CreatedAt: now,
+	}
+	require.NoError(t, state.GetDB().CreateMavenDomain(domain, "alice"))
+	require.NoError(t, state.GetDB().MarkMavenDomainVerified(domain.Domain, domain.VerificationCode, now+1))
+
+	released := &core.MavenDomain{
+		Domain: "com.released", VerificationType: core.MavenVerificationDNS,
+		VerificationHost: "released.com", VerificationCode: "renop-verification=old",
+		CreatedAt: now - core.MavenDomainReleaseLockMillis - 2,
+	}
+	require.NoError(t, state.GetDB().CreateMavenDomain(released, "alice"))
+	require.NoError(t, state.GetDB().CloseMavenDomain(released.Domain, "alice", false,
+		now-core.MavenDomainReleaseLockMillis-1))
+
+	app := fiber.New()
+	app.Use(func(c fiber.Ctx) error {
+		c.Locals("user", currentUser)
+		return c.Next()
+	})
+	SetupRoutes(app.Group("/api"), state)
+	storage.SetupRoutes(app, state)
+	response := mavenRequest(t, app, http.MethodPut,
+		"/releases/com/closed/demo/1.0/demo-1.0.jar", "artifact")
+	require.Equal(t, http.StatusCreated, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	response = mavenRequest(t, app, http.MethodPost,
+		"/api/maven/domains/com.closed/close", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	currentUser = &config.User{Username: "guest", Roles: []string{"guest"}}
+	response = mavenRequest(t, app, http.MethodGet, "/api/maven/domains/com.closed", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	response = mavenRequest(t, app, http.MethodGet,
+		"/releases/com/closed/demo/1.0/demo-1.0.jar", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	currentUser = &config.User{Username: "alice", Roles: []string{"base"}}
+	response = mavenRequest(t, app, http.MethodPut,
+		"/releases/com/closed/demo/2.0/demo-2.0.jar", "blocked")
+	assert.Equal(t, http.StatusConflict, response.StatusCode)
+	assert.Equal(t, "maven_domain_closed", response.Header.Get("X-Renop-Error-Code"))
+	require.NoError(t, response.Body.Close())
+	response = mavenRequest(t, app, http.MethodDelete,
+		"/api/maven/domains/com.closed", "")
+	assert.Equal(t, http.StatusNotFound, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+
+	currentUser = &config.User{Username: "bob", Roles: []string{"base"}}
+	response = mavenRequest(t, app, http.MethodPost, "/api/maven/domains",
+		`{"domain":"com.released"}`)
+	require.Equal(t, http.StatusCreated, response.StatusCode)
+	var claim core.MavenDomain
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&claim))
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, core.MavenDomainClaimAwaitingVerification, claim.ClaimStatus)
+	require.NoError(t, state.GetDB().MarkMavenDomainVerified(claim.Domain, claim.VerificationCode, now+2))
+
+	currentUser = &config.User{Username: "admin", Roles: []string{"manager"}}
+	response = mavenRequest(t, app, http.MethodGet,
+		"/api/maven/domains?view=managed&states=review&limit=20&offset=0", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var reviewPage struct {
+		Domains []*core.MavenDomain `json:"domains"`
+		Total   int                 `json:"total"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&reviewPage))
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, 1, reviewPage.Total)
+	response = mavenRequest(t, app, http.MethodPut,
+		"/api/maven/domains/com.released/claim", `{"decision":"approved"}`)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	claim = core.MavenDomain{}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&claim))
+	require.NoError(t, response.Body.Close())
+	assert.True(t, claim.Verified)
+	assert.Empty(t, claim.ClaimStatus)
+}
+
 func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {
 	state, currentUser := newMavenRouteState(t)
 	const projectPOM = `<project><modelVersion>4.0.0</modelVersion><name>Demo Project</name><packaging>jar</packaging><url>https://example.com/demo</url><licenses><license><name>Apache-2.0</name></license></licenses></project>`

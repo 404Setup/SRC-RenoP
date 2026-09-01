@@ -199,7 +199,8 @@ type StateDB interface {
 	GetMavenDomainDetails(domain, username string) (*MavenDomainDetails, error)
 	ReserveMavenVerificationAttempt(domain, actor string, administrator bool, checkedAt, minimumPrevious int64) error
 	MarkMavenDomainVerified(domain, code string, verifiedAt int64) error
-	DeleteMavenDomain(domain, actor string, administrator bool, actedAt int64) error
+	CloseMavenDomain(domain, actor string, administrator bool, closedAt int64) error
+	ReviewMavenDomainClaim(domain, decision string, reviewedAt int64) error
 	HasMavenMembership(username string) (bool, error)
 	RecordMavenPublication(artifact *MavenArtifact, version *MavenVersion) error
 	RecordMavenMirrorPublication(artifact *MavenArtifact, version *MavenVersion) error

@@ -75,6 +75,8 @@ func reviewError(c fiber.Ctx, err error) error {
 		status, code = fiber.StatusConflict, "resource_changed"
 	case errors.Is(err, core.ErrPackageDeprecated):
 		status, code = fiber.StatusConflict, "package_deprecated"
+	case errors.Is(err, core.ErrMavenDomainClosed):
+		status, code = fiber.StatusConflict, "maven_domain_closed"
 	case errors.Is(err, core.ErrSuperTeamBindingMismatch):
 		status, code = fiber.StatusBadRequest, "super_team_mismatch"
 	case errors.Is(err, docker.ErrUpstreamImageProbeUnavailable):

@@ -29,10 +29,20 @@ const (
 	MavenVerificationMirror = "mirror"
 )
 
+const (
+	MavenDomainClaimAwaitingVerification       = "awaiting_verification"
+	MavenDomainClaimPending                    = "pending"
+	MavenDomainClaimRejected                   = "rejected"
+	MavenDomainReleaseLockMillis         int64 = 31 * 24 * 60 * 60 * 1000
+)
+
 var (
 	ErrMavenDomainNotFound        = errors.New("maven domain was not found")
 	ErrMavenDomainExists          = errors.New("maven domain already exists")
-	ErrMavenDomainNotEmpty        = errors.New("maven domain still contains artifacts")
+	ErrMavenDomainClosed          = errors.New("maven domain is closed")
+	ErrMavenDomainLocked          = errors.New("maven domain is locked before release")
+	ErrMavenDomainReviewPending   = errors.New("maven domain has a pending review")
+	ErrMavenClaimReviewInvalid    = errors.New("maven domain claim is not awaiting review")
 	ErrMavenDomainUnverified      = errors.New("maven domain has not been verified")
 	ErrMavenVerificationFailed    = errors.New("maven domain verification failed")
 	ErrMavenVerificationRateLimit = errors.New("maven domain verification is rate limited")
@@ -57,24 +67,30 @@ type MavenDomain struct {
 	CreatedAt        int64  `json:"created_at"`
 	VerifiedAt       int64  `json:"verified_at,omitempty"`
 	LastCheckAt      int64  `json:"last_check_at,omitempty"`
+	ClosedAt         int64  `json:"closed_at,omitempty"`
+	ReleaseAt        int64  `json:"release_at,omitempty"`
+	ClaimStatus      string `json:"claim_status,omitempty"`
+	ClaimVerifiedAt  int64  `json:"claim_verified_at,omitempty"`
 	PermissionLevel  int    `json:"permission_level,omitempty"`
 	ArtifactCount    int    `json:"artifact_count"`
 	RepositoryCount  int    `json:"repository_count"`
 	MemberCount      int    `json:"member_count"`
 	Verified         bool   `json:"verified"`
+	Released         bool   `json:"released,omitempty"`
 	Member           bool   `json:"member,omitempty"`
 }
 
 // MavenDomainListOptions controls the account domain-management listing.
 type MavenDomainListOptions struct {
-	Username          string
-	PermissionLevels  []int
-	Limit             int
-	Offset            int
-	Administrator     bool
-	Filtered          bool
-	IncludeUnverified bool
-	IncludeMirrored   bool
+	Username           string
+	PermissionLevels   []int
+	Limit              int
+	Offset             int
+	Administrator      bool
+	Filtered           bool
+	IncludeUnverified  bool
+	IncludeMirrored    bool
+	IncludeClaimReview bool
 }
 
 // MavenMember is one domain-team membership.

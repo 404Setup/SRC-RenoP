@@ -131,15 +131,39 @@ func loadReviewResourceTx(tx *Tx, request *core.SuperTeamTransferRequest) (revie
 			&state.binding, &state.domain, &mirrored)
 		state.name = request.ResourceKey
 		state.local = mirrored == 0
-		return state, reviewResourceError(err)
+		if err := reviewResourceError(err); err != nil {
+			return state, err
+		}
+		if err := lockMavenDomain(tx, state.domain); err != nil {
+			return state, err
+		}
+		var closedAt int64
+		if err := tx.QueryRow(`SELECT closed_at FROM maven_domains WHERE repository = ? AND domain = ?`,
+			globalMavenRepository, state.domain).Scan(&closedAt); err != nil {
+			return state, reviewResourceError(err)
+		}
+		if closedAt != 0 {
+			return state, core.ErrMavenDomainClosed
+		}
+		return state, nil
 	case core.ReviewResourceMavenDomain:
 		request.Repository = ""
 		request.ResourceKey = sanitizeMavenDomain(request.ResourceKey)
-		err := tx.QueryRow(`SELECT super_team_prefix, domain FROM maven_domains
+		if err := lockMavenDomain(tx, request.ResourceKey); err != nil {
+			return state, err
+		}
+		var closedAt int64
+		err := tx.QueryRow(`SELECT super_team_prefix, domain, closed_at FROM maven_domains
 			WHERE repository = ? AND domain = ?`, globalMavenRepository, request.ResourceKey).Scan(
-			&state.binding, &state.name)
+			&state.binding, &state.name, &closedAt)
 		state.local = true
-		return state, reviewResourceError(err)
+		if err := reviewResourceError(err); err != nil {
+			return state, err
+		}
+		if closedAt != 0 {
+			return state, core.ErrMavenDomainClosed
+		}
+		return state, nil
 	default:
 		return state, core.ErrReviewResourceConflict
 	}
@@ -638,7 +662,7 @@ func applySuperTeamTransferTx(tx *Tx, task *core.ReviewTask) error {
 			task.TargetTeamPrefix, task.DecidedAt, task.Repository, groupID, artifactID, task.SourceTeamPrefix)
 	case core.ReviewResourceMavenDomain:
 		result, err = tx.Exec(`UPDATE maven_domains SET super_team_prefix = ?
-			WHERE repository = ? AND domain = ? AND super_team_prefix = ?`, task.TargetTeamPrefix,
+			WHERE repository = ? AND domain = ? AND super_team_prefix = ? AND closed_at = 0`, task.TargetTeamPrefix,
 			globalMavenRepository, task.ResourceKey, task.SourceTeamPrefix)
 	default:
 		return core.ErrReviewResourceConflict
@@ -668,7 +692,8 @@ func reviewResourceStateChanged(err error) bool {
 		errors.Is(err, core.ErrNPMPackageExists) ||
 		errors.Is(err, core.ErrCargoPackageNotFound) ||
 		errors.Is(err, core.ErrMavenArtifactNotFound) ||
-		errors.Is(err, core.ErrMavenDomainNotFound)
+		errors.Is(err, core.ErrMavenDomainNotFound) ||
+		errors.Is(err, core.ErrMavenDomainClosed)
 }
 
 // DecideReviewTask applies one approval or rejection with a pending-state compare-and-set.

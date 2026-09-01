@@ -340,6 +340,38 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		}); err != nil {
 			return err
 		}
+		lifecycleDomain := "released." + suffix + ".example"
+		closedAt := now - core.MavenDomainReleaseLockMillis
+		originalClaim := &core.MavenDomain{
+			Domain: lifecycleDomain, VerificationType: core.MavenVerificationDNS,
+			VerificationHost: "example.test", VerificationCode: "original-" + suffix,
+			CreatedAt: closedAt - 1,
+		}
+		if err := db.CreateMavenDomain(originalClaim, username); err != nil {
+			return err
+		}
+		if err := db.CloseMavenDomain(lifecycleDomain, username, false, closedAt); err != nil {
+			return err
+		}
+		reclaimed := &core.MavenDomain{
+			Domain: lifecycleDomain, VerificationType: core.MavenVerificationDNS,
+			VerificationHost: "example.test", VerificationCode: "reclaimed-" + suffix,
+			CreatedAt: now,
+		}
+		if err := db.CreateMavenDomain(reclaimed, memberUsername); err != nil {
+			return err
+		}
+		if err := db.MarkMavenDomainVerified(lifecycleDomain, reclaimed.VerificationCode, now+1); err != nil {
+			return err
+		}
+		if err := db.ReviewMavenDomainClaim(lifecycleDomain, core.ReviewStatusApproved, now+2); err != nil {
+			return err
+		}
+		reclaimedDetails, err := db.GetMavenDomainDetails(lifecycleDomain, memberUsername)
+		if err != nil || reclaimedDetails == nil || reclaimedDetails.Domain == nil ||
+			!reclaimedDetails.Domain.Verified || reclaimedDetails.Domain.ClaimStatus != "" {
+			return errorsOrMissing(err, "released Maven domain reviewed reclaim")
+		}
 		npmPackage := "@" + globalTeamPrefix + "/demo"
 		if _, err := db.CreateNPMPackageForTeam(
 			npmRepository, npmPackage, username, globalTeamPrefix, true, now); err != nil {

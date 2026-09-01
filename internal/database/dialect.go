@@ -295,6 +295,10 @@ func initMavenTables(db *sql.DB, readmeColumnDefinition string) error {
 			created_at BIGINT NOT NULL,
 			verified_at BIGINT NOT NULL DEFAULT 0,
 			last_check_at BIGINT NOT NULL DEFAULT 0,
+			closed_at BIGINT NOT NULL DEFAULT 0,
+			release_at BIGINT NOT NULL DEFAULT 0,
+			claim_status VARCHAR(32) NOT NULL DEFAULT '',
+			claim_verified_at BIGINT NOT NULL DEFAULT 0,
 			PRIMARY KEY (repository, domain)
 		);`,
 		`CREATE TABLE IF NOT EXISTS maven_domain_members (
@@ -469,6 +473,10 @@ var sharedColumnMigrations = []SchemaMigration{
 	{Name: "docker_images.super_team_prefix", Query: "ALTER TABLE docker_images ADD COLUMN super_team_prefix VARCHAR(64) NOT NULL DEFAULT '';"},
 	{Name: "npm_packages.super_team_prefix", Query: "ALTER TABLE npm_packages ADD COLUMN super_team_prefix VARCHAR(64) NOT NULL DEFAULT '';"},
 	{Name: "maven_domains.super_team_prefix", Query: "ALTER TABLE maven_domains ADD COLUMN super_team_prefix VARCHAR(64) NOT NULL DEFAULT '';"},
+	{Name: "maven_domains.closed_at", Query: "ALTER TABLE maven_domains ADD COLUMN closed_at BIGINT NOT NULL DEFAULT 0;"},
+	{Name: "maven_domains.release_at", Query: "ALTER TABLE maven_domains ADD COLUMN release_at BIGINT NOT NULL DEFAULT 0;"},
+	{Name: "maven_domains.claim_status", Query: "ALTER TABLE maven_domains ADD COLUMN claim_status VARCHAR(32) NOT NULL DEFAULT '';"},
+	{Name: "maven_domains.claim_verified_at", Query: "ALTER TABLE maven_domains ADD COLUMN claim_verified_at BIGINT NOT NULL DEFAULT 0;"},
 	{Name: "maven_artifacts.super_team_prefix", Query: "ALTER TABLE maven_artifacts ADD COLUMN super_team_prefix VARCHAR(64) NOT NULL DEFAULT '';"},
 	{Name: "user_profiles.website_url", Query: "ALTER TABLE user_profiles ADD COLUMN website_url VARCHAR(2048) NOT NULL DEFAULT '';"},
 	{Name: "user_profiles.github_url", Query: "ALTER TABLE user_profiles ADD COLUMN github_url VARCHAR(2048) NOT NULL DEFAULT '';"},
