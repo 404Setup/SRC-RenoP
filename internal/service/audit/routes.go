@@ -14,6 +14,7 @@ package audit
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 
@@ -130,18 +131,29 @@ func DeleteUserAuditLogs(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
 	}
 
+	logUsername, action := targetUsername, ActionLogClear
 	if db := state.GetDB(); db != nil {
-		if err := db.DeleteAuditLogsByUsername(targetUsername); err != nil {
+		account, err := db.GetTokenByName(targetUsername)
+		if err != nil {
+			return c.SendStatus(fiber.StatusInternalServerError)
+		}
+		if account != nil && account.DeletedAt > 0 {
+			err = db.PurgeRetiredAccountAuditLogs(targetUsername, time.Now().UnixMilli())
+			logUsername, action = user.Username, ActionAccountAuditPurge
+		} else {
+			err = db.DeleteAuditLogsByUsername(targetUsername)
+		}
+		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
 		}
 	}
 
 	_, op, authMethod, sessionID, ip := ExtractAuthDetails(c, state)
 	Log(state, &core.AuditLogEntry{
-		Username:   targetUsername,
+		Username:   logUsername,
 		Operator:   op,
-		Action:     ActionLogClear,
-		Details:    "User activity logs cleared by admin",
+		Action:     action,
+		Details:    "User activity logs cleared by admin for " + targetUsername,
 		AuthMethod: authMethod,
 		SessionID:  sessionID,
 		IP:         ip,

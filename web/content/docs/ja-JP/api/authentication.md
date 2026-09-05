@@ -99,3 +99,33 @@ GitHub は管理者が OAuth を設定した場合だけ表示されます。ユ
 - **他をすべて失効**: `POST /api/auth/profile/sessions/revoke-others`
 
 一覧には公開 ID、ログイン方式、時刻、IP、User-Agent が含まれますが、Cookie の秘密値は含まれません。
+
+## アカウントの永久閉鎖
+
+`GET /api/auth/profile/retirement` は現在のアカウントの閉鎖条件を返します。このルートと
+`DELETE /api/auth/profile/retirement` はブラウザーセッション専用です。閉鎖リクエストは JSON を使用します。
+
+```json
+{"confirmation":"alice"}
+```
+
+確認文字列は現在のユーザー名と完全に一致する必要があります。成功時は `204 No Content`、
+不一致の場合は `400` と `ACCOUNT_RETIREMENT_CONFIRMATION` を返します。未解決の条件がある場合は
+`409`、`ACCOUNT_RETIREMENT_BLOCKED` と最新の確認結果を返します。結果には `eligible`、
+`protected_role`、`super_team_owner_count`、`maven_domain_owner_count`、`package_owner_count`、
+`pending_review_count` が含まれます。
+
+システム管理者とリポジトリのモデレーターは閉鎖できません。グローバルチームの T4、有効な Maven
+公開ドメインの所有権、非推奨化されていないパッケージの L4、未処理の審査申請が残っていてはいけません。
+先に所有権を譲渡し、公開ドメインを閉鎖するか、パッケージを永久に非推奨化してください。
+
+閉鎖後はアカウントとユーザー名が永久に予約され、全チームから脱退し、GitHub の関連付けを解除します。
+Passkey、セッション、API Token、写真、復旧コード、メッセージも削除されます。ログインは
+`ACCOUNT_DELETED` を返します。非公開メールアドレスは 14 日、操作履歴は 30 日保持され、
+期限後に定期処理で分割して削除されます。公開済みパッケージは引き続きダウンロードできます。
+
+システム管理者は `GET /api/tokens/:name/retention` で期限を確認し、
+`DELETE /api/tokens/:name/retention/email` でメールを早期解放、
+`DELETE /api/tokens/:name/retention/audit` で履歴を早期削除できます。
+`deleted_at`、`email_release_at`、`email_released_at`、`audit_purge_at`、`audit_purged_at`
+は Unix ミリ秒です。管理者用 `DELETE /api/tokens/:name` にも同じ永久閉鎖条件が適用されます。

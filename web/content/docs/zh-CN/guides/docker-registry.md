@@ -1,13 +1,13 @@
 ---
-title: Docker 与 OCI 存储库
+title: Docker 与 OCI 仓库
 order: 3
 category: 指南
 description: 创建镜像并使用 Docker、Podman、containerd 或 nerdctl 连接 RenoP
 ---
 
-# Docker 与 OCI 存储库指南
+# Docker 与 OCI 仓库指南
 
-先创建格式为 `docker` 的存储库，再在推送前创建每个目标镜像。示例使用存储库 `containers` 与镜像
+先创建格式为 `docker` 的仓库，再在推送前创建每个目标镜像。示例使用仓库 `containers` 与镜像
 `team/service`，完整 Registry 名称为 `containers/team/service`。
 
 ## 登录与传输
@@ -74,5 +74,5 @@ docker run -d -p 8080:8080 localhost:3000/containers/team/service:1.0.0
 - **多架构**：Manifest List 与 OCI Index 可引用 amd64、arm64 等平台；
 - **分块上传**：支持可恢复 POST/PATCH/PUT 与有界临时存储；
 - **跨仓库挂载**：要求源镜像读取权限与已预创建目标镜像写入权限；
-- **删除**：同时要求 Token 能力与镜像/存储库授权；
+- **删除**：同时要求 Token 能力与镜像/仓库授权；
 - **镜像**：流式获取并记录上游来源，禁止向镜像制品推送。

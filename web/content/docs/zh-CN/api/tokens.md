@@ -1,7 +1,7 @@
 ---
 title: API Token 与用户
 order: 3
-category: API 接口
+category: API 参考
 description: 细粒度 API Token 生命周期、认证边界与管理员用户接口
 ---
 
@@ -103,7 +103,7 @@ Token 管理接口只接受 HttpOnly `renop_session` 浏览器 Cookie。API Toke
 | `domain:read`         | 读取 Maven 域私有配置                                |
 | `domain:create`       | 创建 Maven 域                                        |
 | `domain:verify`       | 验证或强制验证 Maven 域                              |
-| `domain:delete`       | 删除 Maven 域                                        |
+| `domain:lifecycle`    | 关闭或重新申请 Maven 发布域                          |
 | `messages:read`       | 读取、标记和删除账号消息                             |
 | `account:read`        | 读取账号私有数据与个人行为日志                       |
 | `account:write`       | 通过 API 更新公开个人资料                            |

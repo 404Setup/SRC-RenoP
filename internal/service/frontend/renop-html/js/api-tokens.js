@@ -31,7 +31,7 @@ const scopeKeys = Object.freeze({
     'domain:read': 'domainRead',
     'domain:create': 'domainCreate',
     'domain:verify': 'domainVerify',
-    'domain:delete': 'domainDelete',
+    'domain:lifecycle': 'domainLifecycle',
     'package:manage': 'packageManage',
     'domain:manage': 'domainManage',
     'messages:read': 'messagesRead',
@@ -50,7 +50,7 @@ const scopeKeys = Object.freeze({
 const scopeGroups = Object.freeze([
     {key: 'repository', scopes: ['repository:read', 'repository:publish', 'repository:delete']},
     {key: 'package', scopes: ['package:create', 'package:metadata', 'package:lifecycle', 'team:manage']},
-    {key: 'domain', scopes: ['domain:read', 'domain:create', 'domain:verify', 'domain:delete']},
+    {key: 'domain', scopes: ['domain:read', 'domain:create', 'domain:verify', 'domain:lifecycle']},
     {key: 'account', scopes: ['messages:read', 'account:read', 'account:write', 'statistics:read']},
     {
         key: 'administration', scopes: [

@@ -44,9 +44,32 @@ func ensureAccountSecurityTx(tx *Tx, userID string, updatedAt int64) error {
 	return err
 }
 
+func lockAccountByUsernameTx(tx *Tx, username string) error {
+	var userID string
+	err := tx.QueryRow(`SELECT user_id FROM user_profiles WHERE username = ?`, strings.ToLower(username)).Scan(&userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return lockAccountLoginMethodsTx(tx, userID)
+}
+
 func lockAccountLoginMethodsTx(tx *Tx, userID string) error {
-	_, err := tx.Exec(`UPDATE user_profiles SET updated_at = updated_at WHERE user_id = ?`, userID)
-	return err
+	if _, err := tx.Exec(`UPDATE user_profiles SET updated_at = updated_at WHERE user_id = ?`, userID); err != nil {
+		return err
+	}
+	var deletedAt int64
+	err := tx.QueryRow(`SELECT token.deleted_at FROM tokens token
+		JOIN user_profiles profile ON profile.username = token.name WHERE profile.user_id = ?`, userID).Scan(&deletedAt)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	if deletedAt > 0 {
+		return core.ErrAccountDeleted
+	}
+	return nil
 }
 
 func hasExternalLoginTx(tx *Tx, userID, username string) (bool, error) {
@@ -112,7 +135,8 @@ func (db *DB) GetTokenByEmail(email string) (*core.AccessToken, error) {
 	cacheGeneration := db.tokenCache.Generation()
 	row := db.QueryRow(`SELECT token.name, token.type, token.type_value, token.encrypted_secret,
 		token.password_hash, token.tokens_json, token.created_at, token.description,
-		token.expires_at, token.permissions_json, token.ban_reason, token.banned_at, token.banned_until
+		token.expires_at, token.permissions_json, token.ban_reason, token.banned_at, token.banned_until,
+		token.deleted_at, token.email_released_at, token.audit_purged_at
 		FROM user_account_security security
 		JOIN user_profiles profile ON profile.user_id = security.user_id
 		JOIN tokens token ON token.name = profile.username
@@ -120,17 +144,18 @@ func (db *DB) GetTokenByEmail(email string) (*core.AccessToken, error) {
 	var tokenName, tokenType, encryptedSecret, passwordHash, tokensJSON, createdAt, description, permissionsJSON, banReason string
 	var typeValue int32
 	var expiresAt, bannedUntil sql.NullInt64
-	var bannedAt int64
+	var bannedAt, deletedAt, emailReleasedAt, auditPurgedAt int64
 	if err := row.Scan(&tokenName, &tokenType, &typeValue, &encryptedSecret, &passwordHash,
 		&tokensJSON, &createdAt, &description, &expiresAt, &permissionsJSON,
-		&banReason, &bannedAt, &bannedUntil); err != nil {
+		&banReason, &bannedAt, &bannedUntil, &deletedAt, &emailReleasedAt, &auditPurgedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("get token by private email: %w", err)
 	}
 	token, err := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash,
-		tokensJSON, createdAt, description, expiresAt, permissionsJSON, banReason, bannedAt, bannedUntil)
+		tokensJSON, createdAt, description, expiresAt, permissionsJSON, banReason, bannedAt, bannedUntil,
+		deletedAt, emailReleasedAt, auditPurgedAt)
 	if err != nil {
 		return nil, err
 	}

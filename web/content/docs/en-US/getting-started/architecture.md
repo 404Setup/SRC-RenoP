@@ -28,7 +28,7 @@ File index and mirrors      Identity, teams, audit, messages
 
 - `internal/api` and middleware own general HTTP contracts, search, anomaly detection, and credential boundaries.
 - Format services own Maven domains/catalogs, npm packuments, Cargo Sparse Index, Docker Distribution v2, and viewers.
-- The database layer supplies dialect-aware transactions for SQLite, MySQL, and PostgreSQL.
+- The database layer supplies dialect-aware transactions for SQLite, MySQL, PostgreSQL, and ClickHouse.
 - Disk/S3 storage streams large bodies and the file index provides bounded metadata traversal.
 
 ## Request and work pipelines

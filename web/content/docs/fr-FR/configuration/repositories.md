@@ -58,7 +58,7 @@ politique `new_packages` examine donc la première publication. Les imports de m
 signature. Maven peut migrer vers `files` puis revenir sans déplacer les objets ; le retour reconstruit le catalogue et
 restaure la politique Maven. La migration conserve l’état effectif des statistiques de téléchargement.
 
-L’examen des publications prend en charge Maven et npm. Pour Maven, il force `allow_redeployment` à `false` ; npm
+L’examen des publications prend en charge Maven, npm, Cargo et Docker. Pour Maven, il force `allow_redeployment` à `false` ; npm
 conserve sa transaction de version et de dist-tags immuables. Les fichiers locaux restent masqués jusqu’à l’approbation
 d’un modérateur du dépôt ou d’un administrateur système, et les miroirs ne sont jamais examinés. Une tâche en attente
 interdit la modification, la suppression ou la migration du dépôt.

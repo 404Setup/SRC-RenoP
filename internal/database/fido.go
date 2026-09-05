@@ -126,12 +126,20 @@ func (db *DB) SaveFidoDevice(device *core.FidoDevice) error {
 	if device.BackupState {
 		backupStateInt = 1
 	}
-	_, err := db.Exec(query, device.ID, lowerName, device.Name, device.CredentialID, device.PublicKey, device.AttestationType, device.AAGUID, device.SignCount, device.CreatedAt, userPresentInt, userVerifiedInt, backupEligibleInt, backupStateInt)
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := lockAccountByUsernameTx(tx, lowerName); err != nil {
+		return err
+	}
+	_, err = tx.Exec(query, device.ID, lowerName, device.Name, device.CredentialID, device.PublicKey, device.AttestationType, device.AAGUID, device.SignCount, device.CreatedAt, userPresentInt, userVerifiedInt, backupEligibleInt, backupStateInt)
 	if err != nil {
 		return fmt.Errorf("failed to save fido device (%s): %w", device.ID, err)
 	}
 
-	return nil
+	return tx.Commit()
 }
 
 func (db *DB) DeleteFidoDevice(username, deviceID string) error {

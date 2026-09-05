@@ -480,6 +480,26 @@
     gap: 1rem;
 }
 
+.profile-retirement-dialog,
+.profile-retirement-dialog label {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.profile-retirement-blockers {
+    display: grid;
+    gap: 0.55rem;
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.profile-inline-error {
+    min-height: 1.2em;
+    margin: 0;
+    color: #dc2626;
+    font-size: 0.8rem;
+}
+
 .profile-recovery-warning {
     padding: 0.8rem 0.9rem;
     border: 1px solid rgba(245, 158, 11, 0.3);

@@ -49,6 +49,7 @@ function showGitHubOAuthResult() {
         scope_missing: ['login.githubScopeMissing', 'error'],
         identity_linked: ['profile.githubAlreadyLinked', 'error'],
         account_banned: ['login.accountBanned', 'error'],
+        account_deleted: ['login.accountDeleted', 'error'],
     };
     const pair = messages[result] || ['login.githubFailed', 'error'];
     showAlert(t(pair[0]), pair[1]);

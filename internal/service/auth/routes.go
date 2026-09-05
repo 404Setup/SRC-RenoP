@@ -102,6 +102,7 @@ func SetupAuthRoutes(app fiber.Router, state *core.AppState, opChan chan<- token
 	auth.Post("/profile/sessions/revoke-others", func(c fiber.Ctx) error { return RevokeOtherSessions(c, state) })
 	auth.Delete("/profile/sessions/:session_id", func(c fiber.Ctx) error { return DeleteSession(c, state) })
 	setupAccountSecurityRoutes(auth, state)
+	setupAccountRetirementRoutes(auth, state, opChan)
 	setupAPITokenRoutes(auth, state)
 	setupGitHubRoutes(auth, state, opChan)
 	SetupFidoRoutes(auth, state, opChan)
@@ -248,8 +249,8 @@ func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenO
 	}
 
 	user, err := AuthenticateUser(state, &body, opChan)
-	if errors.Is(err, core.ErrAccountBanned) {
-		c.Set("X-Renop-Error-Code", "ACCOUNT_BANNED")
+	if code := accountAccessCode(err); code != "" {
+		c.Set("X-Renop-Error-Code", code)
 		return c.Status(fiber.StatusForbidden).SendString("Account suspended")
 	}
 	if errors.Is(err, errCredentialExpired) || errors.Is(err, fiber.ErrForbidden) {
@@ -261,8 +262,8 @@ func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenO
 
 	if user != nil {
 		if err := issueBrowserSession(c, state, user, "password"); err != nil {
-			if errors.Is(err, core.ErrAccountBanned) {
-				c.Set("X-Renop-Error-Code", "ACCOUNT_BANNED")
+			if code := accountAccessCode(err); code != "" {
+				c.Set("X-Renop-Error-Code", code)
 				return c.Status(fiber.StatusForbidden).SendString("Account suspended")
 			}
 			return c.Status(fiber.StatusInternalServerError).SendString("Failed to create session")

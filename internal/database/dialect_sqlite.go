@@ -49,7 +49,10 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		permissions_json TEXT NOT NULL,
 		ban_reason VARCHAR(2048) NOT NULL DEFAULT '',
 		banned_at BIGINT NOT NULL DEFAULT 0,
-		banned_until BIGINT NULL
+		banned_until BIGINT NULL,
+		deleted_at BIGINT NOT NULL DEFAULT 0,
+		email_released_at BIGINT NOT NULL DEFAULT 0,
+		audit_purged_at BIGINT NOT NULL DEFAULT 0
 	);`
 
 	userProfilesTable := `

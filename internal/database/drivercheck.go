@@ -96,6 +96,69 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		if err := db.EnsurePackageMutable(config.RepositoryFormatCargo, "driver-check", deprecationKey); !errors.Is(err, core.ErrPackageDeprecated) {
 			return errorsOrMissing(err, "permanent package deprecation")
 		}
+		retiredUsername := "retired_" + suffix
+		if err := db.SaveToken(&core.AccessToken{
+			Name: retiredUsername, EncryptedSecret: "retired-password",
+			CreatedAt: time.Now().UTC().Format(time.RFC3339), Permissions: []string{"base"},
+		}); err != nil {
+			return err
+		}
+		if _, err := db.UpdateAccountEmail(retiredUsername, retiredUsername+"@example.test", now); err != nil {
+			return err
+		}
+		retiredRepository := "retirement-" + suffix
+		if _, err := db.CreateNPMPackage(retiredRepository, "frozen", retiredUsername, false, now); err != nil {
+			return err
+		}
+		plan, err := db.GetAccountRetirementPlan(retiredUsername)
+		if err != nil || plan == nil || plan.Eligible || plan.PackageOwnerCount != 1 {
+			return errorsOrMissing(err, "account retirement ownership blocker")
+		}
+		if err := db.RetireAccount(retiredUsername, now+1); !errors.Is(err, core.ErrAccountRetirementBusy) {
+			return errorsOrMissing(err, "retirement ownership enforcement")
+		}
+		if err := db.DeprecatePackage(config.RepositoryFormatNPM, retiredRepository, "frozen", now); err != nil {
+			return err
+		}
+		if err := db.SaveAuditLog(&core.AuditLogEntry{
+			Username: retiredUsername, Operator: retiredUsername, Action: "DRIVER_CHECK",
+			CreatedAt: now - int64(40*24*time.Hour/time.Millisecond),
+		}); err != nil {
+			return err
+		}
+		if err := db.RetireAccount(retiredUsername, now+1); err != nil {
+			return err
+		}
+		retired, err := db.GetTokenByName(retiredUsername)
+		if err != nil || retired == nil || retired.DeletedAt != now+1 || retired.EncryptedSecret != "" {
+			return errorsOrMissing(err, "account retirement tombstone")
+		}
+		if err := db.CreateToken(&core.AccessToken{Name: retiredUsername}, "", now+2); !errors.Is(err, core.ErrUsernameAlreadyExists) {
+			return errorsOrMissing(err, "retired username reservation")
+		}
+		if err := db.CleanExpiredAuditLogs(1, 1); err != nil {
+			return err
+		}
+		_, retained, err := db.GetAuditLogs(retiredUsername, 1, 0)
+		if err != nil || retained != 1 {
+			return errorsOrMissing(err, "retired activity retention")
+		}
+		if err := db.CleanupRetiredAccountData(now+1+core.AccountAuditRetentionMillis, 100); err != nil {
+			return err
+		}
+		status, err := db.GetAccountRetirementStatus(retiredUsername)
+		if err != nil || status == nil || status.EmailReleasedAt == 0 || status.AuditPurgedAt == 0 {
+			return errorsOrMissing(err, "retired account retention cleanup")
+		}
+		if err := db.SaveAuditLog(&core.AuditLogEntry{
+			Username: retiredUsername, Operator: retiredUsername, Action: "LATE_EVENT", CreatedAt: now,
+		}); err != nil {
+			return err
+		}
+		_, retained, err = db.GetAuditLogs(retiredUsername, 1, 0)
+		if err != nil || retained != 0 {
+			return errorsOrMissing(err, "retired activity cannot be restored")
+		}
 		return nil
 	}); err != nil {
 		return results, err

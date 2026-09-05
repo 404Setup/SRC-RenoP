@@ -104,7 +104,7 @@ URL не позволяют управлять секретами.
 | `domain:read`         | Чтение закрытой конфигурации Maven domain                                         |
 | `domain:create`       | Создание Maven domain                                                             |
 | `domain:verify`       | Проверка или принудительная проверка Maven domain                                 |
-| `domain:delete`       | Удаление Maven domain                                                             |
+| `domain:lifecycle`    | Закрытие или повторный запрос доменов публикации Maven          |
 | `messages:read`       | Чтение, отметка и удаление сообщений аккаунта                                     |
 | `account:read`        | Чтение закрытых данных аккаунта и личного аудита                                  |
 | `account:write`       | Изменение публичного профиля через API                                            |

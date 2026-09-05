@@ -29,7 +29,7 @@ File index and mirrors      Identity, teams, audit, messages
 - `internal/api` et les middlewares possèdent les contrats généraux, la recherche, les anomalies et les identifiants.
 - Les services de format possèdent domaines/catalogues Maven, packuments npm, Sparse Index Cargo, Distribution Docker v2
   et aperçus.
-- La base fournit des transactions multi-dialectes pour SQLite, MySQL et PostgreSQL.
+- La base fournit des transactions multi-dialectes pour SQLite, MySQL, PostgreSQL et ClickHouse.
 - Disk/S3 diffuse les gros corps et l’index fournit un parcours borné des métadonnées.
 
 ## Pipelines de requêtes et de tâches

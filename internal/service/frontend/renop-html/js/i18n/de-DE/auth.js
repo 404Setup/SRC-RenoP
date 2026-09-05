@@ -40,6 +40,7 @@ export default Object.freeze({
     "login.submitBtn": "Anmelden",
     "login.invalidCreds": "Ungültige Anmeldedaten",
     "login.accountBanned": "Dieses Konto ist gesperrt. Wenden Sie sich an einen Systemadministrator.",
+    "login.accountDeleted": "Dieses Konto wurde dauerhaft geschlossen und kann sich nicht mehr anmelden.",
     "login.loginError": "Bei der Anmeldung ist ein Fehler aufgetreten",
     "login.welcomeBack": "Willkommen zurück, {name}!",
     "login.sessionExpired": "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",

@@ -45,7 +45,7 @@ func resultDedupeKey(taskID, status string) string {
 }
 
 func activeReviewAccount(token *core.AccessToken, now int64) (*config.User, bool) {
-	if token == nil || strings.TrimSpace(token.Name) == "" ||
+	if token == nil || token.DeletedAt > 0 || strings.TrimSpace(token.Name) == "" ||
 		token.ExpiresAt != nil && now >= *token.ExpiresAt {
 		return nil, false
 	}

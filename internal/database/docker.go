@@ -130,6 +130,9 @@ func createDockerImageTx(tx *Tx, repository, imageName, owner, ownerID, superTea
 	if tx == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
+	if err := lockAccountLoginMethodsTx(tx, ownerID); err != nil {
+		return nil, err
+	}
 	if err := requireSuperTeamRoleTx(tx, superTeamPrefix, ownerID, requiredTeamRole); err != nil {
 		return nil, err
 	}
@@ -1270,6 +1273,12 @@ func (db *DB) ListDockerMembers(repository, imageName string) ([]*core.DockerMem
 		return nil, core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
+	var pub string
+	var createdAt int64
+	if err := db.QueryRow(`SELECT publisher, created_at FROM docker_images WHERE repository = ? AND image_name = ?`,
+		repository, imageName).Scan(&pub, &createdAt); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("load Docker publisher: %w", err)
+	}
 	rows, err := db.Query(
 		`SELECT m.user_id, COALESCE(p.username, m.username), m.permission_level, m.added_at FROM docker_members m
 		 LEFT JOIN user_profiles p ON p.user_id = m.user_id
@@ -1283,9 +1292,6 @@ func (db *DB) ListDockerMembers(repository, imageName string) ([]*core.DockerMem
 
 	members := make([]*core.DockerMember, 0)
 	hasPublisher := false
-	var pub string
-	var createdAt int64
-	_ = db.QueryRow(`SELECT publisher, created_at FROM docker_images WHERE repository = ? AND image_name = ?`, repository, imageName).Scan(&pub, &createdAt)
 
 	for rows.Next() {
 		m := &core.DockerMember{}
@@ -1300,23 +1306,49 @@ func (db *DB) ListDockerMembers(repository, imageName string) ([]*core.DockerMem
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate Docker members: %w", err)
 	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
 
 	if pub != "" && !hasPublisher {
 		if createdAt == 0 {
 			createdAt = time.Now().UnixMilli()
 		}
 		userID, identityErr := db.ensureUserProfile(pub)
+		if errors.Is(identityErr, core.ErrAccountDeleted) {
+			return members, nil
+		}
 		if identityErr != nil {
 			return nil, fmt.Errorf("resolve Docker publisher identity: %w", identityErr)
 		}
-		if _, err := db.Exec(`INSERT INTO docker_members (repository, image_name, username, user_id, permission_level, added_at) VALUES (?, ?, ?, ?, ?, ?)`,
-			repository, imageName, pub, userID, core.DockerPermissionFull, createdAt); err != nil {
-			return nil, fmt.Errorf("restore Docker publisher membership: %w", err)
+		tx, err := db.Begin()
+		if err != nil {
+			return nil, err
+		}
+		defer tx.Rollback()
+		if err := lockAccountLoginMethodsTx(tx, userID); errors.Is(err, core.ErrAccountDeleted) {
+			return members, nil
+		} else if err != nil {
+			return nil, err
+		}
+		level := core.DockerPermissionFull
+		err = tx.QueryRow(`SELECT permission_level FROM docker_members
+			WHERE repository = ? AND image_name = ? AND user_id = ?`, repository, imageName, userID).Scan(&level)
+		if errors.Is(err, sql.ErrNoRows) {
+			if _, err := tx.Exec(`INSERT INTO docker_members (repository, image_name, username, user_id, permission_level, added_at) VALUES (?, ?, ?, ?, ?, ?)`,
+				repository, imageName, pub, userID, level, createdAt); err != nil {
+				return nil, fmt.Errorf("restore Docker publisher membership: %w", err)
+			}
+		} else if err != nil {
+			return nil, err
+		}
+		if err := tx.Commit(); err != nil {
+			return nil, err
 		}
 		members = append([]*core.DockerMember{{
 			UserID:   userID,
 			Username: pub,
-			Level:    core.DockerPermissionFull,
+			Level:    level,
 			AddedAt:  createdAt,
 		}}, members...)
 	}
@@ -1367,6 +1399,14 @@ func (db *DB) CreateDockerInvitations(invitations []*core.DockerInvitation, mess
 		return fmt.Errorf("begin Docker invitation: %w", err)
 	}
 	defer tx.Rollback()
+	if err := lockAccountLoginMethodsTx(tx, inviterID); err != nil {
+		return err
+	}
+	for _, recipientID := range recipientIDs {
+		if err := lockAccountLoginMethodsTx(tx, recipientID); err != nil {
+			return err
+		}
+	}
 
 	if err := lockDockerImageTeam(tx, first.Repository, first.ImageName); err != nil {
 		return err
@@ -1511,6 +1551,9 @@ func (db *DB) ForceAddDockerMembers(repository, imageName, actor string, usernam
 	}
 	for _, username := range normalizedUsers {
 		var existingLevel int
+		if err := lockAccountLoginMethodsTx(tx, userIDs[username]); err != nil {
+			return err
+		}
 		err := tx.QueryRow(`SELECT permission_level FROM docker_members WHERE repository = ? AND image_name = ? AND user_id = ?`,
 			repository, imageName, userIDs[username]).Scan(&existingLevel)
 		if err == nil {
@@ -1595,6 +1638,9 @@ func (db *DB) RespondDockerInvitation(id, recipient, repository string, accept b
 		recipientID, identityErr := userIDForUsernameTx(tx, recipient)
 		if identityErr != nil {
 			return core.ErrDockerInvitationInvalid
+		}
+		if err := lockAccountLoginMethodsTx(tx, recipientID); err != nil {
+			return err
 		}
 		inviterLevel, inviterMember, permissionErr := dockerEffectivePermissionTx(
 			tx, invitation.Repository, invitation.ImageName, inviterID)
@@ -1691,6 +1737,9 @@ func (db *DB) SetDockerMemberLevel(repository, imageName, actor, username string
 		return fmt.Errorf("begin Docker member update: %w", err)
 	}
 	defer tx.Rollback()
+	if err := lockAccountLoginMethodsTx(tx, targetID); err != nil {
+		return err
+	}
 
 	if err := lockDockerImageTeam(tx, repository, imageName); err != nil {
 		return err

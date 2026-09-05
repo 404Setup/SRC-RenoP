@@ -47,6 +47,10 @@ func (db *DB) GetUserProfileByID(userID string) (*core.UserProfile, error) {
 }
 
 func (db *DB) getUserProfile(whereClause, value string) (*core.UserProfile, error) {
+	var generation uint64
+	if db.profileCache != nil {
+		generation = db.profileCache.Generation()
+	}
 	profile := &core.UserProfile{}
 	err := db.QueryRow(`SELECT p.user_id, p.username, t.created_at, p.nickname,
 		p.website_url, p.github_url, p.discord_url, p.custom_link_name, p.custom_link_url,
@@ -73,7 +77,7 @@ func (db *DB) getUserProfile(whereClause, value string) (*core.UserProfile, erro
 	if err != nil {
 		return nil, fmt.Errorf("load user profile %s: %w", value, err)
 	}
-	db.cacheUserProfile(profile)
+	db.cacheUserProfile(profile, generation)
 	return profile, nil
 }
 
@@ -88,16 +92,13 @@ func profileSummary(profile *core.UserProfile) core.UserProfile {
 	}
 }
 
-func (db *DB) cacheUserProfile(profile *core.UserProfile) {
+func (db *DB) cacheUserProfile(profile *core.UserProfile, generation uint64) {
 	if db == nil || profile == nil || profile.UserID == "" || profile.Username == "" {
 		return
 	}
 	username := strings.ToLower(profile.Username)
-	if db.userIDCache != nil {
-		db.userIDCache.Set(username, profile.UserID, 30*time.Minute)
-	}
 	if db.profileCache != nil {
-		db.profileCache.Set(username, profileSummary(profile), 10*time.Minute)
+		db.profileCache.SetIfGeneration(username, profileSummary(profile), 10*time.Minute, generation)
 	}
 }
 
@@ -185,14 +186,26 @@ func (db *DB) UpdateUserProfileLinks(username string, links core.PublicLinks, up
 	if links, valid = core.NormalizePublicLinks(links); username == "" || !valid || updatedAt <= 0 {
 		return nil, errors.New("user profile links are invalid")
 	}
-	if _, err := db.userIDForExistingAccount(username); err != nil {
+	userID, err := db.userIDForExistingAccount(username)
+	if err != nil {
 		return nil, core.ErrUserProfileNotFound
 	}
-	_, err := db.Exec(`UPDATE user_profiles SET website_url = ?, github_url = ?, discord_url = ?,
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	if err := lockAccountLoginMethodsTx(tx, userID); err != nil {
+		return nil, err
+	}
+	_, err = tx.Exec(`UPDATE user_profiles SET website_url = ?, github_url = ?, discord_url = ?,
 		custom_link_name = ?, custom_link_url = ?, updated_at = ? WHERE username = ?`,
 		links.Website, links.GitHub, links.Discord, links.CustomName, links.CustomURL, updatedAt, username)
 	if err != nil {
 		return nil, fmt.Errorf("update public links for %s: %w", username, err)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit public links: %w", err)
 	}
 	db.invalidateUserProfileCaches(username)
 	return db.GetUserProfile(username)
@@ -240,6 +253,10 @@ func (db *DB) GetUserProfiles(usernames []string) (map[string]*core.UserProfile,
 		return profiles, nil
 	}
 	arguments := make([]any, len(missing))
+	var generation uint64
+	if db.profileCache != nil {
+		generation = db.profileCache.Generation()
+	}
 	placeholders := make([]string, len(missing))
 	for index, username := range missing {
 		arguments[index] = username
@@ -263,7 +280,7 @@ func (db *DB) GetUserProfiles(usernames []string) (map[string]*core.UserProfile,
 		}
 		profiles[profile.Username] = profile
 		found[profile.Username] = struct{}{}
-		db.cacheUserProfile(profile)
+		db.cacheUserProfile(profile, generation)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate user profile batch: %w", err)
@@ -271,7 +288,7 @@ func (db *DB) GetUserProfiles(usernames []string) (map[string]*core.UserProfile,
 	if db.profileCache != nil {
 		for _, username := range missing {
 			if _, ok := found[username]; !ok {
-				db.profileCache.Set(username, core.UserProfile{}, 30*time.Second)
+				db.profileCache.SetIfGeneration(username, core.UserProfile{}, 30*time.Second, generation)
 			}
 		}
 	}
@@ -382,7 +399,6 @@ func (db *DB) UpdateUserProfile(oldUsername, newUsername, nickname string, token
 		db.finishTokenUpdate(oldUsername, token)
 	}
 	db.invalidateUserProfileCaches(oldUsername, newUsername)
-	db.cacheUserProfile(profile)
 	return profile, nil
 }
 
@@ -423,7 +439,7 @@ func (db *DB) userIDForExistingAccount(username string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if token == nil {
+	if token == nil || token.DeletedAt > 0 {
 		return "", core.ErrUserProfileNotFound
 	}
 	return db.userIDForUsername(username)
@@ -432,15 +448,28 @@ func (db *DB) userIDForExistingAccount(username string) (string, error) {
 func userIDForUsernameTx(tx *Tx, username string) (string, error) {
 	username = strings.ToLower(strings.TrimSpace(username))
 	var userID string
-	if err := tx.QueryRow(`SELECT user_id FROM user_profiles WHERE username = ?`, username).Scan(&userID); errors.Is(err, sql.ErrNoRows) {
+	var deletedAt int64
+	if err := tx.QueryRow(`SELECT profile.user_id, COALESCE(token.deleted_at, 0)
+		FROM user_profiles profile LEFT JOIN tokens token ON token.name = profile.username
+		WHERE profile.username = ?`, username).Scan(&userID, &deletedAt); errors.Is(err, sql.ErrNoRows) {
 		return "", core.ErrUserProfileNotFound
 	} else if err != nil {
 		return "", fmt.Errorf("resolve transaction user ID for %s: %w", username, err)
+	}
+	if deletedAt > 0 {
+		return "", core.ErrUserProfileNotFound
 	}
 	return userID, nil
 }
 
 func (db *DB) ensureUserProfile(username string) (string, error) {
+	account, err := db.GetTokenByName(username)
+	if err != nil {
+		return "", err
+	}
+	if account != nil && account.DeletedAt > 0 {
+		return "", core.ErrAccountDeleted
+	}
 	if userID, err := db.userIDForUsername(username); err == nil {
 		return userID, nil
 	} else if !errors.Is(err, core.ErrUserProfileNotFound) {

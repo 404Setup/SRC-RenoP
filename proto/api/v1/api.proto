@@ -24,6 +24,7 @@ message AccessTokenDto {
   repeated string tokens = 6;
   repeated string permissions = 7;
   AccountBan ban = 8;
+  int64 deleted_at = 9;
 }
 
 message AccessTokenPermission {

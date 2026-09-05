@@ -1,7 +1,7 @@
 ---
 title: 发布配额
 order: 18
-category: API 接口
+category: API 参考
 description: 用户与超级团队的周期发布限制
 ---
 

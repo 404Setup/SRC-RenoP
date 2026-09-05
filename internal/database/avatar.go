@@ -94,6 +94,9 @@ func (db *DB) PutUserAvatar(username string, avatar *core.UserAvatar) error {
 	if err != nil {
 		return err
 	}
+	if err := lockAccountLoginMethodsTx(tx, userID); err != nil {
+		return err
+	}
 	result, err := tx.Exec(`UPDATE user_avatars SET content_type = ?, image_data = ?, size = ?, sha256 = ?,
 		updated_at = ? WHERE user_id = ?`, avatar.ContentType, avatar.Data, avatar.Size,
 		strings.ToLower(avatar.SHA256), avatar.UpdatedAt, userID)

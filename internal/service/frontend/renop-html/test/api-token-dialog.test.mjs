@@ -60,11 +60,12 @@ test('server-approved API token scopes retain exact repository, package, team, a
         ['APITokenScopeDomainRead', 'domain'],
         ['APITokenScopeDomainCreate', 'domain'],
         ['APITokenScopeDomainVerify', 'domain'],
-        ['APITokenScopeDomainDelete', 'domain'],
+        ['APITokenScopeDomainLifecycle', 'domain'],
     ]);
     for (const [scope, targetKind] of expected) {
         assert.match(definitions, new RegExp(`Scope: ${scope}, TargetKind: "${targetKind}"`), scope);
     }
     assert.doesNotMatch(definitions, /APITokenScope(?:Package|Domain)Manage/);
+    assert.doesNotMatch(definitions, /APITokenScopeDomainDelete/);
     assert.match(backend, /return target != "" && slices\.Contains\(restricted, target\)/);
 });

@@ -353,7 +353,7 @@ func resolveRecipients(state *core.AppState, request notificationRequest) ([]str
 	unique := make(map[string]struct{})
 	if request.All {
 		for _, token := range state.GetAllTokens() {
-			if token == nil {
+			if token == nil || token.DeletedAt > 0 {
 				continue
 			}
 			name := strings.ToLower(strings.TrimSpace(token.Name))
@@ -367,7 +367,8 @@ func resolveRecipients(state *core.AppState, request notificationRequest) ([]str
 		}
 		for _, rawName := range request.Recipients {
 			name := strings.ToLower(strings.TrimSpace(rawName))
-			if name == "" || len(name) > 255 || state.GetTokenByName(name) == nil {
+			account := state.GetTokenByName(name)
+			if name == "" || len(name) > 255 || account == nil || account.DeletedAt > 0 {
 				return nil, errors.New("notification recipient does not exist")
 			}
 			unique[name] = struct{}{}

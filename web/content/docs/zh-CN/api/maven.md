@@ -1,14 +1,14 @@
 ---
-title: Maven 存储库 API
+title: Maven 仓库 API
 order: 4
-category: API 接口
+category: API 参考
 description: 已验证发布域、域团队、制品目录与 Maven 客户端访问
 ---
 
-# Maven 存储库 API
+# Maven 仓库 API
 
-RenoP Maven 存储库使用已验证的反向域名命名空间。发布者只需在账号菜单中创建并验证一次域，即可在所有有权
-操作的 Maven 存储库中使用。标准 Maven 2 路径、元数据、分离签名与校验文件保持 Maven 和 Gradle 兼容。
+RenoP Maven 仓库使用已验证的反向域名命名空间。发布者只需在账号菜单中创建并验证一次域，即可在所有有权
+操作的 Maven 仓库中使用。标准 Maven 2 路径、元数据、分离签名与校验文件保持 Maven 和 Gradle 兼容。
 
 ## 域验证
 
@@ -21,11 +21,11 @@ RenoP Maven 存储库使用已验证的反向域名命名空间。发布者只�
 通过 `POST /api/maven/domains/:domain/verify` 发起外部验证。每个域每 5 秒最多验证一次。系统管理员可使用
 `/verify/force` 强制通过，此操作会写入行为日志。
 
-验证后的域及其团队在整个 RenoP 实例中共享。切换 Maven 存储库时无需重复创建、验证或邀请成员。
+验证后的域及其团队在整个 RenoP 实例中共享。切换 Maven 仓库时无需重复创建、验证或邀请成员。
 
 ## 域权限
 
-Maven 团队归属于全局域，而非某个存储库或单个制品：
+Maven 团队归属于全局域，而非某个仓库或单个制品：
 
 - L0：读取公开内容；
 - L1：发布制品；
@@ -38,7 +38,7 @@ Maven 团队归属于全局域，而非某个存储库或单个制品：
 
 ## 制品目录
 
-`GET /api/maven/repositories/:repo/domains` 列出在指定存储库中已有制品的域。
+`GET /api/maven/repositories/:repo/domains` 列出在指定仓库中已有制品的域。
 `GET /api/maven/repositories/:repo/packages` 提供分页搜索。
 `GET /api/maven/repositories/:repo/package?group=...&artifact=...` 返回制品及版本。L2 成员可通过对应 JSON
 接口更新描述或删除完整版本。
@@ -50,10 +50,10 @@ Maven 团队归属于全局域，而非某个存储库或单个制品：
 域内 L2-L4 成员或管理员可通过制品更新接口维护独立的包级 Markdown README。README 上限为 512 KiB，
 只在详情接口中返回，并通过共用的元素与 URL 白名单渲染。POM 或目录中的短描述仍是独立字段。
 
-旧版 Maven 存储库会在升级时建立目录索引。迁移得到的域视为已验证，但不会自动添加成员；管理员必须显式
+旧版 Maven 仓库会在升级时建立目录索引。迁移得到的域视为已验证，但不会自动添加成员；管理员必须显式
 分配权限。已配置的 Maven 镜像继续解析缺失制品。
 
-## 布局与纯文件存储库
+## 布局与纯文件仓库
 
 现代 UI 默认使用域目录。管理员可切换到经典文件树，并可随时切回。此设置只改变显示方式：任意路径仍会被
 拒绝，发布仍要求已验证域和有效 Maven 路径。
@@ -64,5 +64,5 @@ OpenPGP 校验。
 ## Maven 与 Gradle 客户端访问
 
 读取和发布使用 `/{repo}/{maven-path}`。可使用密码，或带有 `repository:read`、`repository:publish` 的
-API Token。存储库可见性控制读取，已验证域及账号当前 L0-L4 控制修改。完整契约位于
+API Token。仓库可见性控制读取，已验证域及账号当前 L0-L4 控制修改。完整契约位于
 `web/assets/openapi.yaml`。

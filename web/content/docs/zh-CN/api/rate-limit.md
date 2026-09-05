@@ -1,7 +1,7 @@
 ---
 title: 速率限制与防护
 order: 12
-category: API 接口
+category: API 参考
 description: 请求速率限制、异常检测与 IP 防护策略
 ---
 

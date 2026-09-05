@@ -76,7 +76,8 @@ func clickHouseSchemas() []clickHouseTableSchema {
 			"`name` String", "`type` String", "`type_value` Int64", "`encrypted_secret` String",
 			"`password_hash` String", "`tokens_json` String", "`created_at` String", "`description` String",
 			"`expires_at` Nullable(Int64)", "`permissions_json` String", "`ban_reason` String DEFAULT ''",
-			"`banned_at` Int64 DEFAULT 0", "`banned_until` Nullable(Int64)",
+			"`banned_at` Int64 DEFAULT 0", "`banned_until` Nullable(Int64)", "`deleted_at` Int64 DEFAULT 0",
+			"`email_released_at` Int64 DEFAULT 0", "`audit_purged_at` Int64 DEFAULT 0",
 		}},
 		{name: "user_profiles", keyColumns: []string{"user_id"}, columns: []string{
 			"`user_id` String", "`username` String", "`nickname` String DEFAULT ''",

@@ -103,6 +103,7 @@ if (!customElements.get('renop-user-row')) {
  * @property {(token: object) => void} [onSessions] - Sessions action handler
  * @property {(token: object) => void} [onQuota] - Publication quota action handler
  * @property {(token: object) => void} [onBan] - Account suspension action handler
+ * @property {(token: object) => void} [onRetention] - Retired-account retention handler
  */
 
 /**
@@ -112,6 +113,7 @@ if (!customElements.get('renop-user-row')) {
  */
 export function openUserActionsDialog(token, options = {}) {
     const username = token.name || 'User';
+    const retired = Number(token.deleted_at) > 0;
 
     const cardsGrid = el('div', {
         class: 'user-action-cards-grid',
@@ -123,16 +125,25 @@ export function openUserActionsDialog(token, options = {}) {
         }
     });
 
-    const actions = [
-        {
-            id: 'audit',
-            icon: 'fileText',
-            iconColor: '#3b82f6',
-            iconBg: 'rgba(59, 130, 246, 0.1)',
-            title: t('users.auditLogs') || 'Activity Logs',
-            desc: t('users.auditLogsDesc') || 'View activity log history for this user',
-            handler: options.onAuditLogs
-        },
+    const auditAction = {
+        id: 'audit',
+        icon: 'fileText',
+        iconColor: '#3b82f6',
+        iconBg: 'rgba(59, 130, 246, 0.1)',
+        title: t('users.auditLogs') || 'Activity Logs',
+        desc: t('users.auditLogsDesc') || 'View activity log history for this user',
+        handler: options.onAuditLogs
+    };
+    const actions = retired ? [auditAction, {
+        id: 'retention',
+        icon: 'fileLock',
+        iconColor: '#f59e0b',
+        iconBg: 'rgba(245, 158, 11, 0.1)',
+        title: t('users.retentionAction'),
+        desc: t('users.retentionActionDesc'),
+        handler: options.onRetention
+    }] : [
+        auditAction,
         {
             id: 'fido',
             icon: 'fileKey',
@@ -295,6 +306,7 @@ export function createUserRow(token, options = {}) {
     const row = document.createElement('tr');
     row.dataset.userName = token.name;
     if (token.ban) row.classList.add('is-banned');
+    if (Number(token.deleted_at) > 0) row.classList.add('is-retired');
 
     const nameTd = el('td', {class: 'user-cell'},
         createUserIdentity(token.name, {avatar: true})
@@ -307,6 +319,13 @@ export function createUserRow(token, options = {}) {
             : t('users.banCurrentPermanent');
         nameTd.appendChild(createBadge(t('users.banned'), 'danger', {
             title: `${duration} — ${token.ban.reason || t('common.unknown')}`
+        }));
+    }
+    if (Number(token.deleted_at) > 0) {
+        nameTd.appendChild(createBadge(t('users.retired'), 'none', {
+            title: t('users.retiredAtValue', {
+                date: formatTimestamp(token.deleted_at, {fallback: t('common.unknown')})
+            })
         }));
     }
 

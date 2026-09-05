@@ -92,6 +92,9 @@ func (db *DB) StoreGitHubIdentity(userID string, githubUserID int64, githubLogin
 	}
 
 	var linkedUserID string
+	if err := lockAccountLoginMethodsTx(tx, userID); err != nil {
+		return err
+	}
 	err = tx.QueryRow(`SELECT user_id FROM github_identities WHERE github_user_id = ?`, githubUserID).Scan(&linkedUserID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("inspect GitHub provider identity: %w", err)

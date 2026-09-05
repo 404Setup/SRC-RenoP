@@ -1,7 +1,7 @@
 ---
 title: GPG 加密 API
 order: 11
-category: API 接口
+category: API 参考
 description: OpenPGP 公钥管理与签名验证状态
 ---
 

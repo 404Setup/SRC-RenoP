@@ -1,7 +1,7 @@
 ---
 title: 系统服务管理
 order: 1
-category: 运维部署
+category: 部署
 description: 使用 --install 与 --uninstall 注册系统守护进程与开机自启
 ---
 

@@ -43,3 +43,15 @@ func AcquireMigration(repository string) func() {
 	gate.Lock()
 	return gate.Unlock
 }
+
+// AcquireAllMigrations excludes every repository mutation during one cross-repository account retirement.
+func AcquireAllMigrations() func() {
+	for index := range gateStripes {
+		gateStripes[index].Lock()
+	}
+	return func() {
+		for index := len(gateStripes) - 1; index >= 0; index-- {
+			gateStripes[index].Unlock()
+		}
+	}
+}

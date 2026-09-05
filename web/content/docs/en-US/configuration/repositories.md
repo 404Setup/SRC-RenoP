@@ -60,7 +60,7 @@ not generate checksums, POM files, or signature validation. Maven repositories c
 moving objects; returning to Maven rebuilds the catalog and restores saved Maven policy. Migration preserves the
 repository's effective download-statistics switch.
 
-Publication review supports Maven and npm. Maven review forces `allow_redeployment` to `false`; npm keeps its immutable
+Publication review supports Maven, npm, Cargo, and Docker. Maven review forces `allow_redeployment` to `false`; npm keeps its immutable
 version and dist-tag transaction. Local files remain hidden until a repository moderator or system administrator
 approves them, and mirror content is never reviewed. Pending reviews prevent repository reconfiguration, deletion, or
 engine migration.

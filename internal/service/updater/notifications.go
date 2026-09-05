@@ -98,7 +98,7 @@ func deliverUpdateNotification(state *core.AppState, recipient, event string, re
 }
 
 func tokenHasManagerPermission(token *core.AccessToken, now int64) bool {
-	if token == nil || strings.TrimSpace(token.Name) == "" ||
+	if token == nil || token.DeletedAt > 0 || strings.TrimSpace(token.Name) == "" ||
 		(token.ExpiresAt != nil && now >= *token.ExpiresAt) {
 		return false
 	}

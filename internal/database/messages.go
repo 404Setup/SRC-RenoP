@@ -26,6 +26,11 @@ const messageColumns = `id, recipient, sender, kind, severity, title, body, payl
 	action_kind, action_status, created_at, read_at, acted_at, expires_at, dedupe_key`
 
 func insertAcceptedMembershipMessage(tx *Tx, recipient, sender, actionKind, title, body string, payload any, now int64) error {
+	if err := lockAccountByUsernameTx(tx, recipient); errors.Is(err, core.ErrAccountDeleted) {
+		return nil
+	} else if err != nil {
+		return err
+	}
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("encode membership message payload: %w", err)
@@ -37,6 +42,11 @@ func insertAcceptedMembershipMessage(tx *Tx, recipient, sender, actionKind, titl
 }
 
 func insertTeamRemovalMessage(tx *Tx, recipient, format, repository, resource string, now int64) error {
+	if err := lockAccountByUsernameTx(tx, recipient); errors.Is(err, core.ErrAccountDeleted) {
+		return nil
+	} else if err != nil {
+		return err
+	}
 	payloadBytes, err := json.Marshal(map[string]string{
 		"format": format, "repository": repository, "package": resource,
 	})
@@ -133,6 +143,11 @@ func (db *DB) SaveMessages(messages []*core.UserMessage) error {
 		if err := normalizeMessage(message); err != nil {
 			return err
 		}
+		if err := lockAccountByUsernameTx(tx, message.Recipient); errors.Is(err, core.ErrAccountDeleted) {
+			continue
+		} else if err != nil {
+			return err
+		}
 		var dedupeKey any
 		if message.DedupeKey != "" {
 			dedupeKey = message.DedupeKey
@@ -159,17 +174,25 @@ func (db *DB) SaveMessageIfAbsent(message *core.UserMessage) (bool, error) {
 	if err := normalizeMessage(message); err != nil {
 		return false, err
 	}
-	if message.DedupeKey == "" {
-		if err := db.SaveMessages([]*core.UserMessage{message}); err != nil {
-			return false, err
-		}
-		return true, nil
+	tx, err := db.Begin()
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback()
+	if err := lockAccountByUsernameTx(tx, message.Recipient); errors.Is(err, core.ErrAccountDeleted) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	var dedupeKey any
+	if message.DedupeKey != "" {
+		dedupeKey = message.DedupeKey
 	}
 	query := `INSERT INTO user_messages (` + messageColumns + `) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	arguments := []any{
 		message.ID, message.Recipient, message.Sender, message.Kind, message.Severity,
 		message.Title, message.Body, string(message.Payload), message.ActionKind, message.ActionStatus,
-		message.CreatedAt, message.ReadAt, message.ActedAt, message.ExpiresAt, message.DedupeKey,
+		message.CreatedAt, message.ReadAt, message.ActedAt, message.ExpiresAt, dedupeKey,
 	}
 	switch db.Dialect.Name() {
 	case "mysql":
@@ -182,13 +205,16 @@ func (db *DB) SaveMessageIfAbsent(message *core.UserMessage) (bool, error) {
 	default:
 		query += ` ON CONFLICT (recipient, dedupe_key) DO NOTHING`
 	}
-	result, err := db.Exec(query, arguments...)
+	result, err := tx.Exec(query, arguments...)
 	if err != nil {
 		return false, fmt.Errorf("insert deduplicated message for %s: %w", message.Recipient, err)
 	}
 	inserted, err := result.RowsAffected()
 	if err != nil {
 		return false, fmt.Errorf("count deduplicated message insert: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return false, err
 	}
 	return inserted == 1, nil
 }

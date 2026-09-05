@@ -1,7 +1,7 @@
 ---
 title: 消息中心 API
 order: 7
-category: API 接口
+category: API 参考
 description: 账号通知、未读数量、工作流操作与管理员公告
 ---
 

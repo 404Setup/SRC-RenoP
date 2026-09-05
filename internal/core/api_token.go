@@ -45,7 +45,9 @@ const (
 	APITokenScopeDomainRead        = "domain:read"
 	APITokenScopeDomainCreate      = "domain:create"
 	APITokenScopeDomainVerify      = "domain:verify"
-	APITokenScopeDomainDelete      = "domain:delete"
+	APITokenScopeDomainLifecycle   = "domain:lifecycle"
+	// APITokenScopeDomainDelete is accepted only for credentials created before domains became close-only.
+	APITokenScopeDomainDelete = "domain:delete"
 	// APITokenScopePackageManage is accepted only for credentials created before capability splitting.
 	APITokenScopePackageManage = "package:manage"
 	// APITokenScopeDomainManage is accepted only for credentials created before capability splitting.

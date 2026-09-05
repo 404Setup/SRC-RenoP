@@ -207,6 +207,9 @@ func (db *DB) CreateSuperTeam(team *core.SuperTeam, owner string, globalCreateLi
 		return fmt.Errorf("begin global team creation: %w", err)
 	}
 	defer tx.Rollback()
+	if err := lockAccountLoginMethodsTx(tx, ownerID); err != nil {
+		return err
+	}
 	var exists int
 	if err := tx.QueryRow(`SELECT 1 FROM super_teams WHERE prefix = ?`, team.Prefix).Scan(&exists); err == nil {
 		return core.ErrSuperTeamExists
@@ -813,6 +816,14 @@ func (db *DB) CreateSuperTeamInvitations(invitations []*core.SuperTeamInvitation
 		return fmt.Errorf("begin global team invitation: %w", err)
 	}
 	defer tx.Rollback()
+	if err := lockAccountLoginMethodsTx(tx, inviterID); err != nil {
+		return err
+	}
+	for _, recipientID := range recipientIDs {
+		if err := lockAccountLoginMethodsTx(tx, recipientID); err != nil {
+			return err
+		}
+	}
 	var inviterLevel int
 	if err := tx.QueryRow(`SELECT role_level FROM super_team_members WHERE team_prefix = ? AND user_id = ?`,
 		prefix, inviterID).Scan(&inviterLevel); errors.Is(err, sql.ErrNoRows) || inviterLevel < core.SuperTeamRoleManage {
@@ -919,6 +930,9 @@ func (db *DB) ForceAddSuperTeamMembers(prefix, actor string, usernames []string,
 		return fmt.Errorf("inspect global team: %w", err)
 	}
 	for _, target := range candidates {
+		if err := lockAccountLoginMethodsTx(tx, target.userID); err != nil {
+			return err
+		}
 		var exists int
 		if err := tx.QueryRow(`SELECT 1 FROM super_team_members WHERE team_prefix = ? AND user_id = ?`,
 			prefix, target.userID).Scan(&exists); err == nil {
@@ -979,6 +993,9 @@ func (db *DB) RespondSuperTeamInvitation(id, recipient string, accept bool, glob
 		return fmt.Errorf("begin global team invitation response: %w", err)
 	}
 	defer tx.Rollback()
+	if err := lockAccountLoginMethodsTx(tx, recipientID); err != nil {
+		return err
+	}
 	invitation := &core.SuperTeamInvitation{ID: id, Recipient: strings.ToLower(strings.TrimSpace(recipient))}
 	var inviterID string
 	err = tx.QueryRow(`SELECT team_prefix, inviter_id, role_level, created_at, expires_at
@@ -1072,6 +1089,9 @@ func (db *DB) SetSuperTeamMemberLevel(prefix, actor, target string, level int, a
 		return fmt.Errorf("begin global team member update: %w", err)
 	}
 	defer tx.Rollback()
+	if err := lockAccountLoginMethodsTx(tx, targetID); err != nil {
+		return err
+	}
 	actorLevel := core.SuperTeamRoleOwner
 	if !administrator {
 		if err := tx.QueryRow(`SELECT role_level FROM super_team_members WHERE team_prefix = ? AND user_id = ?`,

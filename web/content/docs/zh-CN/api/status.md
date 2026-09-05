@@ -1,7 +1,7 @@
 ---
 title: 状态与遥测 API
 order: 9
-category: API 接口
+category: API 参考
 description: 公开健康检查、运行时指标、历史快照与受保护诊断
 ---
 

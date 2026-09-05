@@ -49,6 +49,7 @@ type userProfileResponse struct {
 	GitHub                       *githubProfileStatus         `json:"github,omitempty"`
 	SuperTeamLimits              *core.SuperTeamLimitStatus   `json:"super_team_limits,omitempty"`
 	PublicationQuota             *core.PublicationQuotaStatus `json:"publication_quota,omitempty"`
+	DeletedAt                    int64                        `json:"deleted_at,omitempty"`
 }
 
 func updateOwnUserProfileLinks(c fiber.Ctx, state *core.AppState) error {
@@ -405,6 +406,9 @@ func updateOwnUserProfile(c fiber.Ctx, state *core.AppState, opChan chan<- token
 func profileResponseWithPrivateDetails(state *core.AppState, profile *core.UserProfile, own, private bool,
 	now int64) (userProfileResponse, error) {
 	response := profileResponse(profile, own, now)
+	if account := state.GetTokenByName(profile.Username); account != nil && account.DeletedAt > 0 {
+		return userProfileResponse{Username: profile.Username, DeletedAt: account.DeletedAt}, nil
+	}
 	if own {
 		github, err := githubProfileStatusForAccount(state, profile.Username)
 		if err != nil {

@@ -2,7 +2,7 @@
 title: Configuration de la base de données
 order: 3
 category: Configuration
-description: Connexions SQLite, MySQL et PostgreSQL et paramètres du pool
+description: Connexions SQLite, MySQL, PostgreSQL et ClickHouse et paramètres du pool
 ---
 
 # Configuration de la base de données

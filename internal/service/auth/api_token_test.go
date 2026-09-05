@@ -99,7 +99,9 @@ func TestFineGrainedAPITokenRoutesAndAuthorizationBoundaries(t *testing.T) {
 	assert.Contains(t, scopeResult.Scopes, core.APITokenScopeRepositoryRead)
 	assert.Contains(t, scopeResult.Scopes, core.APITokenScopeTeamManage)
 	assert.Contains(t, scopeResult.Scopes, core.APITokenScopeDomainVerify)
+	assert.Contains(t, scopeResult.Scopes, core.APITokenScopeDomainLifecycle)
 	assert.NotContains(t, scopeResult.Scopes, core.APITokenScopePackageManage)
+	assert.NotContains(t, scopeResult.Scopes, core.APITokenScopeDomainDelete)
 	assert.NotContains(t, scopeResult.Scopes, core.APITokenScopeDomainManage)
 	assert.NotContains(t, scopeResult.Scopes, core.APITokenScopeAdminSettings)
 	assert.Equal(t, "repository", scopeResult.TargetKinds[core.APITokenScopeRepositoryRead])
@@ -368,7 +370,7 @@ func TestRequiredAPITokenScopeMatchesEndpointCapability(t *testing.T) {
 		{http.MethodGet, "/api/maven/repositories/releases/domains/example.com", core.APITokenScopeDomainRead},
 		{http.MethodPost, "/api/maven/domains", core.APITokenScopeDomainCreate},
 		{http.MethodPost, "/api/maven/domains/example.com/verify", core.APITokenScopeDomainVerify},
-		{http.MethodDelete, "/api/maven/domains/example.com", core.APITokenScopeDomainDelete},
+		{http.MethodPost, "/api/maven/domains/example.com/close", core.APITokenScopeDomainLifecycle},
 		{http.MethodPut, "/api/maven/domains/example.com/members/alice", core.APITokenScopeTeamManage},
 		{http.MethodGet, "/api/statistics/users/alice", core.APITokenScopeStatisticsRead},
 		{http.MethodGet, "/api/statistics/system/repositories", core.APITokenScopeAdminStatistics},
@@ -413,6 +415,9 @@ func TestRequiredAPITokenScopeMatchesEndpointCapability(t *testing.T) {
 		core.APITokenScopePackageManage).allows([]string{core.APITokenScopePackageMetadata}, nil))
 	assert.False(t, requireAPITokenScope(core.APITokenScopeDomainVerify,
 		core.APITokenScopeDomainManage).allows([]string{core.APITokenScopeDomainRead}, nil))
+	legacyDomainTargets := map[string][]string{core.APITokenScopeDomainDelete: {"example.com"}}
+	assert.True(t, requireAPITokenTarget(core.APITokenScopeDomainLifecycle, "example.com",
+		core.APITokenScopeDomainDelete).allows([]string{core.APITokenScopeDomainDelete}, legacyDomainTargets))
 	restricted := map[string][]string{core.APITokenScopeRepositoryPublish: {"releases"}}
 	assert.True(t, requireAPITokenTarget(core.APITokenScopeRepositoryPublish, "releases").
 		allows([]string{core.APITokenScopeRepositoryPublish}, restricted))

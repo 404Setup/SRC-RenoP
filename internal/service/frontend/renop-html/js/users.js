@@ -27,6 +27,7 @@ import {exitProtectedRouteOnDenial} from './protected-route.js';
 import {openPublicationQuotaDialog} from './publication-quota.js';
 import {invalidateUserProfiles} from './user-profiles.js';
 import {openUserBanDialog} from './users/ban.js';
+import {openAccountRetentionDialog} from './users/retention.js';
 
 let previousStats = {total: -1, admin: -1, key: -1};
 let allTokens = [];
@@ -408,6 +409,7 @@ function createUserRowElement(token) {
         onFido: (tok) => openUserFidoDialog(tok.name),
         onAuditLogs: (tok) => openAuditLogsDialog({mode: 'user', username: tok.name}),
         onQuota: (tok) => openPublicationQuotaDialog({ownerType: 'user', ownerKey: tok.name}),
+        onRetention: (tok) => openAccountRetentionDialog(tok, fetchTokens),
         onBan: currentUsername.toLowerCase() === String(token.name || '').toLowerCase()
             ? null
             : (tok) => openUserBanDialog(tok, fetchTokens),

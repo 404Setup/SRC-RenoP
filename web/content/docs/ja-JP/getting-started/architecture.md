@@ -28,7 +28,7 @@ File index and mirrors      Identity, teams, audit, messages
 
 - `internal/api` と middleware は一般 HTTP contract、search、anomaly、credential boundary を所有します。
 - format service は Maven domain/catalog、npm packument、Cargo Sparse Index、Docker Distribution v2、doc viewer を所有します。
-- database layer は SQLite、MySQL、PostgreSQL の dialect-aware transaction を提供します。
+- database layer は SQLite、MySQL、PostgreSQL、ClickHouse の dialect-aware transaction を提供します。
 - Disk/S3 は巨大 body を stream し、file index は上限付き metadata traversal を提供します。
 
 ## リクエストと作業 pipeline

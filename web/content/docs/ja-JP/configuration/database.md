@@ -2,7 +2,7 @@
 title: データベース設定
 order: 3
 category: 設定
-description: SQLite、MySQL、PostgreSQL の接続と connection pool
+description: SQLite、MySQL、PostgreSQL、ClickHouse の接続と connection pool
 ---
 
 # データベース設定

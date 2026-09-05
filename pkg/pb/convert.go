@@ -47,6 +47,7 @@ func FromAccessTokenDto(t core.AccessTokenDto) *AccessTokenDto {
 		Description: t.Description,
 		Tokens:      append([]string(nil), t.Tokens...),
 		Permissions: append([]string(nil), t.Permissions...),
+		DeletedAt:   t.DeletedAt,
 	}
 	if t.ExpiresAt != nil {
 		msg.ExpiresAt = t.ExpiresAt

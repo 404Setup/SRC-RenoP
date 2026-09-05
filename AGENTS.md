@@ -21,7 +21,8 @@
   `-confirm-isolated` and exercises account/session persistence, timed account bans with session revocation, rollback,
   message deduplication, Cargo/Docker/Maven/npm catalogs, global-team invitation/role mutations, cross-engine team
   bindings, and download statistics through the same
-  database API used by the server. Its review phase also verifies repository-moderator listing, bounded publication
+  database API used by the server. Account checks also verify permanent retirement, reserved usernames, and retained
+  email and audit cleanup. Its review phase also verifies repository-moderator listing, bounded publication
   files, single-decision completion, and hidden-path release across every available driver.
 - **`scripts/build-target.ps1` & `scripts/compress-target.ps1`**: Isolated release workers coordinated by `build.ps1`.
   Up to four compilations run independently from up to eight Brotli packaging tasks; a completed compilation releases
@@ -54,6 +55,11 @@
   invariants, masked account-token/profile mutations, irreversible one-time recovery-code verifiers, and hashed,
   expiring fine-grained API credentials. Legacy plaintext upload tokens migrate transactionally to scoped hashes;
   durable GitHub identity/principal snapshots and username-change throttling remain bound to immutable user IDs.
+  Guarded account retirement keeps permanent account/username tombstones, removes credentials and memberships in one
+  transaction, reserves private email for 14 days, and retains activity for 30 days. Indexed, bounded scheduler sweeps
+  and administrator early-release controls share `account_retirement.go`; audit persistence excludes purged retired
+  subjects and operators so delayed events cannot restore cleared logs. Account row locks reject stale security,
+  profile, credential, and membership writes after retirement.
   npm package reservations, immutable versions, dist-tags, L0-L4 teams, and invitations use the same immutable
   identities across every supported SQL dialect. Catalog reads and writes derive a usable latest published version
   when the optional `latest` dist-tag is absent, including automatic repair of older empty summary rows. Docker list
@@ -92,7 +98,8 @@
   one shared account-status check blocks password, Passkey, GitHub, session, and API-token authentication, revokes
   browser sessions immediately, and restores access automatically when a temporary ban expires. Capabilities separately
   gate repository reads/publication/deletion, package creation/metadata/lifecycle, team administration, and Maven-domain
-  reading/creation/verification/deletion. Each target-aware scope can additionally carry bounded exact repository,
+  reading/creation/verification/lifecycle. Legacy `domain:delete` credentials remain compatible with close/claim,
+  but only `domain:lifecycle` is offered for new credentials. Each target-aware scope can additionally carry bounded exact repository,
   package, team, or domain restrictions in the backward-compatible authorization JSON; legacy broad package/domain
   scopes remain authentication-only compatibility. Team targets also accept bounded `global/<prefix>` restrictions.
   Token secrets are owner-managed from a browser session; administrators cannot mint credentials for another user.
@@ -101,6 +108,9 @@
   repository writes or system-manager authority; `manager` remains the only global configuration bypass.
   Authentication-result invalidation is scoped to the changed account or revoked API token so unrelated hot entries
   remain available; validity-changing operations also remove bounded negative credential results.
+  Session-only account retirement requires explicit username confirmation and rechecks protected administrator or
+  moderator roles, every T4 ownership, active Maven domain L4 ownership, non-deprecated package L4 ownership, and
+  pending requester reviews before committing. Retired accounts cannot authenticate through any login method.
   Profile photos accept bounded square PNG, JPEG, or WebP images from 256 to 1000 pixels. RenoP validates container
   boundaries and decoded dimensions, then re-encodes pixels with the standard image encoders so original metadata,
   trailing archives, and other embedded payloads are never stored. Uploads and explicit one-shot GitHub synchronizations
@@ -170,6 +180,7 @@
 - **`internal/service/repositorygate/`**: Bounded striped read/write gates that serialize repository engine and storage
   configuration changes with uploads, deletes, GPG publication, npm publish/dist-tag mutations, Docker manifest
   publication, permanent package deprecation, review decisions, and mirror cache commits.
+  Rare account retirements take all stripes in a fixed order until cross-repository cleanup and auth invalidation finish.
 - **`internal/service/storage/` & `internal/service/gpg/`**: Multi-backend storage (Disk/S3), OpenPGP signature
   verification, and quarantined publication queue (`.renop.tmp.gpg`). The independent `files` repository format
   provides unstructured replaceable file storage and mirrors without checksum generation or signature processing.
@@ -233,7 +244,7 @@
   Frontend tests require every registered action to have a translation in every locale before changes can ship.
 - **`internal/service/tasks/`**: Process-wide non-reentrant scheduler for coalescible periodic maintenance, including
   status snapshots, cache/session/global-team-invitation cleanup, index persistence, download-statistics flushing,
-  publication-quota reservation and old-window cleanup, upload cleanup, and update checks.
+  publication-quota reservation and old-window cleanup, retired-account email/audit retention, upload cleanup, and update checks.
   Event-driven workers such as audit persistence, GPG publication, token operations, and file watching remain
   dedicated and serial where ordering matters.
 - **`internal/service/statistics/`**: Application-scoped bounded download counter shared by Maven, npm, Cargo, Docker, and
@@ -319,7 +330,10 @@
   account-token terminology in the interface.
   Private email, password-login policy, and one-time recovery-code controls are isolated in
   `js/account-security.js` inside a default-collapsed, width-contained security card that remains visible when a state
-  refresh fails, while the public four-code reset workflow lives in `js/password-recovery.js`. The login dialog keeps
+  refresh fails. `js/account-retirement.js` owns the separate closure preflight and irreversible confirmation;
+  `js/users/retention.js` owns administrator deadline and early-cleanup controls. Retired profile routes display a
+  locked identity, and retired administrator rows expose only activity and retention controls. The public four-code
+  reset workflow lives in `js/password-recovery.js`. The login dialog keeps
   password recovery as a secondary link and groups
   Passkey and optional GitHub controls in one provider section below the `or` divider; visible copy uses Passkey while
   stable FIDO/WebAuthn routes and audit identifiers remain unchanged.

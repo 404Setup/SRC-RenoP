@@ -21,17 +21,23 @@ func (db *DB) SaveAuditLog(entry *core.AuditLogEntry) error {
 	if db == nil || db.SQLDB == nil || entry == nil {
 		return nil
 	}
+	db.auditWriteMu.Lock()
+	defer db.auditWriteMu.Unlock()
+	username := SanitizeInputString(strings.ToLower(entry.Username), 255)
+	operator := SanitizeInputString(strings.ToLower(entry.Operator), 255)
 	query := `INSERT INTO audit_logs (username, operator, action, details, auth_method, session_id, ip, created_at)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+	SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE NOT EXISTS (
+		SELECT 1 FROM tokens WHERE (name = ? OR name = ?) AND deleted_at > 0
+		AND (audit_purged_at > 0 OR deleted_at <= ?))`
 	_, err := db.Exec(query,
-		SanitizeInputString(strings.ToLower(entry.Username), 255),
-		SanitizeInputString(strings.ToLower(entry.Operator), 255),
+		username, operator,
 		SanitizeInputString(entry.Action, 64),
 		SanitizeInputString(entry.Details, 4096),
 		SanitizeInputString(entry.AuthMethod, 64),
 		SanitizeInputString(core.SafeAuditSessionID(entry.SessionID), 255),
 		SanitizeInputString(entry.IP, 255),
 		entry.CreatedAt,
+		username, operator, time.Now().UnixMilli()-core.AccountAuditRetentionMillis,
 	)
 	return err
 }
@@ -128,27 +134,35 @@ func (db *DB) CleanExpiredAuditLogs(retentionDays int, maxRows int) error {
 	if db == nil || db.SQLDB == nil {
 		return nil
 	}
+	now := time.Now()
+	retirementCutoff := now.UnixMilli() - core.AccountAuditRetentionMillis
+	const unprotected = `username NOT IN (SELECT name FROM tokens
+		WHERE deleted_at > ? AND audit_purged_at = 0) AND operator NOT IN (SELECT name FROM tokens
+		WHERE deleted_at > ? AND audit_purged_at = 0)`
 	if retentionDays > 0 {
-		cutoff := time.Now().AddDate(0, 0, -retentionDays).UnixMilli()
-		if _, err := db.Exec("DELETE FROM audit_logs WHERE created_at < ?", cutoff); err != nil {
+		cutoff := now.AddDate(0, 0, -retentionDays).UnixMilli()
+		if _, err := db.Exec("DELETE FROM audit_logs WHERE created_at < ? AND "+unprotected,
+			cutoff, retirementCutoff, retirementCutoff); err != nil {
 			return err
 		}
 	}
 
 	if maxRows > 0 && maxRows < 100000000 {
 		var count int
-		if err := db.QueryRow("SELECT COUNT(*) FROM audit_logs").Scan(&count); err != nil {
+		if err := db.QueryRow("SELECT COUNT(*) FROM audit_logs WHERE "+unprotected,
+			retirementCutoff, retirementCutoff).Scan(&count); err != nil {
 			return err
 		}
 		if count > maxRows {
-			trimQuery := `DELETE FROM audit_logs WHERE id < (
+			trimQuery := `DELETE FROM audit_logs WHERE ` + unprotected + ` AND id < (
 				SELECT min_id FROM (
 					SELECT MIN(id) AS min_id FROM (
-						SELECT id FROM audit_logs ORDER BY id DESC LIMIT ?
+						SELECT id FROM audit_logs WHERE ` + unprotected + ` ORDER BY id DESC LIMIT ?
 					) AS t1
 				) AS t2
 			)`
-			if _, err := db.Exec(trimQuery, maxRows); err != nil {
+			if _, err := db.Exec(trimQuery, retirementCutoff, retirementCutoff,
+				retirementCutoff, retirementCutoff, maxRows); err != nil {
 				return err
 			}
 		}

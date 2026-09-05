@@ -59,6 +59,9 @@ func (db *DB) SetAccountBan(username string, ban *core.AccountBan) error {
 	if token == nil {
 		return core.ErrUserProfileNotFound
 	}
+	if token.DeletedAt > 0 {
+		return core.ErrAccountDeleted
+	}
 	token.Ban = ban
 	if err := db.saveTokenInTx(tx, username, token); err != nil {
 		return err

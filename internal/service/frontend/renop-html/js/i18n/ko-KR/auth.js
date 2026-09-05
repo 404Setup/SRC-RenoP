@@ -40,6 +40,7 @@ export default Object.freeze({
     "login.submitBtn": "로그인",
     "login.invalidCreds": "유효하지 않은 자격 증명입니다",
     "login.accountBanned": "이 계정은 정지되었습니다. 시스템 관리자에게 문의하세요.",
+    "login.accountDeleted": "이 계정은 영구적으로 닫혀 더 이상 로그인할 수 없습니다.",
     "login.loginError": "로그인 처리 중 오류가 발생했습니다",
     "login.welcomeBack": "환영합니다, {name}님!",
     "login.sessionExpired": "세션이 만료되었습니다. 다시 로그인해 주세요.",

@@ -7,8 +7,8 @@ description: 验证发布域并配置 Maven 与 Gradle 客户端
 
 # Maven 与 Gradle 客户端配置
 
-先创建 Maven 存储库，再从账号菜单创建并验证制品使用的反向域名命名空间。域及其 L0-L4 团队在所有 Maven
-存储库中共享。读取由存储库可见性控制；发布同时要求存储库写入权限与域发布等级。
+先创建 Maven 仓库，再从账号菜单创建并验证制品使用的反向域名命名空间。域及其 L0-L4 团队在所有 Maven
+仓库中共享。读取由仓库可见性控制；发布同时要求仓库写入权限与域发布等级。
 
 自动化建议使用可过期并带有 `repository:read`、`repository:publish` 的 API Token。Basic 用户名填写账号名，
 密码填写 Token。

@@ -1,7 +1,7 @@
 ---
 title: 认证 API
 order: 2
-category: API 接口
+category: API 参考
 description: 浏览器会话、个人资料、登录方式、恢复代码与会话撤销
 ---
 
@@ -98,3 +98,30 @@ Principal 快照，但不会持久化 OAuth Access Token。
 - **撤销其他全部会话**：`POST /api/auth/profile/sessions/revoke-others`
 
 会话列表包含公开 ID、登录方式、时间、IP 与 User-Agent，不包含 Cookie 密钥。
+
+## 永久注销账号
+
+`GET /api/auth/profile/retirement` 返回当前账号的注销检查结果。此接口及
+`DELETE /api/auth/profile/retirement` 均仅接受浏览器会话。注销请求使用 JSON：
+
+```json
+{"confirmation":"alice"}
+```
+
+确认内容必须与当前用户名完全一致。注销成功返回 `204 No Content`；确认内容不匹配时返回 `400`，
+错误码为 `ACCOUNT_RETIREMENT_CONFIRMATION`。存在未满足的条件时返回 `409`、
+`ACCOUNT_RETIREMENT_BLOCKED` 及最新检查结果。检查字段包括 `eligible`、`protected_role`、
+`super_team_owner_count`、`maven_domain_owner_count`、`package_owner_count` 和 `pending_review_count`。
+
+超级管理员和仓库版主不能注销。账号不能仍持有超级团队 T4 身份、拥有使用中的 Maven 发布域、
+以 L4 身份管理未弃用的软件包，或存在待处理的审核申请。请先转让所有权、关闭发布域或将软件包永久弃用。
+
+注销后账号和用户名永久锁定，自动退出全部管理团队，解除 GitHub 登录绑定，并清空 Passkey、
+活跃会话、API Token、头像、恢复代码和消息。登录将返回 `ACCOUNT_DELETED`。
+绑定邮箱保留 14 天，行为日志保留 30 天；到期后由定时清理任务分批释放。已发布的软件包仍可下载。
+
+超级管理员可通过 `GET /api/tokens/:name/retention` 查看保留期限，通过
+`DELETE /api/tokens/:name/retention/email` 提前释放邮箱，或通过
+`DELETE /api/tokens/:name/retention/audit` 提前清空行为日志。期限及完成时间字段均为 Unix 毫秒时间戳：
+`deleted_at`、`email_release_at`、`email_released_at`、`audit_purge_at` 和 `audit_purged_at`。
+管理员的 `DELETE /api/tokens/:name` 同样遵循上述永久注销条件。

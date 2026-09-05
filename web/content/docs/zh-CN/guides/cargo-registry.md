@@ -1,13 +1,13 @@
 ---
-title: Cargo (Rust) 存储库
+title: Cargo (Rust) 仓库
 order: 2
 category: 指南
-description: 创建 Cargo 存储库、配置 Sparse Index、发布、所有权与 Cargodoc
+description: 创建 Cargo 仓库、配置 Sparse Index、发布、所有权与 Cargodoc
 ---
 
-# Cargo (Rust) 存储库指南
+# Cargo (Rust) 仓库指南
 
-配置客户端前，应先创建格式为 `cargo` 的存储库。下方示例使用名称 `crates`。RenoP 实现 Cargo Sparse Index，
+配置客户端前，应先创建格式为 `cargo` 的仓库。下方示例使用名称 `crates`。RenoP 实现 Cargo Sparse Index，
 无需克隆 Git 索引即可流式提供 crate 归档。
 
 ## 配置 Cargo (`.cargo/config.toml`)
@@ -23,7 +23,7 @@ index = "sparse+http://localhost:3000/crates/"
 # registry = "sparse+http://localhost:3000/crates/"
 ```
 
-生产环境应使用 HTTPS。存储库 `config.json` 会声明下载与 API 路由。私有存储库设置 `auth-required`，索引与
+生产环境应使用 HTTPS。仓库 `config.json` 会声明下载与 API 路由。私有仓库设置 `auth-required`，索引与
 crate 读取均要求凭据。
 
 ## 认证
@@ -43,7 +43,7 @@ Cargo 将凭据保存到 `~/.cargo/credentials.toml`：
 token = "your_renop_token"
 ```
 
-Token 会作为完整 `Authorization` 值发送。RenoP 仍会将其权限与目标限制和账号当前存储库、包团队权限取交集。
+Token 会作为完整 `Authorization` 值发送。RenoP 仍会将其权限与目标限制和账号当前仓库、包团队权限取交集。
 
 ## 依赖与发布
 
@@ -63,7 +63,7 @@ cargo publish --registry renop
 首次成功发布会占用规范化名称，并授予发布者 L4。本地或适用的已启用上游镜像中已存在同名包时会被拒绝；
 上游检查无法确定时安全返回 `503`，且不会占用名称。后续版本要求包团队具有发布权限。
 
-启用发布审核后，归档保存成功时 `cargo publish` 返回 `202 Accepted`。存储库版主或系统管理员批准前，crate 不会
+启用发布审核后，归档保存成功时 `cargo publish` 返回 `202 Accepted`。仓库版主或系统管理员批准前，crate 不会
 写入 sparse index，也不会出现在公共目录中。`new_packages` 策略会持续生效，直到该 crate 拥有首个可见版本。
 镜像获取的 crate 不进入发布审核。
 

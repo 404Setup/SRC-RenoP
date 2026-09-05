@@ -104,7 +104,7 @@ API Token は 1 つのアカウントが所有する永続的な機械資格情�
 | `domain:read`         | 非公開 Maven domain 設定の読み取り                              |
 | `domain:create`       | Maven domain の作成                                             |
 | `domain:verify`       | Maven domain の検証または強制検証                               |
-| `domain:delete`       | Maven domain の削除                                             |
+| `domain:lifecycle`    | Maven 公開ドメインの閉鎖または再申請                             |
 | `messages:read`       | アカウントメッセージの閲覧、既読化、削除                        |
 | `account:read`        | 非公開アカウント情報と個人監査ログの読み取り                    |
 | `account:write`       | API による公開プロフィール更新                                  |

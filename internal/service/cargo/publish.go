@@ -20,7 +20,7 @@ import (
 	"hash"
 	"io"
 	"log"
-	"sync"
+	"sync/v2"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -42,7 +42,7 @@ const (
 
 var (
 	publishSlots   = make(chan struct{}, 4)
-	publishBuffers = sync.Pool{New: func() any {
+	publishBuffers = sync.Pool[*[]byte]{New: func() *[]byte {
 		buffer := make([]byte, 128<<10)
 		return &buffer
 	}}
@@ -473,7 +473,7 @@ func readPublishHeader(reader io.Reader, contentLength int64) (PublishMetadata, 
 
 func streamCrate(reader io.Reader, destination io.WriteCloser, digest hash.Hash, crateLength int64) error {
 	limited := &io.LimitedReader{R: reader, N: crateLength}
-	bufferPointer := publishBuffers.Get().(*[]byte)
+	bufferPointer := publishBuffers.Get()
 	_, copyErr := io.CopyBuffer(io.MultiWriter(destination, digest), limited, *bufferPointer)
 	publishBuffers.Put(bufferPointer)
 	if copyErr != nil || limited.N != 0 {

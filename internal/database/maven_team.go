@@ -101,6 +101,14 @@ func (db *DB) CreateMavenInvitations(invitations []*core.MavenInvitation, messag
 		return fmt.Errorf("begin Maven invitation creation: %w", err)
 	}
 	defer tx.Rollback()
+	if err := lockAccountLoginMethodsTx(tx, inviterID); err != nil {
+		return err
+	}
+	for _, recipientID := range recipientIDs {
+		if err := lockAccountLoginMethodsTx(tx, recipientID); err != nil {
+			return err
+		}
+	}
 	if err := lockMavenDomain(tx, first.Domain); err != nil {
 		return err
 	}
@@ -211,6 +219,9 @@ func (db *DB) ForceAddMavenMembers(domain, actor string, usernames []string, lev
 	}
 	for _, username := range unique {
 		var current int
+		if err := lockAccountLoginMethodsTx(tx, userIDs[username]); err != nil {
+			return err
+		}
 		err := tx.QueryRow(`SELECT permission_level FROM maven_domain_members WHERE repository = ? AND domain = ? AND user_id = ?`,
 			globalMavenRepository, domain, userIDs[username]).Scan(&current)
 		if err == nil {
@@ -283,6 +294,9 @@ func (db *DB) RespondMavenInvitation(id, recipient string, accept bool, actedAt 
 		recipientID, err := userIDForUsernameTx(tx, recipient)
 		if err != nil {
 			return core.ErrMavenInvitationInvalid
+		}
+		if err := lockAccountLoginMethodsTx(tx, recipientID); err != nil {
+			return err
 		}
 		inviterLevel, inviterMember, permissionErr := mavenDomainEffectivePermissionTx(
 			tx, invitation.Domain, inviterID)
@@ -363,6 +377,9 @@ func (db *DB) SetMavenMemberLevel(domain, actor, username string, level int) err
 		return fmt.Errorf("begin Maven member update: %w", err)
 	}
 	defer tx.Rollback()
+	if err := lockAccountLoginMethodsTx(tx, targetID); err != nil {
+		return err
+	}
 	if err := lockMavenDomain(tx, domain); err != nil {
 		return err
 	}

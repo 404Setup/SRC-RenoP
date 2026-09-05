@@ -35,6 +35,7 @@ const (
 	APITokenScopeDomainRead         = core.APITokenScopeDomainRead
 	APITokenScopeDomainCreate       = core.APITokenScopeDomainCreate
 	APITokenScopeDomainVerify       = core.APITokenScopeDomainVerify
+	APITokenScopeDomainLifecycle    = core.APITokenScopeDomainLifecycle
 	APITokenScopeDomainDelete       = core.APITokenScopeDomainDelete
 	APITokenScopePackageManage      = core.APITokenScopePackageManage
 	APITokenScopeDomainManage       = core.APITokenScopeDomainManage
@@ -85,7 +86,7 @@ var apiTokenScopeDefinitions = []apiTokenScopeDefinition{
 	{Scope: APITokenScopeDomainRead, TargetKind: "domain"},
 	{Scope: APITokenScopeDomainCreate, TargetKind: "domain"},
 	{Scope: APITokenScopeDomainVerify, TargetKind: "domain"},
-	{Scope: APITokenScopeDomainDelete, TargetKind: "domain"},
+	{Scope: APITokenScopeDomainLifecycle, TargetKind: "domain"},
 	{Scope: APITokenScopeMessagesRead},
 	{Scope: APITokenScopeAccountRead},
 	{Scope: APITokenScopeAccountWrite},

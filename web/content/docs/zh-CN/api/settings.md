@@ -1,7 +1,7 @@
 ---
 title: 设置 API
 order: 8
-category: API 接口
+category: API 参考
 description: 按域管理服务设置、存储库与索引重建
 ---
 

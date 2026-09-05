@@ -148,6 +148,14 @@ func (db *DB) CreateNPMInvitations(invitations []*core.NPMInvitation, messages [
 		return fmt.Errorf("begin npm invitation: %w", err)
 	}
 	defer tx.Rollback()
+	if err := lockAccountLoginMethodsTx(tx, inviterID); err != nil {
+		return err
+	}
+	for _, recipientID := range recipientIDs {
+		if err := lockAccountLoginMethodsTx(tx, recipientID); err != nil {
+			return err
+		}
+	}
 	if err := lockNPMPackage(tx, first.Repository, first.Package); err != nil {
 		return err
 	}
@@ -259,6 +267,9 @@ func (db *DB) RespondNPMInvitation(id, recipient, repository string, accept bool
 		if identityErr != nil {
 			return core.ErrNPMInvitationInvalid
 		}
+		if err := lockAccountLoginMethodsTx(tx, recipientID); err != nil {
+			return err
+		}
 		inviterLevel, inviterMember, permissionErr := npmEffectivePermissionTx(
 			tx, invitation.Repository, invitation.Package, inviterID)
 		if permissionErr != nil || !inviterMember || inviterLevel < core.NPMPermissionTeam {
@@ -359,6 +370,9 @@ func (db *DB) ForceAddNPMMembers(repository, packageName, actor string, username
 	}
 	for _, username := range normalizedUsers {
 		var existing int
+		if err := lockAccountLoginMethodsTx(tx, userIDs[username]); err != nil {
+			return err
+		}
 		if err := tx.QueryRow(`SELECT 1 FROM npm_members WHERE repository = ? AND package_name = ? AND user_id = ?`,
 			repository, packageName, userIDs[username]).Scan(&existing); err == nil {
 			return core.ErrNPMMemberExists
@@ -425,6 +439,9 @@ func (db *DB) SetNPMMemberLevel(repository, packageName, actor, username string,
 		return fmt.Errorf("begin npm member update: %w", err)
 	}
 	defer tx.Rollback()
+	if err := lockAccountLoginMethodsTx(tx, targetID); err != nil {
+		return err
+	}
 	if err := lockNPMPackage(tx, repository, packageName); err != nil {
 		return err
 	}

@@ -62,6 +62,12 @@ type StateDB interface {
 	GetAllTokens() ([]*AccessToken, error)
 	UpdateToken(name string, updateFn func(*AccessToken)) error
 	SetAccountBan(username string, ban *AccountBan) error
+	GetAccountRetirementPlan(username string) (*AccountRetirementPlan, error)
+	RetireAccount(username string, retiredAt int64) error
+	GetAccountRetirementStatus(username string) (*AccountRetirementStatus, error)
+	ReleaseRetiredAccountEmail(username string, releasedAt int64) error
+	PurgeRetiredAccountAuditLogs(username string, purgedAt int64) error
+	CleanupRetiredAccountData(now int64, limit int) error
 	IsPackageDeprecated(format, repository, packageKey string) (bool, error)
 	EnsurePackageMutable(format, repository, packageKey string) error
 	DeprecatePackage(format, repository, packageKey string, deprecatedAt int64) error

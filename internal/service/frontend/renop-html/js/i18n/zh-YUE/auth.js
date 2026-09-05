@@ -40,6 +40,7 @@ export default Object.freeze({
     "login.submitBtn": "登入",
     "login.invalidCreds": "無效嘅憑據",
     "login.accountBanned": "呢個帳號已被封禁，請聯絡系統超級管理員。",
+    "login.accountDeleted": "呢個帳號已永久註銷，唔可以再登入。",
     "login.loginError": "登入過程中發生錯誤",
     "login.welcomeBack": "歡迎返嚟，{name}！",
     "login.sessionExpired": "您嘅登入已過期，請重新登入。",

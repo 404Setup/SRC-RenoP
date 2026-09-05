@@ -1,7 +1,7 @@
 ---
 title: 在线更新 API
 order: 13
-category: API 接口
+category: API 参考
 description: 检查新版本、更新通道切换与应用更新接口
 ---
 

@@ -105,7 +105,7 @@ d’authentification.
 | `domain:read`         | Lire la configuration privée des domaines Maven                                    |
 | `domain:create`       | Créer un domaine Maven                                                             |
 | `domain:verify`       | Vérifier ou forcer la vérification d’un domaine Maven                              |
-| `domain:delete`       | Supprimer un domaine Maven                                                         |
+| `domain:lifecycle`    | Fermer ou réclamer un domaine Maven                                                |
 | `messages:read`       | Lire, marquer et supprimer les messages du compte                                  |
 | `account:read`        | Lire les données privées et le journal personnel                                   |
 | `account:write`       | Modifier le profil public via l’API                                                |

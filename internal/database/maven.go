@@ -234,6 +234,9 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string) error {
 		return fmt.Errorf("begin Maven domain creation: %w", err)
 	}
 	defer tx.Rollback()
+	if err := lockAccountLoginMethodsTx(tx, ownerID); err != nil {
+		return err
+	}
 	if err := requireSuperTeamRoleTx(tx, domain.SuperTeamPrefix, ownerID, core.SuperTeamRoleManage); err != nil {
 		return err
 	}
@@ -539,7 +542,7 @@ func (db *DB) SearchMavenRepositoryDomains(repository, query string, limit int) 
 	rows, err := db.Query(`SELECT d.domain, d.super_team_prefix, d.verified_at, COUNT(a.artifact_id)
 		FROM maven_domains d JOIN maven_artifacts a ON a.domain = d.domain AND a.repository = ?
 		WHERE d.repository = ? AND d.verified = 1 AND LOWER(d.domain) LIKE ?
-		GROUP BY d.domain, d.verified_at ORDER BY d.domain LIMIT ?`, repository, globalMavenRepository, pattern, limit)
+		GROUP BY d.domain, d.super_team_prefix, d.verified_at ORDER BY d.domain LIMIT ?`, repository, globalMavenRepository, pattern, limit)
 	if err != nil {
 		return nil, 0, fmt.Errorf("search Maven repository domains: %w", err)
 	}

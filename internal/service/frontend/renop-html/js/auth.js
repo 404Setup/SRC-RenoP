@@ -405,7 +405,7 @@ export async function login(name, secret) {
 
 /**
  * End the server session, clear local auth state, and reset UI to the overview tab.
- * @param {string} [reason] - Logout reason: 'expired' | 'kicked' | 'silent' | undefined (manual).
+ * @param {string} [reason] - Logout reason: 'expired' | 'kicked' | 'account_deleted' | 'silent' | undefined (manual).
  * @returns {Promise<void>}
  */
 export function logout(reason) {
@@ -448,7 +448,7 @@ async function performLogout(reason) {
 
     if (wasLoggedIn && (reason === 'expired' || reason === 'kicked')) {
         showAlert(t('login.sessionExpired'), 'error');
-    } else if (wasLoggedIn && reason !== 'silent') {
+    } else if (wasLoggedIn && reason !== 'silent' && reason !== 'account_deleted') {
         showAlert(t('login.signedOut'), 'info');
     }
 

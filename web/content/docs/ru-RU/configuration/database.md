@@ -2,7 +2,7 @@
 title: Настройка базы данных
 order: 3
 category: Конфигурация
-description: Подключения SQLite, MySQL и PostgreSQL и пул соединений
+description: Подключения SQLite, MySQL, PostgreSQL и ClickHouse и пул соединений
 ---
 
 # Настройка базы данных

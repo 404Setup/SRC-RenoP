@@ -1,16 +1,16 @@
 ---
-title: npm 存储库 API
+title: npm 仓库 API
 order: 7
 category: API 参考
 description: npm 软件包元数据、发布、tarball、发布标签、团队与管理接口
 ---
 
-# npm 存储库 API
+# npm 仓库 API
 
-每个格式为 `npm` 的存储库都在 `/{repo}/` 下提供兼容 npm 的 JSON 存储库。在首次发布前，必须通过管理 API
+每个格式为 `npm` 的仓库都在 `/{repo}/` 下提供兼容 npm 的 JSON 仓库。在首次发布前，必须通过管理 API
 或 Web 界面预留软件包名称。
 
-## 存储库发现与身份
+## 仓库发现与身份
 
 - **可用性**：`GET /{repo}/-/ping`
 - **当前账号**：`GET /{repo}/-/whoami`
@@ -75,5 +75,5 @@ description: npm 软件包元数据、发布、tarball、发布标签、团队�
 ## 认证与授权
 
 npm 客户端可使用账号密码或 API Token 进行 Basic 认证，也可将 API Token 用作 `_authToken`。Bearer API Token
-权限会与账号当前权限和可选的精确存储库、软件包或团队目标取交集。发布仍要求软件包已存在且用户至少为 L1；
+权限会与账号当前权限和可选的精确仓库、软件包或团队目标取交集。发布仍要求软件包已存在且用户至少为 L1；
 元数据与取消发布需要 L2，团队变更需要 L3，所有权与软件包删除需要 L4。

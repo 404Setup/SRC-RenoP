@@ -39,6 +39,7 @@ export default Object.freeze({
     "login.submitBtn": "Login",
     "login.invalidCreds": "Invalid credentials",
     "login.accountBanned": "This account is suspended. Contact a system administrator.",
+    "login.accountDeleted": "This account has been permanently closed and cannot sign in.",
     "login.loginError": "An error occurred during login",
     "login.welcomeBack": "Welcome back, {name}!",
     "login.sessionExpired": "Your session has expired. Please sign in again.",

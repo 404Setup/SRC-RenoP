@@ -13,6 +13,7 @@ package database_test
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -460,4 +461,46 @@ func TestPostgresDriverContract(t *testing.T) {
 	results, err := database.RunDriverCheck(context.Background(), db)
 	require.NoError(t, err)
 	require.Len(t, results, 9)
+}
+
+func TestPostgresAccountRetirementCannotRestoreConcurrentCredentials(t *testing.T) {
+	dsn, _, _ := newPostgresTestSchema(t, "renop_retirement_race")
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "postgres", Dsn: dsn, MaxOpenConns: 4, MaxIdleConns: 2,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	for index := range 8 {
+		username := fmt.Sprintf("retire_race_%d", index)
+		require.NoError(t, db.SaveToken(&core.AccessToken{Name: username, Permissions: []string{"base"}}))
+		start := make(chan struct{})
+		saved, retired := make(chan error, 1), make(chan error, 1)
+		go func() {
+			<-start
+			saved <- db.SaveToken(&core.AccessToken{
+				Name: username, EncryptedSecret: "concurrent-secret", Permissions: []string{"manager"},
+			})
+		}()
+		go func() {
+			<-start
+			retired <- db.RetireAccount(username, time.Now().UnixMilli())
+		}()
+		close(start)
+		saveErr, retireErr := <-saved, <-retired
+		account, err := db.GetTokenByName(username)
+		require.NoError(t, err)
+		require.NotNil(t, account)
+		var deletedAt int64
+		require.NoError(t, db.QueryRow(`SELECT deleted_at FROM tokens WHERE name = ?`, username).Scan(&deletedAt))
+		require.Equal(t, deletedAt, account.DeletedAt)
+		if retireErr == nil {
+			require.ErrorIs(t, saveErr, core.ErrAccountDeleted)
+			require.Empty(t, account.EncryptedSecret)
+			require.Empty(t, account.Permissions)
+		} else {
+			require.NoError(t, saveErr)
+			require.True(t, errors.Is(retireErr, core.ErrAccountRetirementBusy), "%v", retireErr)
+			require.Zero(t, deletedAt)
+		}
+	}
 }

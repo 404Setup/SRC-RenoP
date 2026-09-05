@@ -460,7 +460,7 @@ func TestExpiredTokenSessionIsRejected(t *testing.T) {
 	assert.NotEqual(t, fiber.StatusOK, request(), "expired account sessions must not remain authorized")
 }
 
-func TestDeleteTokenRejectsAuthenticatedAccount(t *testing.T) {
+func TestAccountRetirementRejectsCurrentAndProtectedAccounts(t *testing.T) {
 	db := newTestAuthDB(t)
 	state := core.NewAppState()
 	state.Inner.DB = db
@@ -472,7 +472,11 @@ func TestDeleteTokenRejectsAuthenticatedAccount(t *testing.T) {
 		Name:        "other-admin",
 		Permissions: []string{"admin"},
 	}))
-	state.Inner.TokensCount.Store(2)
+	require.NoError(t, db.SaveToken(&core.AccessToken{
+		Name:        "member",
+		Permissions: []string{"base"},
+	}))
+	state.Inner.TokensCount.Store(3)
 
 	const sessionToken = "self-delete-session"
 	session := &core.Session{PublicID: "self-delete-public", Username: "admin"}
@@ -497,7 +501,15 @@ func TestDeleteTokenRejectsAuthenticatedAccount(t *testing.T) {
 	otherDelete.Header.Set("Cookie", "renop_session="+sessionToken)
 	otherResponse, err := app.Test(otherDelete)
 	require.NoError(t, err)
-	require.Equal(t, fiber.StatusNoContent, otherResponse.StatusCode)
+	require.Equal(t, fiber.StatusConflict, otherResponse.StatusCode)
 	require.NoError(t, otherResponse.Body.Close())
-	assert.Nil(t, state.GetTokenByName("other-admin"))
+	assert.Zero(t, state.GetTokenByName("other-admin").DeletedAt)
+
+	memberDelete := httptest.NewRequest(http.MethodDelete, "/api/tokens/member", nil)
+	memberDelete.Header.Set("Cookie", "renop_session="+sessionToken)
+	memberResponse, err := app.Test(memberDelete)
+	require.NoError(t, err)
+	require.Equal(t, fiber.StatusNoContent, memberResponse.StatusCode)
+	require.NoError(t, memberResponse.Body.Close())
+	assert.Positive(t, state.GetTokenByName("member").DeletedAt)
 }

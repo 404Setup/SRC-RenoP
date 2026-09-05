@@ -28,7 +28,7 @@ File index and mirrors      Identity, teams, audit, messages
 
 - `internal/api` 与中间件负责通用 HTTP 契约、搜索、异常检测和凭据边界；
 - 各引擎服务负责 Maven 域/目录、npm packument、Cargo Sparse Index、Docker Distribution v2 与文档预览；
-- 数据库层为 SQLite、MySQL 与 PostgreSQL 提供方言感知事务；
+- 数据库层为 SQLite、MySQL、PostgreSQL 与 ClickHouse 提供方言感知事务；
 - Disk/S3 流式处理大型正文，文件索引提供有界元数据遍历。
 
 ## 请求与任务流水线
@@ -36,7 +36,7 @@ File index and mirrors      Identity, teams, audit, messages
 ### 流式处理与一致性
 
 上传和下载在客户端与 Disk/S3 之间流式传输。哈希、Brotli/ZIP 解包、镜像缓存与 GPG 发布使用有界 Reader 和
-临时文件。分片存储库门控防止存储/引擎变更与上传、删除、镜像提交或最终发布产生竞争。
+临时文件。分片仓库门控防止存储/引擎变更与上传、删除、镜像提交或最终发布产生竞争。
 
 ### 认证与授权
 

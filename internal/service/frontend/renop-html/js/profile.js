@@ -31,6 +31,7 @@ import {formatTimestamp} from './time.js';
 import {getRepositoryFormat} from './repository-formats.js';
 import {renderGitHubConnection} from './github-auth.js';
 import {refreshAccountSecurity} from './account-security.js';
+import './account-retirement.js';
 import {refreshAPITokenSummary} from './api-tokens.js';
 import {createProfileSuperTeamLimits} from './super-teams.js';
 import {createPublicationQuotaPanel, openPublicationQuotaDialog} from './publication-quota.js';
@@ -915,6 +916,27 @@ function renderPublicProfile(profile) {
     if (!publicView || !editView) return;
     editView.hidden = true;
     publicView.hidden = false;
+    if (Number(profile.deleted_at) > 0) {
+        publicView.replaceChildren(
+            el('button', {
+                type: 'button', class: 'profile-route-back', onclick: leaveUserProfileRoute
+            }, createIcon('chevronLeft'), el('span', {}, t('profile.back'))),
+            el('article', {class: 'profile-public-card'},
+                el('div', {class: 'profile-public-banner', 'aria-hidden': 'true'}),
+                el('div', {class: 'profile-public-content'},
+                    el('div', {class: 'profile-public-avatar', 'aria-hidden': 'true'}, createIcon('fileLock')),
+                    el('div', {class: 'profile-public-heading'},
+                        el('h2', {class: 'profile-public-name'}, `@${profile.username}`),
+                        el('p', {class: 'profile-public-description'}, t('profile.accountRetired')),
+                        el('p', {class: 'profile-public-username'}, t('profile.accountRetiredAt', {
+                            date: formatTimestamp(profile.deleted_at, {fallback: t('common.unknown')})
+                        }))
+                    )
+                )
+            )
+        );
+        return;
+    }
     const displayName = profileDisplayName(profile);
     const publicAvatar = el('div', {class: 'profile-public-avatar', 'aria-hidden': 'true'});
     renderProfileAvatar(publicAvatar, profile, {length: 1});

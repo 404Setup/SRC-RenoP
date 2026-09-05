@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -35,6 +36,7 @@ type DB struct {
 	sessionCache     *TTLCache[string, *core.Session]
 	userIDCache      *TTLCache[string, string]
 	profileCache     *TTLCache[string, core.UserProfile]
+	auditWriteMu     sync.Mutex
 }
 
 type Tx struct {

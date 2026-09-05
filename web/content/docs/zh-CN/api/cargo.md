@@ -1,18 +1,18 @@
 ---
-title: Cargo 存储库 API
+title: Cargo 仓库 API
 order: 5
-category: API 接口
+category: API 参考
 description: Cargo Sparse Index、crate 发布、下载与 yank
 ---
 
-# Cargo 存储库 API
+# Cargo 仓库 API
 
 RenoP 实现 Cargo Registry 与 Sparse Index 规范。
 
 ## Sparse Index 配置 (`config.json`)
 
 - **路径**：`GET /{repo}/config.json` 或 `GET /{repo}/index/config.json`
-- **用途**：Cargo 首次连接时读取此文件，以发现存储库接口。
+- **用途**：Cargo 首次连接时读取此文件，以发现仓库接口。
 
 ### JSON 响应
 

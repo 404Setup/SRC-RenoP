@@ -35,6 +35,9 @@ func SetupTokenRoutes(app fiber.Router, state *core.AppState, opChan chan<- Toke
 	api.Put("/:name", func(c fiber.Ctx) error { return UpsertToken(c, state, opChan) })
 	api.Put("/:name/ban", func(c fiber.Ctx) error { return BanAccount(c, state) })
 	api.Delete("/:name/ban", func(c fiber.Ctx) error { return UnbanAccount(c, state) })
+	api.Get("/:name/retention", func(c fiber.Ctx) error { return GetAccountRetention(c, state) })
+	api.Delete("/:name/retention/email", func(c fiber.Ctx) error { return ReleaseAccountEmail(c, state) })
+	api.Delete("/:name/retention/audit", func(c fiber.Ctx) error { return PurgeAccountAudit(c, state) })
 	api.Delete("/:name", func(c fiber.Ctx) error { return DeleteToken(c, state, opChan) })
 	api.Get("/:name/sessions", func(c fiber.Ctx) error { return ListUserSessions(c, state) })
 	api.Post("/:name/sessions/revoke-all", func(c fiber.Ctx) error { return RevokeAllUserSessions(c, state) })
@@ -185,6 +188,7 @@ func FindAllTokens(c fiber.Ctx, state *core.AppState) error {
 			Tokens:      make([]string, apiTokenCounts[token.Name]),
 			Permissions: token.Permissions,
 			Ban:         activeAccountBan(token, now),
+			DeletedAt:   token.DeletedAt,
 		})
 	}
 
@@ -204,7 +208,7 @@ func FindToken(c fiber.Ctx, state *core.AppState) error {
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).SendString("Failed to count API tokens")
 		}
-			dto := core.AccessTokenDto{
+		dto := core.AccessTokenDto{
 			Identifier:  token.Identifier,
 			Name:        name,
 			CreatedAt:   token.CreatedAt,
@@ -213,6 +217,7 @@ func FindToken(c fiber.Ctx, state *core.AppState) error {
 			Tokens:      make([]string, apiTokenCount),
 			Permissions: token.Permissions,
 			Ban:         activeAccountBan(token, time.Now().UnixMilli()),
+			DeletedAt:   token.DeletedAt,
 		}
 		c.Set(fiber.HeaderCacheControl, "no-store")
 		return protohttp.Write(c, pb.FromAccessTokenDto(dto))
@@ -247,6 +252,10 @@ func UpsertToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 	}
 
 	origToken := state.GetTokenByName(name)
+	if origToken != nil && origToken.DeletedAt > 0 {
+		c.Set("X-Renop-Error-Code", "ACCOUNT_DELETED")
+		return c.Status(fiber.StatusConflict).SendString("Retired accounts cannot be modified")
+	}
 	isExisting := origToken != nil
 	isNew := !isExisting
 
@@ -352,6 +361,7 @@ func UpsertToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 		Tokens:      token.Tokens,
 		Permissions: token.Permissions,
 		Ban:         activeAccountBan(token, time.Now().UnixMilli()),
+		DeletedAt:   token.DeletedAt,
 	}
 
 	errChan := make(chan error, 1)
@@ -416,31 +426,98 @@ func DeleteToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 		return c.Status(fiber.StatusForbidden).SendString("Cannot delete current account")
 	}
 
-	if state.GetTokenByName(name) == nil {
+	account := state.GetTokenByName(name)
+	if account == nil {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
-
-	errChan := make(chan error, 1)
-	opChan <- TokenOp{
-		Type:    OpTokenDelete,
-		Name:    strings.Clone(name),
-		ErrChan: errChan,
+	if account.DeletedAt > 0 {
+		c.Set("X-Renop-Error-Code", "ACCOUNT_DELETED")
+		return c.Status(fiber.StatusConflict).SendString("Account is already retired")
 	}
-	if err := <-errChan; err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to delete token")
+	retiredAt := time.Now().UnixMilli()
+	if err := RetireAccountSync(state, opChan, name, retiredAt); errors.Is(err, core.ErrAccountRetirementBusy) {
+		plan, planErr := state.GetDB().GetAccountRetirementPlan(name)
+		if planErr != nil {
+			return c.Status(fiber.StatusConflict).SendString("Account retirement prerequisites are not satisfied")
+		}
+		c.Set("X-Renop-Error-Code", "ACCOUNT_RETIREMENT_BLOCKED")
+		return c.Status(fiber.StatusConflict).JSON(plan)
+	} else if errors.Is(err, core.ErrAccountDeleted) {
+		c.Set("X-Renop-Error-Code", "ACCOUNT_DELETED")
+		return c.Status(fiber.StatusConflict).SendString("Account is already retired")
+	} else if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to retire account")
 	}
 
 	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   name,
 		Operator:   op,
-		Action:     audit.ActionUserPermissionUpdate,
-		Details:    "Deleted user account (" + name + ")",
+		Action:     audit.ActionAccountRetire,
+		Details:    "Retired user account (" + name + ")",
 		AuthMethod: authMethod,
 		SessionID:  sID,
 		IP:         ip,
 	})
 
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// GetAccountRetention exposes retention deadlines only to system administrators.
+func GetAccountRetention(c fiber.Ctx, state *core.AppState) error {
+	if !RequireManager(getUserFromCtx(c)) {
+		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+	}
+	status, err := state.GetDB().GetAccountRetirementStatus(strings.ToLower(strings.TrimSpace(c.Params("name"))))
+	if errors.Is(err, core.ErrAccountNotRetired) {
+		return c.Status(fiber.StatusConflict).SendString("Account is not retired")
+	}
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load account retention")
+	}
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return c.JSON(status)
+}
+
+// ReleaseAccountEmail lets a system administrator end a retired account's email hold early.
+func ReleaseAccountEmail(c fiber.Ctx, state *core.AppState) error {
+	user := getUserFromCtx(c)
+	if !RequireManager(user) {
+		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+	}
+	name := strings.ToLower(strings.TrimSpace(c.Params("name")))
+	if err := state.GetDB().ReleaseRetiredAccountEmail(name, time.Now().UnixMilli()); errors.Is(err, core.ErrAccountNotRetired) {
+		return c.Status(fiber.StatusConflict).SendString("Account is not retired")
+	} else if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to release retained email")
+	}
+	_, operator, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
+	audit.Log(state, &core.AuditLogEntry{
+		Username: user.Username, Operator: operator, Action: audit.ActionAccountEmailRelease,
+		Details: "Released retained email for account " + name, AuthMethod: authMethod,
+		SessionID: sessionID, IP: ip,
+	})
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// PurgeAccountAudit lets a system administrator purge a retired account's activity early.
+func PurgeAccountAudit(c fiber.Ctx, state *core.AppState) error {
+	user := getUserFromCtx(c)
+	if !RequireManager(user) {
+		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+	}
+	name := strings.ToLower(strings.TrimSpace(c.Params("name")))
+	if err := state.GetDB().PurgeRetiredAccountAuditLogs(name, time.Now().UnixMilli()); errors.Is(err, core.ErrAccountNotRetired) {
+		return c.Status(fiber.StatusConflict).SendString("Account is not retired")
+	} else if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to purge retained audit logs")
+	}
+	_, operator, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
+	audit.Log(state, &core.AuditLogEntry{
+		Username: user.Username, Operator: operator, Action: audit.ActionAccountAuditPurge,
+		Details: "Purged retained audit logs for account " + name, AuthMethod: authMethod,
+		SessionID: sessionID, IP: ip,
+	})
 	return c.SendStatus(fiber.StatusNoContent)
 }
 

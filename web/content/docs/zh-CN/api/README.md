@@ -1,7 +1,7 @@
 ---
 title: API 索引
 order: 1
-category: API 接口
+category: API 参考
 description: RenoP HTTP、REST 与 RPC API 概览
 ---
 

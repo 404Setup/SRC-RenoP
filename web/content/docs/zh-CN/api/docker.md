@@ -1,7 +1,7 @@
 ---
 title: Docker / OCI Registry v2 API
 order: 6
-category: API 接口
+category: API 参考
 description: OCI Distribution v2 与 Docker Registry v2 接口
 ---
 

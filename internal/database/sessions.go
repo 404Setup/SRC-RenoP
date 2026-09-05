@@ -76,12 +76,23 @@ func (db *DB) SaveSession(session *core.Session, sessionToken string) error {
 	}
 
 	query := db.Dialect.UpsertSessionQuery()
-	_, err := db.Exec(query, sessionToken, session.PublicID, strings.ToLower(session.Username), session.IP, session.UserAgent, session.CreatedAt, lastActive, loginMethod)
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := lockAccountByUsernameTx(tx, session.Username); err != nil {
+		return err
+	}
+	_, err = tx.Exec(query, sessionToken, session.PublicID, strings.ToLower(session.Username), session.IP, session.UserAgent, session.CreatedAt, lastActive, loginMethod)
 	if err != nil {
 		return fmt.Errorf("failed to save session (%s): %w", sessionTokenPrefix(sessionToken), err)
 	}
 
-	db.sessionCache.Set(sessionToken, session, 15*time.Minute)
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	db.sessionCache.Delete(sessionToken)
 	return nil
 }
 

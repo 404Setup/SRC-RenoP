@@ -1,16 +1,16 @@
 ---
 title: 存储与上传 API
 order: 10
-category: API 接口
-description: 存储库直接操作与有界可恢复分块上传
+category: API 参考
+description: 仓库直接操作与有界可恢复分块上传
 ---
 
 # 存储与上传 API
 
-直接存储接口用于 Maven 与 `files` 存储库；npm、Cargo 和 Docker 使用各自原生协议。所有修改操作都会同时检查
-API Token 权限、存储库权限、仓库引擎及 Maven 域策略。
+直接存储接口用于 Maven 与 `files` 仓库；npm、Cargo 和 Docker 使用各自原生协议。所有修改操作都会同时检查
+API Token 权限、仓库权限、仓库引擎及 Maven 域策略。
 
-## 存储库直接操作
+## 仓库直接操作
 
 标准路径为 `/{repo}/{path...}`。读取支持 HTTP 条件请求与字节范围。`HIDDEN` 不参与列表发现，但精确路径
 仍可读取；`PRIVATE` 要求授权。
@@ -40,7 +40,7 @@ API Token 权限、存储库权限、仓库引擎及 Maven 域策略。
 
 - **路径**：`POST /api/upload/chunked/`
 - **Content-Type**：`application/x-protobuf`，正文为 `ChunkedUploadInitRequest`。
-- `purpose` 为 `storage` 或 `updater`；storage 的 `path` 以存储库名称开头。
+- `purpose` 为 `storage` 或 `updater`；storage 的 `path` 以仓库名称开头。
 
 ```json
 {
@@ -64,7 +64,7 @@ API Token 权限、存储库权限、仓库引擎及 Maven 域策略。
 
 - **完成**：`POST /api/upload/chunked/{upload_id}/complete`
 - **中止**：`DELETE /api/upload/chunked/{upload_id}`
-- 完成操作只允许一个调用成功，会重新检查全部分块与权限，并通过存储库门控提交。
+- 完成操作只允许一个调用成功，会重新检查全部分块与权限，并通过仓库门控提交。
 
 ```json
 {
@@ -76,4 +76,4 @@ API Token 权限、存储库权限、仓库引擎及 Maven 域策略。
 ```
 
 Maven 强制 GPG 时，隔离阶段可返回带 `release_id` 的 `202 Accepted`。`purpose=updater` 成功时返回
-`ready_to_restart`，而不是存储库路径。
+`ready_to_restart`，而不是仓库路径。

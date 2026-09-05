@@ -75,6 +75,9 @@ func accountAccessError(accessToken *core.AccessToken) error {
 	if accessToken == nil {
 		return nil
 	}
+	if accessToken.DeletedAt > 0 {
+		return core.ErrAccountDeleted
+	}
 	now := time.Now().UnixMilli()
 	if accessToken.Ban.IsActive(now) {
 		return core.ErrAccountBanned
@@ -83,6 +86,20 @@ func accountAccessError(accessToken *core.AccessToken) error {
 		return errCredentialExpired
 	}
 	return nil
+}
+
+func isAccountAccessDenied(err error) bool {
+	return errors.Is(err, core.ErrAccountBanned) || errors.Is(err, core.ErrAccountDeleted)
+}
+
+func accountAccessCode(err error) string {
+	if errors.Is(err, core.ErrAccountDeleted) {
+		return "ACCOUNT_DELETED"
+	}
+	if errors.Is(err, core.ErrAccountBanned) {
+		return "ACCOUNT_BANNED"
+	}
+	return ""
 }
 
 func ValidateAndRenewSession(state *core.AppState, sessionID string) string {
@@ -222,7 +239,7 @@ func handleBasicAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*aut
 		return nil, nil
 	}
 	credential, err := VerifyAccountCredential(state, accessToken, password)
-	if errors.Is(err, errCredentialExpired) || errors.Is(err, core.ErrAccountBanned) {
+	if errors.Is(err, errCredentialExpired) || isAccountAccessDenied(err) {
 		return nil, fiber.ErrForbidden
 	}
 	if err != nil || credential == nil {
@@ -275,7 +292,7 @@ func handleBearerAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*au
 	} else {
 		credential, err = VerifyBearerCredential(state, bearerAuth)
 	}
-	if errors.Is(err, errCredentialExpired) || errors.Is(err, core.ErrAccountBanned) {
+	if errors.Is(err, errCredentialExpired) || isAccountAccessDenied(err) {
 		return nil, fiber.ErrForbidden
 	}
 	if err != nil || credential == nil {
@@ -309,6 +326,7 @@ func isSessionOnlyAPIPath(path string) bool {
 	for _, prefix := range []string{
 		"/api/auth/logout",
 		"/api/auth/profile/security",
+		"/api/auth/profile/retirement",
 		"/api/auth/profile/email",
 		"/api/auth/profile/password",
 		"/api/auth/profile/password-login",
@@ -494,14 +512,16 @@ func mavenAPITokenRequirement(c fiber.Ctx) apiTokenRequirement {
 		}
 		return requireAPITokenTarget(APITokenScopeTeamManage, teamTarget, APITokenScopeDomainManage)
 	}
-	if domainIndex := strings.Index(path, "/domains"); domainIndex >= 0 {
-		domainTail := strings.Trim(path[domainIndex+len("/domains"):], "/")
+	if _, after, ok := strings.Cut(path, "/domains"); ok {
+		domainTail := strings.Trim(after, "/")
 		domain := mavenDomainTarget(path)
 		switch {
 		case strings.Contains(domainTail, "/verify"):
 			return requireAPITokenTarget(APITokenScopeDomainVerify, domain, APITokenScopeDomainManage)
-		case method == fiber.MethodDelete:
-			return requireAPITokenTarget(APITokenScopeDomainDelete, domain, APITokenScopeDomainManage)
+		case method == fiber.MethodDelete || strings.HasSuffix(domainTail, "/close") ||
+			strings.HasSuffix(domainTail, "/claim"):
+			return requireAPITokenTarget(APITokenScopeDomainLifecycle, domain,
+				APITokenScopeDomainDelete, APITokenScopeDomainManage)
 		case method == fiber.MethodPost && domainTail == "":
 			return requireAPITokenDeferredTarget(APITokenScopeDomainCreate, APITokenScopeDomainManage)
 		default:

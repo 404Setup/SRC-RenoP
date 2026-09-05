@@ -101,3 +101,33 @@ La dernière méthode de connexion fonctionnelle ne peut être supprimée ni dé
 - **Révoquer les autres** : `POST /api/auth/profile/sessions/revoke-others`
 
 La liste expose un ID public, la méthode, les dates, l’IP et l’agent utilisateur, jamais le secret du cookie.
+
+## Fermeture définitive du compte
+
+`GET /api/auth/profile/retirement` renvoie les conditions de fermeture du compte courant. Cette route et
+`DELETE /api/auth/profile/retirement` exigent une session de navigateur. La suppression accepte du JSON :
+
+```json
+{"confirmation":"alice"}
+```
+
+La confirmation doit correspondre exactement au nom d'utilisateur. La fermeture réussie renvoie `204 No Content`.
+Une confirmation incorrecte renvoie `400` et `ACCOUNT_RETIREMENT_CONFIRMATION`. Des conditions non remplies
+renvoient `409`, `ACCOUNT_RETIREMENT_BLOCKED` et le plan actualisé, avec les champs `eligible`,
+`protected_role`, `super_team_owner_count`, `maven_domain_owner_count`, `package_owner_count` et
+`pending_review_count`.
+
+Les administrateurs système et les modérateurs de dépôt ne peuvent pas fermer leur compte. Aucun rôle T4 d'équipe
+globale, domaine Maven actif détenu, paquet non déprécié détenu au niveau L4 ou demande de révision en attente ne doit
+subsister. Transférez la propriété, fermez les domaines ou dépréciez définitivement les paquets avant de réessayer.
+
+La fermeture réserve définitivement le compte et son nom, retire les adhésions, libère la connexion GitHub et supprime
+les Passkeys, sessions, API tokens, photo, codes de récupération et messages. La connexion renvoie
+`ACCOUNT_DELETED`. L'adresse privée reste réservée 14 jours et l'activité est conservée 30 jours. Le nettoyage
+planifié traite les échéances par lots bornés. Les paquets publiés restent téléchargeables.
+
+Les administrateurs consultent les échéances avec `GET /api/tokens/:name/retention`, libèrent l'adresse par
+`DELETE /api/tokens/:name/retention/email` et effacent l'activité par
+`DELETE /api/tokens/:name/retention/audit`. Les champs `deleted_at`, `email_release_at`,
+`email_released_at`, `audit_purge_at` et `audit_purged_at` utilisent des millisecondes Unix.
+La route administrateur `DELETE /api/tokens/:name` applique les mêmes conditions de fermeture définitive.

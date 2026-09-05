@@ -40,6 +40,7 @@ export default Object.freeze({
     "login.submitBtn": "Войти",
     "login.invalidCreds": "Неверные учетные данные",
     "login.accountBanned": "Эта учетная запись заблокирована. Обратитесь к системному администратору.",
+    "login.accountDeleted": "Эта учётная запись окончательно закрыта и больше не может входить в систему.",
     "login.loginError": "Произошла ошибка при входе",
     "login.welcomeBack": "С возвращением, {name}!",
     "login.sessionExpired": "Ваш сеанс истек. Пожалуйста, войдите снова.",

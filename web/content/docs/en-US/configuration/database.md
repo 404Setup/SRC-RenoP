@@ -2,7 +2,7 @@
 title: Database Configuration
 order: 3
 category: Configuration
-description: SQLite, MySQL, and PostgreSQL database connections and connection pooling
+description: SQLite, MySQL, PostgreSQL, and ClickHouse database connections and connection pooling
 ---
 
 # Database Configuration

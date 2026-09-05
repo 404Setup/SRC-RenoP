@@ -28,12 +28,13 @@ const (
 	maxTokenNameLen    = 255
 	maxTokenSecretLen  = 1024
 	tokenSelectColumns = `name, type, type_value, encrypted_secret, password_hash, tokens_json,
-		created_at, description, expires_at, permissions_json, ban_reason, banned_at, banned_until`
+		created_at, description, expires_at, permissions_json, ban_reason, banned_at, banned_until,
+		deleted_at, email_released_at, audit_purged_at`
 )
 
 func parseTokenRow(name, tokenType string, typeValue int32, encryptedSecret, passwordHash, tokensJSON,
 	createdAt, description string, expiresAt sql.NullInt64, permissionsJSON, banReason string,
-	bannedAt int64, bannedUntil sql.NullInt64,
+	bannedAt int64, bannedUntil sql.NullInt64, deletedAt, emailReleasedAt, auditPurgedAt int64,
 ) (*core.AccessToken, error) {
 	var tokList []string
 	if tokensJSON != "" {
@@ -83,6 +84,9 @@ func parseTokenRow(name, tokenType string, typeValue int32, encryptedSecret, pas
 		ExpiresAt:       exp,
 		Permissions:     permList,
 		Ban:             ban,
+		DeletedAt:       deletedAt,
+		EmailReleasedAt: emailReleasedAt,
+		AuditPurgedAt:   auditPurgedAt,
 	}, nil
 }
 
@@ -106,10 +110,11 @@ func tokenByNameTx(tx *Tx, name string) (*core.AccessToken, error) {
 	var tokenName, tokenType, encryptedSecret, passwordHash, tokensJSON, createdAt, description, permissionsJSON, banReason string
 	var typeValue int32
 	var expiresAt, bannedUntil sql.NullInt64
-	var bannedAt int64
+	var bannedAt, deletedAt, emailReleasedAt, auditPurgedAt int64
 	err := tx.QueryRow(`SELECT `+tokenSelectColumns+` FROM tokens WHERE name = ?`, name).
 		Scan(&tokenName, &tokenType, &typeValue, &encryptedSecret, &passwordHash, &tokensJSON,
-			&createdAt, &description, &expiresAt, &permissionsJSON, &banReason, &bannedAt, &bannedUntil)
+			&createdAt, &description, &expiresAt, &permissionsJSON, &banReason, &bannedAt, &bannedUntil,
+			&deletedAt, &emailReleasedAt, &auditPurgedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -117,7 +122,8 @@ func tokenByNameTx(tx *Tx, name string) (*core.AccessToken, error) {
 		return nil, err
 	}
 	return parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash,
-		tokensJSON, createdAt, description, expiresAt, permissionsJSON, banReason, bannedAt, bannedUntil)
+		tokensJSON, createdAt, description, expiresAt, permissionsJSON, banReason, bannedAt, bannedUntil,
+		deletedAt, emailReleasedAt, auditPurgedAt)
 }
 
 func (db *DB) saveTokenInTx(tx *Tx, name string, token *core.AccessToken) error {
@@ -176,16 +182,17 @@ func (db *DB) GetTokenByName(name string) (*core.AccessToken, error) {
 		var tokenName, tokenType, encryptedSecret, passwordHash, tokensJSON, createdAt, description, permissionsJSON, banReason string
 		var typeValue int32
 		var expiresAt, bannedUntil sql.NullInt64
-		var bannedAt int64
+		var bannedAt, deletedAt, emailReleasedAt, auditPurgedAt int64
 		if scanErr := row.Scan(&tokenName, &tokenType, &typeValue, &encryptedSecret, &passwordHash,
 			&tokensJSON, &createdAt, &description, &expiresAt, &permissionsJSON,
-			&banReason, &bannedAt, &bannedUntil); errors.Is(scanErr, sql.ErrNoRows) {
+			&banReason, &bannedAt, &bannedUntil, &deletedAt, &emailReleasedAt, &auditPurgedAt); errors.Is(scanErr, sql.ErrNoRows) {
 			return nil, 30 * time.Second, nil
 		} else if scanErr != nil {
 			return nil, 0, fmt.Errorf("failed to query token by name (%s): %w", lowerName, scanErr)
 		}
 		loaded, parseErr := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash,
-			tokensJSON, createdAt, description, expiresAt, permissionsJSON, banReason, bannedAt, bannedUntil)
+			tokensJSON, createdAt, description, expiresAt, permissionsJSON, banReason, bannedAt, bannedUntil,
+			deletedAt, emailReleasedAt, auditPurgedAt)
 		return loaded, 10 * time.Minute, parseErr
 	})
 	if err != nil {
@@ -226,15 +233,17 @@ func (db *DB) GetTokenBySecret(secret string) (*core.AccessToken, error) {
 		var tokenName, tokenType, encryptedSecret, passwordHash, tokensJSON, createdAt, description, permissionsJSON, banReason string
 		var typeValue int32
 		var expiresAt, bannedUntil sql.NullInt64
-		var bannedAt int64
+		var bannedAt, deletedAt, emailReleasedAt, auditPurgedAt int64
 
 		if err := rows.Scan(&tokenName, &tokenType, &typeValue, &encryptedSecret, &passwordHash, &tokensJSON,
-			&createdAt, &description, &expiresAt, &permissionsJSON, &banReason, &bannedAt, &bannedUntil); err != nil {
+			&createdAt, &description, &expiresAt, &permissionsJSON, &banReason, &bannedAt, &bannedUntil,
+			&deletedAt, &emailReleasedAt, &auditPurgedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan token: %w", err)
 		}
 
 		tok, err := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash, tokensJSON,
-			createdAt, description, expiresAt, permissionsJSON, banReason, bannedAt, bannedUntil)
+			createdAt, description, expiresAt, permissionsJSON, banReason, bannedAt, bannedUntil,
+			deletedAt, emailReleasedAt, auditPurgedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -415,13 +424,22 @@ func (db *DB) CreateToken(token *core.AccessToken, nickname string, changedAt in
 	}
 	token.Tokens = persistedTokens
 	db.finishTokenUpdate(name, token)
-	db.cacheUserProfile(&core.UserProfile{
-		UserID: userID, Username: name, Nickname: nickname, CreatedAt: token.CreatedAt,
-	})
 	return nil
 }
 
 func (db *DB) DeleteToken(name string) error {
+	return db.deleteToken(name, false, 0)
+}
+
+// RetireAccount permanently reserves an account identity and removes its credentials and memberships.
+func (db *DB) RetireAccount(name string, retiredAt int64) error {
+	if retiredAt <= 0 {
+		return core.ErrAccountRetirementBusy
+	}
+	return db.deleteToken(name, true, retiredAt)
+}
+
+func (db *DB) deleteToken(name string, retire bool, retiredAt int64) error {
 	if db == nil || db.SQLDB == nil || name == "" {
 		return nil
 	}
@@ -447,101 +465,132 @@ func (db *DB) DeleteToken(name string) error {
 	if err := lockAccountLoginMethodsTx(tx, userID); err != nil {
 		return fmt.Errorf("lock account before token deletion (%s): %w", lowerName, err)
 	}
-	var soleMavenOwnerships int
-	if err := tx.QueryRow(`SELECT COUNT(*) FROM maven_domain_members current_member
-		WHERE current_member.user_id = ? AND current_member.permission_level = ? AND NOT EXISTS (
-			SELECT 1 FROM maven_domain_members other_member
-			WHERE other_member.repository = current_member.repository AND other_member.domain = current_member.domain
-			AND other_member.permission_level = ? AND other_member.user_id <> current_member.user_id
-		)`, userID, core.MavenPermissionOwner, core.MavenPermissionOwner).Scan(&soleMavenOwnerships); err != nil {
-		return fmt.Errorf("failed to inspect Maven domain ownership for token (%s): %w", lowerName, err)
+	currentToken, err := tokenByNameTx(tx, lowerName)
+	if err != nil {
+		return fmt.Errorf("failed to load account before deletion (%s): %w", lowerName, err)
 	}
-	if soleMavenOwnerships > 0 {
-		return fmt.Errorf("cannot delete token %s: user is the last L4 member of %d Maven domain(s)", lowerName, soleMavenOwnerships)
+	if currentToken == nil {
+		return core.ErrUserProfileNotFound
 	}
-	if err := cancelMavenInvitations(tx, `recipient = ? OR inviter = ?`, []any{lowerName, lowerName}, time.Now().UnixMilli()); err != nil {
+	if currentToken.DeletedAt > 0 {
+		return core.ErrAccountDeleted
+	}
+	actedAt := time.Now().UnixMilli()
+	if retire {
+		actedAt = retiredAt
+		plan, err := accountRetirementPlanTx(tx, lowerName, userID, currentToken)
+		if err != nil {
+			return err
+		}
+		if !plan.Eligible {
+			return core.ErrAccountRetirementBusy
+		}
+	}
+	if !retire {
+		var soleMavenOwnerships int
+		if err := tx.QueryRow(`SELECT COUNT(*) FROM maven_domain_members current_member
+			WHERE current_member.user_id = ? AND current_member.permission_level = ? AND NOT EXISTS (
+				SELECT 1 FROM maven_domain_members other_member
+				WHERE other_member.repository = current_member.repository AND other_member.domain = current_member.domain
+				AND other_member.permission_level = ? AND other_member.user_id <> current_member.user_id
+			)`, userID, core.MavenPermissionOwner, core.MavenPermissionOwner).Scan(&soleMavenOwnerships); err != nil {
+			return fmt.Errorf("failed to inspect Maven domain ownership for token (%s): %w", lowerName, err)
+		}
+		if soleMavenOwnerships > 0 {
+			return fmt.Errorf("cannot delete token %s: user is the last L4 member of %d Maven domain(s)", lowerName, soleMavenOwnerships)
+		}
+	}
+	if err := cancelMavenInvitations(tx, `recipient = ? OR inviter = ?`, []any{lowerName, lowerName}, actedAt); err != nil {
 		return fmt.Errorf("failed to cancel Maven invitations for token (%s): %w", lowerName, err)
 	}
 	if _, err := tx.Exec(`DELETE FROM maven_domain_members WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete Maven memberships for token (%s): %w", lowerName, err)
 	}
-	var soleCargoOwnerships int
-	if err := tx.QueryRow(`SELECT COUNT(*) FROM cargo_members current_member
-		WHERE current_member.user_id = ? AND current_member.permission_level = ? AND NOT EXISTS (
-			SELECT 1 FROM cargo_members other_member
-			WHERE other_member.repository = current_member.repository
-			AND other_member.normalized_name = current_member.normalized_name
-			AND other_member.permission_level = ? AND other_member.user_id <> current_member.user_id
-		)`, userID, core.CargoPermissionOwner, core.CargoPermissionOwner).Scan(&soleCargoOwnerships); err != nil {
-		return fmt.Errorf("failed to inspect Cargo package ownership for token (%s): %w", lowerName, err)
+	if !retire {
+		var soleCargoOwnerships int
+		if err := tx.QueryRow(`SELECT COUNT(*) FROM cargo_members current_member
+			WHERE current_member.user_id = ? AND current_member.permission_level = ? AND NOT EXISTS (
+				SELECT 1 FROM cargo_members other_member
+				WHERE other_member.repository = current_member.repository
+				AND other_member.normalized_name = current_member.normalized_name
+				AND other_member.permission_level = ? AND other_member.user_id <> current_member.user_id
+			)`, userID, core.CargoPermissionOwner, core.CargoPermissionOwner).Scan(&soleCargoOwnerships); err != nil {
+			return fmt.Errorf("failed to inspect Cargo package ownership for token (%s): %w", lowerName, err)
+		}
+		if soleCargoOwnerships > 0 {
+			return fmt.Errorf("cannot delete token %s: user is the last L4 member of %d Cargo package(s)", lowerName, soleCargoOwnerships)
+		}
 	}
-	if soleCargoOwnerships > 0 {
-		return fmt.Errorf("cannot delete token %s: user is the last L4 member of %d Cargo package(s)", lowerName, soleCargoOwnerships)
-	}
-	if err := cancelCargoInvitations(tx, `recipient = ? OR inviter = ?`, []any{lowerName, lowerName}, time.Now().UnixMilli()); err != nil {
+	if err := cancelCargoInvitations(tx, `recipient = ? OR inviter = ?`, []any{lowerName, lowerName}, actedAt); err != nil {
 		return fmt.Errorf("failed to cancel Cargo invitations for token (%s): %w", lowerName, err)
 	}
 	if _, err := tx.Exec(`DELETE FROM cargo_members WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete Cargo memberships for token (%s): %w", lowerName, err)
 	}
 
-	var soleDockerOwnerships int
-	if err := tx.QueryRow(`SELECT COUNT(*) FROM docker_members current_member
-		WHERE current_member.user_id = ? AND current_member.permission_level = ? AND NOT EXISTS (
-			SELECT 1 FROM docker_members other_member
-			WHERE other_member.repository = current_member.repository
-			AND other_member.image_name = current_member.image_name
-			AND other_member.permission_level = ? AND other_member.user_id <> current_member.user_id
-		)`, userID, core.DockerPermissionOwner, core.DockerPermissionOwner).Scan(&soleDockerOwnerships); err != nil {
-		return fmt.Errorf("failed to inspect Docker image ownership for token (%s): %w", lowerName, err)
+	if !retire {
+		var soleDockerOwnerships int
+		if err := tx.QueryRow(`SELECT COUNT(*) FROM docker_members current_member
+			WHERE current_member.user_id = ? AND current_member.permission_level = ? AND NOT EXISTS (
+				SELECT 1 FROM docker_members other_member
+				WHERE other_member.repository = current_member.repository
+				AND other_member.image_name = current_member.image_name
+				AND other_member.permission_level = ? AND other_member.user_id <> current_member.user_id
+			)`, userID, core.DockerPermissionOwner, core.DockerPermissionOwner).Scan(&soleDockerOwnerships); err != nil {
+			return fmt.Errorf("failed to inspect Docker image ownership for token (%s): %w", lowerName, err)
+		}
+		if soleDockerOwnerships > 0 {
+			return fmt.Errorf("cannot delete token %s: user is the last L4 member of %d Docker image(s)", lowerName, soleDockerOwnerships)
+		}
 	}
-	if soleDockerOwnerships > 0 {
-		return fmt.Errorf("cannot delete token %s: user is the last L4 member of %d Docker image(s)", lowerName, soleDockerOwnerships)
-	}
-	if err := cancelDockerInvitations(tx, `recipient = ? OR inviter = ?`, []any{lowerName, lowerName}, time.Now().UnixMilli()); err != nil {
+	if err := cancelDockerInvitations(tx, `recipient = ? OR inviter = ?`, []any{lowerName, lowerName}, actedAt); err != nil {
 		return fmt.Errorf("failed to cancel Docker invitations for token (%s): %w", lowerName, err)
 	}
 	if _, err := tx.Exec(`DELETE FROM docker_members WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete Docker memberships for token (%s): %w", lowerName, err)
 	}
-	var soleNPMOwnerships int
-	if err := tx.QueryRow(`SELECT COUNT(*) FROM npm_members current_member
-		WHERE current_member.user_id = ? AND current_member.permission_level = ? AND NOT EXISTS (
-			SELECT 1 FROM npm_members other_member
-			WHERE other_member.repository = current_member.repository
-			AND other_member.package_name = current_member.package_name
-			AND other_member.permission_level = ? AND other_member.user_id <> current_member.user_id
-		)`, userID, core.NPMPermissionOwner, core.NPMPermissionOwner).Scan(&soleNPMOwnerships); err != nil {
-		return fmt.Errorf("failed to inspect npm package ownership for token (%s): %w", lowerName, err)
+	if !retire {
+		var soleNPMOwnerships int
+		if err := tx.QueryRow(`SELECT COUNT(*) FROM npm_members current_member
+			WHERE current_member.user_id = ? AND current_member.permission_level = ? AND NOT EXISTS (
+				SELECT 1 FROM npm_members other_member
+				WHERE other_member.repository = current_member.repository
+				AND other_member.package_name = current_member.package_name
+				AND other_member.permission_level = ? AND other_member.user_id <> current_member.user_id
+			)`, userID, core.NPMPermissionOwner, core.NPMPermissionOwner).Scan(&soleNPMOwnerships); err != nil {
+			return fmt.Errorf("failed to inspect npm package ownership for token (%s): %w", lowerName, err)
+		}
+		if soleNPMOwnerships > 0 {
+			return fmt.Errorf("cannot delete token %s: user is the last L4 member of %d npm package(s)", lowerName, soleNPMOwnerships)
+		}
 	}
-	if soleNPMOwnerships > 0 {
-		return fmt.Errorf("cannot delete token %s: user is the last L4 member of %d npm package(s)", lowerName, soleNPMOwnerships)
-	}
-	if err := cancelNPMInvitations(tx, `recipient = ? OR inviter = ?`, []any{lowerName, lowerName}, time.Now().UnixMilli()); err != nil {
+	if err := cancelNPMInvitations(tx, `recipient = ? OR inviter = ?`, []any{lowerName, lowerName}, actedAt); err != nil {
 		return fmt.Errorf("failed to cancel npm invitations for token (%s): %w", lowerName, err)
 	}
 	if _, err := tx.Exec(`DELETE FROM npm_members WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete npm memberships for token (%s): %w", lowerName, err)
 	}
-	var soleSuperTeamOwnerships int
-	if err := tx.QueryRow(`SELECT COUNT(*) FROM super_team_members current_member
-		WHERE current_member.user_id = ? AND current_member.role_level = ? AND NOT EXISTS (
-			SELECT 1 FROM super_team_members other_member
-			WHERE other_member.team_prefix = current_member.team_prefix
-			AND other_member.role_level = ? AND other_member.user_id <> current_member.user_id
-		)`, userID, core.SuperTeamRoleOwner, core.SuperTeamRoleOwner).Scan(&soleSuperTeamOwnerships); err != nil {
-		return fmt.Errorf("failed to inspect global team ownership for token (%s): %w", lowerName, err)
+	if !retire {
+		var soleSuperTeamOwnerships int
+		if err := tx.QueryRow(`SELECT COUNT(*) FROM super_team_members current_member
+			WHERE current_member.user_id = ? AND current_member.role_level = ? AND NOT EXISTS (
+				SELECT 1 FROM super_team_members other_member
+				WHERE other_member.team_prefix = current_member.team_prefix
+				AND other_member.role_level = ? AND other_member.user_id <> current_member.user_id
+			)`, userID, core.SuperTeamRoleOwner, core.SuperTeamRoleOwner).Scan(&soleSuperTeamOwnerships); err != nil {
+			return fmt.Errorf("failed to inspect global team ownership for token (%s): %w", lowerName, err)
+		}
+		if soleSuperTeamOwnerships > 0 {
+			return fmt.Errorf("cannot delete token %s: user is the last T4 owner of %d global team(s)", lowerName, soleSuperTeamOwnerships)
+		}
 	}
-	if soleSuperTeamOwnerships > 0 {
-		return fmt.Errorf("cannot delete token %s: user is the last T4 owner of %d global team(s)", lowerName, soleSuperTeamOwnerships)
-	}
-	if err := cancelSuperTeamInvitationsForUser(tx, userID, time.Now().UnixMilli()); err != nil {
+	if err := cancelSuperTeamInvitationsForUser(tx, userID, actedAt); err != nil {
 		return fmt.Errorf("failed to cancel global team invitations for token (%s): %w", lowerName, err)
 	}
 	if _, err := tx.Exec(`UPDATE review_tasks SET status = ?, decision_reason = 'requester_deleted',
 		decided_by_id = ?, decided_by_name = ?, decided_at = ?, active_key = NULL
 		WHERE requested_by_id = ? AND status = ? AND kind = ?`, core.ReviewStatusCancelled, userID, lowerName,
-		time.Now().UnixMilli(), userID, core.ReviewStatusPending, core.ReviewKindSuperTeamTransfer); err != nil {
+		actedAt, userID, core.ReviewStatusPending, core.ReviewKindSuperTeamTransfer); err != nil {
 		return fmt.Errorf("failed to cancel review requests for token (%s): %w", lowerName, err)
 	}
 	if _, err := tx.Exec(`DELETE FROM super_team_members WHERE user_id = ?`, userID); err != nil {
@@ -570,7 +619,21 @@ func (db *DB) DeleteToken(name string) error {
 	if _, err := tx.Exec(`DELETE FROM user_api_tokens WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete API tokens for account (%s): %w", lowerName, err)
 	}
-	if _, err := tx.Exec(`DELETE FROM user_account_security WHERE user_id = ?`, userID); err != nil {
+	emailReleasedAt := int64(0)
+	if retire {
+		var retainedEmail int
+		if err := tx.QueryRow(`SELECT COUNT(*) FROM user_account_security WHERE user_id = ? AND email IS NOT NULL`,
+			userID).Scan(&retainedEmail); err != nil {
+			return fmt.Errorf("inspect retained account email for token (%s): %w", lowerName, err)
+		}
+		if retainedEmail == 0 {
+			emailReleasedAt = actedAt
+		}
+		if _, err := tx.Exec(`UPDATE user_account_security SET password_login_enabled = 0, updated_at = ?
+			WHERE user_id = ?`, actedAt, userID); err != nil {
+			return fmt.Errorf("disable retired account security for token (%s): %w", lowerName, err)
+		}
+	} else if _, err := tx.Exec(`DELETE FROM user_account_security WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete private account security for token (%s): %w", lowerName, err)
 	}
 
@@ -584,7 +647,7 @@ func (db *DB) DeleteToken(name string) error {
 		return fmt.Errorf("failed to delete completed GPG releases for token (%s): %w", lowerName, err)
 	}
 	if _, err := tx.Exec(`UPDATE gpg_releases SET status = ?, failure_reason = ?, cleanup_pending = 1, updated_at = ?
-		WHERE uploader = ? AND active_key IS NOT NULL`, core.GPGReleaseFailed, "Uploader account was deleted", time.Now().UnixMilli(), lowerName); err != nil {
+		WHERE uploader = ? AND active_key IS NOT NULL`, core.GPGReleaseFailed, "Uploader account was deleted", actedAt, lowerName); err != nil {
 		return fmt.Errorf("failed to cancel pending GPG releases for token (%s): %w", lowerName, err)
 	}
 	if _, err := tx.Exec(`DELETE FROM sessions WHERE username = ?`, lowerName); err != nil {
@@ -596,11 +659,33 @@ func (db *DB) DeleteToken(name string) error {
 	if _, err := tx.Exec(`DELETE FROM user_avatars WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete avatar for token (%s): %w", lowerName, err)
 	}
-	if _, err := tx.Exec(`DELETE FROM user_profiles WHERE username = ?`, lowerName); err != nil {
-		return fmt.Errorf("failed to delete user profile for token (%s): %w", lowerName, err)
+	if _, err := tx.Exec(`DELETE FROM download_statistics WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("failed to delete download statistics for token (%s): %w", lowerName, err)
 	}
-	if _, err := tx.Exec(`DELETE FROM tokens WHERE name = ?`, lowerName); err != nil {
-		return fmt.Errorf("failed to delete token (%s): %w", lowerName, err)
+	if retire {
+		if _, err := tx.Exec(`UPDATE user_profiles SET nickname = '', website_url = '', github_url = '',
+			discord_url = '', custom_link_name = '', custom_link_url = '', updated_at = ? WHERE user_id = ?`,
+			actedAt, userID); err != nil {
+			return fmt.Errorf("clear retired user profile for token (%s): %w", lowerName, err)
+		}
+		result, err := tx.Exec(`UPDATE tokens SET encrypted_secret = '', password_hash = '', tokens_json = '[]',
+			description = '', expires_at = NULL, permissions_json = '[]', ban_reason = '', banned_at = 0,
+			banned_until = NULL, deleted_at = ?, email_released_at = ?, audit_purged_at = 0
+			WHERE name = ? AND deleted_at = 0`, actedAt, emailReleasedAt, lowerName)
+		if err != nil {
+			return fmt.Errorf("retire account token (%s): %w", lowerName, err)
+		}
+		changed, err := result.RowsAffected()
+		if err != nil || changed != 1 {
+			return core.ErrAccountDeleted
+		}
+	} else {
+		if _, err := tx.Exec(`DELETE FROM user_profiles WHERE username = ?`, lowerName); err != nil {
+			return fmt.Errorf("failed to delete user profile for token (%s): %w", lowerName, err)
+		}
+		if _, err := tx.Exec(`DELETE FROM tokens WHERE name = ?`, lowerName); err != nil {
+			return fmt.Errorf("failed to delete token (%s): %w", lowerName, err)
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("failed to commit token deletion (%s): %w", lowerName, err)
@@ -626,6 +711,9 @@ func (db *DB) RenameToken(oldName, newName string, token *core.AccessToken) erro
 	lowerNew := strings.ToLower(SanitizeInputString(strings.TrimSpace(newName), maxTokenNameLen))
 	if lowerOld == "" || lowerNew == "" {
 		return errors.New("token name is invalid")
+	}
+	if token.DeletedAt > 0 {
+		return core.ErrAccountDeleted
 	}
 	if lowerOld == lowerNew {
 		token.Name = lowerNew
@@ -653,6 +741,9 @@ func (db *DB) RenameToken(oldName, newName string, token *core.AccessToken) erro
 	}
 	if currentToken == nil {
 		return core.ErrUserProfileNotFound
+	}
+	if currentToken.DeletedAt > 0 {
+		return core.ErrAccountDeleted
 	}
 	token = currentToken
 	if err := db.renameTokenInTx(tx, lowerOld, lowerNew, token); err != nil {
@@ -818,13 +909,9 @@ func (db *DB) finishTokenRename(oldName, newName string, token *core.AccessToken
 func (db *DB) finishTokenUpdate(name string, token *core.AccessToken) {
 	token.Name = name
 	db.tokenCache.Delete(name)
-	db.tokenCache.Set(name, token, 10*time.Minute)
 	db.tokenSecretCache.DeleteFunc(func(_ string, value *core.AccessToken) bool {
 		return value == nil || strings.EqualFold(value.Name, name)
 	})
-	for _, secret := range token.Tokens {
-		db.tokenSecretCache.Set(secret, token, 10*time.Minute)
-	}
 	if db.profileCache != nil {
 		db.profileCache.Delete(name)
 	}
@@ -836,7 +923,7 @@ func (db *DB) CountTokens() (uint64, error) {
 	}
 
 	var count uint64
-	err := db.QueryRow(`SELECT COUNT(*) FROM tokens`).Scan(&count)
+	err := db.QueryRow(`SELECT COUNT(*) FROM tokens WHERE deleted_at = 0`).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to count tokens: %w", err)
 	}
@@ -863,15 +950,17 @@ func (db *DB) GetAllTokens() ([]*core.AccessToken, error) {
 		var tokenName, tokenType, encryptedSecret, passwordHash, tokensJSON, createdAt, description, permissionsJSON, banReason string
 		var typeValue int32
 		var expiresAt, bannedUntil sql.NullInt64
-		var bannedAt int64
+		var bannedAt, deletedAt, emailReleasedAt, auditPurgedAt int64
 
 		if err := rows.Scan(&tokenName, &tokenType, &typeValue, &encryptedSecret, &passwordHash, &tokensJSON,
-			&createdAt, &description, &expiresAt, &permissionsJSON, &banReason, &bannedAt, &bannedUntil); err != nil {
+			&createdAt, &description, &expiresAt, &permissionsJSON, &banReason, &bannedAt, &bannedUntil,
+			&deletedAt, &emailReleasedAt, &auditPurgedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan token: %w", err)
 		}
 
 		tok, err := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash, tokensJSON,
-			createdAt, description, expiresAt, permissionsJSON, banReason, bannedAt, bannedUntil)
+			createdAt, description, expiresAt, permissionsJSON, banReason, bannedAt, bannedUntil,
+			deletedAt, emailReleasedAt, auditPurgedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -904,7 +993,7 @@ func (db *DB) SearchTokenNames(prefix string, limit int, now int64) ([]string, e
 	}
 	escapedPrefix := strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(prefix) + "%"
 	rows, err := db.Query(`SELECT name FROM tokens
-		WHERE name LIKE ? ESCAPE '!' AND (expires_at IS NULL OR expires_at > ?)
+		WHERE deleted_at = 0 AND name LIKE ? ESCAPE '!' AND (expires_at IS NULL OR expires_at > ?)
 		AND (banned_at = 0 OR (banned_until IS NOT NULL AND banned_until <= ?))
 		ORDER BY name ASC LIMIT ?`, escapedPrefix, now, now, limit)
 	if err != nil {

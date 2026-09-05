@@ -1,7 +1,7 @@
 ---
 title: 下载统计 API
 order: 14
-category: API 接口
+category: API 参考
 description: 有界下载计数、分层查询、存储库控制及 API Token 要求
 ---
 

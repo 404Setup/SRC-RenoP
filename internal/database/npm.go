@@ -132,6 +132,9 @@ func createNPMPackageTx(tx *Tx, repository, packageName, owner, ownerID, superTe
 	if tx == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
+	if err := lockAccountLoginMethodsTx(tx, ownerID); err != nil {
+		return nil, err
+	}
 	if err := requireSuperTeamRoleTx(tx, superTeamPrefix, ownerID, requiredTeamRole); err != nil {
 		return nil, err
 	}

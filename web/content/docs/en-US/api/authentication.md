@@ -100,3 +100,32 @@ The last working login method cannot be removed or disabled.
 - **Revoke every other session**: `POST /api/auth/profile/sessions/revoke-others`
 
 Session lists expose a public ID, login method, timestamps, IP, and user agent. They never expose the cookie secret.
+
+## Permanent account closure
+
+`GET /api/auth/profile/retirement` returns the current account's closure plan. Both this route and
+`DELETE /api/auth/profile/retirement` require a browser session. The delete request accepts JSON:
+
+```json
+{"confirmation":"alice"}
+```
+
+The confirmation must match the current username. A successful closure returns `204 No Content`; an incorrect
+confirmation returns `400` with `ACCOUNT_RETIREMENT_CONFIRMATION`. Unresolved requirements return `409` with
+`ACCOUNT_RETIREMENT_BLOCKED` and the current plan. The plan includes `eligible`, `protected_role`,
+`super_team_owner_count`, `maven_domain_owner_count`, `package_owner_count`, and `pending_review_count`.
+
+System administrators and repository moderators cannot close their accounts. The account must no longer hold any
+global-team T4 role, own an active Maven domain, own a non-deprecated package at L4, or have a pending review request.
+Transfer ownership, close publishing domains, or permanently deprecate packages before retrying.
+
+Closure permanently locks the account and username, removes all team memberships, releases GitHub login, and removes
+Passkeys, sessions, API tokens, the profile photo, recovery codes, and messages. Login returns `ACCOUNT_DELETED`.
+The private email remains reserved for 14 days; activity remains for 30 days. Bounded scheduled cleanup releases
+expired holds. Published packages remain downloadable.
+
+System administrators can read deadlines with `GET /api/tokens/:name/retention`, release email early with
+`DELETE /api/tokens/:name/retention/email`, and clear activity early with
+`DELETE /api/tokens/:name/retention/audit`. Deadline and completion fields use Unix milliseconds:
+`deleted_at`, `email_release_at`, `email_released_at`, `audit_purge_at`, and `audit_purged_at`.
+Administrator `DELETE /api/tokens/:name` follows the same permanent closure requirements.

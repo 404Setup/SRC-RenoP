@@ -58,7 +58,7 @@ npm と Docker の `new_packages` は、名前を予約する前に明示的な�
 チェックサムや POM の生成、署名検証を行いません。Maven と `files` の相互移行ではオブジェクトを移動せず、
 Maven へ戻す際にカタログと保存済みの方針を復元します。移行前のダウンロード統計設定も維持されます。
 
-公開審査は Maven と npm に対応します。Maven では `allow_redeployment` を `false` に固定し、npm では不変
+公開審査は Maven、npm、Cargo、Docker に対応します。Maven では `allow_redeployment` を `false` に固定し、npm では不変
 バージョンと dist-tag のトランザクションを維持します。ローカルファイルはリポジトリモデレーターまたはシステム
 管理者の承認まで非公開となり、ミラーは審査されません。保留中の審査があるリポジトリは設定変更、削除、
 エンジン移行ができません。

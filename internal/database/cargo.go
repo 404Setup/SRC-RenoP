@@ -418,6 +418,9 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 		return fmt.Errorf("begin Cargo publication: %w", err)
 	}
 	defer tx.Rollback()
+	if err := lockAccountLoginMethodsTx(tx, userID); err != nil {
+		return err
+	}
 
 	var storedName string
 	var archived int
@@ -901,6 +904,14 @@ func (db *DB) CreateCargoInvitations(invitations []*core.CargoInvitation, messag
 		return fmt.Errorf("begin Cargo invitation: %w", err)
 	}
 	defer tx.Rollback()
+	if err := lockAccountLoginMethodsTx(tx, inviterID); err != nil {
+		return err
+	}
+	for _, recipientID := range recipientIDs {
+		if err := lockAccountLoginMethodsTx(tx, recipientID); err != nil {
+			return err
+		}
+	}
 	if err := lockCargoPackageTeam(tx, first.Repository, first.NormalizedName); err != nil {
 		return err
 	}
@@ -1026,6 +1037,9 @@ func (db *DB) ForceAddCargoMembers(repository, normalizedName, packageName, acto
 	}
 	for _, username := range normalizedUsers {
 		var existingLevel int
+		if err := lockAccountLoginMethodsTx(tx, userIDs[username]); err != nil {
+			return err
+		}
 		err := tx.QueryRow(`SELECT permission_level FROM cargo_members WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
 			repository, normalizedName, userIDs[username]).Scan(&existingLevel)
 		if err == nil {
@@ -1105,6 +1119,9 @@ func (db *DB) RespondCargoInvitation(id, recipient, repository string, accept bo
 		recipientID, identityErr := userIDForUsernameTx(tx, recipient)
 		if identityErr != nil {
 			return core.ErrCargoInvitationInvalid
+		}
+		if err := lockAccountLoginMethodsTx(tx, recipientID); err != nil {
+			return err
 		}
 		inviterLevel, inviterMember, permissionErr := cargoEffectivePermissionTx(
 			tx, invitation.Repository, invitation.NormalizedName, inviterID)
@@ -1193,6 +1210,9 @@ func (db *DB) SetCargoMemberLevel(repository, normalizedName, actor, username st
 		return fmt.Errorf("begin Cargo member update: %w", err)
 	}
 	defer tx.Rollback()
+	if err := lockAccountLoginMethodsTx(tx, targetID); err != nil {
+		return err
+	}
 	if err := lockCargoPackageTeam(tx, repository, normalizedName); err != nil {
 		return err
 	}

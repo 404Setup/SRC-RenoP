@@ -260,6 +260,10 @@ func StartServices(state *core.AppState, bootstrapContext BootstrapContext) (*Se
 				state.Inner.FailuresCount.Add(1)
 				log.Printf("Failed to clean expired publication quota reservations: %v", err)
 			}
+			if err := state.GetDB().CleanupRetiredAccountData(time.Now().UnixMilli(), 100); err != nil {
+				state.Inner.FailuresCount.Add(1)
+				log.Printf("Failed to clean retired account retention data: %v", err)
+			}
 		}},
 		{"fido-session-cleanup", fidoCleanupInterval, fidoCleanupInterval, func(context.Context) {
 			auth.PruneExpiredFidoSessions(time.Now())

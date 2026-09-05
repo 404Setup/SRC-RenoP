@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"renop/internal/core"
+	"renop/internal/service/repositorygate"
 )
 
 type TokenOpType int
@@ -26,6 +27,7 @@ const (
 	OpTokenRename
 	OpUserProfileUpdate
 	OpTokenCreate
+	OpTokenRetire
 )
 
 type TokenOp struct {
@@ -39,6 +41,29 @@ type TokenOp struct {
 	AccountChanges core.AccountTokenChanges
 	ErrChan        chan error
 	State          *core.AppState // used by OpTokenRename to update sessions
+}
+
+// RetireAccountSync serializes an irreversible account retirement with every repository mutation.
+func RetireAccountSync(state *core.AppState, opChan chan<- TokenOp, name string, retiredAt int64) error {
+	release := repositorygate.AcquireAllMigrations()
+	defer release()
+	errChan := make(chan error, 1)
+	opChan <- TokenOp{
+		Type: OpTokenRetire, Name: strings.ToLower(strings.TrimSpace(name)),
+		ChangedAt: retiredAt, ErrChan: errChan,
+	}
+	return <-errChan
+}
+
+func forgetAccountRuntime(state *core.AppState, username string) {
+	state.Inner.Sessions.Range(func(sessionToken string, session *core.Session) bool {
+		if session != nil && strings.EqualFold(session.Username, username) {
+			state.DeleteAuthCache("Session " + sessionToken)
+			state.Inner.Sessions.Delete(sessionToken)
+		}
+		return true
+	})
+	state.InvalidateAccountAuthCache(false, username)
 }
 
 func cloneAccessToken(token *core.AccessToken) *core.AccessToken {
@@ -152,14 +177,22 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 			if existing != nil {
 				state.Inner.TokensCount.Add(^uint64(0))
 			}
-			state.Inner.Sessions.Range(func(sessionToken string, session *core.Session) bool {
-				if session != nil && strings.EqualFold(session.Username, safeName) {
-					state.DeleteAuthCache("Session " + sessionToken)
-					state.Inner.Sessions.Delete(sessionToken)
-				}
-				return true
-			})
-			state.InvalidateAccountAuthCache(false, safeName)
+			forgetAccountRuntime(state, safeName)
+			completeTokenOp(op, nil)
+
+		case OpTokenRetire:
+			safeName := strings.Clone(op.Name)
+			db := state.GetDB()
+			if db == nil {
+				completeTokenOp(op, core.ErrDatabaseUnavailable)
+				continue
+			}
+			if err := db.RetireAccount(safeName, op.ChangedAt); err != nil {
+				completeTokenOp(op, err)
+				continue
+			}
+			state.Inner.TokensCount.Add(^uint64(0))
+			forgetAccountRuntime(state, safeName)
 			completeTokenOp(op, nil)
 
 		case OpTokenUpdate:

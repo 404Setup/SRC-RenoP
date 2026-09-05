@@ -24,7 +24,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"sync"
+	"sync/v2"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -52,7 +52,7 @@ const (
 
 var (
 	publishSlots = make(chan struct{}, 2)
-	copyBuffers  = sync.Pool{New: func() any {
+	copyBuffers  = sync.Pool[*[]byte]{New: func() *[]byte {
 		buffer := make([]byte, 128<<10)
 		return &buffer
 	}}
@@ -139,7 +139,7 @@ func stageAttachment(staged StagedFile, attachment publishAttachment) (int64, st
 	sha512Digest := sha512.New()
 	decoder := base64.NewDecoder(base64.StdEncoding, strings.NewReader(attachment.Data))
 	limited := &io.LimitedReader{R: decoder, N: maxTarballSize + 1}
-	buffer := copyBuffers.Get().(*[]byte)
+	buffer := copyBuffers.Get()
 	written, copyErr := io.CopyBuffer(io.MultiWriter(staged, sha1Digest, sha512Digest), limited, *buffer)
 	copyBuffers.Put(buffer)
 	if copyErr != nil || limited.N <= 0 || written != attachment.Length {

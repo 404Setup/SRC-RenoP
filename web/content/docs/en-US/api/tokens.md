@@ -107,7 +107,7 @@ Successful revocation returns `204 No Content` and invalidates cached authentica
 | `domain:read`         | Read private Maven publishing-domain configuration                             |
 | `domain:create`       | Create Maven publishing domains                                                |
 | `domain:verify`       | Request or force Maven-domain ownership verification                           |
-| `domain:delete`       | Delete Maven publishing domains                                                |
+| `domain:lifecycle`    | Close or reclaim Maven publishing domains                                      |
 | `messages:read`       | Read, mark, and remove the account's message-center entries                    |
 | `account:read`        | Read private account data and personal audit history                           |
 | `account:write`       | Update the account's public profile through the API                            |
