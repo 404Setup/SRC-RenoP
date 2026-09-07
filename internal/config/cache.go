@@ -8,15 +8,16 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-package tasks
+package config
 
-import (
-	"time"
+import "renop/internal/cache"
 
-	"renop/internal/core"
-)
+// CacheConfig selects memory, Redis, or Valkey for serializable server cache values.
+type CacheConfig = cache.Config
 
-// PruneAuthCache removes expired authentication cache entries.
-func PruneAuthCache(state *core.AppState, now time.Time) int {
-	return state.DeleteExpiredAuthCache(now)
+// DefaultCacheConfig preserves the in-memory cache backend.
+func DefaultCacheConfig() CacheConfig {
+	var cfg CacheConfig
+	cfg.Normalize()
+	return cfg
 }

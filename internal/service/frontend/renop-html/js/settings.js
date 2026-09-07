@@ -28,6 +28,7 @@ import {
 import {logout} from './auth.js';
 import {exitProtectedRouteOnDenial} from './protected-route.js';
 import {restartApp} from './dashboard.js';
+import {renderCacheSettings} from './settings/cache.js';
 import {
     formatClickHouseDsn,
     formatMysqlDsn,
@@ -57,7 +58,7 @@ const DOMAIN_MESSAGE_TYPES = {
     index: IndexDomainSettings,
 };
 
-const SERVICE_DOMAINS = Object.freeze(['server', 'github_oauth', 'super_teams', 'publication_quota', 'proxy', 'storage']);
+const SERVICE_DOMAINS = Object.freeze(['server', 'github_oauth', 'super_teams', 'publication_quota', 'cache', 'proxy', 'storage']);
 const MERGED_SERVICE_DOMAINS = new Set(SERVICE_DOMAINS.filter(domain => domain !== 'server'));
 
 let currentDomain = null;
@@ -212,6 +213,12 @@ async function fetchPublicationQuotaSettings() {
     return {response, data: response.ok ? await response.json() : null};
 }
 
+/** Load cache settings with the stored password omitted. */
+async function fetchCacheSettings() {
+    const response = await apiRequest('/api/settings/cache');
+    return {response, data: response.ok ? await response.json() : null};
+}
+
 /**
  * Loads configuration for a settings domain and renders its form with transition animation.
  * Uses a fetch id so stale responses are ignored when the user switches tabs quickly.
@@ -250,7 +257,7 @@ async function loadDomainSettings(domain, direction = 'next') {
             const serviceDomains = SERVICE_DOMAINS.filter(name => availableDomains.includes(name));
             const results = await Promise.all(serviceDomains.map(async name => ({
                 name,
-                result: name === 'github_oauth'
+                result: name === 'cache' ? await fetchCacheSettings() : name === 'github_oauth'
                     ? await fetchGitHubOAuthSettings()
                     : (name === 'publication_quota'
                         ? await fetchPublicationQuotaSettings()
@@ -576,6 +583,7 @@ function renderServiceSettings(container, data) {
     if (data.github_oauth) renderGitHubOAuthSettings(stack, data.github_oauth);
     if (data.super_teams) renderSuperTeamSettings(stack, data.super_teams);
     if (data.publication_quota) renderPublicationQuotaSettings(stack, data.publication_quota);
+    if (data.cache) renderCacheSettings(stack, data.cache, enableSave);
     if (data.proxy) renderProxySettings(stack, data.proxy);
     if (data.storage) renderStorageSettings(stack, data.storage);
     container.appendChild(stack);
@@ -1600,7 +1608,12 @@ export async function saveDomainSettings() {
                 if (JSON.stringify(currentConfig[domain]) === JSON.stringify(initialConfig[domain])) continue;
                 let response;
                 let savedData = null;
-                if (domain === 'github_oauth') {
+                if (domain === 'cache') {
+                    response = await apiRequest('/api/settings/cache', {
+                        method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(currentConfig[domain]),
+                    });
+                    if (response.ok) savedData = await response.json();
+                } else if (domain === 'github_oauth') {
                     response = await apiRequest('/api/settings/github-oauth', {
                         method: 'PUT',
                         headers: {'Content-Type': 'application/json'},
@@ -1639,7 +1652,13 @@ export async function saveDomainSettings() {
                         response.status
                     );
                 }
-                if (domain === 'github_oauth' && savedData) {
+                if (domain === 'cache' && savedData) {
+                    Object.assign(currentConfig[domain], savedData, {password: '', clear_password: false});
+                    const secretInput = document.getElementById('settings-cache-password');
+                    if (secretInput) secretInput.value = '';
+                    const clearPassword = document.querySelector('#settings-cache-clear-password renop-toggle');
+                    if (clearPassword) clearPassword.checked = false;
+                } else if (domain === 'github_oauth' && savedData) {
                     currentConfig[domain] = {
                         ...savedData,
                         client_secret: '',

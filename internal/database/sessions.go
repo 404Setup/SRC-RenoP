@@ -110,6 +110,9 @@ func (db *DB) UpdateSessionLastActive(sessionToken string, lastActive int64) err
 		prevActive := sess.LastActive.Load()
 		if lastActive-prevActive < 30000 && prevActive > 0 {
 			sess.LastActive.Store(lastActive)
+			if db.sessionCache.remote != nil {
+				db.sessionCache.Set(sessionToken, sess, 15*time.Minute)
+			}
 			return nil
 		}
 		cachedSession = sess
@@ -121,6 +124,9 @@ func (db *DB) UpdateSessionLastActive(sessionToken string, lastActive int64) err
 	}
 	if cachedSession != nil {
 		cachedSession.LastActive.Store(lastActive)
+		if db.sessionCache.remote != nil {
+			db.sessionCache.Set(sessionToken, cachedSession, 15*time.Minute)
+		}
 	}
 	return nil
 }

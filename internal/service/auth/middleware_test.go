@@ -69,6 +69,25 @@ func TestValidateAndRenewSessionPersistsLastActive(t *testing.T) {
 	assert.Equal(t, updatedLastActive, persistedLastActive)
 }
 
+func TestCachedInvalidCredentialRemainsUnauthorizedAfterSerialization(t *testing.T) {
+	state := core.NewAppState()
+	state.Inner.Config.Store(config.DefaultConfig())
+	state.UseRemoteCache(testutil.RemoteCache(t))
+	state.StoreAuthCache(credentialCacheKey("Bearer invalid", false), core.AuthCacheEntry{
+		User: &config.User{Username: InvalidCredentialsUser.Username}, CredentialKind: credentialKindInvalid,
+		ExpiredAt: time.Now().Add(time.Minute).UnixMilli(), Invalid: true,
+	})
+	app := fiber.New()
+	app.Use(AuthMiddleware(state))
+	app.Get("/ordinary", func(c fiber.Ctx) error { return c.SendStatus(fiber.StatusOK) })
+	request := httptest.NewRequest(http.MethodGet, "/ordinary", nil)
+	request.Header.Set(fiber.HeaderAuthorization, "Bearer invalid")
+	response, err := app.Test(request)
+	require.NoError(t, err)
+	defer response.Body.Close()
+	assert.Equal(t, fiber.StatusUnauthorized, response.StatusCode)
+}
+
 func TestExtractAuthHeader_WithOtherCookie(t *testing.T) {
 	app := fiber.New()
 	state := core.NewAppState()

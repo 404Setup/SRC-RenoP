@@ -23,6 +23,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "modernc.org/sqlite"
 
+	"renop/internal/cache"
 	"renop/internal/config"
 	"renop/internal/core"
 )
@@ -37,6 +38,27 @@ type DB struct {
 	userIDCache      *TTLCache[string, string]
 	profileCache     *TTLCache[string, core.UserProfile]
 	auditWriteMu     sync.Mutex
+}
+
+// UseRemoteCache moves cached query results to the shared external backend.
+// Account names remain local so revocation never depends on a remote read.
+func (db *DB) UseRemoteCache(remote *cache.Remote) {
+	projectToken := func(token *core.AccessToken) *core.AccessToken {
+		if token == nil {
+			return nil
+		}
+		return &core.AccessToken{Name: token.Name}
+	}
+	db.tokenCache.UseRemote(remote, projectToken)
+	db.tokenSecretCache.UseRemote(remote, projectToken)
+	db.sessionCache.UseRemote(remote, func(session *core.Session) *core.Session {
+		if session == nil {
+			return nil
+		}
+		return &core.Session{Username: session.Username}
+	})
+	db.userIDCache.UseRemote(remote, nil)
+	db.profileCache.UseRemote(remote, nil)
 }
 
 type Tx struct {

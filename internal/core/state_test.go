@@ -16,10 +16,12 @@ import (
 	"time"
 
 	"renop/internal/config"
+	"renop/internal/testutil"
 )
 
 func TestTargetedAuthCacheInvalidation(t *testing.T) {
 	state := NewAppState()
+	state.UseRemoteCache(testutil.RemoteCache(t))
 	expiresAt := time.Now().Add(time.Hour).UnixMilli()
 	state.StoreAuthCache("alice-basic", AuthCacheEntry{
 		User: &config.User{Username: "alice"}, ExpiredAt: expiresAt,
@@ -29,6 +31,12 @@ func TestTargetedAuthCacheInvalidation(t *testing.T) {
 	})
 	state.StoreAuthCache("invalid", AuthCacheEntry{Invalid: true, ExpiredAt: expiresAt})
 	state.InvalidateAccountAuthCache(true, "ALICE")
+	generation := state.Inner.AuthCacheGeneration.Load()
+	state.InvalidateAccountAuthCache(true, "ALICE")
+	state.StoreAuthCacheIfCurrent("stale-result", AuthCacheEntry{User: &config.User{Username: "alice"}, ExpiredAt: expiresAt}, generation)
+	if state.Inner.AuthCache.Contains("stale-result") {
+		t.Fatal("an invalidated authentication result refilled the cache")
+	}
 	if _, ok := state.Inner.AuthCache.Load("alice-basic"); ok {
 		t.Fatal("account cache entry survived targeted invalidation")
 	}

@@ -20,6 +20,7 @@ require (
 	github.com/llxisdsh/pb v1.5.25
 	github.com/minio/minio-go/v7 v7.3.0
 	github.com/molecule-man/go-brrr v1.0.1
+	github.com/redis/go-redis/v9 v9.22.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.12.1
 	github.com/valyala/fasthttp v1.73.0
@@ -79,6 +80,7 @@ require (
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	go.opentelemetry.io/otel v1.46.0 // indirect
 	go.opentelemetry.io/otel/trace v1.46.0 // indirect
+	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/text v0.41.0 // indirect
 	gopkg.in/ini.v1 v1.67.3 // indirect

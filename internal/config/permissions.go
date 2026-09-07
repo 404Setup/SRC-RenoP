@@ -14,7 +14,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/llxisdsh/pb"
+	"renop/internal/cache"
 )
 
 func (u *User) initPermissions() {
@@ -134,7 +134,10 @@ func (u *User) CheckUpdatePermission(repoName string) bool {
 	return u.updateRepos[repoName]
 }
 
-var repoCacheConfigs pb.MapOf[string, RepositoryCacheConfig]
+var repoCacheConfigs cache.IndexedMap[string, RepositoryCacheConfig]
+
+// UseRemoteCache selects external storage for derived repository cache policies before serving requests.
+func UseRemoteCache(remote *cache.Remote) { repoCacheConfigs.Bind(remote, nil) }
 
 type RepositoryCacheConfig struct {
 	Persist bool

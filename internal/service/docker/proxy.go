@@ -25,6 +25,7 @@ import (
 
 	"github.com/goccy/go-json"
 
+	"renop/internal/cache"
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/proxy"
@@ -32,6 +33,15 @@ import (
 )
 
 var upstreamTokenCache dockerTokenCache
+
+// UseRemoteCache offloads upstream token values before the registry starts serving requests.
+func UseRemoteCache(remote *cache.Remote) {
+	for _, token := range upstreamTokenCache.entries {
+		token.blob.Delete()
+	}
+	upstreamTokenCache.entries = nil
+	upstreamTokenCache.remote = remote
+}
 
 const maxUpstreamTokenCacheEntries = 1024
 
@@ -42,11 +52,13 @@ var ErrUpstreamImageProbeUnavailable = errors.New("upstream Docker image availab
 type dockerTokenCache struct {
 	mu      sync.Mutex
 	entries map[string]cachedToken
+	remote  *cache.Remote
 }
 
 type cachedToken struct {
 	token     string
 	expiresAt time.Time
+	blob      *cache.Blob
 }
 
 func (cache *dockerTokenCache) load(key string, now time.Time) (cachedToken, bool) {
@@ -54,8 +66,16 @@ func (cache *dockerTokenCache) load(key string, now time.Time) (cachedToken, boo
 	defer cache.mu.Unlock()
 	token, ok := cache.entries[key]
 	if ok && !now.Before(token.expiresAt) {
+		token.blob.Delete()
 		delete(cache.entries, key)
 		ok = false
+	}
+	if ok && cache.remote != nil {
+		data, err := token.blob.Read()
+		if err != nil {
+			return cachedToken{}, false
+		}
+		token.token = string(data)
 	}
 	return token, ok
 }
@@ -66,14 +86,28 @@ func (cache *dockerTokenCache) store(key string, token cachedToken, now time.Tim
 	if cache.entries == nil {
 		cache.entries = make(map[string]cachedToken, 64)
 	}
+	if old, exists := cache.entries[key]; exists {
+		old.blob.Delete()
+	}
+	if cache.remote != nil {
+		var err error
+		token.blob, err = cache.remote.Put([]byte(token.token), token.expiresAt.Sub(now))
+		if err != nil {
+			delete(cache.entries, key)
+			return
+		}
+		token.token = ""
+	}
 	if _, exists := cache.entries[key]; !exists && len(cache.entries) >= maxUpstreamTokenCacheEntries {
 		for cachedKey, cached := range cache.entries {
 			if !now.Before(cached.expiresAt) {
+				cached.blob.Delete()
 				delete(cache.entries, cachedKey)
 			}
 		}
 		if len(cache.entries) >= maxUpstreamTokenCacheEntries {
 			for cachedKey := range cache.entries {
+				cache.entries[cachedKey].blob.Delete()
 				delete(cache.entries, cachedKey)
 				break
 			}

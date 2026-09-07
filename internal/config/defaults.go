@@ -198,6 +198,7 @@ func DefaultConfig() *Config {
 		AuditLog:              DefaultAuditLogConfig(),
 		SuperTeams:            DefaultSuperTeamConfig(),
 		PublicationQuota:      DefaultPublicationQuotaConfig(),
+		Cache:                 DefaultCacheConfig(),
 		GPG:                   GPGConfig{KeyServers: DefaultGPGKeyServers()},
 		Proxy:                 ProxyConfig{},
 	}

@@ -19,6 +19,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/testutil"
 )
 
 func TestTTLCacheCoalescesConcurrentLoads(t *testing.T) {
@@ -67,6 +68,7 @@ func TestTTLCacheCoalescesConcurrentLoads(t *testing.T) {
 
 func TestTTLCacheCapacityAndInvalidationDuringLoad(t *testing.T) {
 	cache := NewTTLCacheWithCapacity[string, int](time.Minute, 64)
+	cache.UseRemote(testutil.RemoteCache(t), nil)
 	for index := range 1024 {
 		cache.Set(fmt.Sprintf("key-%d", index), index, time.Minute)
 	}

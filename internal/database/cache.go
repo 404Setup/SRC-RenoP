@@ -17,6 +17,8 @@ import (
 	"sync/atomic"
 	syncv2 "sync/v2"
 	"time"
+
+	"renop/internal/cache"
 )
 
 const (
@@ -25,7 +27,7 @@ const (
 )
 
 type cacheItem[V any] struct {
-	value     V
+	value     cache.Value[V]
 	expiredAt int64
 }
 
@@ -57,6 +59,15 @@ type TTLCache[K comparable, V any] struct {
 	hashSeed           maphash.Seed
 	generation         atomic.Uint64
 	evictPool          syncv2.Pool[*[]K]
+	remote             *cache.Remote
+	project            func(V) V
+}
+
+// UseRemote offloads values while preserving bounded local invalidation indexes.
+// Call it before concurrent access; project must retain every field inspected by DeleteFunc.
+func (c *TTLCache[K, V]) UseRemote(remote *cache.Remote, project func(V) V) {
+	c.Clear()
+	c.remote, c.project = remote, project
 }
 
 // NewTTLCache creates a cache with the default bounded capacity.
@@ -112,6 +123,7 @@ func (c *TTLCache[K, V]) Len() int {
 
 // Get returns one unexpired value.
 func (c *TTLCache[K, V]) Get(key K) (V, bool) {
+	generation := c.generation.Load()
 	shard := c.getShard(key)
 	shard.mu.RLock()
 	item, ok := shard.items[key]
@@ -135,8 +147,14 @@ func (c *TTLCache[K, V]) Get(key K) (V, bool) {
 		return zero, false
 	}
 
+	value, valid := item.value.Read()
+	if !valid || generation != c.generation.Load() {
+		c.stats.Misses.Add(1)
+		var zero V
+		return zero, false
+	}
 	c.stats.Hits.Add(1)
-	return item.value, true
+	return value, true
 }
 
 // Set stores a value using ttl or the cache default when ttl is non-positive.
@@ -181,6 +199,7 @@ func (c *TTLCache[K, V]) setLocked(shard *cacheShard[K, V], key K, val V, expire
 	if _, exists := shard.items[key]; !exists && len(shard.items) >= c.maxEntriesPerShard {
 		for candidate, item := range shard.items {
 			if now > item.expiredAt {
+				item.value.Blob.Delete()
 				delete(shard.items, candidate)
 			}
 		}
@@ -196,11 +215,16 @@ func (c *TTLCache[K, V]) setLocked(shard *cacheShard[K, V], key K, val V, expire
 				}
 			}
 			if found {
+				shard.items[oldestKey].value.Blob.Delete()
 				delete(shard.items, oldestKey)
 			}
 		}
 	}
-	shard.items[key] = cacheItem[V]{value: val, expiredAt: expiredAt}
+	entry := cache.NewValue(c.remote, val, time.Duration(expiredAt-now)*time.Millisecond, c.project)
+	if old, exists := shard.items[key]; exists {
+		old.value.Blob.Delete()
+	}
+	shard.items[key] = cacheItem[V]{value: entry, expiredAt: expiredAt}
 }
 
 // GetOrLoad returns a cached value or coalesces concurrent misses for the same key.
@@ -213,9 +237,12 @@ func (c *TTLCache[K, V]) GetOrLoad(key K, loader func() (V, time.Duration, error
 	shard.mu.Lock()
 	now := time.Now().UnixMilli()
 	if item, ok := shard.items[key]; ok && now <= item.expiredAt {
-		shard.mu.Unlock()
-		return item.value, nil
+		if value, found := item.value.Read(); found {
+			shard.mu.Unlock()
+			return value, nil
+		}
 	} else if ok {
+		item.value.Blob.Delete()
 		delete(shard.items, key)
 	}
 	if pending := shard.inFlight[key]; pending != nil {
@@ -267,6 +294,7 @@ func (c *TTLCache[K, V]) Delete(key K) {
 	c.generation.Add(1)
 	shard := c.getShard(key)
 	shard.mu.Lock()
+	shard.items[key].value.Blob.Delete()
 	delete(shard.items, key)
 	shard.mu.Unlock()
 }
@@ -274,27 +302,39 @@ func (c *TTLCache[K, V]) Delete(key K) {
 // Clear removes all retained values.
 func (c *TTLCache[K, V]) Clear() {
 	c.generation.Add(1)
+	var blobs []*cache.Blob
 	for i := range numShards {
 		shard := c.shards[i]
 		shard.mu.Lock()
+		for _, item := range shard.items {
+			if item.value.Blob != nil {
+				blobs = append(blobs, item.value.Blob)
+			}
+		}
 		shard.items = make(map[K]cacheItem[V])
 		shard.mu.Unlock()
 	}
+	cache.DeleteBlobs(blobs)
 }
 
 // DeleteFunc removes values selected by predicate.
 func (c *TTLCache[K, V]) DeleteFunc(predicate func(key K, val V) bool) {
 	c.generation.Add(1)
+	var blobs []*cache.Blob
 	for i := range numShards {
 		shard := c.shards[i]
 		shard.mu.Lock()
 		for k, item := range shard.items {
-			if predicate(k, item.value) {
+			if predicate(k, item.value.Index) {
+				if item.value.Blob != nil {
+					blobs = append(blobs, item.value.Blob)
+				}
 				delete(shard.items, k)
 			}
 		}
 		shard.mu.Unlock()
 	}
+	cache.DeleteBlobs(blobs)
 }
 
 // EvictExpired eagerly removes all entries whose TTL elapsed.
@@ -321,6 +361,7 @@ func (c *TTLCache[K, V]) EvictExpired() {
 		shard.mu.Lock()
 		for _, k := range toDelete {
 			if it, ok := shard.items[k]; ok && now > it.expiredAt {
+				it.value.Blob.Delete()
 				delete(shard.items, k)
 			}
 		}

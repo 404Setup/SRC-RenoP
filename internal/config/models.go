@@ -62,6 +62,7 @@ type Config struct {
 	AuditLog              AuditLogConfig         `json:"audit_log" yaml:"audit_log"`
 	SuperTeams            SuperTeamConfig        `json:"super_teams" yaml:"super_teams"`
 	PublicationQuota      PublicationQuotaConfig `json:"publication_quota" yaml:"publication_quota"`
+	Cache                 CacheConfig            `json:"cache" yaml:"cache"`
 	// GPG is retained as a source-compatibility alias for integrations that
 	// still access the old top-level field. It is never serialized; Server.GPG
 	// is the canonical configuration location.
@@ -96,6 +97,7 @@ func (c *Config) setDefaults() {
 	c.AuditLog.setDefaults()
 	c.SuperTeams.setDefaults()
 	c.PublicationQuota.setDefaults()
+	c.Cache.Normalize()
 	c.Server.GPG.setDefaults()
 	c.GPG = c.Server.GPG.DeepCopy()
 }
@@ -133,6 +135,7 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 	c.AuditLog.setDefaults()
 	c.SuperTeams.setDefaults()
 	c.PublicationQuota.setDefaults()
+	c.Cache.Normalize()
 	c.Server.GPG.setDefaults()
 	c.GPG = c.Server.GPG.DeepCopy()
 	return nil
@@ -182,6 +185,7 @@ func (c *Config) UnmarshalYAML(value *yaml.Node) error {
 	c.AuditLog.setDefaults()
 	c.SuperTeams.setDefaults()
 	c.PublicationQuota.setDefaults()
+	c.Cache.Normalize()
 	c.Server.GPG.setDefaults()
 	c.GPG = c.Server.GPG.DeepCopy()
 	return nil
@@ -245,6 +249,7 @@ func (c *Config) DeepCopy() *Config {
 		AuditLog:             c.AuditLog,
 		SuperTeams:           c.SuperTeams.DeepCopy(),
 		PublicationQuota:     c.PublicationQuota.DeepCopy(),
+		Cache:                c.Cache,
 		GPG:                  c.Server.GPG.DeepCopy(),
 		Proxy:                c.Proxy.DeepCopy(),
 	}

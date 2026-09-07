@@ -14,6 +14,9 @@ export const RESPONSE_ERROR_CODE_HEADER = 'X-Renop-Error-Code';
 
 const MAX_ERROR_BODY_BYTES = 2048;
 const commonErrorCodeKeys = Object.freeze({
+    cache_settings_invalid: 'cache.invalid',
+    cache_settings_save_failed: 'cache.saveFailed',
+    cache_connection_failed: 'cache.testFailed',
     ACCOUNT_BANNED: 'login.accountBanned',
     ACCOUNT_DELETED: 'login.accountDeleted',
     ACCOUNT_RETIREMENT_BLOCKED: 'profile.retireBlockedHint',

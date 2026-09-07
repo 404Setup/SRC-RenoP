@@ -14,10 +14,13 @@ import (
 	"bytes"
 	"sync"
 	"testing"
+
+	"renop/internal/testutil"
 )
 
 func TestFileByteCacheGetSetDelete(t *testing.T) {
 	c := NewFileByteCache(1024)
+	c.UseRemote(testutil.RemoteCache(t))
 	if _, err := c.Get("missing"); err != ErrFileCacheMiss {
 		t.Fatalf("expected miss, got %v", err)
 	}

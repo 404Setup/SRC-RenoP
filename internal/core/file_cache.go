@@ -14,6 +14,9 @@ import (
 	"errors"
 	"sync"
 	"sync/atomic"
+	"time"
+
+	"renop/internal/cache"
 )
 
 // ErrFileCacheMiss is returned by FileByteCache.Get when the key is absent.
@@ -29,11 +32,18 @@ type FileByteCache struct {
 	maxBytes int
 	used     atomic.Int64
 	shards   []fileCacheShard
+	remote   *cache.Remote
+}
+
+type fileCacheEntry struct {
+	data []byte
+	blob *cache.Blob
+	size int
 }
 
 type fileCacheShard struct {
 	mu      sync.RWMutex
-	entries map[string][]byte
+	entries map[string]fileCacheEntry
 
 	// order is a FIFO of keys for eviction. May contain stale keys after Delete;
 	// those are skipped and compacted once their overhead becomes meaningful.
@@ -51,6 +61,9 @@ func NewFileByteCache(maxBytes int) *FileByteCache {
 		shards:   make([]fileCacheShard, fileCacheShardCount),
 	}
 }
+
+// UseRemote selects external value storage before concurrent cache access.
+func (c *FileByteCache) UseRemote(remote *cache.Remote) { c.remote = remote }
 
 func (c *FileByteCache) shard(key string) *fileCacheShard {
 	return &c.shards[hashKey(key)&(fileCacheShardCount-1)]
@@ -94,7 +107,17 @@ func (c *FileByteCache) GetReadOnlyView(key string) ([]byte, error) {
 	if !ok {
 		return nil, ErrFileCacheMiss
 	}
-	return v, nil
+	if c.remote != nil {
+		data, err := v.blob.Read()
+		s.mu.RLock()
+		current, exists := s.entries[key]
+		s.mu.RUnlock()
+		if err != nil || !exists || current.blob != v.blob {
+			return nil, ErrFileCacheMiss
+		}
+		return data, nil
+	}
+	return v.data, nil
 }
 
 // Set stores an immutable copy of value under key, evicting oldest entries until
@@ -107,21 +130,32 @@ func (c *FileByteCache) Set(key string, value []byte) error {
 	if len(value) > c.maxBytes {
 		return nil
 	}
-	data := make([]byte, len(value))
-	copy(data, value)
+	entry := fileCacheEntry{size: len(value)}
+	if c.remote != nil {
+		var err error
+		entry.blob, err = c.remote.Put(value, time.Hour)
+		if err != nil {
+			_ = c.Delete(key)
+			return err
+		}
+	} else {
+		entry.data = make([]byte, len(value))
+		copy(entry.data, value)
+	}
 
 	s := c.shard(key)
 	s.mu.Lock()
 	if s.entries == nil {
-		s.entries = make(map[string][]byte)
+		s.entries = make(map[string]fileCacheEntry)
 	}
 
-	delta := int64(len(data))
+	delta := int64(entry.size)
 	if old, ok := s.entries[key]; ok {
-		delta -= int64(len(old))
-		s.entries[key] = data
+		delta -= int64(old.size)
+		old.blob.Delete()
+		s.entries[key] = entry
 	} else {
-		s.entries[key] = data
+		s.entries[key] = entry
 		s.order = append(s.order, key)
 	}
 	if delta != 0 {
@@ -144,7 +178,8 @@ func (c *FileByteCache) Delete(key string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if old, ok := s.entries[key]; ok {
-		c.used.Add(-int64(len(old)))
+		c.used.Add(-int64(old.size))
+		old.blob.Delete()
 		delete(s.entries, key)
 		s.compactOrderLocked()
 	}
@@ -203,7 +238,8 @@ func (c *FileByteCache) evictOneLocked(s *fileCacheShard, protect string) bool {
 			continue
 		}
 		if v, ok := s.entries[k]; ok {
-			c.used.Add(-int64(len(v)))
+			c.used.Add(-int64(v.size))
+			v.blob.Delete()
 			delete(s.entries, k)
 			return true
 		}
@@ -212,7 +248,8 @@ func (c *FileByteCache) evictOneLocked(s *fileCacheShard, protect string) bool {
 		if k == protect {
 			continue
 		}
-		c.used.Add(-int64(len(v)))
+		c.used.Add(-int64(v.size))
+		v.blob.Delete()
 		delete(s.entries, k)
 		return true
 	}

@@ -759,6 +759,7 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 			return c.Status(fiber.StatusUnauthorized).SendString("Session credentials must use the browser cookie")
 		}
 		var authenticated *authResult
+		authCacheGeneration := state.Inner.AuthCacheGeneration.Load()
 		authHeader := strings.Clone(extractAuthHeader(c, state))
 		isSessionAuth := strings.HasPrefix(authHeader, "Session ")
 		isCargoRequest := isCargoRepositoryRequest(c, state)
@@ -811,21 +812,21 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 
 				if authenticated != nil {
 					if !isSessionAuth {
-						state.StoreAuthCache(authCacheKey, core.AuthCacheEntry{
+						state.StoreAuthCacheIfCurrent(authCacheKey, core.AuthCacheEntry{
 							User: authenticated.User, CredentialKind: authenticated.Kind,
 							AuthScheme: authenticated.Scheme, APITokenID: authenticated.TokenID,
 							Scopes:    append([]string(nil), authenticated.Scopes...),
 							Targets:   core.CloneAPITokenTargets(authenticated.Targets),
 							ExpiredAt: authCacheExpiry(c, time.Now().UnixMilli()),
-						})
+						}, authCacheGeneration)
 					}
 				} else if !isSessionAuth {
-					state.StoreAuthCache(authCacheKey, core.AuthCacheEntry{
+					state.StoreAuthCacheIfCurrent(authCacheKey, core.AuthCacheEntry{
 						User: InvalidCredentialsUser, CredentialKind: credentialKindInvalid,
 						ExpiredAt: time.Now().Add(30 * time.Second).UnixMilli(), Invalid: true,
-					})
+					}, authCacheGeneration)
 				}
-			} else if authenticated.User == InvalidCredentialsUser {
+			} else if authenticated.User == InvalidCredentialsUser || authenticated.Kind == credentialKindInvalid {
 				if isCargoRequest {
 					return sendInvalidCargoCredentials(c)
 				}

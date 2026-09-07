@@ -84,6 +84,7 @@ installation.
 | `github.com/paulmach/orb`                | v0.13.0                            | MIT                                        | Copyright (c) 2017 Paul Mach                                                                                   |
 | `github.com/philhofer/fwd`               | v1.2.0                             | MIT                                        | Copyright (c) 2014-2015 Philip Hofer                                                                           |
 | `github.com/pierrec/lz4/v4`              | v4.1.29                            | BSD-3-Clause                               | Copyright (c) 2015 Pierre Curto                                                                                |
+| `github.com/redis/go-redis/v9` | v9.22.0 | BSD-2-Clause | Copyright (c) 2013 The github.com/redis/go-redis Authors. |
 | `github.com/remyoudompheng/bigfft`       | v0.0.0-20230129092748-24d4a6f8daec | BSD-2-Clause                               | Copyright (c) 2012 Rémi Oudompheng                                                                             |
 | `github.com/rs/xid`                      | v1.6.0                             | MIT                                        | Copyright (c) 2015 Olivier Poitrey                                                                             |
 | `github.com/segmentio/asm`               | v1.2.1                             | MIT-0                                      | Copyright 2023 Segment                                                                                         |
@@ -95,6 +96,7 @@ installation.
 | `github.com/x448/float16`                | v0.8.4                             | MIT                                        | Copyright (c) 2019 Faye Amacker                                                                                |
 | `github.com/yusufpapurcu/wmi`            | v1.2.4                             | MIT                                        | Copyright (c) 2013 Stack Exchange                                                                              |
 | `github.com/zeebo/xxh3`                  | v1.1.0                             | BSD-2-Clause                               | Copyright (c) 2012-2014 Yann Collet; Copyright (c) 2019 Jeff Wendling                                          |
+| `go.uber.org/atomic` | v1.11.0 | MIT | Copyright (c) 2016 Uber Technologies, Inc. |
 | `go.yaml.in/yaml/v3`                     | v3.0.5                             | MIT AND Apache-2.0                         | Copyright (c) 2006-2011 Kirill Simonov (libyaml ports); Copyright (c) 2011-2019 Canonical Ltd                  |
 | `go.opentelemetry.io/otel`               | v1.46.0                            | Apache-2.0                                 | Copyright The OpenTelemetry Authors                                                                            |
 | `go.opentelemetry.io/otel/trace`         | v1.46.0                            | Apache-2.0                                 | Copyright The OpenTelemetry Authors                                                                            |

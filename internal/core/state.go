@@ -23,6 +23,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/llxisdsh/pb"
 
+	"renop/internal/cache"
 	"renop/internal/config"
 	"renop/internal/service/index"
 )
@@ -332,8 +333,9 @@ type AppStateInner struct {
 	StatusSnapshots             atomic.Pointer[[]StatusSnapshot]
 	ActiveRequests              atomic.Uint64
 	FailuresCount               atomic.Uint64
-	AuthCache                   pb.MapOf[string, AuthCacheEntry]
+	AuthCache                   cache.IndexedMap[string, AuthCacheEntry]
 	AuthCacheEntries            atomic.Uint64
+	AuthCacheGeneration         atomic.Uint64
 	AuthCacheWriteLock          sync.Mutex
 	Sessions                    pb.MapOf[string, *Session]
 	AuditLogChan                chan *AuditLogEntry
@@ -348,7 +350,8 @@ type AppStateInner struct {
 	IndexWatcherMutex      sync.Mutex
 	StartTime              int64
 	FileCache              *FileByteCache
-	MetadataCache          pb.MapOf[string, *config.Metadata]
+	MetadataCache          cache.IndexedMap[string, *config.Metadata]
+	RemoteCache            *cache.Remote
 	MetadataCacheEntries   atomic.Uint64
 	MetadataCacheWriteLock sync.Mutex
 	InFlightDownloads      *InFlightManager

@@ -121,6 +121,55 @@ func TestPublicationQuotaDefaultsPersist(t *testing.T) {
 	response.Body.Close()
 }
 
+func TestCacheSettingsPreserveWriteOnlyPassword(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.Cache.Password = "private-cache-password"
+	app, state := setupSettingsTestApp(t, cfg)
+	response, err := app.Test(httptest.NewRequest(http.MethodGet, "/cache", nil))
+	require.NoError(t, err)
+	body, err := io.ReadAll(response.Body)
+	response.Body.Close()
+	require.NoError(t, err)
+	assert.NotContains(t, string(body), cfg.Cache.Password)
+	assert.Contains(t, string(body), `"password_configured":true`)
+	for _, mode := range []string{"redis", "valkey", "memory"} {
+		request := httptest.NewRequest(http.MethodPut, "/cache", strings.NewReader(`{"mode":"`+mode+`","address":"localhost:6379","timeout_ms":500}`))
+		request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+		response, err = app.Test(request)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, response.StatusCode)
+		body, err = io.ReadAll(response.Body)
+		response.Body.Close()
+		require.NoError(t, err)
+		assert.NotContains(t, string(body), cfg.Cache.Password)
+		assert.Equal(t, mode, state.Inner.Config.Load().Cache.Mode)
+		assert.Equal(t, cfg.Cache.Password, state.Inner.Config.Load().Cache.Password)
+	}
+	request := httptest.NewRequest(http.MethodPut, "/cache", strings.NewReader(`{"mode":"memory","clear_password":true}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	response.Body.Close()
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Empty(t, state.Inner.Config.Load().Cache.Password)
+	request = httptest.NewRequest(http.MethodPut, "/cache", strings.NewReader(`{"mode":"redis","timeout_ms":-1}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	response.Body.Close()
+	assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+	assert.Equal(t, "cache_settings_invalid", response.Header.Get("X-Renop-Error-Code"))
+	assert.Equal(t, "memory", state.Inner.Config.Load().Cache.Mode)
+	denied := fiber.New()
+	SetupSettingsRoutes(denied, state)
+	for _, endpoint := range []struct{ method, path string }{{http.MethodGet, "/cache"}, {http.MethodPut, "/cache"}, {http.MethodPost, "/cache/test"}} {
+		response, err = denied.Test(httptest.NewRequest(endpoint.method, endpoint.path, nil))
+		require.NoError(t, err)
+		response.Body.Close()
+		assert.Equal(t, http.StatusForbidden, response.StatusCode)
+	}
+}
+
 func protoBody(t *testing.T, m proto.Message) *bytes.Buffer {
 	t.Helper()
 	data, err := proto.Marshal(m)
@@ -836,11 +885,11 @@ func TestGetDomainsProtobuf(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected GET 200, got %d", resp.StatusCode)
 	}
-	if len(got.Domains) != 9 || !slices.Contains(got.Domains, "proxy") ||
+	if len(got.Domains) != 10 || !slices.Contains(got.Domains, "proxy") ||
 		!slices.Contains(got.Domains, "github_oauth") || !slices.Contains(got.Domains, "super_teams") ||
-		!slices.Contains(got.Domains, "publication_quota") ||
+		!slices.Contains(got.Domains, "publication_quota") || !slices.Contains(got.Domains, "cache") ||
 		slices.Contains(got.Domains, "gpg") {
-		t.Fatalf("expected 9 domains including proxy, GitHub OAuth, global teams, and publication quotas while excluding gpg, got %v", got.Domains)
+		t.Fatalf("expected 10 domains including cache settings while excluding gpg, got %v", got.Domains)
 	}
 }
 

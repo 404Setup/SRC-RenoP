@@ -23,12 +23,15 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
+	"renop/internal/cache"
+	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/middleware"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
 	"renop/internal/service/cargodocs"
+	"renop/internal/service/docker"
 	"renop/internal/service/frontend"
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
@@ -98,6 +101,9 @@ func (runtime *ServiceRuntime) Close() error {
 			cancel()
 		}
 		runtime.closeErr = errors.Join(closeErrors...)
+		if runtime.state != nil && runtime.state.Inner != nil {
+			runtime.closeErr = errors.Join(runtime.closeErr, runtime.state.Inner.RemoteCache.Close())
+		}
 	})
 	return runtime.closeErr
 }
@@ -136,7 +142,6 @@ func Initialize() (*core.AppState, BootstrapContext) {
 		indexPath = "index.json"
 	}
 	fileIndex := LoadFileIndex(indexPath)
-	frontend.RefreshIndexHTMLCache(&cfg.Frontend)
 
 	state := core.NewAppState()
 	state.Inner.Config.Store(cfg)
@@ -188,6 +193,16 @@ func Initialize() (*core.AppState, BootstrapContext) {
 	}
 
 	state.Inner.FileCache = core.NewFileByteCache(int(cfg.Server.FileCacheSizeMb) << 20)
+	remoteCache, err := cache.Open(cfg.Cache)
+	if err != nil {
+		log.Fatal("Failed to initialize cache: ", err)
+	}
+	state.UseRemoteCache(remoteCache)
+	dbInstance.UseRemoteCache(remoteCache)
+	config.UseRemoteCache(remoteCache)
+	docker.UseRemoteCache(remoteCache)
+	frontend.UseRemoteCache(remoteCache)
+	frontend.RefreshIndexHTMLCache(&cfg.Frontend)
 
 	bootstrapCtx := BootstrapContext{
 		ConfigPath: configPath,

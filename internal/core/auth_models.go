@@ -12,6 +12,8 @@ package core
 
 import (
 	"sync/atomic"
+
+	"github.com/goccy/go-json"
 )
 
 const (
@@ -89,6 +91,24 @@ type SessionDBDto struct {
 	CreatedAt    int64  `json:"created_at"`
 	LastActive   int64  `json:"last_active"`
 	LoginMethod  string `json:"login_method"`
+}
+
+// MarshalJSON snapshots atomic activity state for external cache serialization.
+func (s *Session) MarshalJSON() ([]byte, error) {
+	return json.Marshal(SessionDBDto{PublicID: s.PublicID, Username: s.Username, IP: s.IP,
+		UserAgent: s.UserAgent, CreatedAt: s.CreatedAt, LastActive: s.LastActive.Load(), LoginMethod: s.LoginMethod})
+}
+
+// UnmarshalJSON restores a session snapshot without copying atomic values.
+func (s *Session) UnmarshalJSON(data []byte) error {
+	var dto SessionDBDto
+	if err := json.Unmarshal(data, &dto); err != nil {
+		return err
+	}
+	s.PublicID, s.Username, s.IP, s.UserAgent = dto.PublicID, dto.Username, dto.IP, dto.UserAgent
+	s.CreatedAt, s.LoginMethod = dto.CreatedAt, dto.LoginMethod
+	s.LastActive.Store(dto.LastActive)
+	return nil
 }
 
 type SessionDto struct {

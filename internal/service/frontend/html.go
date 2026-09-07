@@ -31,10 +31,11 @@ import (
 var Asset embed.FS
 
 var (
-	indexHTML  string
-	assetsHash string
-	onceIndex  sync.Once
-	onceHash   sync.Once
+	indexHTML      string
+	assetsHash     string
+	onceIndex      sync.Once
+	onceHash       sync.Once
+	indexHTMLCache = core.NewFileByteCache(1 << 20)
 )
 
 const assetRoot = "renop-html"
@@ -130,12 +131,29 @@ func RefreshIndexHTMLCache(cfg *config.FrontendConfig) {
 	if cfg == nil {
 		return
 	}
-	cfg.CachedIndexHTML = GenerateIndexHTMLFromConfig(cfg)
+	data := GenerateIndexHTMLFromConfig(cfg)
+	if embeddedRemoteCache != nil {
+		digest := sha256.Sum256(data)
+		cfg.CachedIndexHTMLKey = hex.EncodeToString(digest[:])
+		cfg.CachedIndexHTML = nil
+		_ = indexHTMLCache.Set(cfg.CachedIndexHTMLKey, data)
+	} else {
+		cfg.CachedIndexHTMLKey = ""
+		cfg.CachedIndexHTML = data
+	}
 }
 
 // GenerateIndexHTML renders the embedded index template from live state.
 func GenerateIndexHTML(state *core.AppState) []byte {
 	cfg := state.Inner.Config.Load()
+	if key := cfg.Frontend.CachedIndexHTMLKey; key != "" {
+		if data, err := indexHTMLCache.GetReadOnlyView(key); err == nil {
+			return data
+		}
+		data := GenerateIndexHTMLFromConfig(&cfg.Frontend)
+		_ = indexHTMLCache.Set(key, data)
+		return data
+	}
 	if len(cfg.Frontend.CachedIndexHTML) > 0 {
 		return cfg.Frontend.CachedIndexHTML
 	}

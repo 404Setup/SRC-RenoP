@@ -32,30 +32,31 @@ Skip dependencies, generated bundles, and local storage unless the task concerns
 
 Service paths in this table are relative to `internal/service/`; all other paths explicitly start at the repo root.
 
-| Area / symptom                                        | Start here                                                                                        |
-|-------------------------------------------------------|---------------------------------------------------------------------------------------------------|
-| Startup, shutdown, configuration, shared state        | `server.go`, `internal/bootstrap/`, `internal/config/`, `internal/core/`                          |
-| HTTP routing, search, middleware, public API          | `internal/api/`, `internal/middleware/`, relevant service `routes.go`                             |
-| SQL, migrations, transactions, persistence caches     | `internal/database/`; dialect logic in `clickhouse*.go`                                           |
-| Login, sessions, Passkey, OAuth, API tokens, profiles | `auth/`; GitHub split across `github_routes.go`, `github_client.go`, `github_account.go`          |
-| Retirement, recovery, avatars                         | `auth/`, `internal/database/`, matching `account_retirement*`, `recovery_codes*`, `avatar*` files |
-| Cargo registry and documentation                      | `cargo/`, `cargodocs/`                                                                            |
-| Maven domains, verification, artifacts                | `maven/`                                                                                          |
-| Docker Registry v2, blobs, manifests, mirrors         | `docker/`                                                                                         |
-| npm metadata, tarballs, versions, dist-tags           | `npm/`                                                                                            |
-| Files, Disk/S3, quarantine, mirror completion         | `storage/`, `gpg/`, `packagestore/`; shared mirror hook in `storage/mirror.go`                    |
-| Missing/stale index entries, file-vs-directory errors | `index/`; HTTP classification in `storage/`                                                       |
-| Upload/configuration races                            | `repositorygate/`, affected protocol, database transaction                                        |
-| Global teams, ownership, public resources             | `superteam/`, `review/`, `internal/database/super_team_resources.go`                              |
-| Publication/creation review and notifications         | `review/`, `reviewnotify/`, `internal/database/review*.go`                                        |
-| Quota, statistics, audit, messages, periodic work     | `publicationquota/`, `statistics/`, `audit/`, `message/`, `tasks/`                                |
-| Outbound networking                                   | `proxy/`, `outboundproxy/`                                                                        |
-| Updates, services, Caddy                              | `updater/`, `internal/daemon/`, `internal/caddy/`, `internal/version/`                            |
-| Shared bounds, renames, memory tuning, test cleanup   | `internal/utils/`, `internal/testutil/`                                                           |
-| SPA and embedded assets                               | `internal/service/frontend/`; sources in `renop-html/`, embedding in `html.go`                    |
-| Shared UI / website / documentation                   | `packages/renop-ui/`, `web/`, `web/content/docs/`                                                 |
-| API/session schemas and generated Go bindings         | `proto/`, `pkg/pb/`                                                                               |
-| Build, compression, release publishing                | `build.ps1`, `scripts/`, `cmd/`, `.github/workflows/`, `.github/scripts/`                         |
+| Area / symptom                                        | Start here                                                                                                      |
+|-------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| Startup, shutdown, configuration, shared state        | `server.go`, `internal/bootstrap/`, `internal/config/`, `internal/core/`                                        |
+| HTTP routing, search, middleware, public API          | `internal/api/`, `internal/middleware/`, relevant service `routes.go`                                           |
+| SQL, migrations, transactions, persistence caches     | `internal/database/`; dialect logic in `clickhouse*.go`                                                         |
+| Memory, Redis, Valkey cache backends                  | `internal/cache/`, `internal/core/cache.go`, `internal/database/cache.go`; configuration in `settings/cache.go` |
+| Login, sessions, Passkey, OAuth, API tokens, profiles | `auth/`; GitHub split across `github_routes.go`, `github_client.go`, `github_account.go`                        |
+| Retirement, recovery, avatars                         | `auth/`, `internal/database/`, matching `account_retirement*`, `recovery_codes*`, `avatar*` files               |
+| Cargo registry and documentation                      | `cargo/`, `cargodocs/`                                                                                          |
+| Maven domains, verification, artifacts                | `maven/`                                                                                                        |
+| Docker Registry v2, blobs, manifests, mirrors         | `docker/`                                                                                                       |
+| npm metadata, tarballs, versions, dist-tags           | `npm/`                                                                                                          |
+| Files, Disk/S3, quarantine, mirror completion         | `storage/`, `gpg/`, `packagestore/`; shared mirror hook in `storage/mirror.go`                                  |
+| Missing/stale index entries, file-vs-directory errors | `index/`; HTTP classification in `storage/`                                                                     |
+| Upload/configuration races                            | `repositorygate/`, affected protocol, database transaction                                                      |
+| Global teams, ownership, public resources             | `superteam/`, `review/`, `internal/database/super_team_resources.go`                                            |
+| Publication/creation review and notifications         | `review/`, `reviewnotify/`, `internal/database/review*.go`                                                      |
+| Quota, statistics, audit, messages, periodic work     | `publicationquota/`, `statistics/`, `audit/`, `message/`, `tasks/`                                              |
+| Outbound networking                                   | `proxy/`, `outboundproxy/`                                                                                      |
+| Updates, services, Caddy                              | `updater/`, `internal/daemon/`, `internal/caddy/`, `internal/version/`                                          |
+| Shared bounds, renames, memory tuning, test cleanup   | `internal/utils/`, `internal/testutil/`                                                                         |
+| SPA and embedded assets                               | `internal/service/frontend/`; sources in `renop-html/`, embedding in `html.go`                                  |
+| Shared UI / website / documentation                   | `packages/renop-ui/`, `web/`, `web/content/docs/`                                                               |
+| API/session schemas and generated Go bindings         | `proto/`, `pkg/pb/`                                                                                             |
+| Build, compression, release publishing                | `build.ps1`, `scripts/`, `cmd/`, `.github/workflows/`, `.github/scripts/`                                       |
 
 ### Frontend reuse map
 
@@ -116,6 +117,9 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   work.
   Invalidate affected caches after successful mutations and guard against stale in-flight fills. Avoid N+1 queries,
   redundant hot-path copies, and whole-object buffering.
+  External cache values are encrypted with process-private keys; keep bounded local invalidation indexes so cache
+  outages cannot undo credential revocation. Backend changes require a restart; never use Redis as authoritative
+  storage.
 - **Quota and events:** Reserve/commit/release quota transactionally; team-owned resources charge only the team and
   mirrors are exempt. Keep download-count exclusions and pending-plus-persisted resets in `statistics/`.
   Use `tasks/` for coalescible periodic work; preserve dedicated serial workers where event order matters.

@@ -60,6 +60,7 @@ type FrontendConfig struct {
 	FontPreset           string `json:"font_preset" yaml:"font_preset"`
 	FontURL              string `json:"font_url" yaml:"font_url"`
 	CachedIndexHTML      []byte `json:"-" yaml:"-"`
+	CachedIndexHTMLKey   string `json:"-" yaml:"-"`
 }
 
 func (f *FrontendConfig) setDefaults() {
@@ -125,6 +126,7 @@ func (f *FrontendConfig) DeepCopy() FrontendConfig {
 		LegalNoticeURL:       strings.Clone(f.LegalNoticeURL),
 		FontPreset:           strings.Clone(f.FontPreset),
 		FontURL:              strings.Clone(f.FontURL),
+		CachedIndexHTMLKey:   f.CachedIndexHTMLKey,
 	}
 	if f.CachedIndexHTML != nil {
 		cloned.CachedIndexHTML = bytes.Clone(f.CachedIndexHTML)

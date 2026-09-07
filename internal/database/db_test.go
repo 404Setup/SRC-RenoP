@@ -418,6 +418,7 @@ func TestSQLiteDriverContract(t *testing.T) {
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	db.UseRemoteCache(testutil.RemoteCache(t))
 	results, err := database.RunDriverCheck(context.Background(), db)
 	require.NoError(t, err)
 	require.Len(t, results, 10)
