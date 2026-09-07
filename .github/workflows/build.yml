@@ -4,6 +4,11 @@ on:
   push:
   workflow_dispatch:
 
+concurrency:
+  group: renop-actions
+  queue: max
+  cancel-in-progress: false
+
 permissions:
   contents: write
   actions: write

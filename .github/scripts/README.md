@@ -4,6 +4,13 @@
 `publish-update.ps1`. Only raw Brotli executables and `manifest.json` belong to
 the build artifact; release documents are attached separately to GitHub releases.
 
+The workflow uses one repository-wide `renop-actions` concurrency group with `queue: max` and
+`cancel-in-progress: false`. Only one workflow run executes at a time across all branches and release channels;
+other runs wait in FIFO order based on when they entered the concurrency queue. Within a run, `needs` orders
+metadata, build, publish, and release jobs. GitHub supports at most 100 pending runs per group; further runs
+are canceled when the queue is full. Queue arrival order can differ from dispatch or commit order. See
+[GitHub's concurrency contract](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency).
+
 For nightly builds, `nightly-info.ps1` first removes every historical `targets` field and adds the current build's
 fresh target metadata. It sorts known releases by Git topology, newest first, then inserts missing eligible
 commits at their positions. Git history is authoritative: at most 100 eligible commits reachable from the
