@@ -136,7 +136,7 @@ function Get-RemoteInfoJson {
         if ([string]::IsNullOrWhiteSpace($jsonStr)) {
             return $null
         }
-        return ($jsonStr | ConvertFrom-Json)
+        return ($jsonStr | ConvertFrom-Json -DateKind String)
     } catch {
         Write-Warning "Failed to read remote info.json: $($_.Exception.Message)"
         return $null
@@ -318,23 +318,8 @@ foreach ($r in $existingReleases) {
 }
 
 if ($Channel -eq 'nightly') {
-    # Retain up to 100 nightly releases in info.json.
-    if ($updatedReleases.Count -gt 100) {
-        $updatedReleases = [System.Collections.Generic.List[object]]($updatedReleases.GetRange(0, 100))
-    }
-    # Only retained package trees keep downloadable target metadata.
-    for ($i = $nightlyPackageRetention; $i -lt $updatedReleases.Count; $i++) {
-        $rel = $updatedReleases[$i]
-        $updatedReleases[$i] = [ordered]@{
-            version      = [string]$rel.version
-            commit       = [string]$rel.commit
-            previous_commit = [string]$rel.previous_commit
-            channel      = [string]$rel.channel
-            development  = [bool]$rel.development
-            published_at = [string]$rel.published_at
-            changelog    = [string]$rel.changelog
-        }
-    }
+    . (Join-Path $PSScriptRoot 'nightly-info.ps1')
+    $updatedReleases = @(Get-NightlyReleases -CurrentRelease $currentRelease -ExistingReleases @($existingReleases))
 } else {
     for ($i = 0; $i -lt $updatedReleases.Count; $i++) {
         $rel = $updatedReleases[$i]

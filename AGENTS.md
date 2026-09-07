@@ -129,6 +129,8 @@ Read the relevant implementation and tests for exact limits and exceptions befor
 - **Release:** Frontend sidecars must not be recompressed; serve them with correct negotiation, ETags, and Vary.
   Update payloads contain only raw `.br` executables and `manifest.json`; release docs attach separately to GitHub.
   Preserve SHA-256 checks, legacy ZIP decoding, current/previous commit ordering, and bounded nightly retention.
+  Nightly metadata is rebuilt by `.github/scripts/nightly-info.ps1`; publishing requires PowerShell 7.5 or later
+  to preserve JSON date strings.
   Compile/compression pools remain independently bounded; see `scripts/build-target.ps1` and
   `scripts/compress-target.ps1`.
 

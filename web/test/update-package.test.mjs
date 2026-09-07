@@ -14,6 +14,7 @@ import {readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {brotliCompressSync} from 'node:zlib';
+import {spawnSync} from 'node:child_process';
 import {unzipSync} from 'fflate';
 
 import {chooseUpdateDownloadWorkers, isBrotliUpdateTarget, legacyZipFilename,} from '../js/lib/update-package.js';
@@ -76,7 +77,7 @@ test('release tooling decouples bounded compilation from raw Brotli packaging', 
     assert.doesNotMatch(publish, /README\.md|THIRD_PARTY_NOTICES\.md|LICENSE/);
     assert.match(workflow, /previous_commit/);
     assert.match(publish, /\$nightlyPackageRetention = 9/);
-    assert.match(publish, /for \(\$i = \$nightlyPackageRetention; \$i -lt \$updatedReleases\.Count; \$i\+\+\)/);
+    assert.match(publish, /Get-NightlyReleases -CurrentRelease \$currentRelease -ExistingReleases/);
     assert.match(publish, /\[Math\]::Min\(\$updatedReleases\.Count, \$nightlyPackageRetention\)/);
 });
 
@@ -89,4 +90,12 @@ test('Go protobuf generation includes API and durable session schemas', () => {
         'pkg/pb/api.pb.go',
         'pkg/pb/session.pb.go',
     ]) assert.ok(build.includes(path), `build.ps1 is missing ${path}`);
+});
+
+test('nightly metadata rebuilds targets and missing releases in Git order', () => {
+    const repositoryRoot = resolve(fileURLToPath(new URL('../..', import.meta.url)));
+    const result = spawnSync('pwsh', ['-NoProfile', '-File', '.github/scripts/test-nightly-info.ps1'], {
+        cwd: repositoryRoot, encoding: 'utf8', timeout: 120_000,
+    });
+    assert.equal(result.status, 0, result.error?.message || result.stdout + result.stderr);
 });
