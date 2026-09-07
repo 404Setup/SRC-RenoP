@@ -126,6 +126,9 @@ les Passkeys, sessions, API tokens, photo, codes de récupération et messages. 
 `ACCOUNT_DELETED`. L'adresse privée reste réservée 14 jours et l'activité est conservée 30 jours. Le nettoyage
 planifié traite les échéances par lots bornés. Les paquets publiés restent téléchargeables.
 
+L’identité GitHub libérée peut être immédiatement liée à un autre compte actif. Cela ne libère pas le nom réservé,
+ne raccourcit pas la rétention de l’adresse et ne restaure pas la propriété des ressources retirées.
+
 Les administrateurs consultent les échéances avec `GET /api/tokens/:name/retention`, libèrent l'adresse par
 `DELETE /api/tokens/:name/retention/email` et effacent l'activité par
 `DELETE /api/tokens/:name/retention/audit`. Les champs `deleted_at`, `email_release_at`,

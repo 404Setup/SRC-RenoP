@@ -28,10 +28,10 @@ import (
 )
 
 const (
-	MaxFailuresPerMinute = 5
-	MaxRequestsPerMinute = 100
-	MaxRequestsBurst     = 60
-	maxIPLimiterEntries  = 10_000
+	MaxAuthenticationFailures = 10
+	MaxRequestsPerMinute      = 100
+	MaxRequestsBurst          = 60
+	maxIPLimiterEntries       = 10_000
 )
 
 type limiterEntry struct {
@@ -244,7 +244,7 @@ func AnomalyMiddleware(state *core.AppState) fiber.Handler {
 
 		ip := utils.ExtractIP(c, &cfg.Server)
 
-		if state.Inner.AnomalyFailures != nil && state.Inner.AnomalyFailures.Count(ip) >= MaxFailuresPerMinute {
+		if state.Inner.AnomalyFailures != nil && state.Inner.AnomalyFailures.Count(ip) >= MaxAuthenticationFailures {
 			c.Set(fiber.HeaderConnection, "close")
 			return c.SendStatus(fiber.StatusForbidden)
 		}

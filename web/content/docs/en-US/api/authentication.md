@@ -124,6 +124,9 @@ Passkeys, sessions, API tokens, the profile photo, recovery codes, and messages.
 The private email remains reserved for 14 days; activity remains for 30 days. Bounded scheduled cleanup releases
 expired holds. Published packages remain downloadable.
 
+The released GitHub identity can immediately be linked to another active account. This does not release the retired
+username, shorten the email hold, or restore ownership of retired resources.
+
 System administrators can read deadlines with `GET /api/tokens/:name/retention`, release email early with
 `DELETE /api/tokens/:name/retention/email`, and clear activity early with
 `DELETE /api/tokens/:name/retention/audit`. Deadline and completion fields use Unix milliseconds:

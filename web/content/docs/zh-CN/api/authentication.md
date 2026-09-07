@@ -120,6 +120,8 @@ Principal 快照，但不会持久化 OAuth Access Token。
 活跃会话、API Token、头像、恢复代码和消息。登录将返回 `ACCOUNT_DELETED`。
 绑定邮箱保留 14 天，行为日志保留 30 天；到期后由定时清理任务分批释放。已发布的软件包仍可下载。
 
+解除的 GitHub 身份可以立即绑定到其他有效账号；此操作不会释放已注销的用户名、缩短邮箱保留期或恢复已注销资源的所有权。
+
 超级管理员可通过 `GET /api/tokens/:name/retention` 查看保留期限，通过
 `DELETE /api/tokens/:name/retention/email` 提前释放邮箱，或通过
 `DELETE /api/tokens/:name/retention/audit` 提前清空行为日志。期限及完成时间字段均为 Unix 毫秒时间戳：

@@ -238,6 +238,18 @@ func TestAccountRetirementLocksIdentityAndHonorsRetention(t *testing.T) {
 		require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM `+table+` WHERE user_id = ?`, profile.UserID).Scan(&count))
 		assert.Zero(t, count, table)
 	}
+	identity, err := db.GetGitHubIdentityByProviderID(42)
+	require.NoError(t, err)
+	require.Nil(t, identity)
+	bob, err := db.GetUserProfile("bob")
+	require.NoError(t, err)
+	require.NoError(t, db.StoreGitHubIdentity(bob.UserID, 42, "alice-gh", []core.GitHubPrincipal{{
+		Type: core.GitHubPrincipalUser, GitHubID: 42, Login: "alice-gh",
+	}}, retiredAt+1))
+	identity, err = db.GetGitHubIdentityByProviderID(42)
+	require.NoError(t, err)
+	require.NotNil(t, identity)
+	assert.Equal(t, "bob", identity.Username)
 	apiTokens, err := db.ListAPITokens("alice")
 	require.NoError(t, err)
 	assert.Empty(t, apiTokens)

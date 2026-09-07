@@ -19,10 +19,11 @@ For unauthenticated client IPs, requests are governed by a sliding-window token 
 
 ## Repeated Authentication Failures & IP Bans
 
-- Clients generating repeated `401 Unauthorized` or `403 Forbidden` responses against private endpoints or login routes
-  are flagged as anomalous.
-- Flagged IPs receive temporary bans returning `403 Forbidden`, with ban durations scaling progressively on repeated
-  offenses.
+- Failed credentials or login attempts returning `401 Unauthorized` or `403 Forbidden` are counted per IP.
+- After 10 failures, subsequent requests return `403 Forbidden`. The counter expires five minutes after the last
+  counted failure; rejected requests do not extend this interval.
+- Anonymous permission challenges and permission denials for valid sessions do not count. Frontend pages and static
+  assets remain accessible.
 
 ## Concurrency Limits (`max_active_requests`)
 

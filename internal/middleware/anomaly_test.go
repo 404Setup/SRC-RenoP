@@ -89,7 +89,7 @@ func TestAuthenticatedPermissionDenialsDoNotAccumulateAnomalyFailures(t *testing
 		return c.SendStatus(fiber.StatusForbidden)
 	})
 
-	for range MaxFailuresPerMinute + 2 {
+	for range MaxAuthenticationFailures + 2 {
 		request := httptest.NewRequest(http.MethodGet, "/protected", nil)
 		request.AddCookie(&http.Cookie{Name: "renop_session", Value: "valid-session"})
 		response, err := app.Test(request)
@@ -119,5 +119,29 @@ func TestAuthenticatedPermissionDenialsDoNotAccumulateAnomalyFailures(t *testing
 	}
 	if failures := state.Inner.AnomalyFailures.Count(observedIP); failures != 1 {
 		t.Fatalf("invalid authenticated denial recorded %d anomaly failures, want 1", failures)
+	}
+}
+
+func TestAuthenticationFailureBanStartsAfterTenFailures(t *testing.T) {
+	state := core.NewAppState()
+	state.Inner.Config.Store(config.DefaultConfig())
+	app := fiber.New()
+	app.Use(AnomalyMiddleware(state))
+	app.Post("/api/auth/login", func(c fiber.Ctx) error {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	})
+	for attempt := 1; attempt <= 11; attempt++ {
+		response, err := app.Test(httptest.NewRequest(http.MethodPost, "/api/auth/login", nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = response.Body.Close()
+		want := http.StatusUnauthorized
+		if attempt == 11 {
+			want = http.StatusForbidden
+		}
+		if response.StatusCode != want {
+			t.Fatalf("attempt %d: status = %d, want %d", attempt, response.StatusCode, want)
+		}
 	}
 }

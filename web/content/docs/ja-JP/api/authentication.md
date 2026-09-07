@@ -124,6 +124,9 @@ Passkey、セッション、API Token、写真、復旧コード、メッセー�
 `ACCOUNT_DELETED` を返します。非公開メールアドレスは 14 日、操作履歴は 30 日保持され、
 期限後に定期処理で分割して削除されます。公開済みパッケージは引き続きダウンロードできます。
 
+解除された GitHub ID は、別の有効なアカウントに直ちに関連付けられます。予約済みユーザー名の解放、
+メール保持期間の短縮、閉鎖済みリソースの所有権復元は行いません。
+
 システム管理者は `GET /api/tokens/:name/retention` で期限を確認し、
 `DELETE /api/tokens/:name/retention/email` でメールを早期解放、
 `DELETE /api/tokens/:name/retention/audit` で履歴を早期削除できます。
