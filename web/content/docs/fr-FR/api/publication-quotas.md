@@ -13,9 +13,14 @@ modifier ces valeurs ou définir une règle propre à un compte ou à une équip
 
 ## Politique
 
-`period` accepte `day`, `week` ou `month` et utilise des limites UTC. Une valeur nulle n'est admise que dans une règle
+`period` accepte `day`, `week`, `month` ou `lifetime`. Les périodes récurrentes utilisent UTC. Une valeur nulle n'est admise que dans une règle
 propre à un propriétaire et interdit alors l'opération. L'option `unlimited`, réservée aux administrateurs, désactive la
 consommation. Un objet vide restaure toutes les valeurs globales.
+
+Les quotas à long terme (`lifetime`) cumulent l’utilisation sans réinitialisation automatique et appliquent les limites configurées.
+Leurs champs `period_start` et `period_end` valent `0`. Le nettoyage périodique et les redémarrages conservent cette utilisation.
+Passer à une période récurrente n’efface pas ce cumul ; revenir au long terme reprend le total enregistré.
+L’utilisation des périodes récurrentes n’est pas ajoutée rétroactivement au total à long terme.
 
 ## Propriété
 

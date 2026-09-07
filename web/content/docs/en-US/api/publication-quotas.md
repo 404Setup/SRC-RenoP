@@ -13,9 +13,14 @@ account- or global-team-specific override.
 
 ## Policy
 
-The `period` is `day`, `week`, or `month`; boundaries use UTC. A limit of zero is valid only for an owner override and
+The `period` is `day`, `week`, `month`, or `lifetime`; recurring boundaries use UTC. A limit of zero is valid only for an owner override and
 prevents that operation. The administrator-only `unlimited` override disables quota consumption for that owner. An empty
 override object restores every global default.
+
+Long-term (`lifetime`) quotas accumulate usage without automatic resets and still enforce all configured limits.
+Their `period_start` and `period_end` are both `0`. Usage survives scheduled cleanup and server restarts.
+Changing to a recurring period does not erase long-term usage; changing back resumes the saved total.
+Usage from recurring periods is not retroactively added to the long-term total.
 
 ## Ownership
 

@@ -95,7 +95,7 @@ func TestPublicationQuotaDefaultsPersist(t *testing.T) {
 	cfg := config.DefaultConfig()
 	app, state := setupSettingsTestApp(t, cfg)
 	request := httptest.NewRequest(http.MethodPut, "/publication-quota",
-		strings.NewReader(`{"file_limit":900,"byte_limit":67108864,"publication_limit":30,"period":"week"}`))
+		strings.NewReader(`{"file_limit":900,"byte_limit":67108864,"publication_limit":30,"period":"lifetime"}`))
 	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 	response, err := app.Test(request)
 	require.NoError(t, err)
@@ -105,11 +105,12 @@ func TestPublicationQuotaDefaultsPersist(t *testing.T) {
 	assert.EqualValues(t, 900, quota.FileLimit)
 	assert.EqualValues(t, 64<<20, quota.ByteLimit)
 	assert.EqualValues(t, 30, quota.PublicationLimit)
-	assert.Equal(t, "week", quota.Period)
+	assert.Equal(t, "lifetime", quota.Period)
 	configBytes, err := os.ReadFile(os.Getenv("RENOP_CONFIG"))
 	require.NoError(t, err)
 	assert.Contains(t, string(configBytes), "publication_quota:")
 	assert.Contains(t, string(configBytes), "file_limit: 900")
+	assert.Contains(t, string(configBytes), "period: lifetime")
 
 	request = httptest.NewRequest(http.MethodPut, "/publication-quota",
 		strings.NewReader(`{"file_limit":0,"byte_limit":1,"publication_limit":1,"period":"day"}`))

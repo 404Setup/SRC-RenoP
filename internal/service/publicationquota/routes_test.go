@@ -133,6 +133,16 @@ func TestPublicationQuotaRoutesEnforceVisibilityAndAdministratorOverrides(t *tes
 	assert.True(t, status.Inherited)
 	assert.False(t, status.Unlimited)
 
+	response = quotaRequest(t, app, http.MethodPut, "/api/publication-quota/users/bob", "admin", map[string]any{
+		"period": "lifetime",
+	})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	status = decodeQuotaStatus(t, response)
+	assert.Equal(t, "lifetime", status.Period)
+	assert.Zero(t, status.PeriodStart)
+	assert.Zero(t, status.PeriodEnd)
+	assert.False(t, status.Unlimited)
+
 	response = quotaRequest(t, app, http.MethodPut, "/api/publication-quota/super-teams/platform", "admin", map[string]any{
 		"file_limit": 0, "byte_limit": 0, "publication_limit": 0, "period": "day", "unlimited": false,
 	})

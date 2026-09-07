@@ -663,6 +663,7 @@ function renderPublicationQuotaSettings(container, data) {
         {value: 'day', label: t('publicationQuota.period.day')},
         {value: 'week', label: t('publicationQuota.period.week')},
         {value: 'month', label: t('publicationQuota.period.month')},
+        {value: 'lifetime', label: t('publicationQuota.period.lifetime')},
     ], data.period || 'month', value => {
         data.period = value;
         enableSave();

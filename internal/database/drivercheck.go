@@ -40,7 +40,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	suffix := uuid.NewString()[:8]
 	username := "dbcheck-" + suffix
 	now := time.Now().UnixMilli()
-	results := make([]DriverCheckResult, 0, 9)
+	results := make([]DriverCheckResult, 0, 10)
 	run := func(name string, check func() error) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -327,6 +327,41 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		}, limits, core.PublicationQuotaDelta{Files: 100, Bytes: 1 << 30, Publications: 100}, now+5, now+60_000)
 		if err != nil || teamReservation == nil || !teamReservation.Unlimited {
 			return errorsOrMissing(err, "unlimited global team quota")
+		}
+		return nil
+	}); err != nil {
+		return results, err
+	}
+	if err := run("long-term quotas", func() error {
+		limits := core.PublicationQuotaLimits{
+			FileLimit: 1, ByteLimit: 1024, PublicationLimit: 1, Period: core.PublicationQuotaPeriodLifetime,
+		}
+		subject := core.PublicationQuotaSubject{OwnerType: core.PublicationQuotaOwnerUser, OwnerKey: username}
+		reservation, err := db.ReservePublicationQuota(subject, limits,
+			core.PublicationQuotaDelta{Files: 1, Bytes: 512, Publications: 1}, now, now+60_000)
+		if err != nil {
+			return err
+		}
+		if err := db.CommitPublicationQuotaReservation(reservation.ID, now+1); err != nil {
+			return err
+		}
+		later := now + (400 * 24 * time.Hour).Milliseconds()
+		if err := db.CleanExpiredPublicationQuotaReservations(later); err != nil {
+			return err
+		}
+		status, err := db.GetPublicationQuotaStatus(subject, limits, later)
+		if err != nil || status == nil || status.PeriodStart != 0 || status.PeriodEnd != 0 ||
+			status.FilesUsed != 1 || status.BytesUsed != 512 || status.PublicationsUsed != 1 {
+			return errorsOrMissing(err, "long-term usage after periodic cleanup")
+		}
+		if _, err := db.ReservePublicationQuota(subject, limits, core.PublicationQuotaDelta{Files: 1},
+			later, later+60_000); !errors.Is(err, core.ErrPublicationFileLimit) {
+			return errorsOrMissing(err, "long-term quota enforcement")
+		}
+		limits.Period = core.PublicationQuotaPeriodMonth
+		status, err = db.GetPublicationQuotaStatus(subject, limits, now)
+		if err != nil || status == nil || status.FilesUsed != 0 {
+			return errorsOrMissing(err, "expired periodic usage cleanup")
 		}
 		return nil
 	}); err != nil {

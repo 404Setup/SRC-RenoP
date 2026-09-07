@@ -25,6 +25,7 @@ func TestPublicationQuotaWindowUsesStableUTCBoundaries(t *testing.T) {
 		{PublicationQuotaPeriodDay, "2026-08-30T00:00:00Z", "2026-08-31T00:00:00Z"},
 		{PublicationQuotaPeriodWeek, "2026-08-24T00:00:00Z", "2026-08-31T00:00:00Z"},
 		{PublicationQuotaPeriodMonth, "2026-08-01T00:00:00Z", "2026-09-01T00:00:00Z"},
+		{PublicationQuotaPeriodLifetime, "1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"},
 	}
 	for _, test := range tests {
 		start, end, valid := PublicationQuotaWindow(test.period, now)

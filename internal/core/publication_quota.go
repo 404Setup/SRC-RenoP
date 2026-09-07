@@ -21,6 +21,7 @@ const (
 	PublicationQuotaPeriodDay      = "day"
 	PublicationQuotaPeriodWeek     = "week"
 	PublicationQuotaPeriodMonth    = "month"
+	PublicationQuotaPeriodLifetime = "lifetime"
 )
 
 var (
@@ -90,14 +91,17 @@ type PublicationQuotaReservation struct {
 // ValidPublicationQuotaPeriod reports whether a period is supported.
 func ValidPublicationQuotaPeriod(period string) bool {
 	return period == PublicationQuotaPeriodDay || period == PublicationQuotaPeriodWeek ||
-		period == PublicationQuotaPeriodMonth
+		period == PublicationQuotaPeriodMonth || period == PublicationQuotaPeriodLifetime
 }
 
 // PublicationQuotaWindow returns UTC period boundaries for a supported policy.
+// Lifetime quotas use Unix millisecond zero for both boundaries and never reset.
 func PublicationQuotaWindow(period string, now time.Time) (time.Time, time.Time, bool) {
 	now = now.UTC()
 	var start time.Time
 	switch period {
+	case PublicationQuotaPeriodLifetime:
+		return time.UnixMilli(0).UTC(), time.UnixMilli(0).UTC(), true
 	case PublicationQuotaPeriodDay:
 		start = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 		return start, start.AddDate(0, 0, 1), true

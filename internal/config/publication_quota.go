@@ -34,7 +34,7 @@ func (config *PublicationQuotaConfig) setDefaults() {
 	if config.PublicationLimit <= 0 {
 		config.PublicationLimit = DefaultPublicationPushLimit
 	}
-	if config.Period != "day" && config.Period != "week" && config.Period != "month" {
+	if config.Period != "day" && config.Period != "week" && config.Period != "month" && config.Period != "lifetime" {
 		config.Period = "month"
 	}
 }

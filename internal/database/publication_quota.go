@@ -426,7 +426,7 @@ func (db *DB) CleanExpiredPublicationQuotaReservations(now int64) error {
 		return fmt.Errorf("clean publication quota reservations: %w", err)
 	}
 	cutoff := now - publicationQuotaUsageRetention.Milliseconds()
-	if _, err := db.Exec(`DELETE FROM publication_quota_usage WHERE period_start < ?`, cutoff); err != nil {
+	if _, err := db.Exec(`DELETE FROM publication_quota_usage WHERE period_start > 0 AND period_start < ?`, cutoff); err != nil {
 		return fmt.Errorf("clean publication quota usage: %w", err)
 	}
 	return nil

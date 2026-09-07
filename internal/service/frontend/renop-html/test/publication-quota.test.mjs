@@ -51,6 +51,8 @@ test('publication quotas share one responsive account and global-team component'
     assert.match(teams, /ownerType: 'super_team'/);
     assert.match(settings, /'publication_quota'/);
     assert.match(settings, /renderPublicationQuotaSettings/);
+    assert.match(quota, /value: 'lifetime', label: periodLabel\('lifetime'\)/);
+    assert.match(settings, /value: 'lifetime', label: t\('publicationQuota.period.lifetime'\)/);
     assert.match(css, /@media \(max-width: 680px\)/);
     assert.match(css, /grid-template-columns: 1fr/);
     assert.match(css, /\.publication-quota-toggle-row\s*\{[^}]*padding:/s);

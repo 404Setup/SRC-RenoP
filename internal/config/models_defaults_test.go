@@ -55,6 +55,12 @@ func TestDefaultPublicationQuotaConfigAndDeepCopy(t *testing.T) {
 	if cfg.PublicationQuota.FileLimit != 600 {
 		t.Fatal("publication quota config was not copied independently")
 	}
+	if err := json.Unmarshal([]byte(`{"publication_quota":{"period":"lifetime"}}`), &cfg); err != nil {
+		t.Fatal(err)
+	}
+	if cfg.PublicationQuota.Period != "lifetime" {
+		t.Fatal("long-term publication quota period was replaced by defaults")
+	}
 }
 
 func TestMirrorDefaultsJson(t *testing.T) {

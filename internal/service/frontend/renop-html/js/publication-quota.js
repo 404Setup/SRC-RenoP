@@ -139,6 +139,7 @@ export async function openPublicationQuotaDialog({ownerType, ownerKey, onSaved =
         {value: 'day', label: periodLabel('day')},
         {value: 'week', label: periodLabel('week')},
         {value: 'month', label: periodLabel('month')},
+        {value: 'lifetime', label: periodLabel('lifetime')},
     ], period, value => {
         period = value;
         activateOverride();

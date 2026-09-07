@@ -379,7 +379,7 @@ func TestClickHouseNativeDriverContract(t *testing.T) {
 	db := newClickHouseTestDatabase(t)
 	results, err := database.RunDriverCheck(context.Background(), db)
 	require.NoError(t, err)
-	require.Len(t, results, 9)
+	require.Len(t, results, 10)
 }
 
 func TestClickHouseNativeSchemaCopyMigrationPreservesRows(t *testing.T) {
