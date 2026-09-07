@@ -49,7 +49,7 @@ Service paths in this table are relative to `internal/service/`; all other paths
 | Upload/configuration races                            | `repositorygate/`, affected protocol, database transaction                                                      |
 | Global teams, ownership, public resources             | `superteam/`, `review/`, `internal/database/super_team_resources.go`                                            |
 | Publication/creation review and notifications         | `review/`, `reviewnotify/`, `internal/database/review*.go`                                                      |
-| Quota, statistics, audit, messages, periodic work     | `publicationquota/`, `statistics/`, `audit/`, `message/`, `tasks/`                                              |
+| Quota, statistics, global/activity logs, messages, periodic work     | `publicationquota/`, `statistics/`, `audit/`, `message/`, `tasks/`                                              |
 | Outbound networking                                   | `proxy/`, `outboundproxy/`                                                                                      |
 | Updates, services, Caddy                              | `updater/`, `internal/daemon/`, `internal/caddy/`, `internal/version/`                                          |
 | Shared bounds, renames, memory tuning, test cleanup   | `internal/utils/`, `internal/testutil/`                                                                         |
@@ -123,6 +123,8 @@ Read the relevant implementation and tests for exact limits and exceptions befor
 - **Quota and events:** Reserve/commit/release quota transactionally; team-owned resources charge only the team and
   mirrors are exempt. Keep download-count exclusions and pending-plus-persisted resets in `statistics/`.
   Use `tasks/` for coalescible periodic work; preserve dedicated serial workers where event order matters.
+  `audit/` captures process/HTTP diagnostics, filters activity and global logs, and drains its shared serial writer on shutdown.
+  Preserve hidden-operator filtering, credential redaction, and separate activity/system retention budgets.
 - **Frontend:** Reuse the shared UI, jQuery runtime, error, identity, clipboard, time, and animation helpers.
   Keep streaming/observers/native APIs where appropriate. Preserve keyboard/focus behavior, responsive layouts,
   viewport-bounded dialogs, and loading/empty/error states. A valid authenticated 403 must not log out the user.

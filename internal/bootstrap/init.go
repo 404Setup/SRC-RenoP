@@ -66,6 +66,7 @@ type ServiceRuntime struct {
 	downloadCounter *statistics.Counter
 	closeOnce       sync.Once
 	closeErr        error
+	stopLogs        func()
 }
 
 // Close stops periodic work, persists pending index and download-statistics state, and
@@ -101,6 +102,9 @@ func (runtime *ServiceRuntime) Close() error {
 			cancel()
 		}
 		runtime.closeErr = errors.Join(closeErrors...)
+		if runtime.stopLogs != nil {
+			runtime.stopLogs()
+		}
 		if runtime.state != nil && runtime.state.Inner != nil {
 			runtime.closeErr = errors.Join(runtime.closeErr, runtime.state.Inner.RemoteCache.Close())
 		}
@@ -240,6 +244,7 @@ func StartServices(state *core.AppState, bootstrapContext BootstrapContext) (*Se
 		state:           state,
 		indexSave:       indexSave,
 		downloadCounter: downloadCounter,
+		stopLogs:        audit.StartAuditLogConsumer(state),
 	}
 	schedule := func(name string, interval, initialDelay time.Duration, run func(context.Context)) error {
 		if err := scheduler.Schedule(name, interval, initialDelay, run); err != nil {

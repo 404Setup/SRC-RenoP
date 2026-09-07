@@ -224,6 +224,16 @@ html.light #breadcrumb-links a.is-current {
     overflow-x: hidden;
 }
 
+.audit-filter-date {
+    grid-column: span 2;
+}
+
+@media (max-width: 359px) {
+    .audit-filter-date {
+        grid-column: auto;
+    }
+}
+
 .audit-logs-list {
     overflow-x: hidden;
     overflow-y: auto;

@@ -379,7 +379,7 @@ func TestClickHouseNativeDriverContract(t *testing.T) {
 	db := newClickHouseTestDatabase(t)
 	results, err := database.RunDriverCheck(context.Background(), db)
 	require.NoError(t, err)
-	require.Len(t, results, 10)
+	require.Len(t, results, 11)
 }
 
 func TestClickHouseNativeSchemaCopyMigrationPreservesRows(t *testing.T) {
@@ -419,6 +419,15 @@ func TestClickHouseNativeSchemaCopyMigrationPreservesRows(t *testing.T) {
 	require.NoError(t, admin.Exec(context.Background(), `INSERT INTO `+legacyTokens+`
 		(name, type, type_value, encrypted_secret, password_hash, tokens_json, created_at, description, permissions_json)
 		VALUES ('legacy_user', 'PERSISTENT', 1, '', '', '[]', '2026-09-01T00:00:00Z', 'preserved account', '["base"]')`))
+	legacyAudit := "`" + databaseName + "`.`audit_logs`"
+	require.NoError(t, admin.Exec(context.Background(), `CREATE TABLE `+legacyAudit+` (
+		id UInt64, username String, operator String, action String, details String, auth_method String,
+		session_id String DEFAULT '', ip String, created_at Int64,
+		_renop_key String MATERIALIZED toString(id)
+	) ENGINE = EmbeddedRocksDB PRIMARY KEY _renop_key SETTINGS optimize_for_bulk_insert = 0`))
+	require.NoError(t, admin.Exec(context.Background(), `INSERT INTO `+legacyAudit+`
+		(id, username, operator, action, details, auth_method, ip, created_at)
+		VALUES (1, 'legacy_user', 'legacy_user', 'LOGIN', 'preserved log', 'Web', '', 100)`))
 	parsed.Path = "/" + databaseName
 	db, err := database.InitDB(config.DatabaseConfig{
 		Driver: "clickhouse", Dsn: parsed.String(), MaxOpenConns: 4, MaxIdleConns: 2,
@@ -435,6 +444,12 @@ func TestClickHouseNativeSchemaCopyMigrationPreservesRows(t *testing.T) {
 	require.NotNil(t, legacyAccount)
 	assert.Equal(t, "preserved account", legacyAccount.Description)
 	assert.Nil(t, legacyAccount.Ban)
+	logs, total, err := db.GetAuditLogs("legacy_user", 10, 0)
+	require.NoError(t, err)
+	require.Equal(t, 1, total)
+	require.Equal(t, "preserved log", logs[0].Details)
+	require.Equal(t, "audit", logs[0].Kind)
+	require.Equal(t, "unknown", logs[0].Trigger)
 	var migrationTables int
 	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM system.tables
 		WHERE database = ? AND startsWith(name, '_renop_schema_')`, databaseName).Scan(&migrationTables))

@@ -641,7 +641,7 @@ func requiredAPITokenScope(c fiber.Ctx, state *core.AppState) apiTokenRequiremen
 		return requireAPITokenScope(APITokenScopeAdminRepositories)
 	case strings.HasPrefix(path, "/api/settings") || strings.HasPrefix(path, "/api/debug"):
 		return requireAPITokenScope(APITokenScopeAdminSettings)
-	case strings.HasPrefix(path, "/api/auth/users/") && strings.Contains(path, "/audit-logs"):
+	case path == "/api/auth/logs" || (strings.HasPrefix(path, "/api/auth/users/") && strings.Contains(path, "/audit-logs")):
 		return requireAPITokenScope(APITokenScopeAdminAudit)
 	case strings.HasPrefix(path, "/api/tokens") || strings.HasPrefix(path, "/api/auth/users/"):
 		return requireAPITokenScope(APITokenScopeAdminUsers)

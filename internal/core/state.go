@@ -146,6 +146,7 @@ type StateDB interface {
 	ResetValidatingGPGReleases() error
 	SaveAuditLog(entry *AuditLogEntry) error
 	GetAuditLogs(username string, limit, offset int) ([]*AuditLogEntry, int, error)
+	FilterAuditLogs(filter AuditLogFilter, limit, offset int) ([]*AuditLogEntry, int, error)
 	DeleteAuditLogsByUsername(username string) error
 	CleanExpiredAuditLogs(retentionDays int, maxRows int) error
 	SaveMessages(messages []*UserMessage) error

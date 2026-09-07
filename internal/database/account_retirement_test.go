@@ -278,6 +278,9 @@ func TestAccountRetirementLocksIdentityAndHonorsRetention(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, logs)
 	assert.Positive(t, total)
+	require.NoError(t, db.SaveAuditLog(&core.AuditLogEntry{
+		Username: "bob", Operator: "system", Initiator: "alice", Kind: "system", Action: "QUEUED", CreatedAt: retiredAt,
+	}))
 	require.NoError(t, db.CleanupRetiredAccountData(retiredAt+core.AccountAuditRetentionMillis, 10))
 	require.NoError(t, db.SaveAuditLog(&core.AuditLogEntry{
 		Username: "alice", Operator: "alice", Action: "LATE_EVENT", CreatedAt: retiredAt,
@@ -285,6 +288,12 @@ func TestAccountRetirementLocksIdentityAndHonorsRetention(t *testing.T) {
 	require.NoError(t, db.SaveAuditLog(&core.AuditLogEntry{
 		Username: "bob", Operator: "alice", Action: "LATE_EVENT", CreatedAt: retiredAt,
 	}))
+	require.NoError(t, db.SaveAuditLog(&core.AuditLogEntry{
+		Username: "bob", Operator: "system", Initiator: "alice", Kind: "system", Action: "LATE_EVENT", CreatedAt: retiredAt,
+	}))
+	_, total, err = db.FilterAuditLogs(core.AuditLogFilter{Initiator: "alice"}, 10, 0)
+	require.NoError(t, err)
+	assert.Zero(t, total)
 	logs, total, err = db.GetAuditLogs("alice", 10, 0)
 	require.NoError(t, err)
 	assert.Empty(t, logs)

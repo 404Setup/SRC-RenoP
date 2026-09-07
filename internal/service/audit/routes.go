@@ -48,6 +48,7 @@ func isManager(user *config.User) bool {
 }
 
 func SetupAuditRoutes(router fiber.Router, state *core.AppState) {
+	router.Get("/logs", func(c fiber.Ctx) error { return GetGlobalLogs(c, state) })
 	router.Get("/profile/audit-logs", func(c fiber.Ctx) error { return GetSelfAuditLogs(c, state) })
 	router.Delete("/profile/audit-logs", func(c fiber.Ctx) error { return DeleteSelfAuditLogs(c) })
 	router.Get("/users/:username/audit-logs", func(c fiber.Ctx) error { return GetUserAuditLogs(c, state) })
@@ -64,6 +65,7 @@ func parsePageParams(c fiber.Ctx) (limit int, offset int, page int, pageSize int
 		pageSize = 20
 	}
 	limit = pageSize
+	page = min(page, 1000000/pageSize+1)
 	offset = (page - 1) * pageSize
 	return limit, offset, page, pageSize
 }
@@ -75,7 +77,21 @@ func GetSelfAuditLogs(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	limit, offset, page, pageSize := parsePageParams(c)
-	logs, total, err := fetchLogs(state, user.Username, limit, offset)
+	filter, err := parseLogFilter(c)
+	if err != nil {
+		return invalidLogFilter(c)
+	}
+	filter.Username, filter.Kind = user.Username, "audit"
+	for _, field := range []struct{ value, exclude *string }{
+		{&filter.Operator, &filter.ExcludeOperator}, {&filter.Initiator, &filter.ExcludeInitiator},
+	} {
+		if *field.value == "@administrator" {
+			*field.value, *field.exclude = "", user.Username
+		} else if *field.value != "" && !strings.EqualFold(*field.value, user.Username) {
+			return invalidLogFilter(c)
+		}
+	}
+	logs, total, err := fetchLogs(state, filter, limit, offset)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
 	}
@@ -85,6 +101,9 @@ func GetSelfAuditLogs(c fiber.Ctx, state *core.AppState) error {
 		lCopy := *l
 		if !strings.EqualFold(lCopy.Operator, user.Username) {
 			lCopy.Operator = "Administrator"
+		}
+		if !strings.EqualFold(lCopy.Initiator, user.Username) {
+			lCopy.Initiator = "Administrator"
 		}
 		maskedLogs[i] = &lCopy
 	}
@@ -112,7 +131,12 @@ func GetUserAuditLogs(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	limit, offset, page, pageSize := parsePageParams(c)
-	logs, total, err := fetchLogs(state, targetUsername, limit, offset)
+	filter, err := parseLogFilter(c)
+	if err != nil {
+		return invalidLogFilter(c)
+	}
+	filter.Username, filter.Kind = targetUsername, "audit"
+	logs, total, err := fetchLogs(state, filter, limit, offset)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
 	}
@@ -162,9 +186,9 @@ func DeleteUserAuditLogs(c fiber.Ctx, state *core.AppState) error {
 	return protohttp.Write(c, pb.StatusOkSuccess())
 }
 
-func fetchLogs(state *core.AppState, username string, limit, offset int) ([]*core.AuditLogEntry, int, error) {
+func fetchLogs(state *core.AppState, filter core.AuditLogFilter, limit, offset int) ([]*core.AuditLogEntry, int, error) {
 	if db := state.GetDB(); db != nil {
-		return db.GetAuditLogs(username, limit, offset)
+		return db.FilterAuditLogs(filter, limit, offset)
 	}
 	return []*core.AuditLogEntry{}, 0, nil
 }

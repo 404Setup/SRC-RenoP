@@ -211,7 +211,7 @@ func (db *DB) PurgeRetiredAccountAuditLogs(username string, purgedAt int64) erro
 	if deletedAt <= 0 {
 		return core.ErrAccountNotRetired
 	}
-	if _, err := tx.Exec(`DELETE FROM audit_logs WHERE username = ? OR operator = ?`, username, username); err != nil {
+	if _, err := tx.Exec(`DELETE FROM audit_logs WHERE username = ? OR operator = ? OR initiator = ?`, username, username, username); err != nil {
 		return fmt.Errorf("purge retired account audit logs: %w", err)
 	}
 	if _, err := tx.Exec(`UPDATE tokens SET audit_purged_at = ? WHERE name = ? AND deleted_at > 0`,

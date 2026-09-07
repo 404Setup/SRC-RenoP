@@ -127,11 +127,13 @@ func startServer() {
 		DisablePreParseMultipartForm: true,
 		UnescapePath:                 false,
 		ReadBufferSize:               4 * 1024,
+		ErrorHandler:                 audit.ErrorHandler(state),
 	})
 
 	app.Use(middleware.APINoCacheMiddleware())
 	app.Use(middleware.CorsMiddleware(state))
 	app.Use(middleware.AnomalyMiddleware(state))
+	app.Use(audit.HTTPDiagnostics(state))
 
 	opChan := make(chan token.TokenOp, 100)
 	go token.StartTokenConsumer(state, opChan)
@@ -145,8 +147,6 @@ func startServer() {
 			}
 		}
 	}
-
-	go audit.StartAuditLogConsumer(state)
 
 	app.Use(auth.AuthMiddleware(state))
 

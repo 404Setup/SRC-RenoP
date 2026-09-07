@@ -693,12 +693,16 @@ func FromAuditLogEntry(e *core.AuditLogEntry) *AuditLogEntryDto {
 		Id:         e.ID,
 		Username:   e.Username,
 		Operator:   e.Operator,
+		Initiator:  e.Initiator,
 		Action:     e.Action,
 		Details:    e.Details,
 		AuthMethod: e.AuthMethod,
 		SessionId:  e.SessionID,
 		Ip:         e.IP,
 		CreatedAt:  e.CreatedAt,
+		Kind:       e.Kind,
+		Trigger:    e.Trigger,
+		Severity:   e.Severity,
 	}
 }
 

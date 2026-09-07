@@ -810,6 +810,7 @@ func (db *DB) renameTokenInTx(tx *Tx, oldName, newName string, token *core.Acces
 		{`UPDATE gpg_releases SET uploader = ? WHERE uploader = ?`, "GPG releases"},
 		{`UPDATE audit_logs SET username = ? WHERE username = ?`, "audit subjects"},
 		{`UPDATE audit_logs SET operator = ? WHERE operator = ?`, "audit operators"},
+		{`UPDATE audit_logs SET initiator = ? WHERE initiator = ?`, "audit initiators"},
 		{`UPDATE user_messages SET recipient = ? WHERE recipient = ?`, "message recipients"},
 		{`UPDATE user_messages SET sender = ? WHERE sender = ?`, "message senders"},
 		{`UPDATE maven_domain_members SET username = ? WHERE username = ?`, "Maven memberships"},

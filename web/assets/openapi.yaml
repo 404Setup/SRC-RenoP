@@ -2520,6 +2520,19 @@ components:
           type: integer
           format: int64
           description: Unix milliseconds timestamp.
+        kind:
+          type: string
+          enum: [audit, system]
+        trigger:
+          type: string
+          description: Producer source; legacy rows use unknown.
+        severity:
+          type: string
+          enum: [info, warning, error]
+
+        initiator:
+          type: string
+          description: Account that initiated the operation; defaults to the operator for direct and historical events.
 
     AuditLogListResponse:
       type: object
@@ -5887,8 +5900,105 @@ paths:
         "403":
           $ref: "#/components/responses/PlainForbidden"
 
+  /api/auth/logs:
+    get:
+      tags: [ audit ]
+      summary: Global activity and system logs
+      description: |
+        Requires current system administrator authority; API tokens additionally require admin:audit.
+        Filters combine with AND. Invalid filters return LOG_FILTER_INVALID. Time bounds are inclusive.
+        Query fields and results match the activity endpoints with additional global kind and username filters.
+      operationId: getGlobalLogs
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      parameters:
+        - name: kind
+          in: query
+          description: audit or system; empty includes both.
+          schema:
+            type: string
+            maxLength: 16
+        - name: username
+          in: query
+          description: Affected account.
+          schema:
+            type: string
+            maxLength: 255
+        - name: operator
+          in: query
+          description: Acting account.
+          schema:
+            type: string
+            maxLength: 255
+        - name: action
+          in: query
+          description: Exact action code.
+          schema:
+            type: string
+            maxLength: 64
+        - name: trigger
+          in: query
+          description: Exact producer source.
+          schema:
+            type: string
+            maxLength: 64
+        - name: severity
+          in: query
+          description: info, warning, or error.
+          schema:
+            type: string
+            maxLength: 16
+        - name: from
+          in: query
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            maximum: 253402300799999
+        - name: until
+          in: query
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            maximum: 253402300799999
+        - name: page
+          in: query
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            maximum: 1000001
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            maximum: 200
+            default: 20
+        - name: initiator
+          in: query
+          description: Initiating account; personal view also accepts @administrator and masks other identities.
+          schema:
+            type: string
+            maxLength: 255
+      responses:
+        "200":
+          description: Paginated global logs.
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/AuditLogListResponse"
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+
   # ========== Audit ==========
-  /api/profile/audit-logs:
+  /api/auth/profile/audit-logs:
     get:
       tags: [ audit ]
       summary: Own audit log
@@ -5913,7 +6023,53 @@ paths:
             minimum: 1
             maximum: 200
             default: 20
+        - name: action
+          in: query
+          description: Exact action code.
+          schema:
+            type: string
+            maxLength: 64
+        - name: operator
+          in: query
+          description: Exact username; personal view also accepts @administrator and never reveals other operator names.
+          schema:
+            type: string
+            maxLength: 255
+        - name: trigger
+          in: query
+          description: Exact producer source.
+          schema:
+            type: string
+            maxLength: 64
+        - name: severity
+          in: query
+          description: info, warning, or error.
+          schema:
+            type: string
+            maxLength: 16
+        - name: from
+          in: query
+          description: Inclusive Unix milliseconds.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: until
+          in: query
+          description: Inclusive Unix milliseconds.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: initiator
+          in: query
+          description: Initiating account; personal view also accepts @administrator and masks other identities.
+          schema:
+            type: string
+            maxLength: 255
       responses:
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
         "200":
           description: Paginated audit log.
           content:
@@ -5934,7 +6090,7 @@ paths:
         "403":
           $ref: "#/components/responses/PlainForbidden"
 
-  /api/users/{username}/audit-logs:
+  /api/auth/users/{username}/audit-logs:
     get:
       tags: [ audit ]
       summary: Get audit log for a user (manager)
@@ -5962,7 +6118,53 @@ paths:
             minimum: 1
             maximum: 200
             default: 20
+        - name: action
+          in: query
+          description: Exact action code.
+          schema:
+            type: string
+            maxLength: 64
+        - name: operator
+          in: query
+          description: Exact username; personal view also accepts @administrator and never reveals other operator names.
+          schema:
+            type: string
+            maxLength: 255
+        - name: trigger
+          in: query
+          description: Exact producer source.
+          schema:
+            type: string
+            maxLength: 64
+        - name: severity
+          in: query
+          description: info, warning, or error.
+          schema:
+            type: string
+            maxLength: 16
+        - name: from
+          in: query
+          description: Inclusive Unix milliseconds.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: until
+          in: query
+          description: Inclusive Unix milliseconds.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: initiator
+          in: query
+          description: Initiating account; personal view also accepts @administrator and masks other identities.
+          schema:
+            type: string
+            maxLength: 255
       responses:
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
         "200":
           description: Paginated audit log.
           content:

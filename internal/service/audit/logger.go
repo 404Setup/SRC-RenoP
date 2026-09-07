@@ -88,6 +88,9 @@ func Log(state *core.AppState, entry *core.AuditLogEntry) {
 	if entry.CreatedAt <= 0 {
 		entry.CreatedAt = time.Now().UnixMilli()
 	}
+	if entry.Kind == "system" {
+		entry.Details = truncateDiagnostic(redactDiagnostic(entry.Details))
+	}
 	select {
 	case state.Inner.AuditLogChan <- entry:
 	default:

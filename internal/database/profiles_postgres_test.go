@@ -460,7 +460,7 @@ func TestPostgresDriverContract(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
 	results, err := database.RunDriverCheck(context.Background(), db)
 	require.NoError(t, err)
-	require.Len(t, results, 10)
+	require.Len(t, results, 11)
 }
 
 func TestPostgresAccountRetirementCannotRestoreConcurrentCredentials(t *testing.T) {
@@ -503,4 +503,26 @@ func TestPostgresAccountRetirementCannotRestoreConcurrentCredentials(t *testing.
 			require.Zero(t, deletedAt)
 		}
 	}
+}
+
+func TestPostgresLegacyAuditMigration(t *testing.T) {
+	dsn, admin, schema := newPostgresTestSchema(t, "renop_audit_test")
+	_, err := admin.Exec(`CREATE TABLE "` + schema + `".audit_logs (
+        id BIGSERIAL PRIMARY KEY, username TEXT NOT NULL, operator TEXT NOT NULL,
+        action TEXT NOT NULL, details TEXT NOT NULL, auth_method TEXT NOT NULL,
+        session_id TEXT NOT NULL DEFAULT '', ip TEXT NOT NULL, created_at BIGINT NOT NULL)`)
+	require.NoError(t, err)
+	_, err = admin.Exec(`INSERT INTO "` + schema + `".audit_logs
+        (username, operator, action, details, auth_method, ip, created_at)
+        VALUES ('legacy_user', 'legacy_user', 'LOGIN', 'preserved log', 'Web', '', 100)`)
+	require.NoError(t, err)
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "postgres", Dsn: dsn, MaxOpenConns: 2})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	entries, total, err := db.GetAuditLogs("legacy_user", 10, 0)
+	require.NoError(t, err)
+	require.Equal(t, 1, total)
+	require.Equal(t, "preserved log", entries[0].Details)
+	require.Equal(t, "audit", entries[0].Kind)
+	require.Equal(t, "unknown", entries[0].Trigger)
 }

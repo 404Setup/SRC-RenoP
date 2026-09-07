@@ -184,12 +184,13 @@ func TestUserProfileRenameIsDurableAndPreservesReferences(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, npmDetails.Member)
 	require.Equal(t, core.NPMPermissionOwner, npmDetails.Package.PermissionLevel)
-	var auditUsername, auditOperator string
-	require.NoError(t, db.QueryRow(`SELECT username, operator FROM audit_logs WHERE action = ?`, "PROFILE_TEST").Scan(
-		&auditUsername, &auditOperator,
+	var auditUsername, auditOperator, auditInitiator string
+	require.NoError(t, db.QueryRow(`SELECT username, operator, initiator FROM audit_logs WHERE action = ?`, "PROFILE_TEST").Scan(
+		&auditUsername, &auditOperator, &auditInitiator,
 	))
 	require.Equal(t, "alice_one", auditUsername)
 	require.Equal(t, "alice_one", auditOperator)
+	require.Equal(t, "alice_one", auditInitiator)
 	message, err := db.GetUserMessage("profile-message", "alice_one", changedAt+2)
 	require.NoError(t, err)
 	require.Equal(t, "alice_one", message.Sender)

@@ -22,12 +22,40 @@ type AuditLogEntry struct {
 	ID         int64  `json:"id"`
 	Username   string `json:"username"`
 	Operator   string `json:"operator"`
+	Initiator  string `json:"initiator"`
 	Action     string `json:"action"`
 	Details    string `json:"details"`
 	AuthMethod string `json:"auth_method"`
 	SessionID  string `json:"session_id"`
 	IP         string `json:"ip"`
 	CreatedAt  int64  `json:"created_at"`
+	Kind       string `json:"kind"`
+	Trigger    string `json:"trigger"`
+	Severity   string `json:"severity"`
+}
+
+// AuditLogFilter narrows log queries without changing the caller's visibility scope.
+type AuditLogFilter struct {
+	Username, Operator, ExcludeOperator string
+	Initiator, ExcludeInitiator         string
+	Kind, Action, Trigger, Severity     string
+	From, Until                         int64
+}
+
+// AuditTrigger classifies the origin of existing audit producers.
+func AuditTrigger(entry *AuditLogEntry) string {
+	if entry.Trigger != "" {
+		return entry.Trigger
+	}
+	method := strings.ToLower(entry.AuthMethod)
+	if strings.HasPrefix(method, "web") || method == "password" || method == "passkey" ||
+		method == "github" || method == "session" {
+		return "web"
+	}
+	if method != "" && method != "system" {
+		return "api"
+	}
+	return "system"
 }
 
 // SafeAuditSessionID returns a stable, non-authenticating identifier for audit

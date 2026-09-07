@@ -11,6 +11,9 @@
 package audit
 
 const (
+	ActionSystemLog              = "SYSTEM_LOG"
+	ActionSystemLogDropped       = "SYSTEM_LOG_DROPPED"
+	ActionSystemHTTPError        = "SYSTEM_HTTP_ERROR"
 	ActionLogin                  = "LOGIN"
 	ActionLogout                 = "LOGOUT"
 	ActionUpload                 = "UPLOAD"

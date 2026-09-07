@@ -18,6 +18,7 @@ const commonErrorCodeKeys = Object.freeze({
     cache_settings_save_failed: 'cache.saveFailed',
     cache_connection_failed: 'cache.testFailed',
     ACCOUNT_BANNED: 'login.accountBanned',
+    LOG_FILTER_INVALID: 'audit.invalidFilter',
     ACCOUNT_DELETED: 'login.accountDeleted',
     ACCOUNT_RETIREMENT_BLOCKED: 'profile.retireBlockedHint',
     ACCOUNT_RETIREMENT_CONFIRMATION: 'profile.retireConfirmationMismatch',

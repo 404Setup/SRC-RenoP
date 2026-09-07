@@ -133,6 +133,7 @@ func clickHouseSchemas() []clickHouseTableSchema {
 			"`id` UInt64 DEFAULT toUnixTimestamp64Nano(now64(9))", "`username` String", "`operator` String",
 			"`action` String", "`details` String", "`auth_method` String", "`session_id` String DEFAULT ''",
 			"`ip` String", "`created_at` Int64",
+			"`initiator` String DEFAULT ''", "`kind` String DEFAULT 'audit'", "`trigger_source` String DEFAULT 'unknown'", "`severity` String DEFAULT 'info'",
 		}},
 		{name: "user_messages", keyColumns: []string{"id"}, columns: []string{
 			"`id` String", "`recipient` String", "`sender` String", "`kind` String", "`severity` String",

@@ -351,6 +351,7 @@ func TestRequiredAPITokenScopeMatchesEndpointCapability(t *testing.T) {
 	}{
 		{http.MethodGet, "/api/auth/me", core.APITokenScopeAccountRead},
 		{http.MethodGet, "/api/auth/users/alice/audit-logs", core.APITokenScopeAdminAudit},
+		{http.MethodGet, "/api/auth/logs", core.APITokenScopeAdminAudit},
 		{http.MethodGet, "/api/docker/repositories/releases/images", core.APITokenScopeRepositoryRead},
 		{http.MethodPost, "/api/docker/repositories/releases/images", core.APITokenScopePackageCreate},
 		{http.MethodDelete, "/api/docker/repositories/releases/images/demo", core.APITokenScopeRepositoryDelete},

@@ -377,6 +377,10 @@ type SchemaMigration struct {
 }
 
 var sharedIndexMigrations = []SchemaMigration{
+	{Name: "idx_audit_logs_initiator_time", Query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_initiator_time ON audit_logs(initiator, created_at);"},
+	{Name: "idx_audit_logs_kind_time", Query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_kind_time ON audit_logs(kind, created_at, id);"},
+	{Name: "idx_audit_logs_action_time", Query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_action_time ON audit_logs(action, created_at);"},
+	{Name: "idx_audit_logs_trigger_time", Query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_trigger_time ON audit_logs(trigger_source, created_at);"},
 	{Name: "idx_sessions_username", Query: "CREATE INDEX IF NOT EXISTS idx_sessions_username ON sessions(username);"},
 	{Name: "idx_sessions_last_active", Query: "CREATE INDEX IF NOT EXISTS idx_sessions_last_active ON sessions(last_active);"},
 	{Name: "idx_sessions_user_public", Query: "CREATE INDEX IF NOT EXISTS idx_sessions_user_public ON sessions(username, public_id);"},
@@ -446,6 +450,10 @@ func applySharedIndexMigrations(db *sql.DB) error {
 }
 
 var sharedColumnMigrations = []SchemaMigration{
+	{Name: "audit_logs.initiator", Query: "ALTER TABLE audit_logs ADD COLUMN initiator VARCHAR(255) NOT NULL DEFAULT '';"},
+	{Name: "audit_logs.kind", Query: "ALTER TABLE audit_logs ADD COLUMN kind VARCHAR(16) NOT NULL DEFAULT 'audit';"},
+	{Name: "audit_logs.trigger_source", Query: "ALTER TABLE audit_logs ADD COLUMN trigger_source VARCHAR(64) NOT NULL DEFAULT 'unknown';"},
+	{Name: "audit_logs.severity", Query: "ALTER TABLE audit_logs ADD COLUMN severity VARCHAR(16) NOT NULL DEFAULT 'info';"},
 	{Name: "sessions.login_method", Query: "ALTER TABLE sessions ADD COLUMN login_method VARCHAR(64) NOT NULL DEFAULT 'password';"},
 	{Name: "fido_devices.user_present", Query: "ALTER TABLE fido_devices ADD COLUMN user_present INT NOT NULL DEFAULT 0;"},
 	{Name: "fido_devices.user_verified", Query: "ALTER TABLE fido_devices ADD COLUMN user_verified INT NOT NULL DEFAULT 0;"},

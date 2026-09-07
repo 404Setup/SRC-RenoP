@@ -16,8 +16,18 @@ import {createUserIdentity, RenopDialog} from './components.js';
 import {enableDragToScroll} from '@renop/ui/scroll';
 import {AuditLogList} from './proto/index.js';
 import {formatTimestamp} from './time.js';
+import {responseErrorMessage} from './response-errors.js';
 
 let currentAuditModal = null;
+
+/** Render a filterable account identity while preserving masked operators. */
+function renderLogIdentity(username) {
+    if (username === 'Administrator') return t('audit.administrator');
+    if (username === 'system') return t('audit.system');
+    if (!username) return '-';
+    return el('span', {style: {display: 'inline-grid', gap: '2px'}}, createUserIdentity(username),
+        el('small', {style: {opacity: '.65'}}, '@' + username));
+}
 
 /**
  * Smoothly animate element height changes when content is updated.
@@ -69,10 +79,11 @@ function animateModalHeight(element, updateFn) {
 
 /**
  * Open Audit Logs modal.
- * @param {{ mode: 'self'|'user', username?: string }} options
+ * @param {{ mode: 'self'|'user'|'global', username?: string }} options
  */
 export async function openAuditLogsDialog(options = {}) {
     const isSelf = options.mode === 'self';
+    const isGlobal = options.mode === 'global';
     const targetUsername = options.username || localStorage.getItem('username') || '';
 
     let page = 1;
@@ -80,7 +91,7 @@ export async function openAuditLogsDialog(options = {}) {
     let isFetching = false;
     let hasLoadedOnce = false;
 
-    const titleText = isSelf
+    const titleText = isGlobal ? t('audit.globalTitle') : isSelf
         ? (t('profile.auditLogsTitle') || 'Activity Logs')
         : (t('users.auditLogsTitle', {user: targetUsername}) || `Activity Logs for "${targetUsername}"`);
 
@@ -107,12 +118,67 @@ export async function openAuditLogsDialog(options = {}) {
         }
     });
 
+    const fields = {};
+    const fieldset = el('fieldset', {style: {border: '0', padding: '0', margin: '0', minWidth: '0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '10px'}});
+    const addFilter = (name, label, type = 'text', choices = null) => {
+        const input = choices
+            ? el('select', {class: 'cfg-input', name}, ...choices.map(([value, text]) => el('option', {value}, text)))
+            : el('input', {class: 'cfg-input', name, type, maxLength: name === 'operator' || name === 'username' || name === 'initiator' ? 255 : 64});
+        fields[name] = input;
+        input.style.minWidth = '0';
+        fieldset.append(el('label', {class: type === 'datetime-local' ? 'audit-filter-date' : '', style: {display: 'grid', gap: '4px', minWidth: '0', fontSize: '.85rem'}}, el('span', {}, t(label)), input));
+    };
+    const all = ['', t('audit.all')];
+    const triggerLabels = {web: t('audit.trigger.web'), api: t('audit.trigger.api'), http: t('audit.trigger.http'), system: t('audit.trigger.system'), unknown: t('audit.trigger.unknown')};
+    const severityLabels = {info: t('audit.severity.info'), warning: t('audit.severity.warning'), error: t('audit.severity.error')};
+    if (isGlobal) addFilter('kind', 'audit.kind', 'text', [all, ['audit', t('profile.auditLogsTitle')], ['system', t('audit.system')]]);
+    addFilter('action', 'audit.action');
+    fields.action.placeholder = 'LOGIN';
+    addFilter('operator', 'audit.operator', 'text', isSelf ? [all, [targetUsername, targetUsername], ['@administrator', t('audit.administrator')]] : null);
+    addFilter('initiator', 'audit.initiator', 'text', isSelf ? [all, [targetUsername, targetUsername], ['@administrator', t('audit.administrator')]] : null);
+    if (isGlobal) addFilter('username', 'audit.account');
+    addFilter('trigger', 'audit.trigger', 'text', [all, ...Object.entries(triggerLabels)]);
+    if (isGlobal) addFilter('severity', 'audit.severity', 'text', [all, ...Object.entries(severityLabels)]);
+    addFilter('from', 'audit.from', 'datetime-local');
+    addFilter('until', 'audit.until', 'datetime-local');
+    let filters = new URLSearchParams();
+    const filterForm = el('form', {class: 'audit-filters'}, fieldset);
+    const apply = el('button', {type: 'submit', class: 'pill-btn pill-btn--primary'}, t('audit.apply'));
+    const reset = el('button', {type: 'button', class: 'pill-btn', onClick: () => {
+        if (isFetching) return;
+        filterForm.reset();
+        fields.until.setCustomValidity('');
+        filters = new URLSearchParams();
+        page = 1;
+        void loadLogs();
+    }}, t('audit.reset'));
+    fieldset.append(el('div', {style: {display: 'flex', gap: '6px', alignItems: 'end'}}, apply, reset));
+    filterForm.addEventListener('submit', event => {
+        event.preventDefault();
+        if (isFetching) return;
+        const next = new URLSearchParams();
+        for (const [name, input] of Object.entries(fields)) {
+            if (input.value) next.set(name, name === 'from' || name === 'until' ? String(new Date(input.value).getTime()) : input.value.trim());
+        }
+        if (next.has('from') && next.has('until') && Number(next.get('from')) > Number(next.get('until'))) {
+            fields.until.setCustomValidity(t('audit.invalidFilter'));
+            fields.until.reportValidity();
+            return;
+        }
+        filters = next;
+        page = 1;
+        void loadLogs();
+    });
+    fields.from.addEventListener('input', () => fields.until.setCustomValidity(''));
+    fields.until.addEventListener('input', () => fields.until.setCustomValidity(''));
+    container.appendChild(filterForm);
     container.appendChild(contentArea);
     container.appendChild(paginationArea);
 
     const loadLogs = async (direction = null) => {
         if (isFetching) return;
         isFetching = true;
+        fieldset.disabled = true;
 
         const modalContent = container.closest('.modal-content');
 
@@ -131,12 +197,17 @@ export async function openAuditLogsDialog(options = {}) {
         }
 
         try {
-            const endpoint = isSelf
-                ? `/api/auth/profile/audit-logs?page=${page}&page_size=${pageSize}`
-                : `/api/auth/users/${encodeURIComponent(targetUsername)}/audit-logs?page=${page}&page_size=${pageSize}`;
+            const query = new URLSearchParams(filters);
+            query.set('page', String(page));
+            query.set('page_size', String(pageSize));
+            const base = isGlobal ? '/api/auth/logs' : isSelf
+                ? '/api/auth/profile/audit-logs'
+                : `/api/auth/users/${encodeURIComponent(targetUsername)}/audit-logs`;
+            const endpoint = `${base}?${query}`;
 
             const {response: res, data} = await fetchProto(endpoint, AuditLogList);
             if (!res.ok || !data) {
+                showAlert(await responseErrorMessage(res, 'common.error'), 'error');
                 contentArea.classList.remove('is-busy');
                 if (!hasLoadedOnce) {
                     contentArea.innerHTML = `<div style="padding: 2rem; text-align: center; color: #ef4444; font-size: 0.9rem;">${t('common.error')}</div>`;
@@ -187,6 +258,9 @@ export async function openAuditLogsDialog(options = {}) {
                                         whiteSpace: 'nowrap'
                                     }
                                 }, t('audit.operator') || 'Operator'),
+                                el('th', {style: {padding: '8px 12px', whiteSpace: 'nowrap'}}, t('audit.initiator')),
+                                el('th', {style: {padding: '8px 12px', whiteSpace: 'nowrap'}}, t('audit.trigger')),
+                                ...(isGlobal ? [el('th', {style: {padding: '8px 12px'}}, t('audit.account'))] : []),
                                 el('th', {style: {padding: '8px 12px'}}, t('audit.details') || 'Details'),
                                 el('th', {
                                     style: {
@@ -213,11 +287,12 @@ export async function openAuditLogsDialog(options = {}) {
                         );
 
                         const actionBadge = renderActionBadge(log.action);
+                        if (isGlobal && log.kind === 'system') actionBadge.title = severityLabels[log.severity] || log.severity;
                         const actionTd = el('td', {style: {padding: '8px 12px', whiteSpace: 'nowrap'}}, actionBadge);
+                        if (isGlobal) actionTd.append(el('div', {style: {fontSize: '.72rem', opacity: '.75', marginTop: '4px'}},
+                            `${log.kind === 'system' ? t('audit.system') : t('profile.auditLogsTitle')} · ${severityLabels[log.severity] || log.severity}`));
 
-                        const displayOp = log.operator === 'Administrator'
-                            ? (t('audit.administrator') || 'Administrator')
-                            : (log.operator ? createUserIdentity(log.operator) : '-');
+                        const displayOp = renderLogIdentity(log.operator);
                         const opTd = el('td', {
                             style: {
                                 padding: '8px 12px',
@@ -252,7 +327,12 @@ export async function openAuditLogsDialog(options = {}) {
                             }
                         }, log.ip || '-');
 
-                        tr.append(timeTd, actionTd, opTd, detailsTd, authTd, ipTd);
+                        const triggerLabel = triggerLabels[log.trigger] || log.trigger || '-';
+                        const triggerTd = el('td', {style: {padding: '8px 12px', whiteSpace: 'nowrap'}}, triggerLabel);
+                        const initiator = renderLogIdentity(log.initiator);
+                        tr.append(timeTd, actionTd, opTd, el('td', {style: {padding: '8px 12px'}}, initiator), triggerTd);
+                        if (isGlobal) tr.append(el('td', {style: {padding: '8px 12px'}}, renderLogIdentity(log.username)));
+                        tr.append(detailsTd, authTd, ipTd);
                         tbody.appendChild(tr);
                     });
 
@@ -321,13 +401,14 @@ export async function openAuditLogsDialog(options = {}) {
             }
         } finally {
             isFetching = false;
+            fieldset.disabled = false;
         }
     };
 
 
     const footerButtons = [];
 
-    if (!isSelf && targetUsername) {
+    if (!isSelf && !isGlobal && targetUsername) {
         footerButtons.push({
             text: t('users.clearAuditLogs') || 'Clear User Logs',
             className: 'pill-btn pill-btn--danger pill-btn--sm',

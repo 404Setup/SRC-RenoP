@@ -40,7 +40,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	suffix := uuid.NewString()[:8]
 	username := "dbcheck-" + suffix
 	now := time.Now().UnixMilli()
-	results := make([]DriverCheckResult, 0, 10)
+	results := make([]DriverCheckResult, 0, 11)
 	run := func(name string, check func() error) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -158,6 +158,40 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		_, retained, err = db.GetAuditLogs(retiredUsername, 1, 0)
 		if err != nil || retained != 0 {
 			return errorsOrMissing(err, "retired activity cannot be restored")
+		}
+		return nil
+	}); err != nil {
+		return results, err
+	}
+	if err := run("global log filters", func() error {
+		for _, entry := range []*core.AuditLogEntry{
+			{Username: username, Operator: "operator-a", Action: "FILTER_CHECK", AuthMethod: "Web", CreatedAt: now},
+			{Username: username, Operator: "operator-b", Action: "FILTER_CHECK", Trigger: "api", CreatedAt: now + 1},
+			{Username: username, Operator: "system", Action: "FILTER_CHECK", Kind: "system", Trigger: "http", Severity: "error", CreatedAt: now + 2},
+		} {
+			if err := db.SaveAuditLog(entry); err != nil {
+				return err
+			}
+		}
+		filter := core.AuditLogFilter{Username: username, Action: "FILTER_CHECK", Kind: "audit", Trigger: "web", Operator: "operator-a", Initiator: "operator-a", From: now, Until: now}
+		entries, total, err := db.FilterAuditLogs(filter, 1, 0)
+		if err != nil || total != 1 || len(entries) != 1 || entries[0].Trigger != "web" || entries[0].Initiator != "operator-a" {
+			return errorsOrMissing(err, "inclusive combined log filters")
+		}
+		filter = core.AuditLogFilter{Username: username, Action: "FILTER_CHECK", ExcludeOperator: "operator-a", ExcludeInitiator: "operator-a", From: now, Until: now + 2}
+		entries, total, err = db.FilterAuditLogs(filter, 1, 1)
+		if err != nil || total != 2 || len(entries) != 1 || entries[0].Operator != "operator-b" {
+			return errorsOrMissing(err, "masked operator filter and pagination")
+		}
+		filter.Kind, filter.Severity, filter.Trigger = "system", "error", "http"
+		entries, total, err = db.FilterAuditLogs(filter, 10, 0)
+		if err != nil || total != 1 || len(entries) != 1 || entries[0].Kind != "system" {
+			return errorsOrMissing(err, "system log filtering")
+		}
+		filter.Operator = "' OR 1=1 --"
+		_, total, err = db.FilterAuditLogs(filter, 10, 0)
+		if err != nil || total != 0 {
+			return errorsOrMissing(err, "log filter parameter binding")
 		}
 		return nil
 	}); err != nil {

@@ -11,6 +11,7 @@
 import {apiRequest, fetchProto, getAuthHeaders} from './api.js';
 import {formatBytes} from './browser/utils.js';
 import {t} from './i18n.js';
+import {openAuditLogsDialog} from './audit.js';
 import {logout} from './auth.js';
 import {showAlert} from './alert.js';
 import {InstanceStatus, StatusSnapshotList, UpdateState} from './proto/index.js';
@@ -768,6 +769,8 @@ export async function restartApp() {
  * @returns {void}
  */
 export function startDashboardRefresh() {
+    const logsButton = document.getElementById('btn-dashboard-logs');
+    if (logsButton) logsButton.onclick = () => openAuditLogsDialog({mode: 'global'});
     _startUptimeTicker();
     fetchInstanceStatus();
     fetchSnapshots();
