@@ -12,6 +12,7 @@ package auth
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -68,7 +69,7 @@ func TestAccountBanRevokesEveryCredentialAndCanBeLifted(t *testing.T) {
 
 	newSession := func(username, token string) {
 		t.Helper()
-		session := &core.Session{PublicID: uuid.NewString(), Username: username, CreatedAt: time.Now().UnixMilli()}
+		session := &core.Session{PublicID: uuid.NewString(), Username: username, IP: "192.0.2.23", CreatedAt: time.Now().UnixMilli()}
 		session.LastActive.Store(time.Now().UnixMilli())
 		require.NoError(t, state.SaveSession(session, token))
 	}
@@ -175,4 +176,32 @@ func TestAccountBanRevokesEveryCredentialAndCanBeLifted(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, authenticated)
 	assert.Nil(t, state.GetSession(aliceSession), "lifting a ban must not restore revoked sessions")
+	newSession("alice", "alice-new-session")
+	response = apiTokenJSONRequest(t, app, http.MethodGet, "/api/tokens/alice/ban", "alice-new-session", nil)
+	assert.Equal(t, http.StatusForbidden, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	response = apiTokenJSONRequest(t, app, http.MethodPut, "/api/tokens/alice/ban", adminSession,
+		map[string]any{"reason": "Abuse", "ban_ip": true})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	response = apiTokenJSONRequest(t, app, http.MethodGet, "/api/tokens/alice/ban", adminSession, nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Equal(t, "no-store", response.Header.Get(fiber.HeaderCacheControl))
+	var status core.AccountBanStatus
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&status))
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, 1, status.IPCount)
+	response = apiTokenJSONRequest(t, app, http.MethodPut, "/api/tokens/alice/ban", adminSession,
+		map[string]any{"reason": "Updated suspension", "ban_ip": false})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	banned, err := db.IsIPBanned("192.0.2.23")
+	require.NoError(t, err)
+	assert.False(t, banned)
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "neverlogged", Permissions: []string{"base"}}))
+	response = apiTokenJSONRequest(t, app, http.MethodPut, "/api/tokens/neverlogged/ban", adminSession,
+		map[string]any{"reason": "Abuse", "ban_ip": true})
+	assert.Equal(t, http.StatusConflict, response.StatusCode)
+	assert.Equal(t, "ACCOUNT_BAN_IP_UNKNOWN", response.Header.Get("X-Renop-Error-Code"))
+	require.NoError(t, response.Body.Close())
 }

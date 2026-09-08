@@ -28,17 +28,27 @@ function localDateTimeValue(timestamp) {
  * Open the administrator suspension editor for one account.
  * @param {object} account - Account list record.
  * @param {() => void|Promise<void>} refresh - Users-list refresh callback.
- * @returns {void}
+ * @returns {Promise<void>}
  */
-export function openUserBanDialog(account, refresh) {
-    if (!account?.ban && account?.permissions?.some(permission => {
-        const role = String(permission).trim().toLowerCase();
-        return ['admin', 'manager', 'm', 'access-token:manager'].includes(role) || role.startsWith('canmoderate:');
-    })) {
+export async function openUserBanDialog(account, refresh) {
+    let status;
+    try {
+        const response = await apiRequest(`/api/tokens/${encodeURIComponent(account.name)}/ban`);
+        if (!response.ok) {
+            showAlert(await responseErrorMessage(response, 'users.banFailed'), 'error');
+            return;
+        }
+        status = await response.json();
+    } catch {
+        showAlert(t('users.banFailed'), 'error');
+        return;
+    }
+    if (!status.ban && status.protected_role) {
         showAlert(t('users.banProtected'), 'error');
         return;
     }
-    const currentBan = account?.ban || null;
+    const currentBan = status.ban;
+    const banIP = el('input', {id: 'user-ban-ip', type: 'checkbox', checked: status.ip_count > 0});
     const reason = el('input', {
         id: 'user-ban-reason', type: 'text', maxlength: maxBanReasonLength,
         value: currentBan?.reason || '', class: 'user-ban-input', autocomplete: 'off',
@@ -77,7 +87,10 @@ export function openUserBanDialog(account, refresh) {
             el('span', {}, t('users.banReasonLabel')), reason),
         el('label', {class: 'user-ban-permanent', htmlFor: permanent.id},
             permanent, el('span', {}, t('users.banPermanent'))),
-        expiryGroup
+        expiryGroup,
+        el('label', {class: 'user-ban-permanent', htmlFor: banIP.id}, banIP, el('span', {}, t('users.banIP'))),
+        el('p', {class: 'user-ban-current'}, t('users.banIPHint')),
+        ...(status.ip_count > 0 ? [el('p', {}, t('users.banIPCount', {count: status.ip_count}))] : []),
     );
 
     const submit = async (event, dialog) => {
@@ -106,7 +119,7 @@ export function openUserBanDialog(account, refresh) {
         await runButtonAction(button, async () => {
             const response = await apiRequest(`/api/tokens/${encodeURIComponent(account.name)}/ban`, {
                 method: 'PUT', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({reason: normalizedReason, expires_at: expiry}),
+                body: JSON.stringify({reason: normalizedReason, expires_at: expiry, ban_ip: banIP.checked}),
             });
             if (!response.ok) {
                 showAlert(await responseErrorMessage(response, 'users.banFailed'), 'error');

@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "login.ipBanned": "Der Zugriff von dieser IP-Adresse wurde gesperrt.",
     "fido.waiting": "Warten auf Passkey ({seconds}s)",
     "fido.timeout": "Zeitüberschreitung beim Passkey. Starten Sie die Anmeldung erneut.",
     "fido.cancelled": "Der Passkey wurde abgebrochen, abgelehnt oder nicht gefunden. Versuchen Sie es erneut.",

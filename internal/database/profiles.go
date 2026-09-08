@@ -561,6 +561,9 @@ func (db *DB) initializeUserIdentities() error {
 	}
 	for _, username := range usernames {
 		userID, err := db.ensureUserProfile(username)
+		if errors.Is(err, core.ErrAccountDeleted) {
+			continue
+		}
 		if err != nil {
 			return err
 		}

@@ -40,6 +40,7 @@ Service paths in this table are relative to `internal/service/`; all other paths
 | Memory, Redis, Valkey cache backends                  | `internal/cache/`, `internal/core/cache.go`, `internal/database/cache.go`; configuration in `settings/cache.go` |
 | Login, sessions, Passkey, TOTP, OAuth, API tokens, profiles | `auth/`; second factors in `mfa*.go`; email verification in `email_verification.go`, `github_email.go`; provider flows in `github_*.go`, `oauth_*.go`; OAuth configuration in `internal/config/oauth.go` |
 | Registration, retirement, recovery, avatars           | `auth/`, `internal/database/`, matching `registration*`, `account_retirement*`, `recovery_codes*`, `password_reset*`, `avatar*` files; registration policy in `internal/config/registration.go` and `settings/registration.go` |
+| Account and IP suspensions                             | `token/routes.go`, `internal/database/account_ban.go`, `internal/database/account_ip_ban.go`; request enforcement in `internal/middleware/anomaly.go` |
 | Cargo registry and documentation                      | `cargo/`, `cargodocs/`                                                                                          |
 | Maven domains, verification, artifacts                | `maven/`                                                                                                        |
 | Docker Registry v2, blobs, manifests, mirrors         | `docker/`                                                                                                       |
@@ -98,6 +99,8 @@ Read the relevant implementation and tests for exact limits and exceptions befor
 - **Account lifecycle:** Preserve alternate-login and atomic recovery-consumption invariants, hashed credentials,
   immediate revocation, and targeted cache invalidation. All login methods honor bans and retirement.
   Administrators and moderators must lose those roles before suspension; suspended accounts cannot gain those roles.
+  Optional IP restrictions share the account ban's lifetime, use recorded login addresses, and commit with session
+  revocation. Preserve trusted-proxy extraction, local cache invalidation, and overlapping bans on shared addresses.
   Registration is explicitly enabled; confirmation, credentials, email, provider identity, and persistent IP accounting
   commit together. Pending provider registrations confer no account privileges. OAuth callbacks require the initiating
   browser cookie as well as a single-use server state.
@@ -196,7 +199,8 @@ and test files for prose/trivial edits.
   checks. If tooling/data/browser access blocks a required check, report the gap instead of claiming full verification.
 - Prefer serial Go package tests (`-p 1`) on Windows; avoid competing builds over shared generated files/caches.
   Diagnose locks, permissions, network, and toolchain failures before attributing them to code; never weaken tests.
-- `renop-dbtest` is destructive: use only disposable isolated DSNs with `-confirm-isolated`. Never use local/live
+- `renop-dbtest` is destructive: use a fresh, empty, disposable DSN per run with `-confirm-isolated`; its temporary
+  mail encryption keys cannot decode queue data from earlier runs. Never use local/live
   application data or print credentials. Benchmark only when needed to validate a performance claim.
 
 ## Commands and toolchain

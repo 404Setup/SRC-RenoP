@@ -23,6 +23,7 @@ var (
 	ErrAccountBanned       = errors.New("account is banned")
 	ErrAccountBanInvalid   = errors.New("account ban is invalid")
 	ErrAccountBanProtected = errors.New("administrator or moderator account cannot be banned")
+	ErrAccountBanIPUnknown = errors.New("account has no recorded login IP addresses")
 )
 
 // AccountBan is a durable administrator suspension. A nil ExpiresAt is permanent.
@@ -30,6 +31,13 @@ type AccountBan struct {
 	Reason    string `json:"reason" yaml:"reason"`
 	CreatedAt int64  `json:"created_at" yaml:"created_at"`
 	ExpiresAt *int64 `json:"expires_at,omitempty" yaml:"expires_at,omitempty"`
+}
+
+// AccountBanStatus is the private administrator view of an account suspension.
+type AccountBanStatus struct {
+	Ban           *AccountBan `json:"ban"`
+	IPCount       int         `json:"ip_count"`
+	ProtectedRole bool        `json:"protected_role"`
 }
 
 // IsActive reports whether the suspension applies at now.

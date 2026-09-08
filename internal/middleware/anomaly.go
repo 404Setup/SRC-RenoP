@@ -238,11 +238,21 @@ func AnomalyMiddleware(state *core.AppState) fiber.Handler {
 			defer state.Inner.ActiveRequests.Add(^uint64(0))
 		}
 
+		ip := utils.ExtractIP(c, &cfg.Server)
+		if db := state.GetDB(); db != nil {
+			banned, err := db.IsIPBanned(ip)
+			if err != nil {
+				return c.SendStatus(fiber.StatusServiceUnavailable)
+			}
+			if banned {
+				c.Set(fiber.HeaderCacheControl, "no-store")
+				c.Set("X-Renop-Error-Code", "IP_BANNED")
+				return c.SendStatus(fiber.StatusForbidden)
+			}
+		}
 		if (c.Method() == fiber.MethodGet || c.Method() == fiber.MethodHead) && isFrontendShellOrAssetPath(c.Path()) {
 			return c.Next()
 		}
-
-		ip := utils.ExtractIP(c, &cfg.Server)
 
 		if state.Inner.AnomalyFailures != nil && state.Inner.AnomalyFailures.Count(ip) >= MaxAuthenticationFailures {
 			c.Set(fiber.HeaderConnection, "close")

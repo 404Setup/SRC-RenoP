@@ -34,6 +34,7 @@ func SetupTokenRoutes(app fiber.Router, state *core.AppState, opChan chan<- Toke
 	api.Get("/:name", func(c fiber.Ctx) error { return FindToken(c, state) })
 	api.Put("/:name", func(c fiber.Ctx) error { return UpsertToken(c, state, opChan) })
 	api.Put("/:name/ban", func(c fiber.Ctx) error { return BanAccount(c, state) })
+	api.Get("/:name/ban", func(c fiber.Ctx) error { return GetAccountBanStatus(c, state) })
 	api.Delete("/:name/ban", func(c fiber.Ctx) error { return UnbanAccount(c, state) })
 	api.Get("/:name/retention", func(c fiber.Ctx) error { return GetAccountRetention(c, state) })
 	api.Delete("/:name/retention/email", func(c fiber.Ctx) error { return ReleaseAccountEmail(c, state) })
@@ -47,6 +48,23 @@ func SetupTokenRoutes(app fiber.Router, state *core.AppState, opChan chan<- Toke
 type accountBanRequest struct {
 	Reason    string `json:"reason"`
 	ExpiresAt *int64 `json:"expires_at"`
+	BanIP     *bool  `json:"ban_ip"`
+}
+
+// GetAccountBanStatus returns current suspension metadata to system administrators.
+func GetAccountBanStatus(c fiber.Ctx, state *core.AppState) error {
+	if !RequireManager(getUserFromCtx(c)) {
+		return c.SendStatus(fiber.StatusForbidden)
+	}
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	status, err := state.GetDB().GetAccountBanStatus(c.Params("name"))
+	if errors.Is(err, core.ErrUserProfileNotFound) || errors.Is(err, core.ErrAccountDeleted) {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+	if err != nil {
+		return c.SendStatus(fiber.StatusServiceUnavailable)
+	}
+	return c.JSON(status)
 }
 
 // BanAccount suspends one account and revokes every active browser session (manager only).
@@ -75,11 +93,18 @@ func BanAccount(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid account ban")
 	}
 	ban := &core.AccountBan{Reason: reason, CreatedAt: now, ExpiresAt: request.ExpiresAt}
-	if err := state.GetDB().SetAccountBan(name, ban); errors.Is(err, core.ErrUserProfileNotFound) {
+	var banIPs []bool
+	if request.BanIP != nil {
+		banIPs = []bool{*request.BanIP}
+	}
+	if err := state.GetDB().SetAccountBan(name, ban, banIPs...); errors.Is(err, core.ErrUserProfileNotFound) {
 		return c.SendStatus(fiber.StatusNotFound)
 	} else if errors.Is(err, core.ErrAccountBanProtected) {
 		c.Set("X-Renop-Error-Code", "ACCOUNT_BAN_PROTECTED")
 		return c.Status(fiber.StatusConflict).SendString("Revoke administrator and moderator permissions before banning this account")
+	} else if errors.Is(err, core.ErrAccountBanIPUnknown) {
+		c.Set("X-Renop-Error-Code", "ACCOUNT_BAN_IP_UNKNOWN")
+		return c.Status(fiber.StatusConflict).SendString("No recorded login addresses are available for IP suspension")
 	} else if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to suspend account")
 	}
@@ -88,6 +113,9 @@ func BanAccount(c fiber.Ctx, state *core.AppState) error {
 	duration := "permanently"
 	if ban.ExpiresAt != nil {
 		duration = "until " + time.UnixMilli(*ban.ExpiresAt).UTC().Format(time.RFC3339)
+	}
+	if request.BanIP != nil && *request.BanIP {
+		duration += " with IP restrictions"
 	}
 	_, operator, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{

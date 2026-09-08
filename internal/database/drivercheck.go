@@ -76,10 +76,19 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 			return errorsOrMissing(err, "session")
 		}
 		banUntil := now + int64(time.Hour/time.Millisecond)
+		if banned, err := db.IsIPBanned("127.0.0.1"); err != nil || banned {
+			return errorsOrMissing(err, "initial IP access")
+		}
 		if err := db.SetAccountBan(username, &core.AccountBan{
 			Reason: "Driver contract suspension", CreatedAt: now, ExpiresAt: &banUntil,
-		}); err != nil {
+		}, true); err != nil {
 			return err
+		}
+		if banned, err := db.IsIPBanned("::ffff:127.0.0.1"); err != nil || !banned {
+			return errorsOrMissing(err, "account IP suspension")
+		}
+		if status, err := db.GetAccountBanStatus(username); err != nil || status == nil || status.IPCount != 1 {
+			return errorsOrMissing(err, "account IP suspension metadata")
 		}
 		account, err = db.GetTokenByName(username)
 		if err != nil || account == nil || !account.Ban.IsActive(now) {
@@ -91,6 +100,9 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		}
 		if err := db.SetAccountBan(username, nil); err != nil {
 			return err
+		}
+		if banned, err := db.IsIPBanned("127.0.0.1"); err != nil || banned {
+			return errorsOrMissing(err, "released IP access")
 		}
 		if err := db.UpdateToken(username, func(token *core.AccessToken) { token.Permissions = []string{"canmoderate:driver-check"} }); err != nil {
 			return err

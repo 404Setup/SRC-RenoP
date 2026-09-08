@@ -58,6 +58,29 @@ func TestAccountRetirementColumnsMigrateFromLegacySchema(t *testing.T) {
 	assert.Zero(t, account.AuditPurgedAt)
 }
 
+func TestAccountRetirementSurvivesDatabaseRestart(t *testing.T) {
+	cfg := config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "retired-restart.db")}
+	db, err := InitDB(cfg)
+	require.NoError(t, err)
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "retired", Permissions: []string{"base"}}))
+	profile, err := db.GetUserProfile("retired")
+	require.NoError(t, err)
+	now := time.Now().UnixMilli()
+	require.NoError(t, db.RetireAccount("retired", now))
+	require.NoError(t, db.Close())
+	reopened, err := InitDB(cfg)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, reopened.Close()) })
+	account, err := reopened.GetTokenByName("retired")
+	require.NoError(t, err)
+	require.Equal(t, now, account.DeletedAt)
+	retainedProfile, err := reopened.GetUserProfile("retired")
+	require.NoError(t, err)
+	require.Equal(t, profile.UserID, retainedProfile.UserID)
+	_, err = reopened.ensureUserProfile("retired")
+	require.ErrorIs(t, err, core.ErrAccountDeleted)
+}
+
 func newAccountRetirementDB(t *testing.T) *DB {
 	t.Helper()
 	db, err := InitDB(config.DatabaseConfig{

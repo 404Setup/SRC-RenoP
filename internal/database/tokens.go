@@ -689,6 +689,9 @@ func (db *DB) deleteToken(name string, retire bool, retiredAt int64) error {
 	if _, err := tx.Exec(`DELETE FROM download_statistics WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete download statistics for token (%s): %w", lowerName, err)
 	}
+	if _, err := tx.Exec(`DELETE FROM account_ip_bans WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("delete account IP restrictions: %w", err)
+	}
 	if retire {
 		if _, err := tx.Exec(`UPDATE user_profiles SET nickname = '', website_url = '', github_url = '',
 			discord_url = '', custom_link_name = '', custom_link_url = '', updated_at = ? WHERE user_id = ?`,
@@ -726,6 +729,7 @@ func (db *DB) deleteToken(name string, retire bool, retiredAt int64) error {
 		return sess == nil || strings.EqualFold(sess.Username, lowerName)
 	})
 	db.invalidateUserProfileCaches(lowerName)
+	db.ipBanCache.Clear()
 
 	return nil
 }
@@ -920,6 +924,7 @@ func renameClickHouseUserGPGKeys(tx *Tx, oldName, newName string) error {
 }
 
 func (db *DB) finishTokenRename(oldName, newName string, token *core.AccessToken) {
+	db.ipBanCache.Clear()
 	token.Name = newName
 	db.tokenCache.Delete(oldName)
 	db.tokenSecretCache.DeleteFunc(func(_ string, val *core.AccessToken) bool {
@@ -935,6 +940,7 @@ func (db *DB) finishTokenRename(oldName, newName string, token *core.AccessToken
 }
 
 func (db *DB) finishTokenUpdate(name string, token *core.AccessToken) {
+	db.ipBanCache.Clear()
 	token.Name = name
 	db.tokenCache.Delete(name)
 	db.tokenSecretCache.DeleteFunc(func(_ string, value *core.AccessToken) bool {

@@ -9,6 +9,10 @@
  */
 
 export default Object.freeze({
+    "users.banIP": "Bloquear também os IP de início de sessão registados",
+    "users.banIPHint": "Outros utilizadores que partilhem estes endereços também são bloqueados. Desmarcar esta opção ou reativar a conta remove as suas restrições de IP.",
+    "users.banIPCount": "Esta conta restringe atualmente {count} endereços IP.",
+    "users.banIPUnknown": "Não há IP de início de sessão registados disponíveis. Desative o bloqueio de IP para suspender apenas a conta.",
     "users.banProtected": "Os administradores e moderadores não podem ser suspensos. Remova os respetivos papéis antes de os suspender ou levante a suspensão antes de atribuir esses papéis.",
     "audit.action.USER_REGISTER": "Conta registada",
     "audit.initiator": "Iniciador",

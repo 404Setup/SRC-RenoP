@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"renop/internal/core"
 )
@@ -31,13 +32,17 @@ func protectedAccountRole(permissions []string) bool {
 }
 
 // SetAccountBan replaces one account's durable suspension. A nil ban clears it.
-func (db *DB) SetAccountBan(username string, ban *core.AccountBan) error {
+// Omitting banIPs preserves existing IP restrictions; false explicitly removes them.
+func (db *DB) SetAccountBan(username string, ban *core.AccountBan, banIPs ...bool) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
 	if username == "" {
 		return core.ErrUserProfileNotFound
+	}
+	if len(banIPs) > 1 {
+		return core.ErrAccountBanInvalid
 	}
 	if ban != nil {
 		reason, valid := core.NormalizeAccountBanReason(ban.Reason)
@@ -73,9 +78,30 @@ func (db *DB) SetAccountBan(username string, ban *core.AccountBan) error {
 	if token.DeletedAt > 0 {
 		return core.ErrAccountDeleted
 	}
+	retainIPs := token.Ban.IsActive(time.Now().UnixMilli())
 	token.Ban = ban
 	if err := db.saveTokenInTx(tx, username, token); err != nil {
 		return err
+	}
+	if ban == nil || len(banIPs) > 0 || !retainIPs {
+		var addresses []string
+		if ban != nil && len(banIPs) > 0 && banIPs[0] {
+			addresses, err = accountBanIPsTx(tx, userID, username, retainIPs)
+			if err != nil {
+				return err
+			}
+			if len(addresses) == 0 {
+				return core.ErrAccountBanIPUnknown
+			}
+		}
+		if _, err := tx.Exec(`DELETE FROM account_ip_bans WHERE user_id = ?`, userID); err != nil {
+			return fmt.Errorf("replace account IP restrictions: %w", err)
+		}
+		for _, ip := range addresses {
+			if _, err := tx.Exec(`INSERT INTO account_ip_bans (user_id, ip) VALUES (?, ?)`, userID, ip); err != nil {
+				return fmt.Errorf("save account IP restriction: %w", err)
+			}
+		}
 	}
 	if ban != nil {
 		if _, err := tx.Exec(`DELETE FROM sessions WHERE username = ?`, username); err != nil {

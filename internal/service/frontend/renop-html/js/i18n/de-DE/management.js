@@ -9,6 +9,10 @@
  */
 
 export default Object.freeze({
+    "users.banIP": "Auch gespeicherte Anmelde-IP-Adressen sperren",
+    "users.banIPHint": "Andere Nutzer derselben Adressen werden ebenfalls gesperrt. Deaktivieren dieser Option oder Entsperren des Kontos entfernt dessen IP-Sperren.",
+    "users.banIPCount": "Dieses Konto sperrt derzeit {count} IP-Adressen.",
+    "users.banIPUnknown": "Keine gespeicherten Anmelde-IP-Adressen verfügbar. Deaktivieren Sie die IP-Sperre, um nur das Konto zu sperren.",
     "users.banProtected": "Administratoren und Moderatoren können nicht gesperrt werden. Entziehen Sie zuerst ihre Rollen oder heben Sie die Sperre auf, bevor Sie diese Rollen vergeben.",
     "audit.action.USER_REGISTER": "Konto registriert",
     "audit.initiator": "Initiator",

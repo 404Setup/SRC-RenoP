@@ -63,7 +63,9 @@ type StateDB interface {
 	GetTokenBySecret(secret string) (*AccessToken, error)
 	GetAllTokens() ([]*AccessToken, error)
 	UpdateToken(name string, updateFn func(*AccessToken)) error
-	SetAccountBan(username string, ban *AccountBan) error
+	SetAccountBan(username string, ban *AccountBan, banIPs ...bool) error
+	GetAccountBanStatus(username string) (*AccountBanStatus, error)
+	IsIPBanned(ip string) (bool, error)
 	GetAccountRetirementPlan(username string) (*AccountRetirementPlan, error)
 	RetireAccount(username string, retiredAt int64) error
 	GetAccountRetirementStatus(username string) (*AccountRetirementStatus, error)

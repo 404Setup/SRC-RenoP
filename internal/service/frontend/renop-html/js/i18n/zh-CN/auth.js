@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "login.ipBanned": "此 IP 地址已被禁止访问。",
     "fido.waiting": "等待 Passkey（{seconds}s）",
     "fido.timeout": "Passkey 验证超时，请重新开始登录。",
     "fido.cancelled": "Passkey 已取消、被拒绝或未找到匹配的凭据，请重试。",

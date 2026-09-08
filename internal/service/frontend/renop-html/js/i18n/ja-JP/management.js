@@ -9,6 +9,10 @@
  */
 
 export default Object.freeze({
+    "users.banIP": "記録済みのログイン IP もブロック",
+    "users.banIPHint": "同じアドレスを使う他のユーザーもアクセスできなくなります。チェックを外すかアカウントの利用停止を解除すると、このアカウントの IP 制限を削除します。",
+    "users.banIPCount": "このアカウントは現在 {count} 個の IP アドレスを制限しています。",
+    "users.banIPUnknown": "利用できるログイン IP の記録がありません。IP ブロックを無効にして、アカウントのみ利用停止にしてください。",
     "users.banProtected": "管理者とモデレーターは利用停止にできません。先に権限を解除してください。権限を付与する場合は先に利用停止を解除してください。",
     "audit.action.USER_REGISTER": "アカウント登録",
     "audit.initiator": "開始者",

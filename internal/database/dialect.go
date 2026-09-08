@@ -80,6 +80,10 @@ func initAccountSecurityTables(db *sql.DB, mysql bool) error {
 			passkey_enabled INT NOT NULL, last_step BIGINT NOT NULL,
 			window_start BIGINT NOT NULL, failures INT NOT NULL
 		);`,
+		`CREATE TABLE IF NOT EXISTS account_ip_bans (
+			user_id VARCHAR(36) NOT NULL, ip VARCHAR(45) NOT NULL,
+			PRIMARY KEY (user_id, ip)
+		);`,
 		`CREATE TABLE IF NOT EXISTS user_account_security (
 			user_id VARCHAR(36) PRIMARY KEY,
 			email VARCHAR(254) NULL UNIQUE,
@@ -415,6 +419,7 @@ var sharedIndexMigrations = []SchemaMigration{
 	{Name: "idx_audit_logs_action_time", Query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_action_time ON audit_logs(action, created_at);"},
 	{Name: "idx_audit_logs_trigger_time", Query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_trigger_time ON audit_logs(trigger_source, created_at);"},
 	{Name: "idx_sessions_username", Query: "CREATE INDEX IF NOT EXISTS idx_sessions_username ON sessions(username);"},
+	{Name: "idx_account_ip_bans_ip", Query: "CREATE INDEX IF NOT EXISTS idx_account_ip_bans_ip ON account_ip_bans(ip);"},
 	{Name: "idx_sessions_last_active", Query: "CREATE INDEX IF NOT EXISTS idx_sessions_last_active ON sessions(last_active);"},
 	{Name: "idx_sessions_user_public", Query: "CREATE INDEX IF NOT EXISTS idx_sessions_user_public ON sessions(username, public_id);"},
 	{Name: "idx_tokens_expires_at", Query: "CREATE INDEX IF NOT EXISTS idx_tokens_expires_at ON tokens(expires_at) WHERE expires_at IS NOT NULL;"},

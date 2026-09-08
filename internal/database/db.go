@@ -37,12 +37,14 @@ type DB struct {
 	sessionCache     *TTLCache[string, *core.Session]
 	userIDCache      *TTLCache[string, string]
 	profileCache     *TTLCache[string, core.UserProfile]
+	ipBanCache       *TTLCache[string, int64]
 	auditWriteMu     sync.Mutex
 	mailWriteMu      sync.Mutex
 }
 
 // UseRemoteCache moves cached query results to the shared external backend.
 // Account names remain local so revocation never depends on a remote read.
+// IP suspension decisions remain local for the same reason.
 func (db *DB) UseRemoteCache(remote *cache.Remote) {
 	projectToken := func(token *core.AccessToken) *core.AccessToken {
 		if token == nil {
@@ -242,6 +244,7 @@ func newDatabaseCaches(db *DB) *DB {
 	db.sessionCache = NewTTLCacheWithCapacity[string, *core.Session](15*time.Minute, 32768)
 	db.userIDCache = NewTTLCacheWithCapacity[string, string](30*time.Minute, 8192)
 	db.profileCache = NewTTLCacheWithCapacity[string, core.UserProfile](10*time.Minute, 8192)
+	db.ipBanCache = NewTTLCacheWithCapacity[string, int64](30*time.Second, 8192)
 	return db
 }
 
@@ -433,5 +436,8 @@ func (db *DB) EvictExpiredCaches() {
 	}
 	if db.profileCache != nil {
 		db.profileCache.EvictExpired()
+	}
+	if db.ipBanCache != nil {
+		db.ipBanCache.EvictExpired()
 	}
 }

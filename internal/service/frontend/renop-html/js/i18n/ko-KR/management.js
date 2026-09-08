@@ -9,6 +9,10 @@
  */
 
 export default Object.freeze({
+    "users.banIP": "기록된 로그인 IP도 차단",
+    "users.banIPHint": "같은 주소를 사용하는 다른 사용자도 차단됩니다. 선택을 해제하거나 계정 차단을 해제하면 이 계정의 IP 제한이 제거됩니다.",
+    "users.banIPCount": "이 계정은 현재 IP 주소 {count}개를 제한하고 있습니다.",
+    "users.banIPUnknown": "사용 가능한 로그인 IP 기록이 없습니다. IP 차단을 끄고 계정만 차단하세요.",
     "users.banProtected": "관리자와 중재자는 차단할 수 없습니다. 차단 전에 해당 권한을 해제하고, 해당 권한을 부여하기 전에는 차단을 해제하세요.",
     "audit.action.USER_REGISTER": "계정 가입",
     "audit.initiator": "시작 계정",

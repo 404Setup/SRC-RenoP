@@ -9,6 +9,10 @@
  */
 
 export default Object.freeze({
+    "users.banIP": "Also ban recorded login IPs",
+    "users.banIPHint": "Other users sharing these addresses are also blocked. Turning this off or unbanning removes this account's IP restrictions.",
+    "users.banIPCount": "This account currently restricts {count} IP addresses.",
+    "users.banIPUnknown": "No recorded login IPs are available. Turn off IP blocking to suspend only the account.",
     "users.banProtected": "Administrators and moderators cannot be banned. Revoke their roles before banning, or lift the ban before granting those roles.",
     "audit.action.USER_REGISTER": "Account registered",
     "audit.initiator": "Initiator",

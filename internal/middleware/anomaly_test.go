@@ -13,6 +13,7 @@ package middleware
 import (
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
@@ -20,9 +21,62 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"golang.org/x/time/rate"
 
+	"github.com/stretchr/testify/require"
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/database"
+	"renop/internal/testutil"
 )
+
+func TestAccountIPBanRejectsEveryRequestAndHonorsTrustedProxies(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.Server.CdnIPHeader = "X-Forwarded-For"
+	cfg.Server.TrustedProxies = []string{"0.0.0.0"}
+	cfg.Server.ParseTrustedProxies()
+	state := core.NewAppState()
+	state.Inner.Config.Store(cfg)
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "middleware-ip-ban.db")})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	state.Inner.DB = db
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "alice", Permissions: []string{"base"}}))
+	now := time.Now().UnixMilli()
+	session := &core.Session{PublicID: "alice-session", Username: "alice", IP: "192.0.2.10", CreatedAt: now}
+	session.LastActive.Store(now)
+	require.NoError(t, db.SaveSession(session, "alice-session-secret"))
+	app := fiber.New()
+	app.Use(AnomalyMiddleware(state))
+	app.Use(func(c fiber.Ctx) error { return c.SendStatus(fiber.StatusOK) })
+	request := func(method, path, ip string, expected int) {
+		t.Helper()
+		req := httptest.NewRequest(method, path, nil)
+		req.Header.Set("X-Forwarded-For", ip)
+		req.Header.Set("Authorization", "Bearer irrelevant-credential")
+		response, err := app.Test(req)
+		require.NoError(t, err)
+		require.NoError(t, response.Body.Close())
+		require.Equal(t, expected, response.StatusCode, path)
+		if expected == http.StatusForbidden {
+			require.Equal(t, "IP_BANNED", response.Header.Get("X-Renop-Error-Code"))
+		}
+	}
+	request(http.MethodGet, "/api/auth/me", "192.0.2.10", http.StatusOK)
+	require.NoError(t, db.SetAccountBan("alice", &core.AccountBan{Reason: "Abuse", CreatedAt: now}, true))
+	for _, path := range []string{"/", "/api/auth/me", "/api/auth/login", "/api/auth/register", "/v2/example/blobs/sha256:digest", "/repo/pkg/file.jar", "/css/artifact.jar"} {
+		request(http.MethodGet, path, "::ffff:192.0.2.10", http.StatusForbidden)
+		request(http.MethodPost, path, "192.0.2.10", http.StatusForbidden)
+	}
+	request(http.MethodGet, "/api/auth/me", "192.0.2.11", http.StatusOK)
+	untrusted := config.DefaultConfig()
+	untrusted.Server.CdnIPHeader = "X-Forwarded-For"
+	untrusted.Server.TrustedProxies = nil
+	untrusted.Server.ParsedTrustedProxies = nil
+	state.Inner.Config.Store(untrusted)
+	request(http.MethodGet, "/api/auth/me", "192.0.2.10", http.StatusOK)
+	state.Inner.Config.Store(cfg)
+	require.NoError(t, db.SetAccountBan("alice", nil))
+	request(http.MethodGet, "/api/auth/me", "192.0.2.10", http.StatusOK)
+}
 
 func TestIPLimiterCleanupRemovesInactiveEntries(t *testing.T) {
 	limiter := NewIPLimiter(rate.Every(time.Second), 1)

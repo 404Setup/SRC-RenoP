@@ -55,6 +55,8 @@ const commonErrorCodeKeys = Object.freeze({
     ACCOUNT_BAN_INVALID: 'users.banInvalid',
     ACCOUNT_BAN_SELF: 'users.banSelf',
     ACCOUNT_BAN_PROTECTED: 'users.banProtected',
+    ACCOUNT_BAN_IP_UNKNOWN: 'users.banIPUnknown',
+    IP_BANNED: 'login.ipBanned',
     ACCOUNT_EMAIL_CONFLICT: 'profile.privateEmailConflict',
     ACCOUNT_EMAIL_INVALID: 'profile.privateEmailInvalid',
     ACCOUNT_EMAIL_CODE_INVALID: 'login.emailCodeInvalid',

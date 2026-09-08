@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "login.ipBanned": "Access from this IP address has been suspended.",
     "fido.waiting": "Waiting for Passkey ({seconds}s)",
     "fido.timeout": "Passkey timed out. Start sign-in again.",
     "fido.cancelled": "Passkey was cancelled, denied, or no matching credential was found. Try again.",

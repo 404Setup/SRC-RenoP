@@ -9,6 +9,10 @@
  */
 
 export default Object.freeze({
+    "users.banIP": "同時封禁已記錄的登入 IP",
+    "users.banIPHint": "共用這些地址的其他用戶也會被阻止存取。取消勾選或解除帳戶封禁將移除此帳戶的 IP 限制。",
+    "users.banIPCount": "此帳戶目前限制了 {count} 個 IP 地址。",
+    "users.banIPUnknown": "沒有可用的登入 IP 記錄。請取消 IP 封禁，僅封禁帳戶。",
     "users.banProtected": "管理員及版主不可被封禁。封禁前請先撤銷這些權限；授予這些權限前請先解除封禁。",
     "audit.action.USER_REGISTER": "帳戶註冊",
     "audit.initiator": "觸發者",
