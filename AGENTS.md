@@ -50,6 +50,7 @@ Service paths in this table are relative to `internal/service/`; all other paths
 | Global teams, ownership, public resources             | `superteam/`, `review/`, `internal/database/super_team_resources.go`                                            |
 | Publication/creation review and notifications         | `review/`, `reviewnotify/`, `internal/database/review*.go`                                                      |
 | Quota, statistics, global/activity logs, messages, periodic work     | `publicationquota/`, `statistics/`, `audit/`, `message/`, `tasks/`                                              |
+| Email transports, templates, durable queue, accounting | `internal/mail/`, `mailqueue/`, `internal/database/mail*.go`, `settings/mail.go`                                |
 | Outbound networking                                   | `proxy/`, `outboundproxy/`                                                                                      |
 | Updates, services, Caddy                              | `updater/`, `internal/daemon/`, `internal/caddy/`, `internal/version/`                                          |
 | Shared bounds, renames, memory tuning, test cleanup   | `internal/utils/`, `internal/testutil/`                                                                         |
@@ -68,6 +69,7 @@ Check `packages/renop-ui/package.json` exports before building another shared co
 | History, protected routes, HTTP failures, offline state | `js/main.js`, `js/protected-route.js`, `js/api.js`, `js/response-errors.js`, `js/backend-availability.js`                                                |
 | Identity, profile photos/links, profile cache           | `js/user-profiles.js`, `js/profile.js`, `js/profile-avatar.js`, `js/profile-links.js`, `js/components/user-avatar.js`                                    |
 | Account security / retirement / tokens / administration | `js/account-security.js`, `js/password-recovery.js`, `js/account-retirement.js`, `js/api-tokens.js`, `js/users/`                                         |
+| Email accounts, provider presets, billing, delivery     | `js/settings/mail.js`; JSON settings are integrated by `js/settings.js`                                                                                   |
 | Reviews / messages / administrator composer             | `js/reviews.js`, `js/review-messages.js`, `js/messages.js`, `js/notification-composer.js`                                                                |
 | Teams and quota                                         | `js/super-teams.js`, `js/super-team-resources.js`, `js/publication-quota.js`                                                                             |
 | Repository/package UI                                   | `js/browser/`; reuse `repository-view.js`, `package-detail-tabs.js`, `copy-feedback.js`, `user-suggestions.js`; lifecycle in `js/package-deprecation.js` |
@@ -125,6 +127,9 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   Use `tasks/` for coalescible periodic work; preserve dedicated serial workers where event order matters.
   `audit/` captures process/HTTP diagnostics, filters activity and global logs, and drains its shared serial writer on shutdown.
   Preserve hidden-operator filtering, credential redaction, and separate activity/system retention budgets.
+- **Email:** `mailqueue/` owns the durable serial worker, rate limits, credit reservations, and status checks.
+  Preserve encrypted queue payloads, persistent OAuth rotation, bounded history, and private status capabilities.
+  An interrupted submission has an unknown outcome; never resend it automatically or treat acceptance as delivery.
 - **Frontend:** Reuse the shared UI, jQuery runtime, error, identity, clipboard, time, and animation helpers.
   Keep streaming/observers/native APIs where appropriate. Preserve keyboard/focus behavior, responsive layouts,
   viewport-bounded dialogs, and loading/empty/error states. A valid authenticated 403 must not log out the user.
@@ -206,6 +211,10 @@ Install missing prerequisites; do not silently replace the custom Go runtime or 
 | Current-platform packaged / full release matrix       | `pwsh ./build.ps1 c` / `pwsh ./build.ps1`                                          |
 | Release payload check                                 | `pwsh ./.github/scripts/test-release-payload.ps1 -DistDir ./dist`                  |
 | Disposable database contract                          | `go run ./cmd/renop-dbtest -driver <driver> -dsn <isolated-dsn> -confirm-isolated` |
+
+The optional browser contract in `test/custom-select-browser.test.mjs` uses an already running browser.
+Set `RENOP_TEST_BROWSER_CDP` to its debugging origin; `RENOP_TEST_BROWSER_URL` and
+`RENOP_TEST_SELECT_SELECTOR` select the loaded page and control. It changes and restores one draft selection.
 
 `build.ps1` generates both Go schemas and builds the frontend (i18n, JS protobuf, bundles, precompression).
 `go generate ./...` also installs/builds the frontend; do not stack it with an equivalent completed frontend build.

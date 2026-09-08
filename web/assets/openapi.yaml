@@ -108,6 +108,11 @@ tags:
 # ---------------------------------------------------------------------------
 components:
   securitySchemes:
+    mailTicket:
+      type: apiKey
+      in: header
+      name: X-Renop-Mail-Ticket
+      description: Private capability for one manually requested email job. Never put it in a URL.
     sessionCookie:
       type: apiKey
       in: cookie
@@ -301,6 +306,155 @@ components:
             $ref: "#/components/schemas/ErrorBody"
 
   schemas:
+    MailInterval:
+      type: object
+      required: [value, unit]
+      properties:
+        value: {type: integer, format: int64}
+        unit: {type: string, enum: [second, minute, hour, day]}
+      description: Duration bounded to one year. Allowed units and zero/negative behavior depend on the owning field.
+    MailRate:
+      type: object
+      required: [limit, interval]
+      properties:
+        limit: {type: integer, format: int64, minimum: 1, maximum: 1000000}
+        interval: {$ref: "#/components/schemas/MailInterval"}
+    MailQuota:
+      type: object
+      properties:
+        limit: {type: integer, format: int64, maximum: 1000000000, default: 0}
+        period: {type: string, enum: [hour, day, week, month], default: month}
+      description: Negative is unlimited. Regular quota zero selects automatic discovery; overage zero prohibits extra sends.
+    MailPricing:
+      type: object
+      properties:
+        currency: {type: string, pattern: "^[A-Z]{3}$", default: USD}
+        rounding: {type: string, enum: [proportional, batch], default: proportional}
+        tiers:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            required: [up_to, amount_micros, batch_size]
+            properties:
+              up_to: {type: integer, format: int64, minimum: 0, maximum: 1000000000}
+              amount_micros: {type: integer, format: int64, minimum: 0, maximum: 1000000000000}
+              batch_size: {type: integer, format: int64, minimum: 1, maximum: 1000000000}
+      description: Progressive cumulative tiers. Final up_to zero is unbounded; monetary amounts use currency millionths.
+    MailAccount:
+      type: object
+      required: [id, provider, from]
+      properties:
+        id: {type: string, pattern: "^[a-zA-Z0-9_-]{1,64}$"}
+        name: {type: string, maxLength: 120}
+        enabled: {type: boolean}
+        provider: {type: string, enum: [smtp, cloudflare, graph, ses, sendgrid, gmail, aliyun, tencent, feishu]}
+        preset: {type: string}
+        scenes:
+          type: array
+          maxItems: 32
+          items: {type: string}
+          description: Stable scene IDs from the presets endpoint; "*" is the fallback.
+        from: {type: string, format: email, maxLength: 254}
+        from_name: {type: string, maxLength: 120}
+        endpoint: {type: string, format: uri, maxLength: 1024}
+        region: {type: string}
+        smtp_host: {type: string, maxLength: 253}
+        smtp_port: {type: integer, minimum: 1, maximum: 65535}
+        smtp_security: {type: string, enum: [plain, tls, starttls], default: starttls}
+        username: {type: string}
+        password: {type: string, writeOnly: true, maxLength: 16384}
+        api_key: {type: string, writeOnly: true, maxLength: 16384}
+        api_secret: {type: string, writeOnly: true, maxLength: 16384}
+        session_token: {type: string, writeOnly: true, maxLength: 16384}
+        account_id: {type: string}
+        mailbox: {type: string}
+        tenant: {type: string}
+        client_id: {type: string}
+        client_secret: {type: string, writeOnly: true, maxLength: 16384}
+        access_token: {type: string, writeOnly: true, maxLength: 16384}
+        refresh_token: {type: string, writeOnly: true, maxLength: 16384}
+        quota: {$ref: "#/components/schemas/MailQuota"}
+        force_send: {type: boolean, default: false}
+        overage: {$ref: "#/components/schemas/MailQuota"}
+        pricing: {$ref: "#/components/schemas/MailPricing"}
+        balance_micros:
+          type: integer
+          format: int64
+          nullable: true
+          minimum: -1000000000000000
+          maximum: 1000000000000000
+          description: Known remaining balance in currency millionths; null means unknown.
+        fetch_balance: {type: boolean, default: false}
+        billing_endpoint: {type: string, format: uri}
+    MailSettings:
+      type: object
+      required: [manual_rate, account_rate]
+      properties:
+        enabled: {type: boolean, default: false}
+        public_url: {type: string, format: uri, description: Public HTTPS instance base URL required when enabled.}
+        site_name: {type: string, maxLength: 120, default: RenoP}
+        template_style: {type: string, enum: [card, compact, notice], default: card}
+        locale: {type: string, default: en-US}
+        delay:
+          allOf: [{$ref: "#/components/schemas/MailInterval"}]
+          description: Seconds, minutes, or hours; nonnegative. Default five seconds.
+        calibration:
+          allOf: [{$ref: "#/components/schemas/MailInterval"}]
+          description: Minutes, hours, or days. Nonpositive or empty disables remote lookups. Default five minutes.
+        manual_rate:
+          allOf: [{$ref: "#/components/schemas/MailRate"}]
+          description: Per-IP manual request limit; minute/hour/day intervals. Default one request per two minutes.
+        account_rate:
+          allOf: [{$ref: "#/components/schemas/MailRate"}]
+          description: Per-account attempt limit including manual sends. Default 50 per minute.
+        list_mode: {type: string, enum: [blacklist, whitelist], default: blacklist}
+        addresses: {type: array, maxItems: 1000, items: {type: string}}
+        accounts: {type: array, maxItems: 64, items: {$ref: "#/components/schemas/MailAccount"}}
+        clear_secrets:
+          type: object
+          writeOnly: true
+          additionalProperties:
+            type: array
+            items: {type: string, enum: [password, api_key, api_secret, session_token, client_secret, access_token, refresh_token]}
+          description: Account IDs mapped to credential fields to clear. Empty values preserve same-provider credentials; SMTP also requires an unchanged host and username.
+        secrets_configured:
+          type: object
+          readOnly: true
+          additionalProperties: {type: array, items: {type: string}}
+          description: Account IDs mapped to stored credential field names; no credential values.
+    MailReceipt:
+      type: object
+      required: [id, status]
+      properties:
+        id: {type: string}
+        status: {type: string, enum: [queued]}
+        ticket: {type: string, description: Private status capability returned for manual requests.}
+    MailJobStatus:
+      type: object
+      properties:
+        id: {type: string}
+        account_id: {type: string}
+        scene: {type: string}
+        status: {type: string, enum: [queued, paused, sending, checking, accepted, sent, delivered, failed, unknown, expired, cancelled, queued_provider]}
+        code: {type: string, description: Stable safe status code, without raw provider diagnostics.}
+        created_at: {type: integer, format: int64, description: Unix milliseconds.}
+        updated_at: {type: integer, format: int64, description: Unix milliseconds.}
+    MailAccountStatus:
+      type: object
+      properties:
+        usage: {type: object, description: Counters keyed by hour/day/week/month; each contains start and used.}
+        overage: {type: object, description: Paid counters keyed by UTC calendar period.}
+        rate: {type: object, description: Current account attempt-rate counter.}
+        budget: {type: object, description: Last calibrated provider values with local deductions.}
+        remaining_quota: {type: integer, format: int64, nullable: true}
+        remaining_overage: {type: integer, format: int64, nullable: true}
+        balance_micros: {type: integer, format: int64, nullable: true}
+        calibration_at: {type: integer, format: int64}
+        calibration_error: {type: string}
+        attempts: {type: integer, format: int64}
+        charged: {type: integer, format: int64}
+        spent_micros: {type: integer, format: int64}
     ErrorBody:
       type: object
       properties:
@@ -2594,6 +2748,169 @@ components:
 # Paths
 # ---------------------------------------------------------------------------
 paths:
+  /api/settings/mail:
+    get:
+      tags: [settings]
+      summary: Read email settings with stored credentials hidden
+      operationId: getMailSettings
+      security: [{sessionCookie: []}, {bearerAuth: []}]
+      responses:
+        "200":
+          description: Administrator-only email configuration.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MailSettings"}
+        "403": {$ref: "#/components/responses/PlainForbidden"}
+    put:
+      tags: [settings]
+      summary: Replace email settings
+      operationId: updateMailSettings
+      security: [{sessionCookie: []}, {bearerAuth: []}]
+      description: Body limited to 1 MiB. Settings apply to subsequent queue operations. The persistent encryption key cannot be changed through this endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/MailSettings"}
+      responses:
+        "200":
+          description: Saved settings with credential values hidden.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MailSettings"}
+        "400": {$ref: "#/components/responses/PlainBadRequest"}
+        "403": {$ref: "#/components/responses/PlainForbidden"}
+  /api/settings/mail/presets:
+    get:
+      tags: [settings]
+      summary: List provider endpoints, price defaults, capabilities, and template scene IDs
+      operationId: getMailPresets
+      security: [{sessionCookie: []}, {bearerAuth: []}]
+      responses:
+        "200":
+          description: Administrator-only editable defaults; no credentials.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scenes: {type: array, items: {type: string}}
+                  presets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: {type: string}
+                        name: {type: string}
+                        account: {type: object, description: Partial transport and pricing defaults to merge with the sending identity.}
+                        price_source: {type: string}
+                        price_checked: {type: string, format: date}
+                        quota_api: {type: boolean}
+                        balance_api: {type: boolean}
+                        status_api: {type: boolean}
+                        paid_overage: {type: boolean}
+  /api/settings/mail/test:
+    post:
+      tags: [settings]
+      summary: Queue a test email using saved settings
+      operationId: enqueueTestMail
+      security: [{sessionCookie: []}, {bearerAuth: []}]
+      description: Requires administrator authority. Consumes the manual IP limit and later the account attempt limit. A 202 response confirms queue insertion.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [to]
+              properties:
+                account_id: {type: string}
+                to: {type: string, format: email}
+      responses:
+        "202":
+          description: Durable queue receipt; poll for delivery status.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MailReceipt"}
+        "400": {$ref: "#/components/responses/PlainBadRequest"}
+        "403": {$ref: "#/components/responses/PlainForbidden"}
+        "429": {description: Manual per-IP email limit reached.}
+        "503": {description: Email disabled, queue full, or storage unavailable.}
+  /api/settings/mail/accounts/{id}:
+    get:
+      tags: [settings]
+      summary: Read a sending account's local quota and billing state
+      operationId: getMailAccountStatus
+      security: [{sessionCookie: []}, {bearerAuth: []}]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: Administrator-only counters; does not initiate a provider request.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MailAccountStatus"}
+        "404": {$ref: "#/components/responses/PlainNotFound"}
+  /api/settings/mail/jobs:
+    get:
+      tags: [settings]
+      summary: List recent email jobs
+      operationId: getMailJobs
+      security: [{sessionCookie: []}, {bearerAuth: []}]
+      parameters:
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50, default: 20}}
+        - {name: offset, in: query, schema: {type: integer, minimum: 0, maximum: 10000, default: 0}}
+        - {name: status, in: query, schema: {type: string}}
+      responses:
+        "200":
+          description: Administrator-only bounded history, without recipient addresses or message content.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: {type: integer}
+                  items: {type: array, items: {$ref: "#/components/schemas/MailJobStatus"}}
+  /api/settings/mail/templates/{scene}:
+    get:
+      tags: [settings]
+      summary: Preview an email template
+      operationId: previewMailTemplate
+      security: [{sessionCookie: []}, {bearerAuth: []}]
+      parameters:
+        - {name: scene, in: path, required: true, schema: {type: string}}
+        - {name: style, in: query, schema: {type: string, enum: [card, compact, notice]}}
+      responses:
+        "200":
+          description: Administrator preview using harmless example substitutions.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subject: {type: string}
+                  html: {type: string}
+                  text: {type: string}
+        "400": {$ref: "#/components/responses/PlainBadRequest"}
+  /api/auth/mail/{id}:
+    get:
+      tags: [auth]
+      summary: Read owned email status or use a private status ticket
+      operationId: getMailJobStatus
+      security: [{sessionCookie: []}, {mailTicket: []}]
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string, maxLength: 64}}
+      responses:
+        "200":
+          description: Safe job status. Acceptance and sent-folder confirmation do not establish recipient delivery.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MailJobStatus"}
+        "404": {$ref: "#/components/responses/PlainNotFound"}
+        "503": {description: Mail storage unavailable.}
   # ========== Auth ==========
   /api/auth/login:
     post:

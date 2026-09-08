@@ -25,6 +25,7 @@ import (
 
 	"renop/internal/cache"
 	"renop/internal/config"
+	"renop/internal/mail"
 	"renop/internal/service/index"
 )
 
@@ -147,6 +148,22 @@ type StateDB interface {
 	SaveAuditLog(entry *AuditLogEntry) error
 	GetAuditLogs(username string, limit, offset int) ([]*AuditLogEntry, int, error)
 	FilterAuditLogs(filter AuditLogFilter, limit, offset int) ([]*AuditLogEntry, int, error)
+	AcquireMailLease(owner string, now int64) (mail.Control, bool, error)
+	ReleaseMailLease(owner string) error
+	QueueMailJob(job *mail.Job, key, ip string, rate mail.Rate) (bool, error)
+	GetMailJob(id, key string) (*mail.Job, error)
+	ListMailJobs(userID, status, key string, limit, offset int) ([]*mail.Job, int, error)
+	NextMailJob(key string, now int64) (*mail.Job, error)
+	LoadMailAccount(id, key string) (mail.AccountState, error)
+	SaveMailAccount(owner, id, key string, state mail.AccountState, now int64) error
+	SaveMailAttempt(owner, key string, job *mail.Job, state *mail.AccountState, nextSendAt int64) error
+	RecoverMailAttempts(owner string, now int64) error
+	AdvanceMailAuditCursor(owner string, cursor, now int64) error
+	MailAuditEvents(cursor int64) ([]*AuditLogEntry, error)
+	MailMessageEvents(since int64) ([]*UserMessage, error)
+	AcknowledgeMailMessage(id string, now int64) error
+	PreviousMailLoginIP(username string, before int64) (string, error)
+	CleanMailData(now int64, accountIDs []string) error
 	DeleteAuditLogsByUsername(username string) error
 	CleanExpiredAuditLogs(retentionDays int, maxRows int) error
 	SaveMessages(messages []*UserMessage) error
@@ -340,6 +357,7 @@ type AppStateInner struct {
 	AuthCacheWriteLock          sync.Mutex
 	Sessions                    pb.MapOf[string, *Session]
 	AuditLogChan                chan *AuditLogEntry
+	MailWake                    chan struct{}
 	DB                          any
 	DockerSecret                []byte
 	DownloadStatisticsCounter   DownloadStatisticsCounter
@@ -380,6 +398,7 @@ func NewAppState() *AppState {
 			GPGReleaseWake:       make(chan struct{}, 1),
 			AnomalyFailures:      NewAnomalyFailureStore(),
 			AuditLogChan:         make(chan *AuditLogEntry, 500),
+			MailWake:             make(chan struct{}, 1),
 			ExternalAuthStates:   NewTransientAuthStateStore(),
 		},
 	}

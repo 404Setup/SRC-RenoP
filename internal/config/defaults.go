@@ -11,6 +11,8 @@
 // Package config defines RenoP configuration models, defaults, and validation.
 package config
 
+import "renop/internal/mail"
+
 // DefaultCacheTTL returns the default mirror cache lifetime in seconds.
 func DefaultCacheTTL() uint64 {
 	return 3600
@@ -199,6 +201,7 @@ func DefaultConfig() *Config {
 		SuperTeams:            DefaultSuperTeamConfig(),
 		PublicationQuota:      DefaultPublicationQuotaConfig(),
 		Cache:                 DefaultCacheConfig(),
+		Mail:                  mail.DefaultConfig(),
 		GPG:                   GPGConfig{KeyServers: DefaultGPGKeyServers()},
 		Proxy:                 ProxyConfig{},
 	}

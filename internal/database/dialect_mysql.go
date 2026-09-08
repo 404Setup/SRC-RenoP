@@ -514,6 +514,9 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 	if err := initAccountSecurityTables(db); err != nil {
 		return err
 	}
+	if err := initMailTables(db, true); err != nil {
+		return err
+	}
 	if err := initMavenTables(db, "MEDIUMTEXT NOT NULL"); err != nil {
 		return err
 	}

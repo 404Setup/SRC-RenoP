@@ -35,6 +35,7 @@ import (
 	"renop/internal/service/frontend"
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
+	"renop/internal/service/mailqueue"
 	"renop/internal/service/statistics"
 	"renop/internal/service/status"
 	"renop/internal/service/storage"
@@ -67,6 +68,7 @@ type ServiceRuntime struct {
 	closeOnce       sync.Once
 	closeErr        error
 	stopLogs        func()
+	stopMail        func()
 }
 
 // Close stops periodic work, persists pending index and download-statistics state, and
@@ -80,6 +82,9 @@ func (runtime *ServiceRuntime) Close() error {
 			runtime.scheduler.Close()
 		}
 		var closeErrors []error
+		if runtime.stopMail != nil {
+			runtime.stopMail()
+		}
 		if runtime.state != nil && runtime.state.Inner != nil {
 			runtime.state.Inner.IndexWatcherMutex.Lock()
 			watcher := runtime.state.Inner.IndexWatcher
@@ -246,6 +251,11 @@ func StartServices(state *core.AppState, bootstrapContext BootstrapContext) (*Se
 		downloadCounter: downloadCounter,
 		stopLogs:        audit.StartAuditLogConsumer(state),
 	}
+	stopMail, err := mailqueue.Start(state, bootstrapContext.ConfigPath)
+	if err != nil {
+		return nil, errors.Join(err, runtimeServices.Close())
+	}
+	runtimeServices.stopMail = stopMail
 	schedule := func(name string, interval, initialDelay time.Duration, run func(context.Context)) error {
 		if err := scheduler.Schedule(name, interval, initialDelay, run); err != nil {
 			return errors.Join(err, runtimeServices.Close())

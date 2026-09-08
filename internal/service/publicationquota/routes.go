@@ -138,6 +138,9 @@ func putOwnerQuota(c fiber.Ctx, state *core.AppState, ownerType string) error {
 		return quotaAPIError(c, err)
 	}
 	username, operator, method, sessionID, ip := audit.ExtractAuthDetails(c, state)
+	if ownerType == core.PublicationQuotaOwnerUser {
+		username = subject.OwnerKey
+	}
 	audit.Log(state, &core.AuditLogEntry{
 		Username: username, Operator: operator, AuthMethod: method, SessionID: sessionID, IP: ip,
 		Action:    audit.ActionPublicationQuotaUpdate,

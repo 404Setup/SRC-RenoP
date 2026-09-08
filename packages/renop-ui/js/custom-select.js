@@ -110,6 +110,13 @@ export function makeCustomSelect(options, current, onChange) {
     const dropdown = el('div', {class: 'custom-select-dropdown'});
     $('body').append(dropdown);
     const eventNamespace = `.renopCustomSelect${++customSelectSequence}`;
+    btn.id = `renop-select-${customSelectSequence}`;
+    dropdown.id = `${btn.id}-options`;
+    btn.setAttribute('aria-haspopup', 'listbox');
+    btn.setAttribute('aria-controls', dropdown.id);
+    btn.setAttribute('aria-expanded', 'false');
+    dropdown.setAttribute('role', 'listbox');
+    dropdown.setAttribute('aria-labelledby', btn.id);
 
     /**
      * Rebuild dropdown list items from `normalized` options.
@@ -121,6 +128,7 @@ export function makeCustomSelect(options, current, onChange) {
             const isSelected = selectedOpt && opt.value === selectedOpt.value;
             const item = el('div', {
                 class: `custom-select-dropdown-item${isSelected ? ' is-selected' : ''}`,
+                role: 'option', tabindex: '-1', 'aria-selected': String(Boolean(isSelected)),
             });
             item.appendChild(el('span', {class: 'custom-select-item-text'}, opt.label));
             if (isSelected) {
@@ -135,6 +143,7 @@ export function makeCustomSelect(options, current, onChange) {
                 $(textSpan).text(opt.label);
                 closeDropdown();
                 renderItems();
+                btn.focus({preventScroll: true});
                 if (typeof onChange === 'function') onChange(opt.value);
             });
             $(dropdown).append(item);
@@ -182,6 +191,7 @@ export function makeCustomSelect(options, current, onChange) {
      * @returns {void}
      */
     function closeDropdown(immediate = false) {
+        btn.setAttribute('aria-expanded', 'false');
         $(btn).removeClass('is-open');
         $(wrap).removeClass('is-open');
         if (!dropdown || dropdown.style.display === 'none' || $(dropdown).hasClass('is-leaving')) return;
@@ -214,13 +224,47 @@ export function makeCustomSelect(options, current, onChange) {
             }
         });
         $('.custom-select-wrapper, .custom-select-btn').each((index, b) => {
-            if (b !== wrap && b !== btn) $(b).removeClass('is-open');
+            if (b !== wrap && b !== btn) {
+                $(b).removeClass('is-open');
+                if (b.matches('.custom-select-btn')) b.setAttribute('aria-expanded', 'false');
+            }
         });
         $(dropdown).removeClass('is-leaving').css('display', 'block');
         $(btn).addClass('is-open');
         $(wrap).addClass('is-open');
         positionDropdown();
+        btn.setAttribute('aria-expanded', 'true');
+        dropdown.querySelector('.is-selected, .custom-select-dropdown-item')?.focus({preventScroll: true});
     }
+
+    $(btn).on('keydown', e => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            openDropdown();
+        }
+    });
+    $(dropdown).on('keydown', e => {
+        if (e.key === 'Escape' || e.key === 'Tab') {
+            if (e.key === 'Escape') e.preventDefault();
+            e.stopPropagation();
+            closeDropdown(true);
+            btn.focus({preventScroll: true});
+            return;
+        }
+        const items = Array.from(dropdown.children);
+        const index = items.indexOf(document.activeElement);
+        if (index < 0) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            e.stopPropagation();
+            items[index].click();
+        } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
+            e.preventDefault();
+            const next = e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1 : (index + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+            items[next].focus({preventScroll: true});
+            items[next].scrollIntoView({block: 'nearest'});
+        }
+    });
 
     $(btn).on('click', (e) => {
         e.stopPropagation();

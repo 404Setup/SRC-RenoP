@@ -261,8 +261,7 @@ func AnomalyMiddleware(state *core.AppState) fiber.Handler {
 		err := c.Next()
 		status := c.Response().StatusCode()
 		if err != nil {
-			var fiberErr *fiber.Error
-			if errors.As(err, &fiberErr) {
+			if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 				status = fiberErr.Code
 			}
 		}

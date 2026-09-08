@@ -20,6 +20,13 @@ import (
 )
 
 func SetupSettingsRoutes(router fiber.Router, state *core.AppState) {
+	router.Get("/mail", func(c fiber.Ctx) error { return getMailSettings(c, state) })
+	router.Put("/mail", func(c fiber.Ctx) error { return putMailSettings(c, state) })
+	router.Get("/mail/presets", getMailPresets)
+	router.Post("/mail/test", func(c fiber.Ctx) error { return testMailSettings(c, state) })
+	router.Get("/mail/accounts/:id", func(c fiber.Ctx) error { return getMailAccountStatus(c, state) })
+	router.Get("/mail/jobs", func(c fiber.Ctx) error { return getMailJobs(c, state) })
+	router.Get("/mail/templates/:scene", func(c fiber.Ctx) error { return previewMailTemplate(c, state) })
 	router.Get("/cache", func(c fiber.Ctx) error { return getCacheSettings(c, state) })
 	router.Put("/cache", func(c fiber.Ctx) error { return putCacheSettings(c, state) })
 	router.Post("/cache/test", func(c fiber.Ctx) error { return testCacheSettings(c, state) })

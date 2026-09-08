@@ -12,6 +12,8 @@ import {el} from '@renop/ui/dom';
 import {t} from './i18n.js';
 import {createIcon, createToggle} from './components.js';
 
+let configSectionSequence = 0;
+
 /**
  * Creates a config-styled text/password input that fires onChange with the string value on change.
  * @param {string|null|undefined} value - Initial input value.
@@ -421,11 +423,22 @@ export function createSection(iconSvg, title, subtitle, options = {}) {
     header.appendChild(meta);
 
     if (collapsible) {
+        header.tabIndex = 0;
+        header.setAttribute('role', 'button');
+        header.setAttribute('aria-expanded', String(!defaultCollapsed));
         const chevronBox = el('div', {class: 'cfg-section-chevron'}, createIcon('chevronDown'));
         header.appendChild(chevronBox);
         header.addEventListener('click', (e) => {
             if (e.target.closest('button, a, input, select')) return;
-            section.classList.toggle('is-collapsed');
+            const collapsed = section.classList.toggle('is-collapsed');
+            header.setAttribute('aria-expanded', String(!collapsed));
+            body.inert = collapsed;
+        });
+        header.addEventListener('keydown', e => {
+            if (e.target === header && !e.repeat && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault();
+                header.click();
+            }
         });
     }
 
@@ -434,6 +447,9 @@ export function createSection(iconSvg, title, subtitle, options = {}) {
     const fields = el('div', {class: 'cfg-fields'});
     const bodyInner = el('div', {class: 'cfg-section-body-inner'}, fields);
     const body = el('div', {class: 'cfg-section-body'}, bodyInner);
+    body.id = `cfg-section-${++configSectionSequence}`;
+    body.inert = collapsible && defaultCollapsed;
+    if (collapsible) header.setAttribute('aria-controls', body.id);
     section.appendChild(body);
 
     const originalAppendChild = section.appendChild.bind(section);

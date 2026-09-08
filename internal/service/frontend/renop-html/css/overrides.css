@@ -246,3 +246,24 @@ html.light #breadcrumb-links a.is-current {
 }
 
 
+
+/* Mail account forms retain readable fields on narrow settings panels. */
+.mail-inline, .mail-tier, .mail-scenes {display: grid; gap: 0.75rem; min-width: 0;}
+.mail-inline {grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));}
+.mail-tier {padding: 1rem; border: 1px solid var(--border-color); border-radius: 12px; margin-block: 0.75rem;}
+.mail-scenes {grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));}
+.mail-scenes label {display: flex; align-items: center; gap: 0.5rem; overflow-wrap: anywhere;}
+.mail-scenes input {flex: 0 0 auto;}
+.mail-preview {width: 100%; height: 28rem; max-height: 65vh; border: 1px solid var(--border-color); border-radius: 12px; background: white;}
+.mail-status, .mail-history, .mail-tiers, #settings-mail .cfg-fields, #settings-mail .cfg-field-control {min-width: 0; overflow-wrap: anywhere;}
+#settings-mail input, #settings-mail .cfg-input {min-width: 0;}
+.mail-job {display: grid; gap: 0.35rem; padding-block: 0.8rem; border-bottom: 1px solid var(--border-color);}
+.mail-status:empty, .mail-history:empty {display: none;}
+.mail-inline {width: 100%; max-width: 360px;}
+.mail-inline > .cfg-field-row {flex-direction: column; align-items: stretch; padding: 0; gap: 0.4rem; border: 0;}
+.mail-inline > .cfg-field-row > .cfg-field-label {width: auto; min-width: 0; flex: none;}
+.mail-inline > .cfg-field-row > .cfg-field-control {width: 100%; max-width: none; flex: none;}
+.mail-inline .cfg-input, .mail-inline .custom-select-wrapper {width: 100%; max-width: none;}
+.mail-actions {display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 1rem 1.5rem;}
+.mail-padded, .mail-tiers, .mail-status:not(:empty), .mail-history:not(:empty) {padding: 1rem 1.5rem; min-width: 0;}
+.mail-picker {width: 100%; max-width: 360px;}

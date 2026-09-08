@@ -14,6 +14,8 @@ import (
 	"fmt"
 	"strings"
 
+	"renop/internal/mail"
+
 	"github.com/goccy/go-json"
 	"go.yaml.in/yaml/v3"
 )
@@ -63,6 +65,7 @@ type Config struct {
 	SuperTeams            SuperTeamConfig        `json:"super_teams" yaml:"super_teams"`
 	PublicationQuota      PublicationQuotaConfig `json:"publication_quota" yaml:"publication_quota"`
 	Cache                 CacheConfig            `json:"cache" yaml:"cache"`
+	Mail                  mail.Config            `json:"mail" yaml:"mail"`
 	// GPG is retained as a source-compatibility alias for integrations that
 	// still access the old top-level field. It is never serialized; Server.GPG
 	// is the canonical configuration location.
@@ -71,6 +74,9 @@ type Config struct {
 }
 
 func (c *Config) setDefaults() {
+	if c.Mail.ManualRate.Interval.Unit == "" && c.Mail.ManualRate.Limit == 0 {
+		c.Mail = mail.DefaultConfig()
+	}
 	if c.StoragePath == "" {
 		c.StoragePath = "storage"
 	}
@@ -98,6 +104,7 @@ func (c *Config) setDefaults() {
 	c.SuperTeams.setDefaults()
 	c.PublicationQuota.setDefaults()
 	c.Cache.Normalize()
+	c.Mail.Normalize()
 	c.Server.GPG.setDefaults()
 	c.GPG = c.Server.GPG.DeepCopy()
 }
@@ -137,6 +144,7 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 	c.PublicationQuota.setDefaults()
 	c.Cache.Normalize()
 	c.Server.GPG.setDefaults()
+	c.Mail.Normalize()
 	c.GPG = c.Server.GPG.DeepCopy()
 	return nil
 }
@@ -187,6 +195,7 @@ func (c *Config) UnmarshalYAML(value *yaml.Node) error {
 	c.PublicationQuota.setDefaults()
 	c.Cache.Normalize()
 	c.Server.GPG.setDefaults()
+	c.Mail.Normalize()
 	c.GPG = c.Server.GPG.DeepCopy()
 	return nil
 }
@@ -250,6 +259,7 @@ func (c *Config) DeepCopy() *Config {
 		SuperTeams:           c.SuperTeams.DeepCopy(),
 		PublicationQuota:     c.PublicationQuota.DeepCopy(),
 		Cache:                c.Cache,
+		Mail:                 c.Mail.Clone(),
 		GPG:                  c.Server.GPG.DeepCopy(),
 		Proxy:                c.Proxy.DeepCopy(),
 	}

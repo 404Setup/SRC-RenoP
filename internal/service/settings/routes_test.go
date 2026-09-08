@@ -33,6 +33,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/mail"
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
 	"renop/internal/service/statistics"
@@ -168,6 +169,122 @@ func TestCacheSettingsPreserveWriteOnlyPassword(t *testing.T) {
 		response.Body.Close()
 		assert.Equal(t, http.StatusForbidden, response.StatusCode)
 	}
+}
+
+func TestMailSettingsWriteOnlySecretsValidationAndQueuedTest(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.Mail.Enabled = true
+	cfg.Mail.PublicURL = "https://renop.example"
+	account := mail.Presets()[0].Account
+	account.ID, account.From, account.APIKey = "primary", "sender@example.com", "private-provider-key"
+	cfg.Mail.Accounts = []mail.Account{account}
+	cfg.Mail.Normalize()
+	require.NoError(t, cfg.Mail.EnsureKey())
+	app, state := setupSettingsTestApp(t, cfg)
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "mail-settings.db")})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	state.Inner.DB = db
+	response, err := app.Test(httptest.NewRequest("GET", "/mail", nil))
+	require.NoError(t, err)
+	body, err := io.ReadAll(response.Body)
+	response.Body.Close()
+	require.NoError(t, err)
+	require.NotContains(t, string(body), account.APIKey)
+	require.NotContains(t, string(body), cfg.Mail.EncryptionKey)
+	var settings mailSettingsResponse
+	require.NoError(t, json.Unmarshal(body, &settings))
+	require.Contains(t, settings.SecretsConfigured["primary"], "api_key")
+	put := func(value mailSettingsRequest) *http.Response {
+		t.Helper()
+		raw, err := json.Marshal(value)
+		require.NoError(t, err)
+		request := httptest.NewRequest("PUT", "/mail", bytes.NewReader(raw))
+		request.Header.Set("Content-Type", "application/json")
+		result, err := app.Test(request)
+		require.NoError(t, err)
+		result.Body.Close()
+		return result
+	}
+	require.Equal(t, 200, put(mailSettingsRequest{Config: settings.Config}).StatusCode)
+	require.Equal(t, account.APIKey, state.Inner.Config.Load().Mail.Accounts[0].APIKey)
+	require.Equal(t, cfg.Mail.EncryptionKey, state.Inner.Config.Load().Mail.EncryptionKey)
+	invalid := settings.Config.Clone()
+	invalid.ManualRate.Limit = 0
+	require.Equal(t, 400, put(mailSettingsRequest{Config: invalid}).StatusCode)
+	require.EqualValues(t, 1, state.Inner.Config.Load().Mail.ManualRate.Limit)
+	invalid = settings.Config.Clone()
+	invalid.Accounts = append(invalid.Accounts, invalid.Accounts[0])
+	require.Equal(t, 400, put(mailSettingsRequest{Config: invalid}).StatusCode)
+	request := httptest.NewRequest("POST", "/mail/test", strings.NewReader(`{"account_id":"primary","to":"receiver@example.com"}`))
+	request.Header.Set("Content-Type", "application/json")
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	body, err = io.ReadAll(response.Body)
+	response.Body.Close()
+	require.NoError(t, err)
+	require.Equal(t, 202, response.StatusCode, string(body))
+	var receipt struct{ ID, Ticket, Status string }
+	require.NoError(t, json.Unmarshal(body, &receipt))
+	require.NotEmpty(t, receipt.Ticket)
+	require.Equal(t, "queued", receipt.Status)
+	job, err := db.GetMailJob(receipt.ID, cfg.Mail.EncryptionKey)
+	require.NoError(t, err)
+	require.NotNil(t, job)
+	require.Equal(t, "queued", job.Status)
+	require.Equal(t, "receiver@example.com", job.Message.To)
+	require.Equal(t, 200, put(mailSettingsRequest{Config: settings.Config, ClearSecrets: map[string][]string{"primary": {"api_key"}}}).StatusCode)
+	require.Empty(t, state.Inner.Config.Load().Mail.Accounts[0].APIKey)
+	persisted, err := os.ReadFile(os.Getenv("RENOP_CONFIG"))
+	require.NoError(t, err)
+	require.Contains(t, string(persisted), "encryption_key:")
+	smtpConfig := settings.Config.Clone()
+	smtpConfig.Accounts[0].Provider = "smtp"
+	smtpConfig.Accounts[0].SMTPHost = "smtp.example.com"
+	smtpConfig.Accounts[0].SMTPPort = 587
+	smtpConfig.Accounts[0].SMTPSecurity = "starttls"
+	smtpConfig.Accounts[0].Username = "sender@example.com"
+	smtpConfig.Accounts[0].Password = "private-smtp-password"
+	require.Equal(t, 200, put(mailSettingsRequest{Config: smtpConfig}).StatusCode)
+	smtpConfig.Accounts[0].Password = ""
+	smtpConfig.Accounts[0].SMTPHost = "smtp.other.example.com"
+	require.Equal(t, 200, put(mailSettingsRequest{Config: smtpConfig}).StatusCode)
+	require.Empty(t, state.Inner.Config.Load().Mail.Accounts[0].Password)
+	denied := fiber.New()
+	SetupSettingsRoutes(denied, state)
+	for _, endpoint := range []struct{ method, path string }{{"GET", "/mail"}, {"PUT", "/mail"}, {"GET", "/mail/presets"}, {"POST", "/mail/test"}, {"GET", "/mail/jobs"}, {"GET", "/mail/accounts/primary"}, {"GET", "/mail/templates/test"}} {
+		response, err := denied.Test(httptest.NewRequest(endpoint.method, endpoint.path, nil))
+		require.NoError(t, err)
+		response.Body.Close()
+		require.Equal(t, 403, response.StatusCode, endpoint.path)
+	}
+}
+
+func TestMailSettingsBoundsUnknownLengthRequests(t *testing.T) {
+	cfg := config.DefaultConfig()
+	_, state := setupSettingsTestApp(t, cfg)
+	app := fiber.New(fiber.Config{StreamRequestBody: true})
+	app.Use(func(c fiber.Ctx) error {
+		c.Locals("user", &config.User{Username: "admin", Roles: []string{"admin"}})
+		return c.Next()
+	})
+	app.Put("/oversized", func(c fiber.Ctx) error {
+		c.Request().SetBodyStream(strings.NewReader(strings.Repeat(" ", (1<<20)+1)), -1)
+		return putMailSettings(c, state)
+	})
+	app.Put("/plain", func(c fiber.Ctx) error { return putMailSettings(c, state) })
+	for _, scenario := range []struct {
+		path, contentType string
+		status            int
+	}{{"/oversized", "application/json", 413}, {"/plain", "text/plain", 415}} {
+		request := httptest.NewRequest("PUT", scenario.path, strings.NewReader("{}"))
+		request.Header.Set("Content-Type", scenario.contentType)
+		response, err := app.Test(request)
+		require.NoError(t, err)
+		response.Body.Close()
+		require.Equal(t, scenario.status, response.StatusCode)
+	}
+	require.False(t, state.Inner.Config.Load().Mail.Enabled)
 }
 
 func protoBody(t *testing.T, m proto.Message) *bytes.Buffer {
@@ -885,11 +1002,11 @@ func TestGetDomainsProtobuf(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected GET 200, got %d", resp.StatusCode)
 	}
-	if len(got.Domains) != 10 || !slices.Contains(got.Domains, "proxy") ||
+	if len(got.Domains) != 11 || !slices.Contains(got.Domains, "proxy") ||
 		!slices.Contains(got.Domains, "github_oauth") || !slices.Contains(got.Domains, "super_teams") ||
 		!slices.Contains(got.Domains, "publication_quota") || !slices.Contains(got.Domains, "cache") ||
-		slices.Contains(got.Domains, "gpg") {
-		t.Fatalf("expected 10 domains including cache settings while excluding gpg, got %v", got.Domains)
+		!slices.Contains(got.Domains, "mail") || slices.Contains(got.Domains, "gpg") {
+		t.Fatalf("expected 11 domains including cache and mail settings while excluding gpg, got %v", got.Domains)
 	}
 }
 

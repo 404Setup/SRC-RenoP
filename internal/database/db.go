@@ -38,6 +38,7 @@ type DB struct {
 	userIDCache      *TTLCache[string, string]
 	profileCache     *TTLCache[string, core.UserProfile]
 	auditWriteMu     sync.Mutex
+	mailWriteMu      sync.Mutex
 }
 
 // UseRemoteCache moves cached query results to the shared external backend.
@@ -245,6 +246,9 @@ func newDatabaseCaches(db *DB) *DB {
 }
 
 func (db *DB) initializePersistentMigrations() error {
+	if err := db.ensureMailControl(); err != nil {
+		return fmt.Errorf("initialize mail queue: %w", err)
+	}
 	if err := db.initializeUserIdentities(); err != nil {
 		return fmt.Errorf("failed to initialize stable user identities: %w", err)
 	}

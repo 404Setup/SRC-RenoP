@@ -42,6 +42,11 @@
     background-color: color-mix(in srgb, var(--item-hover-bg) 40%, transparent);
 }
 
+.custom-select-dropdown-item:focus-visible {
+    outline: 2px solid var(--link-hover-color);
+    outline-offset: -2px;
+}
+
 .custom-select-btn.is-open {
     border-color: var(--link-hover-color);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--link-hover-color) 18%, transparent);

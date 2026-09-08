@@ -23,6 +23,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/mail"
 )
 
 // DriverCheckResult records one completed database contract phase.
@@ -40,7 +41,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	suffix := uuid.NewString()[:8]
 	username := "dbcheck-" + suffix
 	now := time.Now().UnixMilli()
-	results := make([]DriverCheckResult, 0, 11)
+	results := make([]DriverCheckResult, 0, 12)
 	run := func(name string, check func() error) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -751,6 +752,102 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 			return errorsOrMissing(err, "download statistics")
 		}
 		return nil
+	}); err != nil {
+		return results, err
+	}
+	if err := run("durable email queue", func() error {
+		cfg := mail.DefaultConfig()
+		if err := cfg.EnsureKey(); err != nil {
+			return err
+		}
+		profile, err := db.GetUserProfile(username)
+		if err != nil || profile == nil {
+			return errorsOrMissing(err, "mail owner")
+		}
+		makeJob := func(id string) *mail.Job {
+			return &mail.Job{ID: id, AccountID: "driver-mail-" + suffix, UserID: profile.UserID, Actor: username, Scene: "test", CreatedAt: now, ExpiresAt: now + 600000, Message: mail.Message{ID: id, To: "receiver@example.test", Subject: "Private driver message", Text: "Private verification code", CreatedAt: now}}
+		}
+		job := makeJob("driver-mail-" + suffix)
+		inserted, err := db.QueueMailJob(job, cfg.EncryptionKey, "192.0.2.99", cfg.ManualRate)
+		if err != nil || !inserted {
+			return errorsOrMissing(err, "mail queue insert")
+		}
+		inserted, err = db.QueueMailJob(job, cfg.EncryptionKey, "192.0.2.99", cfg.ManualRate)
+		if err != nil || inserted {
+			return errorsOrMissing(err, "mail queue deduplication")
+		}
+		if _, err = db.QueueMailJob(makeJob("driver-mail-limit-"+suffix), cfg.EncryptionKey, "192.0.2.99", cfg.ManualRate); !errors.Is(err, mail.ErrRateLimited) {
+			return errorsOrMissing(err, "mail IP rate limit")
+		}
+		queued, err := db.NextMailJob(cfg.EncryptionKey, now)
+		if err != nil || queued == nil || queued.ID != job.ID {
+			return errorsOrMissing(err, "due mail selection")
+		}
+		var sealed string
+		if err = db.QueryRow("SELECT payload FROM mail_jobs WHERE id = ?", job.ID).Scan(&sealed); err != nil {
+			return err
+		}
+		if strings.Contains(sealed, job.Message.Text) || strings.Contains(sealed, job.Message.To) {
+			return errors.New("mail payload was not encrypted")
+		}
+		if _, _, err = db.ListMailJobs(profile.UserID, "queued", cfg.EncryptionKey, 20, 0); err != nil {
+			return err
+		}
+		owner := "mail-worker-" + suffix
+		_, owned, err := db.AcquireMailLease(owner, now)
+		if err != nil || !owned {
+			return errorsOrMissing(err, "mail worker lease")
+		}
+		_, owned, err = db.AcquireMailLease("other-worker", now)
+		if err != nil || owned {
+			return errorsOrMissing(err, "mail lease exclusivity")
+		}
+		state := mail.AccountState{}
+		account := mail.Account{ID: job.AccountID, Quota: mail.Quota{Limit: 1, Period: "day"}, Overage: mail.Quota{Limit: -1, Period: "day"}}
+		reservation, reason := state.Reserve(account, cfg.AccountRate, time.UnixMilli(now))
+		if reason != "" {
+			return fmt.Errorf("mail reservation: %s", reason)
+		}
+		job.Status, job.UpdatedAt, job.Reservation = "sending", now, reservation
+		if err = db.SaveMailAttempt(owner, cfg.EncryptionKey, job, &state, now+5000); err != nil {
+			return err
+		}
+		restored, err := db.LoadMailAccount(account.ID, cfg.EncryptionKey)
+		if err != nil || restored.Charged != 1 {
+			return errorsOrMissing(err, "mail durable accounting")
+		}
+		if err = db.RecoverMailAttempts(owner, now+1); err != nil {
+			return err
+		}
+		stored, err := db.GetMailJob(job.ID, cfg.EncryptionKey)
+		if err != nil || stored == nil || stored.Status != "unknown" {
+			return errorsOrMissing(err, "mail restart uncertainty")
+		}
+		queued, err = db.NextMailJob(cfg.EncryptionKey, now+10000)
+		if err != nil || queued != nil {
+			return errorsOrMissing(err, "mail duplicate-send prevention")
+		}
+		stored.Status, stored.UpdatedAt, stored.Result = "failed", now+2, mail.Result{Status: "failed", Code: "HTTP_401"}
+		restored.Refund(reservation)
+		if err = db.SaveMailAttempt(owner, cfg.EncryptionKey, stored, &restored, now+5000); err != nil {
+			return err
+		}
+		restored.Charged = 999
+		if err = db.SaveMailAttempt(owner, cfg.EncryptionKey, stored, &restored, 0); !errors.Is(err, mail.ErrFinalized) {
+			return errorsOrMissing(err, "mail terminal replay protection")
+		}
+		if err = db.CleanMailData(now+int64(8*24*time.Hour/time.Millisecond), []string{account.ID}); err != nil {
+			return err
+		}
+		stored, err = db.GetMailJob(job.ID, cfg.EncryptionKey)
+		if err != nil || stored != nil {
+			return errorsOrMissing(err, "mail retention")
+		}
+		restored, err = db.LoadMailAccount(account.ID, cfg.EncryptionKey)
+		if err != nil || restored.Attempts != 1 || restored.Charged != 0 {
+			return errorsOrMissing(err, "mail retained account counter")
+		}
+		return db.ReleaseMailLease(owner)
 	}); err != nil {
 		return results, err
 	}

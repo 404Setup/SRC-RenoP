@@ -135,11 +135,19 @@ func clickHouseSchemas() []clickHouseTableSchema {
 			"`ip` String", "`created_at` Int64",
 			"`initiator` String DEFAULT ''", "`kind` String DEFAULT 'audit'", "`trigger_source` String DEFAULT 'unknown'", "`severity` String DEFAULT 'info'",
 		}},
+		{name: "mail_jobs", keyColumns: []string{"id"}, columns: []string{
+			"`id` String", "`account_id` String", "`user_id` String", "`actor` String", "`scene` String", "`status` String",
+			"`payload` String", "`result_json` String", "`checks` Int64", "`created_at` Int64", "`updated_at` Int64", "`next_at` Int64", "`expires_at` Int64",
+		}},
+		{name: "mail_accounts", keyColumns: []string{"id"}, columns: []string{"`id` String", "`payload` String", "`updated_at` Int64"}},
+		{name: "mail_rate_limits", keyColumns: []string{"ip"}, columns: []string{"`ip` String", "`period_start` Int64", "`used` Int64", "`expires_at` Int64"}},
+		{name: "mail_control", keyColumns: []string{"id"}, columns: []string{"`id` String", "`lease_owner` String", "`lease_until` Int64", "`next_send_at` Int64", "`audit_cursor` Int64", "`enabled_since` Int64"}},
 		{name: "user_messages", keyColumns: []string{"id"}, columns: []string{
 			"`id` String", "`recipient` String", "`sender` String", "`kind` String", "`severity` String",
 			"`title` String", "`body` String", "`payload_json` String DEFAULT '{}'", "`action_kind` String DEFAULT ''",
 			"`action_status` String DEFAULT ''", "`created_at` Int64", "`read_at` Int64 DEFAULT 0",
 			"`acted_at` Int64 DEFAULT 0", "`expires_at` Int64 DEFAULT 0", "`dedupe_key` Nullable(String)",
+			"`email_processed_at` Int64 DEFAULT 0",
 		}},
 		{name: "cargo_packages", keyColumns: []string{"repository", "normalized_name"}, columns: []string{
 			"`repository` String", "`normalized_name` String", "`package_name` String", "`description` String DEFAULT ''",

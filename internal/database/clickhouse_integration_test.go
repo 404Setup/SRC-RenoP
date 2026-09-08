@@ -379,7 +379,7 @@ func TestClickHouseNativeDriverContract(t *testing.T) {
 	db := newClickHouseTestDatabase(t)
 	results, err := database.RunDriverCheck(context.Background(), db)
 	require.NoError(t, err)
-	require.Len(t, results, 11)
+	require.Len(t, results, 12)
 }
 
 func TestClickHouseNativeSchemaCopyMigrationPreservesRows(t *testing.T) {
@@ -428,6 +428,16 @@ func TestClickHouseNativeSchemaCopyMigrationPreservesRows(t *testing.T) {
 	require.NoError(t, admin.Exec(context.Background(), `INSERT INTO `+legacyAudit+`
 		(id, username, operator, action, details, auth_method, ip, created_at)
 		VALUES (1, 'legacy_user', 'legacy_user', 'LOGIN', 'preserved log', 'Web', '', 100)`))
+	legacyMail := "`" + databaseName + "`.`user_messages`"
+	require.NoError(t, admin.Exec(context.Background(), `CREATE TABLE `+legacyMail+` (
+		id String, recipient String, sender String, kind String, severity String, title String, body String,
+		payload_json String DEFAULT '{}', action_kind String DEFAULT '', action_status String DEFAULT '',
+		created_at Int64, read_at Int64 DEFAULT 0, acted_at Int64 DEFAULT 0, expires_at Int64 DEFAULT 0,
+		dedupe_key Nullable(String), _renop_key String MATERIALIZED id
+	) ENGINE = EmbeddedRocksDB PRIMARY KEY _renop_key SETTINGS optimize_for_bulk_insert = 0`))
+	require.NoError(t, admin.Exec(context.Background(), `INSERT INTO `+legacyMail+`
+		(id, recipient, sender, kind, severity, title, body, created_at)
+		VALUES ('legacy-mail', 'legacy_user', 'system', 'notification', 'info', 'Preserved', 'Existing message', 100)`))
 	parsed.Path = "/" + databaseName
 	db, err := database.InitDB(config.DatabaseConfig{
 		Driver: "clickhouse", Dsn: parsed.String(), MaxOpenConns: 4, MaxIdleConns: 2,
@@ -450,6 +460,14 @@ func TestClickHouseNativeSchemaCopyMigrationPreservesRows(t *testing.T) {
 	require.Equal(t, "preserved log", logs[0].Details)
 	require.Equal(t, "audit", logs[0].Kind)
 	require.Equal(t, "unknown", logs[0].Trigger)
+	mailMessages, err := db.MailMessageEvents(0)
+	require.NoError(t, err)
+	require.Len(t, mailMessages, 1)
+	require.Equal(t, "Existing message", mailMessages[0].Body)
+	require.NoError(t, db.AcknowledgeMailMessage("legacy-mail", 101))
+	mailMessages, err = db.MailMessageEvents(0)
+	require.NoError(t, err)
+	require.Empty(t, mailMessages)
 	var migrationTables int
 	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM system.tables
 		WHERE database = ? AND startsWith(name, '_renop_schema_')`, databaseName).Scan(&migrationTables))

@@ -20,8 +20,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gofiber/fiber/v3"
 	"renop/internal/core"
+
+	"github.com/gofiber/fiber/v3"
 )
 
 var diagnosticCredentials = regexp.MustCompile(`(?i)((?:password|passwd|secret|client_secret|access_token|refresh_token|api_key|authorization|cookie|session_token|secret_access_key)["']?\s*[:=]\s*)(?:"[^"\r\n]*"|'[^'\r\n]*'|[^\s,;]+)`)
@@ -117,8 +118,7 @@ func HTTPDiagnostics(state *core.AppState) fiber.Handler {
 func ErrorHandler(state *core.AppState) fiber.ErrorHandler {
 	return func(c fiber.Ctx, err error) error {
 		status := fiber.StatusInternalServerError
-		var httpError *fiber.Error
-		if errors.As(err, &httpError) {
+		if httpError, ok := errors.AsType[*fiber.Error](err); ok {
 			status = httpError.Code
 		}
 		if status < 500 {
