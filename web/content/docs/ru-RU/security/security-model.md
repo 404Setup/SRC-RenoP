@@ -63,6 +63,8 @@ HTTP-запросы с заблокированного адреса получ�
 `Authorization: Session`, session secret в URL и query credentials отклоняются. Scope/targets всегда пересекаются с
 текущей авторизацией аккаунта.
 
+Ответ `403` при восстановлении сеанса не вызывает выход из аккаунта: ограничения IP или прав могут действовать и для действительного сеанса. Ответ `401` требует повторного входа.
+
 ## Defense in depth
 
 - Пароли/recovery codes используют salted one-way verification; plaintext API Token не хранится.

@@ -66,6 +66,8 @@ A blocked address receives `403` with `IP_BANNED` for HTTP requests, including s
 `Authorization: Session`, session secrets in URLs, and query-string credentials are rejected. API Token scopes and
 targets are always intersected with current account authorization.
 
+A `403` during session restoration does not sign the browser out: an IP or authorization restriction may apply to an otherwise valid session. A `401` requires signing in again.
+
 ## Defense in depth
 
 - Passwords and recovery codes use salted one-way verification; API Token plaintext is never persisted.

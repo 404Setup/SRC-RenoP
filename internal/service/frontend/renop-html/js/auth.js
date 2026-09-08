@@ -313,7 +313,7 @@ function setAuthControlledDisplay(element, visible) {
 
 /**
  * Restore session state from `/api/auth/me` and update the auth UI.
- * Logs out on 401/403 when a prior username was stored; otherwise marks logged out.
+ * Only a 401 invalidates a remembered session; authorization denials preserve its credentials.
  * @returns {Promise<void>}
  */
 export async function initializeSession() {
@@ -336,7 +336,7 @@ export async function initializeSession() {
             }
 
             updateAuthUI(true, serverName, isManager, permissions, routes);
-        } else if (response.status === 403 || response.status === 401) {
+        } else if (response.status === 401) {
             if (wasLoggedIn) {
                 logout('expired');
             } else {

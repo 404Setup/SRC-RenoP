@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import {readdirSync, readFileSync} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import test from 'node:test';
+import vm from 'node:vm';
 import {fileURLToPath} from 'node:url';
 
 const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -70,4 +71,25 @@ test('authorization denials do not invalidate a browser session by default', () 
     assert.match(source, /logoutOnForbidden = false/);
     assert.match(source, /response\.status === 401/);
     assert.match(source, /response\.status === 403 && logoutOnForbidden/);
+});
+
+test('session restoration preserves credentials on forbidden responses and expires only unauthorized sessions', async () => {
+    const storage = new Map([['username', 'alice']]), logouts = [], updates = [];
+    let status = 403;
+    const context = vm.createContext({
+        localStorage: {getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key)},
+        fetchProto: async () => ({response: {ok: false, status}, data: null}), SessionDetails: {},
+        logout: reason => logouts.push(reason), updateAuthUI: (...args) => updates.push(args),
+    });
+    const auth = readFileSync(join(frontendRoot, 'js/auth.js'), 'utf8');
+    const start = auth.indexOf('export async function initializeSession()');
+    const end = auth.indexOf('\n/**', start);
+    vm.runInContext(auth.slice(start, end).replace('export ', ''), context);
+    await context.initializeSession();
+    assert.deepEqual(logouts, []);
+    assert.equal(storage.get('username'), 'alice');
+    assert.deepEqual(updates.at(-1), [true, 'alice', false]);
+    status = 401;
+    await context.initializeSession();
+    assert.deepEqual(logouts, ['expired']);
 });

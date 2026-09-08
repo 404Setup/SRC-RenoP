@@ -63,6 +63,8 @@ IP 制限、アカウントの利用停止、セッションの失効は同じ�
 `Authorization: Session`、URL session secret、query credential は拒否します。Token scope/target は現在の
 account authorization と常に交差します。
 
+セッション復元時に `403` を受け取ってもブラウザーからログアウトしません。有効なセッションにも IP や権限の制限が適用される場合があります。`401` の場合は再ログインが必要です。
+
 ## Defense in depth
 
 - password/recovery code は salted one-way verification、API Token plaintext は非永続です。

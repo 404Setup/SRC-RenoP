@@ -64,6 +64,8 @@ Une adresse bloquée reçoit `403` avec `IP_BANNED` pour ses requêtes HTTP, don
 `Authorization: Session`, secrets de session dans les URL et paramètres d’identifiants sont refusés. Scopes et cibles
 sont toujours croisés avec les droits actuels.
 
+Un `403` pendant la restauration de session ne déconnecte pas le navigateur : une restriction IP ou d’autorisation peut concerner une session encore valide. Un `401` nécessite une nouvelle connexion.
+
 ## Défense en profondeur
 
 - Mots de passe et codes utilisent une vérification salée irréversible ; le secret API Token n’est pas persisté.
