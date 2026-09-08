@@ -19,6 +19,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"golang.org/x/net/idna"
 )
 
 // MaxAccounts bounds configured sending identities and worker calibration state.
@@ -226,7 +228,7 @@ func (c Config) Validate() error {
 	}
 	for _, value := range c.Addresses {
 		if strings.HasPrefix(value, "@") {
-			if !validDomain(value[1:]) {
+			if !validDomain(canonicalRecipientRule(value)[1:]) {
 				return errors.New("invalid email domain")
 			}
 		} else if _, err := Address(value); err != nil {
@@ -325,9 +327,11 @@ func (c Config) Allows(address string) bool {
 	if err != nil {
 		return false
 	}
-	_, domain, _ := strings.Cut(address, "@")
+	address = canonicalRecipientRule(address)
+	domain := address[strings.LastIndexByte(address, '@')+1:]
 	found := false
 	for _, value := range c.Addresses {
+		value = canonicalRecipientRule(value)
 		if strings.EqualFold(value, address) || strings.EqualFold(value, "@"+domain) {
 			found = true
 			break
@@ -337,6 +341,18 @@ func (c Config) Allows(address string) bool {
 		return found
 	}
 	return !found
+}
+
+func canonicalRecipientRule(value string) string {
+	separator := strings.LastIndexByte(value, '@')
+	if separator < 0 {
+		return value
+	}
+	domain, err := idna.Lookup.ToASCII(strings.TrimSuffix(value[separator+1:], "."))
+	if err != nil {
+		return value
+	}
+	return value[:separator+1] + domain
 }
 
 // SelectAccount resolves an explicit scene, then the all-scenes fallback.

@@ -9,6 +9,12 @@
  */
 
 export default Object.freeze({
+    "profile.privateEmailVerificationHint": "Cette adresse e-mail reste privée. Les modifications prennent effet après vérification de la nouvelle adresse.",
+    "profile.verifyPrivateEmail": "Vérifier l’adresse e-mail de sécurité",
+    "profile.emailVerificationSent": "Saisissez le code à huit chiffres envoyé à {email}. Il expire après 10 minutes. Votre adresse actuelle reste inchangée jusqu’à la réussite de la vérification.",
+    "profile.githubVerifyEmail": "Utiliser l’e-mail vérifié de GitHub",
+    "profile.githubEmailMissing": "GitHub n’a fourni aucune adresse de contact vérifiée. Vérifiez une adresse e-mail sur GitHub, puis réessayez.",
+    "profile.githubEmailFailed": "Impossible de récupérer votre adresse e-mail vérifiée sur GitHub. Réessayez.",
     "mfa.primaryMethodHint": "Conservez la connexion par mot de passe ou un compte tiers associé. Une Passkey secondaire ne remplace pas une méthode de connexion principale.",
     "mfa.title": "Vérification en deux étapes",
     "mfa.loginHint": "Terminez la vérification pour vous connecter.",

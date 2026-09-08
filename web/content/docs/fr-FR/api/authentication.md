@@ -67,7 +67,7 @@ Ces routes exigent la session navigateur courante et renvoient `Cache-Control: n
 ### E-mail et politique du mot de passe
 
 - **Lire l’état** : `GET /api/auth/profile/security`
-- **Définir l’e-mail** : `PUT /api/auth/profile/email`
+- **Définir l’e-mail** : `PUT /api/auth/profile/email` ; voir [Vérification de l’e-mail de sécurité](../security/email-verification.md) pour la confirmation par message en file et via GitHub.
 - **Activer ou désactiver le mot de passe** : `PUT /api/auth/profile/password-login`
 - Le mot de passe ne peut être désactivé que si Passkey ou GitHub reste lié. Son activation exige un mot de passe
   défini.

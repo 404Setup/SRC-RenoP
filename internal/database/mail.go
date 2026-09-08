@@ -461,6 +461,9 @@ func (db *DB) CleanMailData(now int64, accountIDs []string) error {
 	if _, err := db.Exec(`DELETE FROM user_password_resets WHERE expires_at <= ?`, now); err != nil {
 		return err
 	}
+	if _, err := db.Exec(`DELETE FROM user_email_changes WHERE expires_at <= ?`, now); err != nil {
+		return err
+	}
 	if _, err := db.Exec(`DELETE FROM mail_rate_limits WHERE expires_at <= ?`, now); err != nil {
 		return err
 	}

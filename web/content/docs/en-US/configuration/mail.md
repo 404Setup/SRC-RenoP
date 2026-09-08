@@ -63,6 +63,7 @@ Both rate limits and their interval values must be positive. The defaults are on
 
 `list_mode` is `blacklist` or `whitelist`. Entries in `addresses` are exact mailboxes or `@example.com` domains.
 Domain matching does not include subdomains. The policy is checked both before queueing and immediately before sending.
+Internationalized domains are normalized for matching, including equivalent Unicode and Punycode spellings and a trailing domain dot.
 
 ## Providers and Endpoints
 

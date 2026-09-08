@@ -33,6 +33,10 @@ func (w *worker) notifications(control mail.Control, now time.Time) error {
 	for _, entry := range entries {
 		scene := ""
 		switch entry.Action {
+		case audit.ActionProfileUpdate:
+			if entry.Details == "Updated private login email" {
+				scene = "email_changed"
+			}
 		case audit.ActionPasswordUpdate:
 			scene = "password_changed"
 			if entry.Details == "Updated password-login policy" {

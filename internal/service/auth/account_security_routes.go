@@ -41,6 +41,7 @@ type passwordRecoveryRequest struct {
 func setupAccountSecurityRoutes(auth fiber.Router, state *core.AppState) {
 	auth.Get("/profile/security", func(c fiber.Ctx) error { return getAccountSecurity(c, state) })
 	auth.Put("/profile/email", func(c fiber.Ctx) error { return putPrivateEmail(c, state) })
+	auth.Post("/profile/email/confirm", func(c fiber.Ctx) error { return confirmProfileEmailVerification(c, state) })
 	auth.Put("/profile/password-login", func(c fiber.Ctx) error { return putPasswordLogin(c, state) })
 	auth.Post("/profile/recovery-codes", func(c fiber.Ctx) error { return postRecoveryCodes(c, state) })
 	auth.Post("/recovery/password", func(c fiber.Ctx) error { return postPasswordRecovery(c, state) })
@@ -80,24 +81,40 @@ func getAccountSecurity(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load account security")
 	}
 	setPrivateResponseHeaders(c)
-	return c.JSON(security)
+	return c.JSON(accountSecurityWithConfig(state, security))
 }
 
 func putPrivateEmail(c fiber.Ctx, state *core.AppState) error {
+	setPrivateResponseHeaders(c)
 	user, err := requireAccountSession(c)
 	if err != nil {
 		return accountSessionError(c, err)
 	}
+	if c.Cookies(sessionCookieName) != c.Locals("current_session_id").(string) {
+		return accountSessionError(c, fiber.ErrForbidden)
+	}
 	var request privateEmailRequest
-	if err := utils.ReadJSONLimited(c, &request, utils.MaxJSONBodySize); err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("Invalid email request")
+	if err := readMFARequest(c, &request); err != nil {
+		return err
 	}
 	email, valid := core.NormalizeEmail(request.Email)
 	if !valid || email == "" {
 		c.Set("X-Renop-Error-Code", "ACCOUNT_EMAIL_INVALID")
 		return c.Status(fiber.StatusBadRequest).SendString("Email address is invalid")
 	}
-	security, err := state.GetDB().UpdateAccountEmail(user.Username, email, time.Now().UnixMilli())
+	cfg := state.Inner.Config.Load()
+	if !cfg.Mail.Allows(email) {
+		return passwordResetError(c, 400, "mail_recipient_blocked")
+	}
+	if cfg.Mail.Enabled {
+		return queueProfileEmailVerification(c, state, user.Username, email)
+	}
+	account, err := state.GetDB().GetMFAState(user.Username)
+	if err != nil {
+		return emailVerificationError(c, err)
+	}
+	security, err := state.GetDB().UpdateAccountEmailFromSession(user.Username,
+		c.Locals("current_session_id").(string), email, account.Snapshot, time.Now().UnixMilli())
 	if errors.Is(err, core.ErrEmailAlreadyExists) {
 		c.Set("X-Renop-Error-Code", "ACCOUNT_EMAIL_CONFLICT")
 		return c.Status(fiber.StatusConflict).SendString("Email address is already in use")
@@ -105,14 +122,8 @@ func putPrivateEmail(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update private email")
 	}
-	state.InvalidateAccountAuthCache(true, user.Username)
-	username, operator, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
-	audit.Log(state, &core.AuditLogEntry{
-		Username: username, Operator: operator, Action: audit.ActionProfileUpdate,
-		Details: "Updated private login email", AuthMethod: authMethod, SessionID: sessionID, IP: ip,
-	})
-	setPrivateResponseHeaders(c)
-	return c.JSON(security)
+	recordPrivateEmailChange(c, state, user.Username)
+	return c.JSON(accountSecurityWithConfig(state, security))
 }
 
 func putPasswordLogin(c fiber.Ctx, state *core.AppState) error {
@@ -142,7 +153,7 @@ func putPasswordLogin(c fiber.Ctx, state *core.AppState) error {
 	})
 	state.InvalidateAccountAuthCache(request.Enabled, user.Username)
 	setPrivateResponseHeaders(c)
-	return c.JSON(security)
+	return c.JSON(accountSecurityWithConfig(state, security))
 }
 
 func postRecoveryCodes(c fiber.Ctx, state *core.AppState) error {
@@ -167,7 +178,7 @@ func postRecoveryCodes(c fiber.Ctx, state *core.AppState) error {
 		Details: "Generated a new recovery-code set", AuthMethod: authMethod, SessionID: sessionID, IP: ip,
 	})
 	setPrivateResponseHeaders(c)
-	return c.JSON(fiber.Map{"codes": displayCodes, "security": security})
+	return c.JSON(fiber.Map{"codes": displayCodes, "security": accountSecurityWithConfig(state, security)})
 }
 
 func recoveryVerification(state *core.AppState, identifier string,

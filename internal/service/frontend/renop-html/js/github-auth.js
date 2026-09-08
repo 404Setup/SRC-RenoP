@@ -51,6 +51,11 @@ function showGitHubOAuthResult() {
         identity_linked: ['profile.githubAlreadyLinked', 'error'],
         account_banned: ['login.accountBanned', 'error'],
         account_deleted: ['login.accountDeleted', 'error'],
+        email_updated: ['profile.privateEmailSaved', 'success'],
+        email_conflict: ['profile.privateEmailConflict', 'error'],
+        email_blocked: ['mail.recipientBlocked', 'error'],
+        email_missing: ['profile.githubEmailMissing', 'error'],
+        email_failed: ['profile.githubEmailFailed', 'error'],
     };
     const pair = messages[result] || ['login.githubFailed', 'error'];
     showAlert(t(pair[0]), pair[1]);
@@ -85,6 +90,7 @@ export async function initializeGitHubAuth() {
  * @returns {void}
  */
 export function renderGitHubConnection(status) {
+    $('#profile-github-verify-email').prop('hidden', !status?.configured);
     const section = $('#profile-github-section').get(0);
     const statusText = $('#profile-github-status').get(0);
     const connectButton = $('#btn-profile-github-connect').get(0);
@@ -118,6 +124,9 @@ export function renderGitHubConnection(status) {
 }
 
 $('#btn-profile-github-connect').on('click', startGitHubOAuth);
+$('#profile-github-verify-email').on('click', () => {
+    window.location.assign('/api/auth/github/start?intent=email&return_to=' + encodeURIComponent(window.location.pathname));
+});
 $('#btn-profile-github-disconnect').on('click', async event => {
     if (!(await window.showConfirm(t('profile.githubDisconnectConfirm')))) return;
     const button = event.currentTarget;

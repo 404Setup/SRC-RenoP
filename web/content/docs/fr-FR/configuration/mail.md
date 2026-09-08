@@ -63,6 +63,7 @@ Limites et durées doivent être positives. Valeurs par défaut : une demande ma
 
 `list_mode` vaut `blacklist` ou `whitelist`. Les entrées `addresses` sont des adresses exactes ou des domaines `@example.com`.
 Les domaines n’incluent pas leurs sous-domaines. La politique est vérifiée avant la mise en file et avant l’envoi.
+Les domaines internationalisés sont normalisés pour la comparaison, y compris les formes Unicode et Punycode équivalentes et le point final du domaine.
 
 ## Fournisseurs et points d’accès
 

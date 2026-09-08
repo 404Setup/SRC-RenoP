@@ -66,7 +66,7 @@ Account-security routes require the current browser session and return `Cache-Co
 ### Email and password-login policy
 
 - **Read state**: `GET /api/auth/profile/security`
-- **Set email**: `PUT /api/auth/profile/email`
+- **Set email**: `PUT /api/auth/profile/email`; see [Security Email Verification](../security/email-verification.md) for queued confirmation and GitHub verification.
 - **Enable or disable password login**: `PUT /api/auth/profile/password-login`
 - Password login can be disabled only while Passkey or GitHub remains linked. Enabling it requires a configured
   password.

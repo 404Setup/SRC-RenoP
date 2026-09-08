@@ -349,5 +349,5 @@ func mfaSettingsUpdated(c fiber.Ctx, state *core.AppState, username, detail stri
 		return mfaError(c, err)
 	}
 	setPrivateResponseHeaders(c)
-	return c.JSON(security)
+	return c.JSON(accountSecurityWithConfig(state, security))
 }

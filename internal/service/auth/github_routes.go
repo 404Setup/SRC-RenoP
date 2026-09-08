@@ -13,7 +13,9 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -128,6 +130,19 @@ func startGitHubOAuth(c fiber.Ctx, state *core.AppState, provider githubOAuthPro
 	if profile != nil {
 		record.UserID = profile.UserID
 	}
+	if c.Query("intent") == "email" {
+		session, _ := c.Locals("current_session_id").(string)
+		if profile == nil || session == "" || c.Cookies(sessionCookieName) != session {
+			return oauthResultRedirect(c, returnTo, "session_changed")
+		}
+		account, err := state.GetDB().GetMFAState(profile.Username)
+		if err != nil {
+			return oauthResultRedirect(c, returnTo, "email_failed")
+		}
+		record.Intent = "email"
+		record.SessionHash = fmt.Sprintf("%x", sha256.Sum256([]byte(session)))
+		record.Snapshot = account.Snapshot
+	}
 	if state.Inner.ExternalAuthStates == nil ||
 		!state.Inner.ExternalAuthStates.Put(rawState, record, time.Now().UnixMilli()) {
 		return c.Status(fiber.StatusServiceUnavailable).SendString("GitHub login is unavailable")
@@ -137,6 +152,9 @@ func startGitHubOAuth(c fiber.Ctx, state *core.AppState, provider githubOAuthPro
 		"redirect_uri": {cfg.Server.GitHubOAuth.CallbackURL},
 		"scope":        {"read:user read:org"},
 		"state":        {rawState},
+	}
+	if record.Intent == "email" {
+		query.Set("scope", "user:email")
 	}
 	return c.Redirect().To(provider.AuthorizeURL + "?" + query.Encode())
 }
@@ -182,6 +200,9 @@ func finishGitHubOAuth(c fiber.Ctx, state *core.AppState, opChan chan<- token.To
 	if err != nil {
 		log.Printf("GitHub OAuth code exchange failed: %v", err)
 		return oauthResultRedirect(c, record.ReturnTo, "exchange_failed")
+	}
+	if record.Intent == "email" {
+		return finishGitHubEmailVerification(c, state, record, ctx, client, provider, tokenResponse.AccessToken)
 	}
 	if !githubScopesAuthorized(tokenResponse.Scope) {
 		return oauthResultRedirect(c, record.ReturnTo, "scope_missing")

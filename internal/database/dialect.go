@@ -82,6 +82,11 @@ func initAccountSecurityTables(db *sql.DB) error {
             security_updated_at BIGINT NOT NULL, attempts INT NOT NULL,
             created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL
         );`,
+		`CREATE TABLE IF NOT EXISTS user_email_changes (
+			user_id VARCHAR(36) PRIMARY KEY, email VARCHAR(254) NOT NULL,
+			code_hash CHAR(64) NOT NULL, snapshot CHAR(64) NOT NULL, session_hash CHAR(64) NOT NULL,
+			attempts INT NOT NULL, created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL
+		);`,
 		`CREATE TABLE IF NOT EXISTS user_recovery_codes (
 			user_id VARCHAR(36) NOT NULL,
 			selector_hash CHAR(64) NOT NULL,

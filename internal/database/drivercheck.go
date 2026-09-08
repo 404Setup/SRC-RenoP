@@ -41,7 +41,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	suffix := uuid.NewString()[:8]
 	username := "dbcheck-" + suffix
 	now := time.Now().UnixMilli()
-	results := make([]DriverCheckResult, 0, 14)
+	results := make([]DriverCheckResult, 0, 15)
 	run := func(name string, check func() error) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -1013,6 +1013,60 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		stored, err := db.GetSession(sessionID)
 		if err != nil || stored != nil {
 			return errorsOrMissing(err, "offline recovery revokes sessions")
+		}
+		return nil
+	}); err != nil {
+		return results, err
+	}
+	if err := run("security email verification", func() error {
+		username, sessionID := "email_"+suffix, "email-session-"+suffix
+		if err := db.SaveToken(&core.AccessToken{Name: username, EncryptedSecret: "password", Permissions: []string{"base"}}); err != nil {
+			return err
+		}
+		oldEmail, newEmail := username+"@example.test", "new-"+username+"@example.test"
+		if _, err := db.UpdateAccountEmail(username, oldEmail, now); err != nil {
+			return err
+		}
+		session := &core.Session{PublicID: sessionID, Username: username, CreatedAt: now}
+		session.LastActive.Store(now)
+		if err := db.SaveSession(session, sessionID); err != nil {
+			return err
+		}
+		cfg := mail.DefaultConfig()
+		if err := cfg.EnsureKey(); err != nil {
+			return err
+		}
+		cfg.ManualRate.Limit = 100
+		hash := strings.Repeat("a", 64)
+		job := &mail.Job{ID: "email-job-" + suffix, AccountID: "test", Scene: "email_verify", TicketHash: hash,
+			CreatedAt: now, ExpiresAt: now + 600000,
+			Message: mail.Message{ID: "email-job-" + suffix, To: newEmail, Subject: "Verify email", Text: "Code", CreatedAt: now}}
+		if err := db.QueueAccountEmailChange(username, sessionID, job, hash, cfg.EncryptionKey, "192.0.2.88", cfg.ManualRate); err != nil {
+			return err
+		}
+		security, err := db.GetAccountSecurity(username)
+		if err != nil || security.Email != oldEmail {
+			return errorsOrMissing(err, "unverified email preserves the current address")
+		}
+		if _, err := db.ConfirmAccountEmailChange(username, sessionID, newEmail, strings.Repeat("b", 64), now+1); !errors.Is(err, core.ErrEmailCodeInvalid) {
+			return errorsOrMissing(err, "email code denial")
+		}
+		security, err = db.ConfirmAccountEmailChange(username, sessionID, newEmail, hash, now+2)
+		if err != nil || security.Email != newEmail {
+			return errorsOrMissing(err, "confirmed email change")
+		}
+		if _, err := db.ConfirmAccountEmailChange(username, sessionID, newEmail, hash, now+3); !errors.Is(err, core.ErrEmailCodeInvalid) {
+			return errorsOrMissing(err, "email code replay denial")
+		}
+		account, err := db.GetMFAState(username)
+		if err != nil {
+			return err
+		}
+		if _, err = db.UpdateAccountEmailFromSession(username, sessionID, oldEmail, account.Snapshot, now+4); err != nil {
+			return err
+		}
+		if _, err = db.UpdateAccountEmailFromSession(username, sessionID, newEmail, account.Snapshot, now+4); !errors.Is(err, core.ErrEmailCodeInvalid) {
+			return errorsOrMissing(err, "stale external email proof denial")
 		}
 		return nil
 	}); err != nil {

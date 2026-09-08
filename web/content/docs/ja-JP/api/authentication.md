@@ -66,7 +66,7 @@ GitHub は管理者が OAuth を設定した場合だけ表示されます。ユ
 ### メールとパスワードログイン方針
 
 - **状態取得**: `GET /api/auth/profile/security`
-- **メール設定**: `PUT /api/auth/profile/email`
+- **メール設定**: `PUT /api/auth/profile/email`。キュー経由の確認とGitHubによる確認は[セキュリティ用メールの確認](../security/email-verification.md)を参照してください。
 - **パスワードログイン切替**: `PUT /api/auth/profile/password-login`
 - Passkey または GitHub が残る場合だけパスワードログインを無効化できます。有効化には設定済みパスワードが必要です。
 

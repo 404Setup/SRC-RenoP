@@ -9,6 +9,12 @@
  */
 
 export default Object.freeze({
+    "profile.privateEmailVerificationHint": "이 이메일은 공개되지 않습니다. 새 주소를 인증하면 변경 사항이 적용됩니다.",
+    "profile.verifyPrivateEmail": "보안 이메일 인증",
+    "profile.emailVerificationSent": "{email}(으)로 전송된 8자리 인증 코드를 입력하세요. 코드는 10분 후에 만료됩니다. 인증이 완료될 때까지 현재 이메일은 변경되지 않습니다.",
+    "profile.githubVerifyEmail": "GitHub 인증 이메일 사용",
+    "profile.githubEmailMissing": "GitHub에서 인증된 연락처 이메일을 제공하지 않았습니다. GitHub에서 이메일을 인증한 후 다시 시도하세요.",
+    "profile.githubEmailFailed": "GitHub 인증 이메일을 가져올 수 없습니다. 다시 시도하세요.",
     "mfa.primaryMethodHint": "비밀번호 로그인 또는 연결된 외부 계정을 활성화해 두세요. 2단계 인증용 Passkey는 기본 로그인 방법을 대신할 수 없습니다.",
     "mfa.title": "2단계 인증",
     "mfa.loginHint": "인증을 완료하여 로그인하세요.",

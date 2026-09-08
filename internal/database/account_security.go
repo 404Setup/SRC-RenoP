@@ -294,34 +294,42 @@ func (db *DB) UpdateAccountEmail(username, email string, updatedAt int64) (*core
 	if err := lockAccountLoginMethodsTx(tx, userID); err != nil {
 		return nil, fmt.Errorf("lock account security for private email update: %w", err)
 	}
-	if email != "" {
-		var ownerID string
-		err = tx.QueryRow(`SELECT user_id FROM user_account_security WHERE email = ?`, email).Scan(&ownerID)
-		if err == nil && ownerID != userID {
-			return nil, core.ErrEmailAlreadyExists
-		}
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("inspect private email ownership: %w", err)
-		}
-	}
-	if err := ensureAccountSecurityTx(tx, userID, updatedAt); err != nil {
-		return nil, fmt.Errorf("initialize account security: %w", err)
-	}
-	var emailValue any
-	if email != "" {
-		emailValue = email
-	}
-	if _, err := tx.Exec(`UPDATE user_account_security SET email = ?, updated_at = ? WHERE user_id = ?`,
-		emailValue, updatedAt, userID); err != nil {
-		if uniqueConstraintError(err) {
-			return nil, core.ErrEmailAlreadyExists
-		}
-		return nil, fmt.Errorf("update private email: %w", err)
+	if err := updateAccountEmailTx(tx, userID, email, updatedAt); err != nil {
+		return nil, err
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit private email update: %w", err)
 	}
 	return db.GetAccountSecurity(username)
+}
+
+func updateAccountEmailTx(tx *Tx, userID, email string, updatedAt int64) error {
+	if email != "" {
+		var ownerID string
+		err := tx.QueryRow(`SELECT user_id FROM user_account_security WHERE email = ?`, email).Scan(&ownerID)
+		if err == nil && ownerID != userID {
+			return core.ErrEmailAlreadyExists
+		}
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("inspect private email ownership: %w", err)
+		}
+	}
+	if err := ensureAccountSecurityTx(tx, userID, updatedAt); err != nil {
+		return fmt.Errorf("initialize account security: %w", err)
+	}
+	var emailValue any
+	if email != "" {
+		emailValue = email
+	}
+	if _, err := tx.Exec(`UPDATE user_account_security SET email = ?,
+		updated_at = CASE WHEN updated_at >= ? THEN updated_at + 1 ELSE ? END WHERE user_id = ?`,
+		emailValue, updatedAt, updatedAt, userID); err != nil {
+		if uniqueConstraintError(err) {
+			return core.ErrEmailAlreadyExists
+		}
+		return fmt.Errorf("update private email: %w", err)
+	}
+	return nil
 }
 
 // SetPasswordLoginEnabled updates password-login policy while preserving another login method.

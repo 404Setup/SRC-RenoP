@@ -359,6 +359,14 @@ func TestMailConfigurationAndRouting(t *testing.T) {
 	require.False(t, cfg.Allows("a@evil-example.com"))
 	cfg.ListMode = "blacklist"
 	require.False(t, cfg.Allows("a@example.com"))
+	cfg.Addresses = []string{"person@exämple.com"}
+	require.NoError(t, cfg.Validate())
+	require.False(t, cfg.Allows("person@xn--exmple-cua.com"))
+	cfg.Addresses = []string{"@exämple.com"}
+	require.NoError(t, cfg.Validate())
+	require.False(t, cfg.Allows("other@xn--exmple-cua.com."))
+	cfg.ListMode = "whitelist"
+	require.True(t, cfg.Allows("other@xn--exmple-cua.com"))
 }
 
 func TestMailQuotaPricingAndRefund(t *testing.T) {

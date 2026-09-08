@@ -13,6 +13,7 @@ import {showAlert} from './alert.js';
 import {RenopDialog, runButtonAction} from './components.js';
 import {responseErrorMessage} from './response-errors.js';
 import {navigateToLogin} from './login-route.js';
+import {verifyProfileEmail} from './profile-email-verification.js';
 import {writeClipboardText} from './clipboard.js';
 import {t} from './i18n.js';
 import {formatTimestamp} from './time.js';
@@ -46,6 +47,8 @@ function renderAccountSecurity(security) {
     if (!section || !emailInput || !toggle || !passwordHint || !recoveryStatus || !recoveryButton) return;
     $(section).prop('hidden', false);
     $(emailInput).val(security.email || '');
+    $('#profile-private-email-hint').text(t(security.email_verification_required
+        ? 'profile.privateEmailVerificationHint' : 'profile.privateEmailHint'));
     $(toggle).prop('checked', security.password_login_enabled === true);
     $(toggle).prop('disabled', toggle.checked
         ? security.can_disable_password_login !== true
@@ -179,7 +182,7 @@ async function showTOTPSetup(setup) {
     const secret = el('code', {class: 'mfa-setup-secret'}, setup.secret);
     const image = el('img', {src: setup.qr, alt: t('mfa.qrAlt'), width: '320', height: '320'});
     const errorBox = el('p', {class: 'account-form-error', role: 'alert', hidden: true});
-    const form = el('form', {class: 'mfa-setup'}, image,
+    const form = el('form', {class: 'account-verification'}, image,
         el('p', {}, t('mfa.manualHint')), secret,
         el('div', {class: 'account-field'}, el('label', {for: 'totp-setup-code'}, t('mfa.code')), code), errorBox);
     form.addEventListener('submit', event => {
@@ -238,20 +241,22 @@ $('#profile-private-email-form').on('submit', async event => {
         return;
     }
     $(button).prop('disabled', true);
+    const route = window.location.pathname;
     try {
         const response = await apiRequest('/api/auth/profile/email', {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({email}),
         });
+        if (window.location.pathname !== route) return;
         if (!response.ok) {
-            const code = response.headers.get('X-Renop-Error-Code');
-            showAlert(t(code === 'ACCOUNT_EMAIL_CONFLICT'
-                ? 'profile.privateEmailConflict'
-                : 'profile.privateEmailInvalid'), 'error');
+            showAlert(await responseErrorMessage(response, 'profile.privateEmailSaveFailed'), 'error');
             return;
         }
-        renderAccountSecurity(await response.json());
+        const result = await response.json();
+        const security = response.status === 202 ? await verifyProfileEmail(email, result) : result;
+        if (!security || window.location.pathname !== route) return;
+        renderAccountSecurity(security);
         showAlert(t('profile.privateEmailSaved'), 'success');
     } catch (error) {
         console.error('Failed to save private email', error);

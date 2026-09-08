@@ -41,17 +41,18 @@ var (
 
 // AccountSecurity is the private authentication state visible only to its account owner.
 type AccountSecurity struct {
-	TOTPEnabled             bool   `json:"totp_enabled"`
-	PasskeySecondFactor     bool   `json:"passkey_second_factor"`
-	Email                   string `json:"email"`
-	RecoveryGeneratedAt     int64  `json:"recovery_generated_at,omitempty"`
-	RecoveryCodeCount       int    `json:"recovery_code_count"`
-	RecoveryCodesRemaining  int    `json:"recovery_codes_remaining"`
-	FidoDeviceCount         int    `json:"fido_device_count"`
-	PasswordLoginEnabled    bool   `json:"password_login_enabled"`
-	PasswordConfigured      bool   `json:"password_configured"`
-	GitHubLinked            bool   `json:"github_linked"`
-	CanDisablePasswordLogin bool   `json:"can_disable_password_login"`
+	TOTPEnabled               bool   `json:"totp_enabled"`
+	PasskeySecondFactor       bool   `json:"passkey_second_factor"`
+	Email                     string `json:"email"`
+	EmailVerificationRequired bool   `json:"email_verification_required"`
+	RecoveryGeneratedAt       int64  `json:"recovery_generated_at,omitempty"`
+	RecoveryCodeCount         int    `json:"recovery_code_count"`
+	RecoveryCodesRemaining    int    `json:"recovery_codes_remaining"`
+	FidoDeviceCount           int    `json:"fido_device_count"`
+	PasswordLoginEnabled      bool   `json:"password_login_enabled"`
+	PasswordConfigured        bool   `json:"password_configured"`
+	GitHubLinked              bool   `json:"github_linked"`
+	CanDisablePasswordLogin   bool   `json:"can_disable_password_login"`
 }
 
 // RecoveryCodeHash is one irreversible recovery-code verifier prepared for persistence.

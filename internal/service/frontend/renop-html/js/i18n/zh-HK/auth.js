@@ -9,6 +9,12 @@
  */
 
 export default Object.freeze({
+    "profile.privateEmailVerificationHint": "此電郵不會公開顯示。驗證新電郵後，變更才會生效。",
+    "profile.verifyPrivateEmail": "驗證安全電郵",
+    "profile.emailVerificationSent": "請輸入傳送至 {email} 的八位驗證碼，有效期為 10 分鐘。驗證成功前，目前的電郵保持不變。",
+    "profile.githubVerifyEmail": "使用 GitHub 已驗證電郵",
+    "profile.githubEmailMissing": "GitHub 未提供已驗證的聯絡電郵。請先在 GitHub 驗證電郵，再重試。",
+    "profile.githubEmailFailed": "無法取得 GitHub 已驗證電郵，請重試。",
     "mfa.primaryMethodHint": "請保留密碼登入或已連結的第三方帳戶。二次驗證 Passkey 不能取代初次登入方式。",
     "mfa.title": "二次驗證",
     "mfa.loginHint": "完成驗證後即可登入。",

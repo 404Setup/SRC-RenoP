@@ -57,16 +57,22 @@ func TestTransientAuthStateIsBoundedAndSingleUse(t *testing.T) {
 
 func TestTransientAuthStateOwnsRequestBackedStrings(t *testing.T) {
 	provider, user, path := []byte("github"), []byte("alice"), []byte("/packages")
+	intent, session, snapshot := []byte("email"), []byte("session-hash"), []byte("credential-snapshot")
 	borrow := func(value []byte) string { return unsafe.String(unsafe.SliceData(value), len(value)) }
 	store := NewTransientAuthStateStore()
-	if !store.Put("state", TransientAuthState{Provider: borrow(provider), UserID: borrow(user), ReturnTo: borrow(path), ExpiresAt: 200}, 100) {
+	if !store.Put("state", TransientAuthState{Provider: borrow(provider), UserID: borrow(user), ReturnTo: borrow(path),
+		Intent: borrow(intent), SessionHash: borrow(session), Snapshot: borrow(snapshot), ExpiresAt: 200}, 100) {
 		t.Fatal("state was not stored")
 	}
 	clear(provider)
 	clear(user)
 	clear(path)
+	clear(intent)
+	clear(session)
+	clear(snapshot)
 	state, ok := store.Consume("state", "github", 100)
-	if !ok || state.UserID != "alice" || state.ReturnTo != "/packages" {
+	if !ok || state.UserID != "alice" || state.ReturnTo != "/packages" || state.Intent != "email" ||
+		state.SessionHash != "session-hash" || state.Snapshot != "credential-snapshot" {
 		t.Fatal("request buffer reuse changed retained authentication state")
 	}
 }

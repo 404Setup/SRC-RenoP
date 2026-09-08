@@ -9,13 +9,7 @@
 package auth
 
 import (
-	"crypto/hmac"
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
-	"fmt"
-	"math/big"
 	"mime"
 	"strings"
 	"time"
@@ -53,9 +47,7 @@ func readPasswordResetRequest(c fiber.Ctx, request any) error {
 }
 
 func emailPasswordResetHash(key, email, code string) string {
-	verifier := hmac.New(sha256.New, []byte(key))
-	_, _ = verifier.Write([]byte("password_reset\x00" + email + "\x00" + code))
-	return hex.EncodeToString(verifier.Sum(nil))
+	return emailVerificationHash(key, "password_reset", email, code)
 }
 
 func requestEmailPasswordReset(c fiber.Ctx, state *core.AppState) error {
@@ -77,11 +69,10 @@ func requestEmailPasswordReset(c fiber.Ctx, state *core.AppState) error {
 	if !valid || email == "" {
 		return passwordResetError(c, 400, "ACCOUNT_EMAIL_INVALID")
 	}
-	value, err := rand.Int(rand.Reader, big.NewInt(100000000))
+	code, err := newEmailVerificationCode()
 	if err != nil {
 		return passwordResetError(c, 503, "mail_unavailable")
 	}
-	code := fmt.Sprintf("%08d", value.Int64())
 	ip := utils.ExtractIP(c, &cfg.Server)
 	job, receipt, err := mailqueue.Prepare(cfg.Mail, mailqueue.Request{
 		To: email, Actor: "guest", Scene: "password_reset", IP: ip, Manual: true,

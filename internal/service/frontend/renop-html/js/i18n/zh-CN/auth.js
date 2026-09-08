@@ -9,6 +9,12 @@
  */
 
 export default Object.freeze({
+    "profile.privateEmailVerificationHint": "此邮箱不会公开显示。验证新邮箱后，修改才会生效。",
+    "profile.verifyPrivateEmail": "验证安全邮箱",
+    "profile.emailVerificationSent": "请输入发送至 {email} 的八位验证码，有效期为 10 分钟。验证成功前，当前邮箱保持不变。",
+    "profile.githubVerifyEmail": "使用 GitHub 已验证邮箱",
+    "profile.githubEmailMissing": "GitHub 未提供已验证的联系邮箱。请先在 GitHub 验证邮箱，再重试。",
+    "profile.githubEmailFailed": "无法获取 GitHub 已验证邮箱，请重试。",
     "mfa.primaryMethodHint": "请保留密码登录或已绑定的第三方账号。二次验证 Passkey 不能替代初次登录方式。",
     "mfa.title": "二次验证",
     "mfa.loginHint": "完成验证后即可登录。",

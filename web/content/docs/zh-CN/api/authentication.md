@@ -65,7 +65,7 @@ Principal 快照，但不会持久化 OAuth Access Token。
 ### 邮箱与密码登录策略
 
 - **读取状态**：`GET /api/auth/profile/security`
-- **设置邮箱**：`PUT /api/auth/profile/email`
+- **设置邮箱**：`PUT /api/auth/profile/email`；邮件入队后的确认流程及 GitHub 验证见[安全邮箱验证](../security/email-verification.md)。
 - **启用或禁用密码登录**：`PUT /api/auth/profile/password-login`
 - 只有仍保留 Passkey 或 GitHub 时才能禁用密码登录；重新启用前必须已经设置密码。
 

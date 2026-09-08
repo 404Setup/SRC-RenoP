@@ -119,6 +119,9 @@ type StateDB interface {
 	ConsumeMFACode(username, revision string, step, now int64) error
 	PasswordLoginEnabled(username string) (bool, error)
 	UpdateAccountEmail(username, email string, updatedAt int64) (*AccountSecurity, error)
+	QueueAccountEmailChange(username, session string, job *mail.Job, codeHash, key, ip string, rate mail.Rate) error
+	ConfirmAccountEmailChange(username, session, email, codeHash string, now int64) (*AccountSecurity, error)
+	UpdateAccountEmailFromSession(username, session, email, snapshot string, now int64) (*AccountSecurity, error)
 	SetPasswordLoginEnabled(username string, enabled bool, updatedAt int64) (*AccountSecurity, error)
 	SetAccountPassword(username, passwordHash string, updatedAt int64) error
 	ReplaceRecoveryCodes(username string, codes []RecoveryCodeHash) error

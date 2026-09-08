@@ -63,6 +63,7 @@ mail:
 
 `list_mode` 为 `blacklist` 或 `whitelist`。`addresses` 接受完整邮箱地址或 `@example.com` 域名规则。
 域名规则不包含子域名。入队前和实际发送前均会检查名单策略。
+匹配前会统一国际化域名，等价的 Unicode、Punycode 写法以及域名末尾的点按同一域名处理。
 
 ## 服务商与入口
 

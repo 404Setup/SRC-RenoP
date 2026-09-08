@@ -20,10 +20,13 @@ const maxTransientAuthStates = 2048
 
 // TransientAuthState binds one short-lived external authentication flow to its initiating account and route.
 type TransientAuthState struct {
-	Provider  string
-	UserID    string
-	ReturnTo  string
-	ExpiresAt int64
+	Provider    string
+	UserID      string
+	ReturnTo    string
+	Intent      string
+	SessionHash string
+	Snapshot    string
+	ExpiresAt   int64
 }
 
 // TransientAuthStateStore is a bounded single-use state store for external authentication redirects.
@@ -46,6 +49,9 @@ func (store *TransientAuthStateStore) Put(raw string, state TransientAuthState, 
 	state.Provider = strings.Clone(state.Provider)
 	state.UserID = strings.Clone(state.UserID)
 	state.ReturnTo = strings.Clone(state.ReturnTo)
+	state.Intent = strings.Clone(state.Intent)
+	state.SessionHash = strings.Clone(state.SessionHash)
+	state.Snapshot = strings.Clone(state.Snapshot)
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	var oldestKey [sha256.Size]byte

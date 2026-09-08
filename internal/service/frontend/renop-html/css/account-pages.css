@@ -65,7 +65,7 @@ button.account-form-link {
 }
 
 #mfa-login-form :is(h2, p),
-.mfa-setup p {
+.account-verification p {
     margin: 0;
 }
 
@@ -108,13 +108,14 @@ button.account-form-link {
     display: none;
 }
 
-.mfa-setup {
+.account-verification {
     display: grid;
     gap: 1rem;
     min-width: 0;
+    overflow-wrap: anywhere;
 }
 
-.mfa-setup img {
+.account-verification img {
     width: min(100%, 320px);
     height: auto;
     justify-self: center;

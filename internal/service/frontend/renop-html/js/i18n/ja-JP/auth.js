@@ -9,6 +9,12 @@
  */
 
 export default Object.freeze({
+    "profile.privateEmailVerificationHint": "このメールアドレスは公開されません。新しいアドレスを確認すると変更が反映されます。",
+    "profile.verifyPrivateEmail": "セキュリティ用メールアドレスの確認",
+    "profile.emailVerificationSent": "{email} に送信された8桁の確認コードを入力してください。有効期限は10分です。確認が完了するまで現在のメールアドレスは変更されません。",
+    "profile.githubVerifyEmail": "GitHubの確認済みメールを使用",
+    "profile.githubEmailMissing": "GitHubから確認済みの連絡先メールアドレスを取得できませんでした。GitHubでメールアドレスを確認してから、もう一度お試しください。",
+    "profile.githubEmailFailed": "GitHubの確認済みメールアドレスを取得できませんでした。もう一度お試しください。",
     "mfa.primaryMethodHint": "パスワードログインまたは連携済みの外部アカウントを有効にしておいてください。追加認証用の Passkey は最初のログイン方法にはなりません。",
     "mfa.title": "2段階認証",
     "mfa.loginHint": "認証を完了してログインしてください。",

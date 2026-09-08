@@ -66,7 +66,7 @@ GitHub отображается только после настройки OAuth
 ### E-mail и политика входа по паролю
 
 - **Состояние**: `GET /api/auth/profile/security`
-- **Задать e-mail**: `PUT /api/auth/profile/email`
+- **Задать e-mail**: `PUT /api/auth/profile/email`; подтверждение письмом из очереди и через GitHub описано в разделе [Подтверждение почты безопасности](../security/email-verification.md).
 - **Переключить вход по паролю**: `PUT /api/auth/profile/password-login`
 - Отключить пароль можно только при наличии Passkey или GitHub. Для включения пароль должен быть задан.
 
