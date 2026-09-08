@@ -104,7 +104,11 @@ func (c *Client) FetchBudget(ctx context.Context, a Account) (Budget, error) {
 				data, err := c.tencentRequest(ctx, billing, "billing", "2018-07-09", "DescribeAccountBalance", map[string]any{})
 				balanceErr = err
 				if err == nil {
-					if amount, ok := numberAt(data, "Balance"); ok && math.Abs(amount) <= 1e11 {
+					amount, ok := numberAt(data, "RealBalance")
+					if !ok {
+						amount, ok = numberAt(data, "Balance")
+					}
+					if ok && math.Abs(amount) <= 1e11 {
 						value := int64(math.Round(amount * 10000))
 						budget.BalanceMicros = &value
 					}

@@ -497,4 +497,6 @@ export default Object.freeze({
     "audit.action.MAIL_STATUS": "範本與寄件",
     "audit.action.MAIL_PAUSED": "已暫停",
     "audit.action.MAIL_WORKER": "郵件",
+    "mail.tencent_template_id": "騰訊雲範本 ID",
+    "mail.tencentTemplateHint": "填入使用 {{subject}} 同 {{text}} 嘅已審核 HTML 範本。變數限 800 UTF-8 位元組。填 0 需要原有嘅自訂內文特批權限。",
 });

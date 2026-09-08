@@ -59,7 +59,7 @@ func (c *Client) Check(ctx context.Context, a Account, m Message, previous Resul
 	case "sendgrid":
 		headers.Set("Authorization", "Bearer "+a.APIKey)
 		// SendGrid appends a recipient-specific suffix to the X-Message-Id identifier.
-		query := url.Values{"limit": {"10"}, "query": {"msg_id LIKE '" + strings.ReplaceAll(previous.MessageID, "'", "\\'") + "%'"}}
+		query := url.Values{"limit": {"10"}, "query": {"msg_id LIKE " + strconv.Quote(previous.MessageID+"%")}}
 		data, _, err = c.jsonRequest(ctx, "GET", endpoint+"/messages?"+query.Encode(), nil, headers)
 		if err == nil {
 			for _, raw := range arrayAt(data, "messages") {
@@ -128,12 +128,25 @@ func (c *Client) Check(ctx context.Context, a Account, m Message, previous Resul
 			}
 		}
 	case "feishu":
-		data, _, err = c.jsonRequest(ctx, "GET", feishuMailbox(a)+"/messages/"+url.PathEscape(previous.MessageID), nil, headers)
+		data, _, err = c.jsonRequest(ctx, "GET", feishuMailbox(a)+"/messages/"+url.PathEscape(previous.MessageID)+"/send_status", nil, headers)
 		if err == nil {
 			err = feishuError(data)
-			if state, ok := numberAt(data, "data", "message", "message_state"); ok && state == 2 {
-				result.Status = "sent"
-				result.Check = false
+			if err == nil && textAt(data, "data", "message_id") == previous.MessageID {
+				for _, raw := range arrayAt(data, "data", "details") {
+					item, ok := raw.(map[string]any)
+					if !ok || !strings.EqualFold(textAt(item, "recipient", "mail_address"), m.To) {
+						continue
+					}
+					if state, ok := numberAt(item, "status"); ok {
+						switch state {
+						case 4:
+							result.Status, result.Check = "delivered", false
+						case 3, 6:
+							result.Status, result.Check = "failed", false
+							result.Code = "FEISHU_DELIVERY_" + strconv.Itoa(int(state))
+						}
+					}
+				}
 			}
 		}
 	case "aliyun":

@@ -497,4 +497,6 @@ export default Object.freeze({
     "audit.action.MAIL_STATUS": "模板与发件",
     "audit.action.MAIL_PAUSED": "已暂停",
     "audit.action.MAIL_WORKER": "邮件",
+    "mail.tencent_template_id": "腾讯云模板 ID",
+    "mail.tencentTemplateHint": "填写使用 {{subject}} 和 {{text}} 的已审核 HTML 模板。变量限 800 UTF-8 字节。填 0 需要历史自定义正文特批权限。",
 });

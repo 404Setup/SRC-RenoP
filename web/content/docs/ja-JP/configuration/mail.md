@@ -76,7 +76,7 @@ mail:
 | Google Gmail | Gmail と Workspace、委任 OAuth | 送信済みラベルの状態 |
 | Alibaba Cloud Direct Mail | 杭州、シンガポール、バージニア、フランクフルトの公開・VPC 接続先。アクセスキーとシークレット | 無料枠、残高、正確に関連付けできない配信統計 |
 | Tencent Cloud SES | 中国版と国際版の送信・請求 API。アクセスキーとシークレット | 残高、受信者別の配信状態 |
-| Feishu / Lark Mail | Feishu と Lark の接続先、委任ユーザー OAuth | 送信済みメッセージの状態 |
+| Feishu / Lark Mail | Feishu と Lark の接続先、委任ユーザー OAuth | 受信者への配信状態 |
 
 リージョンの対応範囲は [SES 接続先一覧](https://docs.aws.amazon.com/general/latest/gr/ses.html)と [Direct Mail 接続先一覧](https://www.alibabacloud.com/help/en/direct-mail/api-dm-2015-11-23-endpoint)を参照してください。
 Direct Mail の VPC 接続先は同一リージョン内の接続が必要です。廃止されたシドニーの接続先は含みません。
@@ -86,6 +86,9 @@ SMTP プリセットは Gmail、Outlook.com、Microsoft 365、QQ、NetEase 163/1
 手動クォータと追加枠の上限は保持します。プリセットの通貨が変わる場合、残高を別通貨として扱わず、手動残高を空欄にします。
 
 ## 認証情報と権限
+
+正確なスコープ、IAM/CAM/RAM 操作、トークン取得、利用条件、確認済みの仕様は[メール API の権限](mail-api-permissions.md)を参照してください。
+Tencent API の通常アカウントには `tencent_template_id` による承認済みテンプレートの指定が必要です。`Simple` のカスタム本文は従来の制限付き機能です。
 
 `smtp_security` は `plain`、`tls`、`starttls` です。既定ポートは暗黙 TLS が 465、それ以外が 587 です。
 TLS は証明書とサーバー名を検証します。STARTTLS を選ぶと暗号化への移行が必須になり、平文 SMTP は明示的に選択する必要があります。
@@ -141,7 +144,8 @@ Graph、Gmail、Feishu/Lark の限界費用の推定は 0 ですが、契約の�
 
 `accepted` はプロバイダーによる受付、`sent` は送信済みフォルダーまたはメッセージ状態の確認成功です。
 `delivered` には明示的な配信結果が必要です。待機、停止、確認、失敗、期限切れ、キャンセル、不明を区別します。
-SES と SendGrid の状態照会には対応機能と権限が必要です。Graph、Gmail、Feishu の送信済み状態は受信者への配達を保証しません。
+SES と SendGrid の状態照会には対応機能と権限が必要です。Graph と Gmail の送信済み状態は受信者への配信を保証しません。
+Feishu/Lark は受信者別の `send_status` API で配信、拒否、処理待ちを区別します。
 Direct Mail の公開統計にはメッセージ ID がないため、照会後も `unknown` とし、別のメールの結果を誤って関連付けません。
 Cloudflare は初回応答をそのまま使用し、未提供の個別照会 API は呼び出しません。
 

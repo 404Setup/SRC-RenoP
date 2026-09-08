@@ -497,4 +497,6 @@ export default Object.freeze({
     "audit.action.MAIL_STATUS": "テンプレートと配信",
     "audit.action.MAIL_PAUSED": "一時停止",
     "audit.action.MAIL_WORKER": "メール",
+    "mail.tencent_template_id": "Tencent テンプレート ID",
+    "mail.tencentTemplateHint": "{{subject}} と {{text}} を使う承認済み HTML テンプレートを指定します。変数は UTF-8 で 800 バイトまで。0 には従来のカスタム本文の特別承認が必要です。",
 });

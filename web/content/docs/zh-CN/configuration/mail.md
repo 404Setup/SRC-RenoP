@@ -76,7 +76,7 @@ mail:
 | Google Gmail | Gmail、Workspace；委托 OAuth 凭证 | 已发送标签状态 |
 | 阿里云邮件推送 | 杭州、新加坡、弗吉尼亚、法兰克福；公网与 VPC 入口；访问密钥及私钥 | 免费配额、账号余额、无法精确关联的投递统计 |
 | 腾讯云邮件推送 | 中国及国际版邮件、账单入口；访问密钥及私钥 | 账号余额、收件人投递状态 |
-| 飞书 / Lark 邮箱 | 飞书及 Lark 入口；用户委托 OAuth 凭证 | 已发送邮件状态 |
+| 飞书 / Lark 邮箱 | 飞书及 Lark 入口；用户委托 OAuth 凭证 | 收件人投递状态 |
 
 区域支持以 [SES 入口目录](https://docs.aws.amazon.com/general/latest/gr/ses.html)及[阿里云邮件推送入口目录](https://www.alibabacloud.com/help/en/direct-mail/api-dm-2015-11-23-endpoint)为准。
 阿里云 VPC 入口需要同区域网络连通性；预设不包含已停用的悉尼入口。
@@ -95,6 +95,9 @@ Graph 委托账号使用 `client_id`、可选 `client_secret` 及 `refresh_token
 应用权限使用 Entra 租户 ID 和客户端凭证；此时 `mailbox` 必须为用户 ID 或邮箱地址，委托权限可以使用 `me`。
 发送需要 `Mail.Send`，查询已发送文件夹需要相应的 `Mail.Read` 权限；应用权限需要管理员同意。
 参见 [Graph sendMail](https://learn.microsoft.com/en-us/graph/api/user-sendmail)及[国家云部署](https://learn.microsoft.com/en-us/graph/deployments)。
+
+具体权限范围、IAM/CAM/RAM 操作、令牌获取、服务开通要求及已核对的请求契约见[邮件 API 权限](mail-api-permissions.md)。
+腾讯云 API 普通账号需要通过 `tencent_template_id` 配置已审核模板；`Simple` 自定义正文属于历史受限能力。
 
 Gmail 需要委托发件及邮件元数据权限。飞书/Lark 需要用户访问令牌，以及邮件发送和读取权限。
 RenoP 串行刷新受支持的 OAuth 令牌，并在发送前持久化轮换后的刷新令牌。
@@ -141,7 +144,8 @@ Graph、Gmail、飞书/Lark 的边际计费预估为 0，套餐限制仍然适�
 
 `accepted` 表示服务商已接收请求，`sent` 表示已发送文件夹或邮件状态查询成功。
 只有明确的投递结果才能标记 `delivered`。排队、暂停、查询、失败、过期、取消和未知状态分别记录。
-SES、SendGrid 查询需要相应服务功能及权限；Graph、Gmail、飞书的已发送状态不代表收件人已经收到。
+SES、SendGrid 查询需要相应服务功能及权限；Graph、Gmail 的已发送状态不代表收件人已经收到。
+飞书/Lark 使用按收件人返回明细的 `send_status` API，区分投递成功、拒收及处理中。
 阿里云公开统计响应没有邮件 ID，RenoP 会查询，但返回 `unknown`，不会将另一封邮件的结果归给当前任务。
 Cloudflare 直接使用初始响应，不调用不存在的单封邮件轮询接口。
 

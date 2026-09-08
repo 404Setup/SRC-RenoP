@@ -497,4 +497,6 @@ export default Object.freeze({
     "audit.action.MAIL_STATUS": "Templates and delivery",
     "audit.action.MAIL_PAUSED": "Paused",
     "audit.action.MAIL_WORKER": "Email",
+    "mail.tencent_template_id": "Tencent template ID",
+    "mail.tencentTemplateHint": "Enter an approved HTML template using {{subject}} and {{text}}. Variables allow 800 UTF-8 bytes. Zero requires legacy custom-content approval.",
 });

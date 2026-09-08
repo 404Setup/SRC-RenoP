@@ -76,7 +76,7 @@ Les domaines n’incluent pas leurs sous-domaines. La politique est vérifiée a
 | Google Gmail | Gmail et Workspace ; OAuth délégué | Libellé de message envoyé |
 | Alibaba Cloud Direct Mail | Hangzhou, Singapour, Virginie et Francfort ; accès publics et VPC ; clé et secret | Quota gratuit, solde et statistiques sans corrélation exacte |
 | Tencent Cloud SES | API d’envoi et de facturation en Chine et à l’international ; clé et secret | Solde et statut de distribution par destinataire |
-| Feishu / Lark Mail | Points d’accès Feishu et Lark ; OAuth utilisateur délégué | Statut du message envoyé |
+| Feishu / Lark Mail | Points d’accès Feishu et Lark ; OAuth utilisateur délégué | État de livraison au destinataire |
 
 Consultez les catalogues des points d’accès [SES](https://docs.aws.amazon.com/general/latest/gr/ses.html) et [Direct Mail](https://www.alibabacloud.com/help/en/direct-mail/api-dm-2015-11-23-endpoint).
 Les accès VPC Direct Mail exigent une connexion dans la région correspondante. Les accès de Sydney retirés du service sont exclus.
@@ -86,6 +86,9 @@ Les adresses et tarifs sont modifiables. Changer de préréglage charge ses vale
 Les limites manuelles et de dépassement sont conservées. Un changement de devise du préréglage efface le solde manuel au lieu d’en réinterpréter les unités.
 
 ## Identifiants et permissions
+
+Consultez [Permissions des API de messagerie](mail-api-permissions.md) pour les portées, actions IAM/CAM/RAM, jetons, prérequis et contrats vérifiés.
+Les comptes Tencent API ordinaires exigent un modèle approuvé dans `tencent_template_id` ; le contenu personnalisé `Simple` est une ancienne fonction restreinte.
 
 `smtp_security` accepte `plain`, `tls` ou `starttls`. Le port par défaut est 465 pour TLS implicite et 587 sinon.
 TLS vérifie le certificat et le nom du serveur. STARTTLS est obligatoire lorsqu’il est sélectionné ; le mode en clair exige un choix explicite.
@@ -141,7 +144,8 @@ Une soumission interrompue avant l’enregistrement de son résultat devient `un
 
 `accepted` indique l’acceptation du fournisseur ; `sent` indique une vérification réussie du dossier ou de l’état envoyé.
 `delivered` exige un résultat de distribution explicite. Attente, pause, vérification, échec, expiration, annulation et état inconnu restent distincts.
-SES et SendGrid exigent les fonctions et permissions de suivi correspondantes. L’état envoyé de Graph, Gmail et Feishu ne prouve pas la réception.
+SES et SendGrid exigent les fonctions et permissions de suivi correspondantes. L’état envoyé de Graph et Gmail ne prouve pas la réception.
+Feishu/Lark utilise l’API `send_status` par destinataire pour distinguer livraison, rejet et traitement en attente.
 Les statistiques publiques Direct Mail omettent les ID de message : RenoP les consulte puis retourne `unknown`, sans attribuer le résultat d’un autre message.
 Cloudflare fournit directement son résultat initial ; aucun point d’accès de suivi non pris en charge n’est utilisé.
 

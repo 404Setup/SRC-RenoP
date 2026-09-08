@@ -99,6 +99,8 @@ type Account struct {
 	BalanceMicros   *int64   `json:"balance_micros" yaml:"balance_micros"`
 	FetchBalance    bool     `json:"fetch_balance" yaml:"fetch_balance"`
 	BillingEndpoint string   `json:"billing_endpoint" yaml:"billing_endpoint"`
+
+	TencentTemplateID int64 `json:"tencent_template_id" yaml:"tencent_template_id"`
 }
 
 // Config controls the single durable sending queue.
@@ -299,6 +301,9 @@ func (a Account) Validate() error {
 	}
 	if a.BillingEndpoint != "" && !HTTPSURL(a.BillingEndpoint) {
 		return errors.New("invalid billing endpoint")
+	}
+	if a.TencentTemplateID < 0 || a.TencentTemplateID > 9007199254740991 {
+		return errors.New("invalid Tencent email template ID")
 	}
 	if a.Provider == "smtp" {
 		if a.SMTPHost == "" || len(a.SMTPHost) > 253 || strings.ContainsAny(a.SMTPHost, "/\\\r\n\x00 @") || a.SMTPPort < 1 || a.SMTPPort > 65535 ||

@@ -76,7 +76,7 @@ Domain matching does not include subdomains. The policy is checked both before q
 | Google Gmail | Gmail and Workspace; delegated OAuth credentials | Sent-label status |
 | Alibaba Cloud Direct Mail | Hangzhou, Singapore, Virginia, Frankfurt; public and VPC endpoints; access key and secret | Free quota, account balance, uncorrelated delivery statistics |
 | Tencent Cloud SES | China and international API/billing endpoints; access key and secret | Account balance and recipient delivery status |
-| Feishu / Lark Mail | Feishu and Lark endpoints; delegated user OAuth credentials | Sent-message status |
+| Feishu / Lark Mail | Feishu and Lark endpoints; delegated user OAuth credentials | Recipient delivery status |
 
 The [SES endpoint catalog](https://docs.aws.amazon.com/general/latest/gr/ses.html) and [Direct Mail endpoint catalog](https://www.alibabacloud.com/help/en/direct-mail/api-dm-2015-11-23-endpoint) define regional availability.
 Direct Mail VPC endpoints require connectivity within the corresponding region. Decommissioned Sydney endpoints are excluded.
@@ -86,6 +86,9 @@ Endpoint and pricing fields remain editable. Changing a preset loads its endpoin
 Manual quota and overage limits remain configured. A preset currency change clears the manual balance instead of reinterpreting its units.
 
 ## Credentials and Permissions
+
+See [Email API Permissions](mail-api-permissions.md) for exact scopes, IAM/CAM/RAM actions, token setup, provider prerequisites, and verified request contracts.
+Tencent API accounts normally require an approved template configured with `tencent_template_id`; custom `Simple` content is a legacy restricted capability.
 
 SMTP `smtp_security` is `plain`, `tls`, or `starttls`; `smtp_port` defaults to 465 for implicit TLS and 587 otherwise.
 TLS validates the certificate and server name. STARTTLS is required when selected. Plain SMTP must be selected explicitly.
@@ -141,7 +144,8 @@ A submission interrupted before its final outcome is persisted becomes `unknown`
 
 `accepted` means the provider accepted the request. `sent` means a sent-folder or message-state check succeeded.
 `delivered` requires an explicit delivery result. Queued, paused, checking, failed, expired, cancelled, and unknown outcomes remain distinct.
-SES and SendGrid status lookup requires the corresponding provider feature and permissions. Graph, Gmail, and Feishu sent status does not prove recipient delivery.
+SES and SendGrid status lookup requires the corresponding provider feature and permissions. Graph and Gmail sent status does not prove recipient delivery.
+Feishu/Lark uses the recipient-specific `send_status` API to distinguish delivery, rejection, and pending processing.
 Direct Mail's public statistics response lacks message IDs; RenoP queries it but reports `unknown` rather than attributing another message's outcome.
 Cloudflare returns its initial result directly; no unsupported per-message polling endpoint is assumed.
 

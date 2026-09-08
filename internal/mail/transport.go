@@ -178,6 +178,13 @@ func (c *Client) request(ctx context.Context, method, endpoint string, body []by
 			code = textAt(data, "Code")
 		}
 		if code == "" {
+			if entries := arrayAt(data, "errors"); len(entries) > 0 {
+				if entry, ok := entries[0].(map[string]any); ok {
+					code = textAt(entry, "code")
+				}
+			}
+		}
+		if code == "" {
 			code = strings.Split(resp.Header.Get("X-Amzn-Errortype"), ":")[0]
 		}
 		if code == "" {
@@ -432,5 +439,5 @@ func smtpError(err error, notCharged bool) error {
 
 func rawBase64(m Message, a Account) (string, error) {
 	data, err := m.MIME(a)
-	return base64.RawURLEncoding.EncodeToString(data), err
+	return base64.URLEncoding.EncodeToString(data), err
 }

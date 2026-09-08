@@ -16,6 +16,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"html"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -77,7 +78,7 @@ func (c *Client) PrepareToken(ctx context.Context, a Account, previous OAuthToke
 				scope = "https://microsoftgraph.chinacloudapi.cn/.default"
 			}
 			if a.Provider == "smtp" {
-				scope = "https://outlook.office365.com/.default"
+				scope = "https://outlook.office.com/SMTP.Send"
 			}
 			tenant := a.Tenant
 			if tenant == "" {
@@ -160,6 +161,7 @@ func (c *Client) Send(ctx context.Context, a Account, m Message) (Result, error)
 	case "graph":
 		headers.Set("Authorization", "Bearer "+a.AccessToken)
 		message := map[string]any{"subject": m.Subject, "body": map[string]string{"contentType": "HTML", "content": m.HTML}, "toRecipients": []any{map[string]any{"emailAddress": map[string]string{"address": m.To}}}, "singleValueExtendedProperties": []any{map[string]string{"id": graphTrackingProperty, "value": m.ID}}}
+		message["from"] = map[string]any{"emailAddress": map[string]string{"address": a.From, "name": a.FromName}}
 		data, _, err = c.jsonRequest(ctx, "POST", graphMailbox(a)+"/sendMail", map[string]any{"message": message, "saveToSentItems": true}, headers)
 		result.MessageID = m.ID
 	case "gmail":
@@ -182,7 +184,18 @@ func (c *Client) Send(ctx context.Context, a Account, m Message) (Result, error)
 		data, err = c.aliRequest(ctx, a, "2015-11-23", "SingleSendMail", url.Values{"AccountName": {a.From}, "AddressType": {"1"}, "ReplyToAddress": {"false"}, "ToAddress": {m.To}, "Subject": {m.Subject}, "HtmlBody": {m.HTML}, "TextBody": {m.Text}, "FromAlias": {a.FromName}})
 		result.MessageID = textAt(data, "EnvId")
 	case "tencent":
-		data, err = c.tencentRequest(ctx, a, "ses", "2020-10-02", "SendEmail", map[string]any{"FromEmailAddress": a.From, "Destination": []string{m.To}, "Subject": m.Subject, "TriggerType": 1, "Simple": map[string]string{"Html": base64.StdEncoding.EncodeToString([]byte(m.HTML)), "Text": base64.StdEncoding.EncodeToString([]byte(m.Text))}})
+		body := map[string]any{"FromEmailAddress": a.From, "Destination": []string{m.To}, "Subject": m.Subject, "TriggerType": 1}
+		if a.TencentTemplateID > 0 {
+			variables, encodeErr := json.Marshal(map[string]string{"subject": html.EscapeString(m.Subject), "text": html.EscapeString(m.Text)})
+			if encodeErr != nil || len(variables) > 800 {
+				return Result{}, &SendError{Code: "mail_message_invalid", NotCharged: true}
+			}
+			body["Template"] = map[string]any{"TemplateID": a.TencentTemplateID, "TemplateData": string(variables)}
+		} else {
+			// Custom content is available only to accounts with Tencent's legacy approval.
+			body["Simple"] = map[string]string{"Html": base64.StdEncoding.EncodeToString([]byte(m.HTML)), "Text": base64.StdEncoding.EncodeToString([]byte(m.Text))}
+		}
+		data, err = c.tencentRequest(ctx, a, "ses", "2020-10-02", "SendEmail", body)
 		result.MessageID = textAt(data, "MessageId")
 	case "feishu":
 		headers.Set("Authorization", "Bearer "+a.AccessToken)

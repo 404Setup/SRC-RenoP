@@ -497,4 +497,6 @@ export default Object.freeze({
     "audit.action.MAIL_STATUS": "Plantillas y envío",
     "audit.action.MAIL_PAUSED": "En pausa",
     "audit.action.MAIL_WORKER": "Correo",
+    "mail.tencent_template_id": "ID de plantilla de Tencent",
+    "mail.tencentTemplateHint": "Introduce una plantilla HTML aprobada con {{subject}} y {{text}}. Las variables admiten 800 bytes UTF-8. El valor 0 requiere la autorización especial anterior para contenido propio.",
 });

@@ -497,4 +497,6 @@ export default Object.freeze({
     "audit.action.MAIL_STATUS": "템플릿 및 발송",
     "audit.action.MAIL_PAUSED": "일시 중지됨",
     "audit.action.MAIL_WORKER": "이메일",
+    "mail.tencent_template_id": "Tencent 템플릿 ID",
+    "mail.tencentTemplateHint": "{{subject}}와 {{text}}를 사용하는 승인된 HTML 템플릿을 입력하세요. 변수는 UTF-8 800바이트까지 허용됩니다. 0은 기존 사용자 지정 본문 특별 승인이 필요합니다.",
 });

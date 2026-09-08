@@ -170,7 +170,7 @@ func TestMailProviderStatusCorrelationAndFailures(t *testing.T) {
 		{"tencent", `{"Response":{"EmailStatusList":[{"MessageId":"provider-id","ToEmailAddress":"receiver@example.com","SendStatus":0,"DeliverStatus":1}]}}`, "delivered"},
 		{"graph", `{"value":[{"id":"sent-message","isDraft":false}]}`, "sent"},
 		{"gmail", `{"id":"provider-id","labelIds":["SENT"]}`, "sent"},
-		{"feishu", `{"code":0,"data":{"message":{"message_state":2}}}`, "sent"},
+		{"feishu", `{"code":0,"data":{"message_id":"provider-id","details":[{"recipient":{"mail_address":"receiver@example.com"},"status":4}]}}`, "delivered"},
 		{"aliyun", `{"data":{"mailDetail":[{"accountName":"receiver@example.com","status":"1"}]}}`, "unknown"},
 	} {
 		t.Run(scenario.provider, func(t *testing.T) {
@@ -183,8 +183,14 @@ func TestMailProviderStatusCorrelationAndFailures(t *testing.T) {
 				if scenario.provider == "graph" {
 					require.Contains(t, r.URL.Query().Get("$filter"), "local-message")
 				}
+				if scenario.provider == "sendgrid" {
+					require.Equal(t, `msg_id LIKE "provider-id%"`, r.URL.Query().Get("query"))
+				}
 				if scenario.provider == "tencent" {
 					require.Equal(t, "GetSendEmailStatus", r.Header.Get("X-TC-Action"))
+				}
+				if scenario.provider == "feishu" {
+					require.Equal(t, "/mail/v1/user_mailboxes/sender@example.com/messages/provider-id/send_status", r.URL.Path)
 				}
 				if called == 1 {
 					_, _ = io.WriteString(w, scenario.body)
@@ -483,6 +489,7 @@ func TestMailProviderSubmissionAndStatusContracts(t *testing.T) {
 					case "graph":
 						require.True(t, body["saveToSentItems"].(bool))
 						require.NotNil(t, valueAt(body, "message", "singleValueExtendedProperties"))
+						require.Equal(t, a.From, textAt(body, "message", "from", "emailAddress", "address"))
 						w.WriteHeader(202)
 					case "ses":
 						require.Contains(t, r.Header.Get("Authorization"), "/ses/aws4_request")
@@ -493,7 +500,7 @@ func TestMailProviderSubmissionAndStatusContracts(t *testing.T) {
 						w.Header().Set("X-Message-Id", "provider-id")
 						w.WriteHeader(202)
 					case "gmail", "feishu":
-						raw, err := base64.RawURLEncoding.DecodeString(textAt(body, "raw"))
+						raw, err := base64.URLEncoding.DecodeString(textAt(body, "raw"))
 						require.NoError(t, err)
 						require.Contains(t, string(raw), "MIME-Version: 1.0")
 						if provider == "gmail" {
@@ -571,4 +578,128 @@ func TestMailFailureChargingAndBudget(t *testing.T) {
 	_, _, err = client.jsonRequest(context.Background(), "GET", oversize.URL, nil, nil)
 	require.Error(t, err)
 	require.Equal(t, "mail_response_invalid", err.Error())
+}
+
+func TestTencentApprovedTemplateAndVariableLimit(t *testing.T) {
+	a := testAccount()
+	a.Provider, a.TencentTemplateID = "tencent", 123
+	m := Message{ID: "message-1", To: "receiver@example.com", Subject: "Test", Text: "Code: 12345678\n<untrusted>", HTML: "<p>Code: 12345678</p>"}
+	calls := 0
+	client := NewClient(mailRoundTrip(func(r *http.Request) (*http.Response, error) {
+		calls++
+		var body map[string]any
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+		require.Equal(t, []string{"SendEmail"}, r.Header["X-TC-Action"])
+		require.Nil(t, body["Simple"])
+		require.EqualValues(t, 123, valueAt(body, "Template", "TemplateID"))
+		variables := textAt(body, "Template", "TemplateData")
+		require.LessOrEqual(t, len(variables), 800)
+		var values map[string]string
+		require.NoError(t, json.Unmarshal([]byte(variables), &values))
+		require.Equal(t, "Code: 12345678\n&lt;untrusted&gt;", values["text"])
+		require.Equal(t, "Test", values["subject"])
+		return &http.Response{StatusCode: 200, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(`{"Response":{"MessageId":"provider-id"}}`))}, nil
+	}))
+	defer client.Close()
+	result, err := client.Send(context.Background(), a, m)
+	require.NoError(t, err)
+	require.Equal(t, "provider-id", result.MessageID)
+	m.Text = strings.Repeat("界", 267)
+	_, err = client.Send(context.Background(), a, m)
+	require.Error(t, err)
+	require.False(t, Chargeable(err))
+	require.Equal(t, 1, calls)
+	for _, id := range []int64{-1, 9007199254740992} {
+		a.TencentTemplateID = id
+		require.Error(t, a.Validate())
+	}
+}
+
+func TestFeishuDeliveryCorrelationAndPendingStates(t *testing.T) {
+	a := testAccount()
+	a.Provider, a.AccessToken = "feishu", "access"
+	previous := Result{MessageID: "provider-id", Status: "accepted", Check: true}
+	m := Message{To: "receiver@example.com"}
+	for _, scenario := range []struct {
+		id, recipient string
+		state         int
+		want          string
+	}{
+		{"other-id", m.To, 4, "accepted"},
+		{previous.MessageID, "other@example.com", 4, "accepted"},
+		{previous.MessageID, m.To, 0, "accepted"},
+		{previous.MessageID, m.To, 1, "accepted"},
+		{previous.MessageID, m.To, 2, "accepted"},
+		{previous.MessageID, m.To, 3, "failed"},
+		{previous.MessageID, m.To, 4, "delivered"},
+		{previous.MessageID, m.To, 5, "accepted"},
+		{previous.MessageID, m.To, 6, "failed"},
+	} {
+		client := NewClient(mailRoundTrip(func(r *http.Request) (*http.Response, error) {
+			require.Equal(t, "GET", r.Method)
+			require.True(t, strings.HasSuffix(r.URL.Path, "/provider-id/send_status"))
+			body := fmt.Sprintf(`{"code":0,"data":{"message_id":%q,"details":[{"recipient":{"mail_address":%q},"status":%d}]}}`, scenario.id, scenario.recipient, scenario.state)
+			return &http.Response{StatusCode: 200, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(body))}, nil
+		}))
+		result, err := client.Check(context.Background(), a, m, previous)
+		client.Close()
+		require.NoError(t, err)
+		require.Equal(t, scenario.want, result.Status)
+		require.Equal(t, scenario.want == "accepted", result.Check)
+	}
+}
+
+func TestMailOAuthProviderAuthoritiesAndScopes(t *testing.T) {
+	for _, scenario := range []struct{ provider, endpoint, smtpHost, authority, scope string }{
+		{"graph", "https://graph.microsoft.com/v1.0", "", "login.microsoftonline.com", "https://graph.microsoft.com/.default"},
+		{"graph", "https://graph.microsoft.us/v1.0", "", "login.microsoftonline.us", "https://graph.microsoft.us/.default"},
+		{"graph", "https://dod-graph.microsoft.us/v1.0", "", "login.microsoftonline.us", "https://dod-graph.microsoft.us/.default"},
+		{"graph", "https://microsoftgraph.chinacloudapi.cn/v1.0", "", "login.chinacloudapi.cn", "https://microsoftgraph.chinacloudapi.cn/.default"},
+		{"smtp", "", "smtp.office365.com", "login.microsoftonline.com", "https://outlook.office.com/SMTP.Send"},
+		{"smtp", "", "smtp-mail.outlook.com", "login.microsoftonline.com", "https://outlook.office.com/SMTP.Send"},
+		{"smtp", "", "smtp.gmail.com", "oauth2.googleapis.com", ""},
+		{"gmail", "https://gmail.googleapis.com/gmail/v1", "", "oauth2.googleapis.com", ""},
+	} {
+		t.Run(scenario.provider+scenario.authority+scenario.smtpHost, func(t *testing.T) {
+			a := testAccount()
+			a.Provider, a.Endpoint, a.SMTPHost = scenario.provider, scenario.endpoint, scenario.smtpHost
+			a.ClientID, a.ClientSecret, a.RefreshToken, a.Tenant = "client", "secret", "refresh", "tenant-id"
+			client := NewClient(mailRoundTrip(func(r *http.Request) (*http.Response, error) {
+				require.Equal(t, scenario.authority, r.URL.Host)
+				require.NoError(t, r.ParseForm())
+				require.Equal(t, "refresh_token", r.Form.Get("grant_type"))
+				require.Equal(t, scenario.scope, r.Form.Get("scope"))
+				return &http.Response{StatusCode: 200, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(`{"access_token":"access","expires_in":3600}`))}, nil
+			}))
+			defer client.Close()
+			_, err := client.PrepareToken(context.Background(), a, OAuthToken{})
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestTencentBalancePreservesFractionalCents(t *testing.T) {
+	a := testAccount()
+	a.Provider, a.FetchBalance, a.BillingEndpoint = "tencent", true, "https://billing.intl.tencentcloudapi.com"
+	client := NewClient(mailRoundTrip(func(r *http.Request) (*http.Response, error) {
+		require.Equal(t, "billing.intl.tencentcloudapi.com", r.URL.Host)
+		return &http.Response{StatusCode: 200, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(`{"Response":{"Balance":1,"RealBalance":1.25}}`))}, nil
+	}))
+	defer client.Close()
+	budget, err := client.FetchBudget(context.Background(), a)
+	require.NoError(t, err)
+	require.NotNil(t, budget.BalanceMicros)
+	require.EqualValues(t, 12500, *budget.BalanceMicros)
+	require.Equal(t, "USD", budget.Currency)
+}
+
+func TestCloudflareHTTPFailureRetainsProviderCode(t *testing.T) {
+	client := NewClient(mailRoundTrip(func(r *http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: 403, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(`{"success":false,"errors":[{"code":10105,"message":"account not entitled"}]}`))}, nil
+	}))
+	defer client.Close()
+	_, _, err := client.jsonRequest(context.Background(), "POST", "https://api.cloudflare.com/client/v4", nil, nil)
+	require.Error(t, err)
+	require.Equal(t, "10105", err.Error())
+	require.False(t, Chargeable(err))
 }

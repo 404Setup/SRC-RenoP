@@ -497,4 +497,6 @@ export default Object.freeze({
     "audit.action.MAIL_STATUS": "Modèles et envoi",
     "audit.action.MAIL_PAUSED": "En pause",
     "audit.action.MAIL_WORKER": "Courriel",
+    "mail.tencent_template_id": "ID du modèle Tencent",
+    "mail.tencentTemplateHint": "Indiquez un modèle HTML approuvé utilisant {{subject}} et {{text}}. Les variables sont limitées à 800 octets UTF-8. La valeur 0 exige l'ancienne autorisation spéciale de contenu personnalisé.",
 });

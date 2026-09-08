@@ -497,4 +497,6 @@ export default Object.freeze({
     "audit.action.MAIL_STATUS": "Шаблоны и отправка",
     "audit.action.MAIL_PAUSED": "Приостановлено",
     "audit.action.MAIL_WORKER": "Электронная почта",
+    "mail.tencent_template_id": "ID шаблона Tencent",
+    "mail.tencentTemplateHint": "Укажите одобренный HTML-шаблон с {{subject}} и {{text}}. Лимит переменных — 800 байт UTF-8. Для значения 0 требуется ранее выданное специальное разрешение на собственное содержимое.",
 });

@@ -201,6 +201,7 @@ export function renderMailSettings(container, data, changed) {
             input(accountEditor, account, 'endpoint');
         }
         if (['ses', 'aliyun', 'tencent'].includes(account.provider)) input(accountEditor, account, 'region');
+        if (account.provider === 'tencent') input(accountEditor, account, 'tencent_template_id', {type: 'number', min: 0, max: Number.MAX_SAFE_INTEGER, hint: t('mail.tencentTemplateHint')});
         if (account.provider === 'cloudflare') input(accountEditor, account, 'account_id');
         if (['graph', 'feishu'].includes(account.provider)) input(accountEditor, account, 'mailbox', {hint: t('mail.mailboxHint')});
         if (['graph', 'smtp'].includes(account.provider)) input(accountEditor, account, 'tenant', {hint: t('mail.tenantHint')});

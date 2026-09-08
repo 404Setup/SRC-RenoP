@@ -497,4 +497,6 @@ export default Object.freeze({
     "audit.action.MAIL_STATUS": "Vorlagen und Versand",
     "audit.action.MAIL_PAUSED": "Pausiert",
     "audit.action.MAIL_WORKER": "E-Mail",
+    "mail.tencent_template_id": "Tencent-Vorlagen-ID",
+    "mail.tencentTemplateHint": "Genehmigte HTML-Vorlage mit {{subject}} und {{text}} angeben. Variablen sind auf 800 UTF-8-Bytes begrenzt. 0 erfordert die bisherige Sonderfreigabe für eigene Inhalte.",
 });

@@ -387,6 +387,7 @@ components:
           description: Known remaining balance in currency millionths; null means unknown.
         fetch_balance: {type: boolean, default: false}
         billing_endpoint: {type: string, format: uri}
+        tencent_template_id: {type: integer, minimum: 0, maximum: 9007199254740991, description: "Approved Tencent SES HTML template with subject and text variables; JSON variable data is limited to 800 bytes. Zero uses legacy custom-content permission."}
     MailSettings:
       type: object
       required: [manual_rate, account_rate]
