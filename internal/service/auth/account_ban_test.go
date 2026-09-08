@@ -146,6 +146,16 @@ func TestAccountBanRevokesEveryCredentialAndCanBeLifted(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, response.StatusCode)
 	assert.Equal(t, "ACCOUNT_BAN_SELF", response.Header.Get("X-Renop-Error-Code"))
 	require.NoError(t, response.Body.Close())
+	for _, role := range []string{"admin", "canmoderate:*", "canmoderate:files"} {
+		require.NoError(t, db.SaveToken(&core.AccessToken{Name: "staff", Permissions: []string{role}}))
+		newSession("staff", "protected-staff-session")
+		response = apiTokenJSONRequest(t, app, http.MethodPut, "/api/tokens/staff/ban", adminSession,
+			map[string]any{"reason": "Protected account", "expires_at": nil})
+		assert.Equal(t, http.StatusConflict, response.StatusCode)
+		assert.Equal(t, "ACCOUNT_BAN_PROTECTED", response.Header.Get("X-Renop-Error-Code"))
+		require.NoError(t, response.Body.Close())
+		assert.NotNil(t, state.GetSession("protected-staff-session"))
+	}
 
 	response = apiTokenJSONRequest(t, app, http.MethodDelete, "/api/tokens/alice/ban", adminSession, nil)
 	assert.Equal(t, http.StatusNoContent, response.StatusCode)

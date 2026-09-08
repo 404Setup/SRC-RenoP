@@ -28,6 +28,8 @@ system admin は global です。package team L0-L4 は通常 collaboration の�
 moderator permission は審査に必要な private visibility を含みますが、publish、user 管理、repository 設定、
 system settings の変更は許可しません。
 
+管理者とモデレーターは、その権限を持つ間は利用停止にできません。利用停止にする前に、管理者とモデレーターの権限をすべて解除してください。利用停止中のアカウントにこれらの権限を付与するには、先に利用停止を解除する必要があります。データベースは権限変更や名前変更を含め、アカウントのトランザクション内で両方の操作を検証します。競合時は `409` と `ACCOUNT_BAN_PROTECTED` を返し、利用停止が拒否された場合は既存のセッションを維持します。
+
 ## Repository / team layer
 
 - 可視性による発見と読み取りの境界は `PUBLIC`、権限に応じて表示する `HIDDEN`、認証が必要な `PRIVATE` です。

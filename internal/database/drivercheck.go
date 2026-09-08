@@ -92,6 +92,15 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		if err := db.SetAccountBan(username, nil); err != nil {
 			return err
 		}
+		if err := db.UpdateToken(username, func(token *core.AccessToken) { token.Permissions = []string{"canmoderate:driver-check"} }); err != nil {
+			return err
+		}
+		if err := db.SetAccountBan(username, &core.AccountBan{Reason: "Protected role", CreatedAt: now}); !errors.Is(err, core.ErrAccountBanProtected) {
+			return errorsOrMissing(err, "protected account suspension")
+		}
+		if err := db.UpdateToken(username, func(token *core.AccessToken) { token.Permissions = []string{"base"} }); err != nil {
+			return err
+		}
 		deprecationKey := "driver-check-" + suffix
 		if err := db.DeprecatePackage(config.RepositoryFormatCargo, "driver-check", deprecationKey, now); err != nil {
 			return err

@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "users.banProtected": "Administratoren und Moderatoren können nicht gesperrt werden. Entziehen Sie zuerst ihre Rollen oder heben Sie die Sperre auf, bevor Sie diese Rollen vergeben.",
     "audit.action.USER_REGISTER": "Konto registriert",
     "audit.initiator": "Initiator",
     "audit.globalTitle": "Globale Protokolle",

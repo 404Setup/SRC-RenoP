@@ -28,6 +28,8 @@ package/domain collaboration. Administrator operations are recorded and do not s
 Moderator permissions include private review visibility, but do not grant publication, user management, repository
 configuration, or system settings access.
 
+Administrators and moderators cannot be suspended while they hold those roles. Revoke all administrator and moderator permissions before banning an account. A suspended account must be unbanned before receiving those roles. The database checks both operations inside the account transaction, including permission changes and renames. Conflicts return `409` with `ACCOUNT_BAN_PROTECTED`; rejected bans leave existing sessions intact.
+
 ## Repository and team layers
 
 - **Repository visibility** controls discovery and the base read boundary: `PUBLIC`, permission-gated discovery for

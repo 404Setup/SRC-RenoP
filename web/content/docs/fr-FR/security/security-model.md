@@ -28,6 +28,8 @@ administrateur est auditée et n’ajoute pas silencieusement un membre affiché
 La modération inclut la visibilité privée nécessaire à l’examen, sans autoriser publication, gestion des utilisateurs,
 configuration des dépôts ni paramètres système.
 
+Les administrateurs et modérateurs ne peuvent pas être suspendus tant qu’ils conservent ces rôles. Retirez toutes leurs permissions d’administration et de modération avant de suspendre leur compte. Un compte suspendu doit être rétabli avant de recevoir ces rôles. La base vérifie les deux opérations dans la transaction du compte, y compris les changements de permissions et de nom. Les conflits renvoient `409` avec `ACCOUNT_BAN_PROTECTED` ; une suspension refusée préserve les sessions existantes.
+
 ## Couches dépôt et équipe
 
 - La visibilité définit découverte et lecture de base : `PUBLIC`, découverte de `HIDDEN` selon les droits ou `PRIVATE`

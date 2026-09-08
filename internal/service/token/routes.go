@@ -77,6 +77,9 @@ func BanAccount(c fiber.Ctx, state *core.AppState) error {
 	ban := &core.AccountBan{Reason: reason, CreatedAt: now, ExpiresAt: request.ExpiresAt}
 	if err := state.GetDB().SetAccountBan(name, ban); errors.Is(err, core.ErrUserProfileNotFound) {
 		return c.SendStatus(fiber.StatusNotFound)
+	} else if errors.Is(err, core.ErrAccountBanProtected) {
+		c.Set("X-Renop-Error-Code", "ACCOUNT_BAN_PROTECTED")
+		return c.Status(fiber.StatusConflict).SendString("Revoke administrator and moderator permissions before banning this account")
 	} else if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to suspend account")
 	}
@@ -383,6 +386,9 @@ func UpsertToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 	}
 	if err := <-errChan; err != nil {
 		switch {
+		case errors.Is(err, core.ErrAccountBanProtected):
+			c.Set("X-Renop-Error-Code", "ACCOUNT_BAN_PROTECTED")
+			return c.Status(fiber.StatusConflict).SendString("Lift the account ban before granting administrator or moderator permissions")
 		case errors.Is(err, core.ErrUsernameAlreadyExists):
 			return c.Status(fiber.StatusConflict).SendString("Username is already in use")
 		case errors.Is(err, core.ErrUsernameChangeRateLimited):

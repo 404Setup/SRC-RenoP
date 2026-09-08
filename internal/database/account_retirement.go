@@ -19,20 +19,9 @@ import (
 	"renop/internal/core"
 )
 
-func protectedRetirementRole(permissions []string) bool {
-	for _, permission := range permissions {
-		permission = strings.ToLower(strings.TrimSpace(permission))
-		if permission == "manager" || permission == "admin" || permission == "m" ||
-			permission == "access-token:manager" || strings.HasPrefix(permission, "canmoderate:") {
-			return true
-		}
-	}
-	return false
-}
-
 func accountRetirementPlanTx(tx *Tx, username, userID string,
 	token *core.AccessToken) (*core.AccountRetirementPlan, error) {
-	plan := &core.AccountRetirementPlan{Username: username, ProtectedRole: protectedRetirementRole(token.Permissions)}
+	plan := &core.AccountRetirementPlan{Username: username, ProtectedRole: protectedAccountRole(token.Permissions)}
 	if err := tx.QueryRow(`SELECT COUNT(*) FROM super_team_members WHERE user_id = ? AND role_level = ?`,
 		userID, core.SuperTeamRoleOwner).Scan(&plan.SuperTeamOwnerCount); err != nil {
 		return nil, fmt.Errorf("count global-team ownerships: %w", err)

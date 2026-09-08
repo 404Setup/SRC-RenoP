@@ -97,6 +97,7 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   encryption key before serving requests; preserve it across configuration updates.
 - **Account lifecycle:** Preserve alternate-login and atomic recovery-consumption invariants, hashed credentials,
   immediate revocation, and targeted cache invalidation. All login methods honor bans and retirement.
+  Administrators and moderators must lose those roles before suspension; suspended accounts cannot gain those roles.
   Registration is explicitly enabled; confirmation, credentials, email, provider identity, and persistent IP accounting
   commit together. Pending provider registrations confer no account privileges. OAuth callbacks require the initiating
   browser cookie as well as a single-use server state.

@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "users.banProtected": "Администраторов и модераторов нельзя блокировать. Сначала отзовите их роли либо снимите блокировку перед назначением этих ролей.",
     "audit.action.USER_REGISTER": "Регистрация аккаунта",
     "audit.initiator": "Инициатор",
     "audit.globalTitle": "Общие журналы",

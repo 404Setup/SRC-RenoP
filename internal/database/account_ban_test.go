@@ -83,3 +83,29 @@ func TestAccountBanLifecycle(t *testing.T) {
 	}), core.ErrAccountBanInvalid)
 	require.ErrorIs(t, db.SetAccountBan("missing", nil), core.ErrUserProfileNotFound)
 }
+
+func TestAccountBanRejectsProtectedRolesAndPromotion(t *testing.T) {
+	db, err := InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "protected-bans.db")})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	now := time.Now().UnixMilli()
+	ban := &core.AccountBan{Reason: "Abuse", CreatedAt: now}
+	for _, role := range []string{"admin", "manager", "m", "access-token:manager", "canmoderate:*", "canmoderate:releases", " CANMODERATE:releases "} {
+		t.Run(role, func(t *testing.T) {
+			require.NoError(t, db.SaveToken(&core.AccessToken{Name: "staff", Permissions: []string{role}}))
+			require.ErrorIs(t, db.SetAccountBan("staff", ban), core.ErrAccountBanProtected)
+			account, err := db.GetTokenByName("staff")
+			require.NoError(t, err)
+			require.Nil(t, account.Ban)
+			require.NoError(t, db.UpdateToken("staff", func(token *core.AccessToken) { token.Permissions = []string{"base"} }))
+			require.NoError(t, db.SetAccountBan("staff", ban))
+			require.ErrorIs(t, db.UpdateToken("staff", func(token *core.AccessToken) { token.Permissions = []string{role} }), core.ErrAccountBanProtected)
+			account, err = db.GetTokenByName("staff")
+			require.NoError(t, err)
+			require.Equal(t, []string{"base"}, account.Permissions)
+			require.True(t, account.Ban.IsActive(now))
+			require.NoError(t, db.SetAccountBan("staff", nil))
+			require.NoError(t, db.UpdateToken("staff", func(token *core.AccessToken) { token.Permissions = []string{role} }))
+		})
+	}
+}

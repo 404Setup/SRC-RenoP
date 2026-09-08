@@ -94,6 +94,9 @@ func storedAccountBan(token *core.AccessToken) (string, int64, sql.NullInt64, er
 	if token == nil || token.Ban == nil {
 		return "", 0, sql.NullInt64{}, nil
 	}
+	if token.Ban.IsActive(time.Now().UnixMilli()) && protectedAccountRole(token.Permissions) {
+		return "", 0, sql.NullInt64{}, core.ErrAccountBanProtected
+	}
 	reason, valid := core.NormalizeAccountBanReason(token.Ban.Reason)
 	if !valid || token.Ban.CreatedAt <= 0 ||
 		(token.Ban.ExpiresAt != nil && *token.Ban.ExpiresAt <= token.Ban.CreatedAt) {

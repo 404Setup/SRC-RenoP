@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "users.banProtected": "관리자와 중재자는 차단할 수 없습니다. 차단 전에 해당 권한을 해제하고, 해당 권한을 부여하기 전에는 차단을 해제하세요.",
     "audit.action.USER_REGISTER": "계정 가입",
     "audit.initiator": "시작 계정",
     "audit.globalTitle": "전체 로그",

@@ -12,11 +12,25 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import test from 'node:test';
+import vm from 'node:vm';
 import {fileURLToPath} from 'node:url';
 
 const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repositoryRoot = resolve(frontendRoot, '..', '..', '..', '..');
 const source = relative => readFileSync(join(repositoryRoot, relative), 'utf8');
+
+test('protected staff accounts show the role restriction before opening a ban editor', () => {
+    const alerts = [];
+    const context = vm.createContext({t: key => key, showAlert: (message, tone) => alerts.push({message, tone})});
+    vm.runInContext(source('internal/service/frontend/renop-html/js/users/ban.js')
+        .replace(/^import .*;\r?\n/gm, '').replaceAll('export ', ''), context);
+    for (const role of ['admin', 'manager', 'm', 'access-token:manager', 'canmoderate:*', ' CANMODERATE:releases ']) {
+        context.openUserBanDialog({name: 'staff', permissions: [role]});
+        assert.equal(alerts.at(-1).message, 'users.banProtected');
+        assert.equal(alerts.at(-1).tone, 'error');
+    }
+    assert.equal(alerts.length, 6);
+});
 
 test('administrator account bans are modular, bounded, and reversible', () => {
     const ban = source('internal/service/frontend/renop-html/js/users/ban.js');

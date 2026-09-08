@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "users.banProtected": "Los administradores y moderadores no pueden ser suspendidos. Retira sus roles antes de suspenderlos o levanta la suspensión antes de asignarles esos roles.",
     "audit.action.USER_REGISTER": "Cuenta registrada",
     "audit.initiator": "Iniciador",
     "audit.globalTitle": "Registros globales",

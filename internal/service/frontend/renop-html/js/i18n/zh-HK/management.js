@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "users.banProtected": "管理員及版主不可被封禁。封禁前請先撤銷這些權限；授予這些權限前請先解除封禁。",
     "audit.action.USER_REGISTER": "帳戶註冊",
     "audit.initiator": "觸發者",
     "audit.globalTitle": "全域日誌",

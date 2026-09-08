@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "users.banProtected": "Administrators and moderators cannot be banned. Revoke their roles before banning, or lift the ban before granting those roles.",
     "audit.action.USER_REGISTER": "Account registered",
     "audit.initiator": "Initiator",
     "audit.globalTitle": "Global logs",

@@ -20,8 +20,9 @@ import (
 const MaxAccountBanReasonRunes = 512
 
 var (
-	ErrAccountBanned     = errors.New("account is banned")
-	ErrAccountBanInvalid = errors.New("account ban is invalid")
+	ErrAccountBanned       = errors.New("account is banned")
+	ErrAccountBanInvalid   = errors.New("account ban is invalid")
+	ErrAccountBanProtected = errors.New("administrator or moderator account cannot be banned")
 )
 
 // AccountBan is a durable administrator suspension. A nil ExpiresAt is permanent.

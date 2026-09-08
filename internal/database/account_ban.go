@@ -19,6 +19,17 @@ import (
 	"renop/internal/core"
 )
 
+func protectedAccountRole(permissions []string) bool {
+	for _, permission := range permissions {
+		permission = strings.ToLower(strings.TrimSpace(permission))
+		if permission == "manager" || permission == "admin" || permission == "m" ||
+			permission == "access-token:manager" || strings.HasPrefix(permission, "canmoderate:") {
+			return true
+		}
+	}
+	return false
+}
+
 // SetAccountBan replaces one account's durable suspension. A nil ban clears it.
 func (db *DB) SetAccountBan(username string, ban *core.AccountBan) error {
 	if db == nil || db.SQLDB == nil {

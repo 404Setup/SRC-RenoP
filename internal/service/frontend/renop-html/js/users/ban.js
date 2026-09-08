@@ -31,6 +31,13 @@ function localDateTimeValue(timestamp) {
  * @returns {void}
  */
 export function openUserBanDialog(account, refresh) {
+    if (!account?.ban && account?.permissions?.some(permission => {
+        const role = String(permission).trim().toLowerCase();
+        return ['admin', 'manager', 'm', 'access-token:manager'].includes(role) || role.startsWith('canmoderate:');
+    })) {
+        showAlert(t('users.banProtected'), 'error');
+        return;
+    }
     const currentBan = account?.ban || null;
     const reason = el('input', {
         id: 'user-ban-reason', type: 'text', maxlength: maxBanReasonLength,
