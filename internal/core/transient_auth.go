@@ -12,6 +12,7 @@ package core
 
 import (
 	"crypto/sha256"
+	"strings"
 	"sync"
 )
 
@@ -42,6 +43,9 @@ func (store *TransientAuthStateStore) Put(raw string, state TransientAuthState, 
 		return false
 	}
 	key := sha256.Sum256([]byte(raw))
+	state.Provider = strings.Clone(state.Provider)
+	state.UserID = strings.Clone(state.UserID)
+	state.ReturnTo = strings.Clone(state.ReturnTo)
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	var oldestKey [sha256.Size]byte

@@ -103,6 +103,7 @@ func SetupAuthRoutes(app fiber.Router, state *core.AppState, opChan chan<- token
 	auth.Post("/profile/sessions/revoke-others", func(c fiber.Ctx) error { return RevokeOtherSessions(c, state) })
 	auth.Delete("/profile/sessions/:session_id", func(c fiber.Ctx) error { return DeleteSession(c, state) })
 	setupAccountSecurityRoutes(auth, state)
+	setupMFARoutes(auth, state)
 	setupPasswordResetRoutes(auth, state)
 	setupAccountRetirementRoutes(auth, state, opChan)
 	setupAPITokenRoutes(auth, state)
@@ -229,7 +230,15 @@ func AuthenticateUser(state *core.AppState, body *core.LoginRequest, opChan chan
 	}
 	err := bcrypt.CompareHashAndPassword(passwordHash, []byte(body.Secret))
 	if err == nil && accessToken != nil && passwordEnabled {
+		mfa, err := state.GetDB().GetMFAState(accessToken.Name)
+		if err != nil {
+			return nil, err
+		}
+		if !mfa.PasswordLoginEnabled || mfa.PasswordHash != accessToken.EncryptedSecret {
+			return nil, core.ErrMFAInvalid
+		}
 		synthUser := buildSynthUser(accessToken)
+		synthUser.AuthenticationSnapshot = mfa.Snapshot
 		synthUser.Tokens = []string{"Bearer " + accessToken.Name + ":" + body.Secret}
 		return synthUser, nil
 	}
@@ -251,6 +260,9 @@ func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenO
 	}
 
 	user, err := AuthenticateUser(state, &body, opChan)
+	if errors.Is(err, core.ErrMFAInvalid) {
+		return mfaError(c, err)
+	}
 	if code := accountAccessCode(err); code != "" {
 		c.Set("X-Renop-Error-Code", code)
 		return c.Status(fiber.StatusForbidden).SendString("Account suspended")
@@ -264,6 +276,9 @@ func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenO
 
 	if user != nil {
 		if err := issueBrowserSession(c, state, user, "password"); err != nil {
+			if errors.Is(err, errMFARequired) || errors.Is(err, core.ErrMFAInvalid) {
+				return mfaError(c, err)
+			}
 			if code := accountAccessCode(err); code != "" {
 				c.Set("X-Renop-Error-Code", code)
 				return c.Status(fiber.StatusForbidden).SendString("Account suspended")

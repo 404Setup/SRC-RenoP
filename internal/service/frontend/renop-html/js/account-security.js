@@ -10,7 +10,9 @@
 
 import {apiRequest} from './api.js';
 import {showAlert} from './alert.js';
-import {RenopDialog} from './components.js';
+import {RenopDialog, runButtonAction} from './components.js';
+import {responseErrorMessage} from './response-errors.js';
+import {navigateToLogin} from './login-route.js';
 import {writeClipboardText} from './clipboard.js';
 import {t} from './i18n.js';
 import {formatTimestamp} from './time.js';
@@ -27,6 +29,14 @@ let currentSecurity = null;
  */
 function renderAccountSecurity(security) {
     currentSecurity = security;
+	const passkeyMFA = document.getElementById('profile-mfa-passkey');
+	if (passkeyMFA) {
+		passkeyMFA.checked = security.passkey_second_factor === true;
+		passkeyMFA.disabled = !passkeyMFA.checked && (!(Number(security.fido_device_count) > 0) ||
+			!(security.github_linked || (security.password_configured && security.password_login_enabled)));
+	}
+	$('#profile-mfa-totp-status').text(t(security.totp_enabled ? 'mfa.enabled' : 'mfa.disabled'));
+	$('#profile-mfa-totp').text(t(security.totp_enabled ? 'mfa.remove' : 'mfa.setup'));
     const section = $('#profile-account-security-section').get(0);
     const emailInput = $('#profile-private-email').get(0);
     const toggle = $('#profile-password-login-toggle').get(0);
@@ -43,7 +53,7 @@ function renderAccountSecurity(security) {
     if (!security.password_configured) {
         $(passwordHint).text(t('profile.passwordLoginNotConfigured'));
     } else if (toggle.checked && !security.can_disable_password_login) {
-        $(passwordHint).text(t('profile.passwordLoginNeedsAlternative'));
+        $(passwordHint).text(t(security.passkey_second_factor ? 'mfa.primaryMethodHint' : 'profile.passwordLoginNeedsAlternative'));
     } else if (toggle.checked) {
         $(passwordHint).text(t('profile.passwordLoginEnabled'));
     } else {
@@ -135,6 +145,84 @@ export async function refreshAccountSecurity() {
 $(window).on('languageChanged', () => {
     if (currentSecurity) renderAccountSecurity(currentSecurity);
 });
+
+/** Explain security failures and offer a fresh sign-in when the session is too old. */
+async function showMFASettingsError(response) {
+    const message = await responseErrorMessage(response, 'mfa.unavailable');
+    if (response.headers.get('X-Renop-Error-Code') === 'MFA_REAUTH_REQUIRED') {
+        if (await window.showConfirm(message)) navigateToLogin(window.location.pathname, {reauth: true});
+    } else showAlert(message, 'error');
+}
+
+/** Save a confirmed second-factor preference and refresh dependent login controls. */
+async function saveMFASettings(body) {
+    const response = await apiRequest('/api/auth/profile/mfa', {
+        method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body),
+    });
+    if (!response.ok) { await showMFASettingsError(response); return; }
+    renderAccountSecurity(await response.json());
+    showAlert(t('mfa.saved'), 'success');
+}
+
+$('#profile-mfa-passkey').on('change', async event => {
+    const toggle = event.currentTarget;
+    toggle.disabled = true;
+    try { await saveMFASettings({passkey_second_factor: toggle.checked}); }
+    catch { showAlert(t('mfa.unavailable'), 'error'); }
+    finally { if (currentSecurity) renderAccountSecurity(currentSecurity); }
+});
+
+/** Show the setup key once, with a local QR image and a code confirmation form. */
+async function showTOTPSetup(setup) {
+    const code = el('input', {id: 'totp-setup-code', type: 'text', inputmode: 'numeric',
+        autocomplete: 'one-time-code', pattern: '[0-9]{6}', minlength: '6', maxlength: '6', required: true});
+    const secret = el('code', {class: 'mfa-setup-secret'}, setup.secret);
+    const image = el('img', {src: setup.qr, alt: t('mfa.qrAlt'), width: '320', height: '320'});
+    const errorBox = el('p', {class: 'account-form-error', role: 'alert', hidden: true});
+    const form = el('form', {class: 'mfa-setup'}, image,
+        el('p', {}, t('mfa.manualHint')), secret,
+        el('div', {class: 'account-field'}, el('label', {for: 'totp-setup-code'}, t('mfa.code')), code), errorBox);
+    form.addEventListener('submit', event => {
+        event.preventDefault();
+        void runButtonAction(document.getElementById('totp-setup-verify'), async () => {
+            errorBox.hidden = true;
+            try {
+                const response = await apiRequest('/api/auth/profile/mfa/totp/confirm', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({id: setup.id, code: code.value}),
+                });
+                code.value = '';
+                if (!response.ok) { errorBox.textContent = await responseErrorMessage(response, 'mfa.invalid'); errorBox.hidden = false; return; }
+                renderAccountSecurity(await response.json());
+                document.getElementById('totp-setup-dialog')?.close(true);
+                showAlert(t('mfa.saved'), 'success');
+            } catch { errorBox.textContent = t('mfa.unavailable'); errorBox.hidden = false; }
+        });
+    });
+    await RenopDialog.show({
+        id: 'totp-setup-dialog', title: t('mfa.authenticator'), subtitle: t('mfa.setupHint'),
+        icon: 'fileKey', maxWidth: '520px', body: form,
+        footer: [
+            {text: t('common.cancel'), className: 'action-btn', onClick: (event, dialog) => dialog.close(false)},
+            {id: 'totp-setup-verify', text: t('mfa.verify'), className: 'action-btn primary-btn', onClick: () => form.requestSubmit()},
+        ],
+        onClose: () => { code.value = ''; secret.textContent = ''; image.removeAttribute('src'); setup.secret = setup.uri = setup.qr = ''; },
+    });
+}
+
+$('#profile-mfa-totp').on('click', event => void runButtonAction(event.currentTarget, async () => {
+    try {
+        if (currentSecurity?.totp_enabled) {
+            if (await window.showConfirm(t('mfa.removeConfirm'))) await saveMFASettings({totp_enabled: false});
+            return;
+        }
+        const response = await apiRequest('/api/auth/profile/mfa/totp/begin', {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}',
+        });
+        if (!response.ok) { await showMFASettingsError(response); return; }
+        await showTOTPSetup(await response.json());
+    } catch { showAlert(t('mfa.unavailable'), 'error'); }
+}));
 
 $('#profile-private-email-form').on('submit', async event => {
     event.preventDefault();

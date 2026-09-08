@@ -13,6 +13,7 @@ package core
 import (
 	"strconv"
 	"testing"
+	"unsafe"
 )
 
 func TestTransientAuthStateIsBoundedAndSingleUse(t *testing.T) {
@@ -51,5 +52,21 @@ func TestTransientAuthStateIsBoundedAndSingleUse(t *testing.T) {
 	}
 	if _, ok := store.Consume("state-2067", "github", now); ok {
 		t.Fatal("state was accepted more than once")
+	}
+}
+
+func TestTransientAuthStateOwnsRequestBackedStrings(t *testing.T) {
+	provider, user, path := []byte("github"), []byte("alice"), []byte("/packages")
+	borrow := func(value []byte) string { return unsafe.String(unsafe.SliceData(value), len(value)) }
+	store := NewTransientAuthStateStore()
+	if !store.Put("state", TransientAuthState{Provider: borrow(provider), UserID: borrow(user), ReturnTo: borrow(path), ExpiresAt: 200}, 100) {
+		t.Fatal("state was not stored")
+	}
+	clear(provider)
+	clear(user)
+	clear(path)
+	state, ok := store.Consume("state", "github", 100)
+	if !ok || state.UserID != "alice" || state.ReturnTo != "/packages" {
+		t.Fatal("request buffer reuse changed retained authentication state")
 	}
 }

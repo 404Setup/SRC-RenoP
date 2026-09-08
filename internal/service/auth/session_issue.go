@@ -11,6 +11,7 @@
 package auth
 
 import (
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -33,18 +34,25 @@ func issueBrowserSession(c fiber.Ctx, state *core.AppState, user *config.User, m
 	if err := accountAccessError(accessToken); err != nil {
 		return err
 	}
+	snapshot, err := prepareBrowserLogin(c, state, user.Username, method, user.AuthenticationSnapshot)
+	if err != nil {
+		return err
+	}
 	sessionToken := uuid.NewString()
 	publicID := uuid.NewString()
 	now := time.Now().UnixMilli()
 	cfg := state.Inner.Config.Load()
 	ip := utils.ExtractIP(c, &cfg.Server)
+	credentialID, _ := c.Locals("verified_fido_credential").([]byte)
 	session := &core.Session{
-		PublicID:    publicID,
-		Username:    user.Username,
-		IP:          utils.Intern(ip),
-		UserAgent:   utils.Intern(c.Get(fiber.HeaderUserAgent, "Unknown")),
-		CreatedAt:   now,
-		LoginMethod: method,
+		AuthenticationSnapshot: snapshot,
+		FidoCredentialID:       credentialID,
+		PublicID:               publicID,
+		Username:               user.Username,
+		IP:                     utils.Intern(ip),
+		UserAgent:              utils.Intern(c.Get(fiber.HeaderUserAgent, "Unknown")),
+		CreatedAt:              now,
+		LoginMethod:            method,
 	}
 	session.LastActive.Store(now)
 	if err := state.SaveSession(session, sessionToken); err != nil {
@@ -52,11 +60,18 @@ func issueBrowserSession(c fiber.Ctx, state *core.AppState, user *config.User, m
 	}
 	setSessionCookie(c, sessionToken, int(core.SessionIdleTimeoutMillis/1000))
 	authMethod := "Password"
-	switch method {
+	primary, factor, _ := strings.Cut(method, "+")
+	switch primary {
 	case "fido":
 		authMethod = "FIDO"
 	case "github":
 		authMethod = "GitHub"
+	}
+	if factor == "totp" {
+		authMethod += " + TOTP"
+	}
+	if factor == "passkey" {
+		authMethod += " + Passkey"
 	}
 	audit.Log(state, &core.AuditLogEntry{
 		Username: user.Username, Operator: user.Username, Action: audit.ActionLogin,

@@ -41,7 +41,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	suffix := uuid.NewString()[:8]
 	username := "dbcheck-" + suffix
 	now := time.Now().UnixMilli()
-	results := make([]DriverCheckResult, 0, 13)
+	results := make([]DriverCheckResult, 0, 14)
 	run := func(name string, check func() error) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -891,9 +891,20 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		if err = db.SaveSession(session, "reset-secret-"+suffix); err != nil {
 			return err
 		}
+		mfa, err := db.GetMFAState(username)
+		if err != nil {
+			return err
+		}
+		if err = db.UpdateMFA(username, mfa.Snapshot, "encrypted-authenticator", false, 0, "reset-secret-"+suffix); err != nil {
+			return err
+		}
 		recovered, err := db.ResetPasswordWithEmailCode(email, hash, "reset-password", now+2)
 		if err != nil || recovered != username {
 			return errorsOrMissing(err, "reset password consumption")
+		}
+		mfa, err = db.GetMFAState(username)
+		if err != nil || mfa.Secret != "encrypted-authenticator" {
+			return errorsOrMissing(err, "email reset preserves second factors")
 		}
 		previous, err := db.GetSession("reset-secret-" + suffix)
 		if err != nil || previous != nil {
@@ -923,6 +934,85 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		}
 		if count != 0 {
 			return errors.New("expired password proof retained")
+		}
+		return nil
+	}); err != nil {
+		return results, err
+	}
+	if err := run("second-factor policy and recovery", func() error {
+		username, sessionID := "mfa_"+suffix, "mfa-session-"+suffix
+		if err := db.SaveToken(&core.AccessToken{Name: username, EncryptedSecret: "password", Permissions: []string{"base"}}); err != nil {
+			return err
+		}
+		session := &core.Session{PublicID: sessionID, Username: username, CreatedAt: now}
+		session.LastActive.Store(now)
+		if err := db.SaveSession(session, sessionID); err != nil {
+			return err
+		}
+		if err := db.SaveFidoDevice(&core.FidoDevice{ID: "mfa-key-" + suffix, Username: username, CredentialID: []byte("mfa-credential-" + suffix), PublicKey: []byte("key"), CreatedAt: now}); err != nil {
+			return err
+		}
+		mfa, err := db.GetMFAState(username)
+		if err != nil {
+			return err
+		}
+		before := mfa.Snapshot
+		if err := db.UpdateMFA(username, before, "encrypted-totp", true, 0, sessionID); err != nil {
+			return err
+		}
+		security, err := db.GetAccountSecurity(username)
+		if err != nil || !security.TOTPEnabled || !security.PasskeySecondFactor || security.CanDisablePasswordLogin {
+			return errorsOrMissing(err, "second-factor policy visibility")
+		}
+		if _, err := db.SetPasswordLoginEnabled(username, false, now); !errors.Is(err, core.ErrLastLoginMethod) {
+			return errorsOrMissing(err, "secondary passkey is not a primary login")
+		}
+		if err := db.DeleteFidoDevice(username, "mfa-key-"+suffix); !errors.Is(err, core.ErrLastLoginMethod) {
+			return errorsOrMissing(err, "last secondary passkey protection")
+		}
+		session.AuthenticationSnapshot = before
+		if err := db.SaveSession(session, "stale-"+sessionID); !errors.Is(err, core.ErrMFAInvalid) {
+			return errorsOrMissing(err, "stale login policy rejection")
+		}
+		mfa, err = db.GetMFAState(username)
+		if err != nil {
+			return err
+		}
+		if err := db.ConsumeMFACode(username, mfa.Revision, 100, now); err != nil {
+			return err
+		}
+		for range 5 {
+			if err := db.ConsumeMFACode(username, mfa.Revision, 100, now); !errors.Is(err, core.ErrMFAInvalid) {
+				return errorsOrMissing(err, "one-time code replay rejection")
+			}
+		}
+		if err := db.ConsumeMFACode(username, mfa.Revision, 101, now); !errors.Is(err, core.ErrMFAInvalid) {
+			return errorsOrMissing(err, "account-wide code attempt limit")
+		}
+		if err := db.ConsumeMFACode(username, mfa.Revision, 101, now+300000); err != nil {
+			return err
+		}
+		hashes := make([]core.RecoveryCodeHash, core.RecoveryCodeCount)
+		selectors := make([]string, core.RecoveryCodesRequired)
+		for index := range hashes {
+			hashes[index] = core.RecoveryCodeHash{SelectorHash: fmt.Sprintf("%064x", index+1), PasswordHash: "recovery-hash", CreatedAt: now}
+			if index < len(selectors) {
+				selectors[index] = hashes[index].SelectorHash
+			}
+		}
+		if err := db.ReplaceRecoveryCodes(username, hashes); err != nil {
+			return err
+		}
+		if _, err := db.ResetPasswordWithRecoveryCodes(username, selectors, "recovered-password", now+300001); err != nil {
+			return err
+		}
+		mfa, err = db.GetMFAState(username)
+		if err != nil || mfa.Enabled() {
+			return errorsOrMissing(err, "offline recovery clears second factors")
+		}
+		stored, err := db.GetSession(sessionID)
+		if err != nil || stored != nil {
+			return errorsOrMissing(err, "offline recovery revokes sessions")
 		}
 		return nil
 	}); err != nil {

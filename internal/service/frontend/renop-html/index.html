@@ -226,6 +226,22 @@
                         </div>
                     </div>
                 </form>
+                <form class="account-page-form" id="mfa-login-form" hidden aria-labelledby="mfa-login-title">
+                    <h2 id="mfa-login-title" data-i18n="mfa.title">Two-step verification</h2>
+                    <p data-i18n="mfa.loginHint">Complete verification to finish signing in.</p>
+                    <div class="account-field" id="mfa-login-totp">
+                        <label for="mfa-login-code" data-i18n="mfa.code">Six-digit code</label>
+                        <input id="mfa-login-code" type="text" inputmode="numeric" autocomplete="one-time-code"
+                               pattern="[0-9]{6}" minlength="6" maxlength="6" required aria-describedby="mfa-login-error">
+                    </div>
+                    <p class="account-form-error" id="mfa-login-error" role="alert" hidden></p>
+                    <button class="account-submit" id="mfa-login-submit" type="submit" data-i18n="mfa.verify">Verify</button>
+                    <button class="account-provider" id="mfa-login-passkey" type="button" data-i18n="mfa.usePasskey">Verify with Passkey</button>
+                    <div class="account-form-links">
+                        <button class="account-form-link" id="mfa-login-restart" type="button" data-i18n="mfa.restart">Start again</button>
+                        <a class="account-form-link" href="/account/recovery" data-i18n="login.recoveryTitle">Recover account</a>
+                    </div>
+                </form>
             </div>
         </section>
         <section aria-labelledby="recovery-title" class="tab-content" id="tab-content-recovery" style="display: none;">
@@ -985,6 +1001,24 @@
                                               data-i18n="profile.passwordLoginTitle">Password login</span>
                                     </label>
                                 </div>
+                                <div class="profile-security-control">
+                                    <div>
+                                        <strong data-i18n="mfa.passkeyTitle" id="profile-mfa-passkey-label">Passkey as a second factor</strong>
+                                        <p class="profile-security-hint" data-i18n="mfa.passkeyHint">Require a Passkey after password or third-party sign-in. A registered Passkey and another sign-in method are required.</p>
+                                    </div>
+                                    <label class="profile-security-switch">
+                                        <input id="profile-mfa-passkey" type="checkbox" aria-labelledby="profile-mfa-passkey-label">
+	                                    <span aria-hidden="true"></span>
+                                    </label>
+                                </div>
+                                <div class="profile-security-control">
+                                    <div>
+                                        <strong data-i18n="mfa.authenticator">Authenticator app</strong>
+                                        <p class="profile-security-hint" id="profile-mfa-totp-status"></p>
+                                    </div>
+                                    <button class="pill-btn pill-btn--soft profile-action-btn" id="profile-mfa-totp" type="button" data-i18n="mfa.setup">Set up</button>
+                                </div>
+                                <p class="profile-security-hint" data-i18n="mfa.recoveryHint">Save your recovery codes. Recovery clears the authenticator, turns off Passkey second-factor verification, and signs out all sessions. Use API tokens for package clients.</p>
                                 <div class="profile-security-control profile-recovery-control">
                                     <div>
                                         <strong data-i18n="profile.recoveryCodesTitle">Recovery codes</strong>

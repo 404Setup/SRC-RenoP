@@ -212,6 +212,9 @@ func (db *DB) ResetPasswordWithRecoveryCodes(identifier string, selectorHashes [
 	if err := resetAccountPasswordTx(tx, userID, username, passwordHash, updatedAt); err != nil {
 		return "", err
 	}
+	if _, err := tx.Exec(`DELETE FROM user_mfa WHERE user_id = ?`, userID); err != nil {
+		return "", fmt.Errorf("remove recovered account second factors: %w", err)
+	}
 	if err := tx.Commit(); err != nil {
 		return "", fmt.Errorf("commit password recovery: %w", err)
 	}

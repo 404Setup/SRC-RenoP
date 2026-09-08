@@ -210,6 +210,10 @@ func clickHouseSchemas() []clickHouseTableSchema {
 		{name: "user_account_security", keyColumns: []string{"user_id"}, columns: []string{
 			"`user_id` String", "`email` Nullable(String)", "`password_login_enabled` Int64 DEFAULT 1", "`updated_at` Int64 DEFAULT 0",
 		}},
+		{name: "user_mfa", keyColumns: []string{"user_id"}, columns: []string{
+			"`user_id` String", "`secret` String", "`revision` String", "`passkey_enabled` Int64",
+			"`last_step` Int64", "`window_start` Int64", "`failures` Int64",
+		}},
 		{name: "user_password_resets", keyColumns: []string{"email"}, columns: []string{
 			"`email` String", "`user_id` String", "`code_hash` String", "`credential_hash` String",
 			"`security_updated_at` Int64", "`attempts` Int32", "`created_at` Int64", "`expires_at` Int64",

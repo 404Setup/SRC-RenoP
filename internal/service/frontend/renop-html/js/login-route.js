@@ -43,10 +43,13 @@ export function loginReturnTo(search = window.location.search) {
 }
 
 /** Open sign-in while retaining the page to return to after authentication. */
-export function navigateToLogin(returnTo = window.location.pathname, {replace = false} = {}) {
+export function navigateToLogin(returnTo = window.location.pathname, {replace = false, reauth = false} = {}) {
     if (isLoginPath()) return;
     const target = safeLoginReturnTo(returnTo);
-    const route = '/account/login' + (target === '/' ? '' : '?return_to=' + encodeURIComponent(target));
+    const query = new URLSearchParams();
+    if (target !== '/') query.set('return_to', target);
+    if (reauth) query.set('reauth', '1');
+    const route = '/account/login' + (query.size ? '?' + query : '');
     if (replace) window.history.replaceState(null, '', route);
     else window.history.pushState(null, '', route);
     window.dispatchEvent(new PopStateEvent('popstate'));

@@ -10,6 +10,8 @@ description: Fine-grained machine credentials, recovery material, and OpenPGP pu
 RenoP separates browser sessions, API Token, password authentication, recovery material, and artifact signing keys.
 They have different storage, transport, and revocation rules.
 
+[Two-step verification](../security/two-step-verification.md) covers authenticator setup, secondary Passkeys, the pending login response, and recovery. A secondary Passkey does not count as a primary login method. Offline recovery removes the authenticator and turns off secondary Passkeys; email password recovery preserves both settings.
+
 ## API Token and recovery material
 
 API Token use 256 random bits and an `rnp_pat_` prefix. The secret is shown once; only its SHA-256 lookup digest is

@@ -23,6 +23,7 @@ require (
 	github.com/molecule-man/go-brrr v1.0.1
 	github.com/redis/go-redis/v9 v9.22.0
 	github.com/shirou/gopsutil/v3 v3.24.5
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/stretchr/testify v1.12.1
 	github.com/valyala/fasthttp v1.74.0
 	go.yaml.in/yaml/v3 v3.0.5

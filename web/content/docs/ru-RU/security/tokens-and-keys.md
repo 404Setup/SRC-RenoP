@@ -10,6 +10,8 @@ description: Точные machine credentials, recovery material и провер
 RenoP разделяет browser sessions, API Token, passwords, recovery material и signing keys. Для них действуют разные
 правила storage, transport и revocation.
 
+Раздел [двухэтапной проверки](../security/two-step-verification.md) описывает настройку аутентификатора, вторичные Passkey, ожидающие ответы входа и восстановление. Вторичный Passkey не считается основным способом входа. Офлайн-восстановление удаляет аутентификатор и отключает вторичные Passkey; восстановление по email сохраняет оба параметра.
+
 ## API Token и recovery material
 
 API Token использует 256 random bits и префикс `rnp_pat_`. Secret показывается один раз; хранится только SHA-256 lookup

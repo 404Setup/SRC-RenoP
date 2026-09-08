@@ -49,6 +49,7 @@ func (a *AuditLogConfig) setDefaults() {
 }
 
 type Config struct {
+	MFAEncryptionKey      string                 `json:"-" yaml:"mfa_encryption_key,omitempty"`
 	StoragePath           string                 `json:"storage_path" yaml:"storage_path"`
 	EnableJavadocPreview  bool                   `json:"enable_javadoc_preview" yaml:"enable_javadoc_preview"`
 	JavadocExtractPath    string                 `json:"javadoc_extract_path" yaml:"javadoc_extract_path"`
@@ -246,21 +247,25 @@ func (c *Config) DeepCopy() *Config {
 		return nil
 	}
 	return &Config{
-		StoragePath:          strings.Clone(c.StoragePath),
-		EnableJavadocPreview: c.EnableJavadocPreview,
-		JavadocExtractPath:   strings.Clone(c.JavadocExtractPath),
-		MaxJavadocSizeMb:     c.MaxJavadocSizeMb,
-		Frontend:             c.Frontend.DeepCopy(),
-		Maven:                c.Maven.DeepCopy(),
-		Server:               c.Server.DeepCopy(),
-		Updater:              c.Updater.DeepCopy(),
-		Database:             c.Database,
-		AuditLog:             c.AuditLog,
-		SuperTeams:           c.SuperTeams.DeepCopy(),
-		PublicationQuota:     c.PublicationQuota.DeepCopy(),
-		Cache:                c.Cache,
-		Mail:                 c.Mail.Clone(),
-		GPG:                  c.Server.GPG.DeepCopy(),
-		Proxy:                c.Proxy.DeepCopy(),
+		MFAEncryptionKey:      c.MFAEncryptionKey,
+		StoragePath:           strings.Clone(c.StoragePath),
+		EnableJavadocPreview:  c.EnableJavadocPreview,
+		JavadocExtractPath:    strings.Clone(c.JavadocExtractPath),
+		MaxJavadocSizeMb:      c.MaxJavadocSizeMb,
+		EnableCargodocPreview: c.EnableCargodocPreview,
+		CargodocExtractPath:   strings.Clone(c.CargodocExtractPath),
+		MaxCargodocSizeMb:     c.MaxCargodocSizeMb,
+		Frontend:              c.Frontend.DeepCopy(),
+		Maven:                 c.Maven.DeepCopy(),
+		Server:                c.Server.DeepCopy(),
+		Updater:               c.Updater.DeepCopy(),
+		Database:              c.Database,
+		AuditLog:              c.AuditLog,
+		SuperTeams:            c.SuperTeams.DeepCopy(),
+		PublicationQuota:      c.PublicationQuota.DeepCopy(),
+		Cache:                 c.Cache,
+		Mail:                  c.Mail.Clone(),
+		GPG:                   c.Server.GPG.DeepCopy(),
+		Proxy:                 c.Proxy.DeepCopy(),
 	}
 }

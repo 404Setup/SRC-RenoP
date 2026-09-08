@@ -65,6 +65,11 @@ func initGitHubIdentityTables(db *sql.DB) error {
 
 func initAccountSecurityTables(db *sql.DB) error {
 	tables := [...]string{
+		`CREATE TABLE IF NOT EXISTS user_mfa (
+			user_id VARCHAR(36) PRIMARY KEY, secret TEXT NOT NULL, revision VARCHAR(36) NOT NULL,
+			passkey_enabled INT NOT NULL, last_step BIGINT NOT NULL,
+			window_start BIGINT NOT NULL, failures INT NOT NULL
+		);`,
 		`CREATE TABLE IF NOT EXISTS user_account_security (
 			user_id VARCHAR(36) PRIMARY KEY,
 			email VARCHAR(254) NULL UNIQUE,

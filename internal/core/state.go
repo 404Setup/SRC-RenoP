@@ -114,6 +114,9 @@ type StateDB interface {
 	DeleteFidoDevice(username, deviceID string) error
 	DeleteFidoDevicesByUsername(username string) error
 	GetAccountSecurity(username string) (*AccountSecurity, error)
+	GetMFAState(username string) (*MFAState, error)
+	UpdateMFA(username, snapshot, secret string, passkey bool, lastStep int64, keepSession string) error
+	ConsumeMFACode(username, revision string, step, now int64) error
 	PasswordLoginEnabled(username string) (bool, error)
 	UpdateAccountEmail(username, email string, updatedAt int64) (*AccountSecurity, error)
 	SetPasswordLoginEnabled(username string, enabled bool, updatedAt int64) (*AccountSecurity, error)

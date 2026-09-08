@@ -251,6 +251,9 @@ func StartServices(state *core.AppState, bootstrapContext BootstrapContext) (*Se
 		downloadCounter: downloadCounter,
 		stopLogs:        audit.StartAuditLogConsumer(state),
 	}
+	if err := auth.EnsureMFAKey(state, bootstrapContext.ConfigPath); err != nil {
+		return nil, errors.Join(err, runtimeServices.Close())
+	}
 	stopMail, err := mailqueue.Start(state, bootstrapContext.ConfigPath)
 	if err != nil {
 		return nil, errors.Join(err, runtimeServices.Close())
@@ -297,6 +300,7 @@ func StartServices(state *core.AppState, bootstrapContext BootstrapContext) (*Se
 		}},
 		{"fido-session-cleanup", fidoCleanupInterval, fidoCleanupInterval, func(context.Context) {
 			auth.PruneExpiredFidoSessions(time.Now())
+			auth.PruneExpiredMFAChallenges(time.Now())
 		}},
 		{"ip-limiter-cleanup", ipLimiterCleanupInterval, ipLimiterCleanupInterval, func(context.Context) {
 			middleware.PruneIPLimiters()

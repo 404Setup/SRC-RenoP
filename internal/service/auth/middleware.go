@@ -326,6 +326,7 @@ func isSessionOnlyAPIPath(path string) bool {
 	for _, prefix := range []string{
 		"/api/auth/logout",
 		"/api/auth/profile/security",
+		"/api/auth/profile/mfa",
 		"/api/auth/profile/retirement",
 		"/api/auth/profile/email",
 		"/api/auth/profile/password",

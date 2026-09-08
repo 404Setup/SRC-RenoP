@@ -80,10 +80,22 @@ func hasExternalLoginTx(tx *Tx, userID, username string) (bool, error) {
 	if err := tx.QueryRow(`SELECT COUNT(*) FROM github_identities WHERE user_id = ?`, userID).Scan(&githubCount); err != nil {
 		return false, err
 	}
-	return fidoCount > 0 || githubCount > 0, nil
+	secondary, err := passkeySecondFactorTx(tx, userID)
+	return (fidoCount > 0 && !secondary) || githubCount > 0, err
 }
 
 func hasLoginWithoutFidoTx(tx *Tx, userID, username, excludedDeviceID string) (bool, error) {
+	secondary, err := passkeySecondFactorTx(tx, userID)
+	if err != nil {
+		return false, err
+	}
+	if secondary {
+		var remaining int
+		if err := tx.QueryRow(`SELECT COUNT(*) FROM fido_devices WHERE username = ? AND id <> ?`, username, excludedDeviceID).Scan(&remaining); err != nil {
+			return false, err
+		}
+		return remaining > 0, nil
+	}
 	var encryptedSecret string
 	var passwordEnabled, githubCount, remainingFido int
 	if err := tx.QueryRow(`SELECT t.encrypted_secret, COALESCE(security.password_login_enabled, 1)
@@ -123,7 +135,8 @@ func hasLoginWithoutGitHubTx(tx *Tx, userID, username string) (bool, error) {
 	if err := tx.QueryRow(`SELECT COUNT(*) FROM fido_devices WHERE username = ?`, username).Scan(&fidoCount); err != nil {
 		return false, err
 	}
-	return fidoCount > 0, nil
+	secondary, err := passkeySecondFactorTx(tx, userID)
+	return fidoCount > 0 && !secondary, err
 }
 
 // GetTokenByEmail resolves a private normalized email to its access-token account.
@@ -170,6 +183,12 @@ func (db *DB) GetAccountSecurity(username string) (*core.AccountSecurity, error)
 		return nil, core.ErrUserProfileNotFound
 	}
 	security := &core.AccountSecurity{}
+	mfa, err := db.GetMFAState(username)
+	if err != nil {
+		return nil, err
+	}
+	security.TOTPEnabled = mfa.Secret != ""
+	security.PasskeySecondFactor = mfa.Passkey
 	var passwordEnabled, passwordConfigured, githubLinked int
 	if db.Dialect.Name() == "clickhouse" {
 		var userID string
@@ -202,10 +221,10 @@ func (db *DB) GetAccountSecurity(username string) (*core.AccountSecurity, error)
 		security.PasswordLoginEnabled = passwordEnabled != 0
 		security.PasswordConfigured = passwordConfigured != 0
 		security.GitHubLinked = githubLinked != 0
-		security.CanDisablePasswordLogin = security.FidoDeviceCount > 0 || security.GitHubLinked
+		security.CanDisablePasswordLogin = (security.FidoDeviceCount > 0 && !mfa.Passkey) || security.GitHubLinked
 		return security, nil
 	}
-	err := db.QueryRow(`SELECT COALESCE(security.email, ''),
+	err = db.QueryRow(`SELECT COALESCE(security.email, ''),
 		COALESCE(security.password_login_enabled, 1),
 		CASE WHEN token.encrypted_secret <> '' THEN 1 ELSE 0 END,
 		(SELECT COUNT(*) FROM fido_devices fido WHERE fido.username = profile.username),
@@ -232,7 +251,7 @@ func (db *DB) GetAccountSecurity(username string) (*core.AccountSecurity, error)
 	security.PasswordLoginEnabled = passwordEnabled != 0
 	security.PasswordConfigured = passwordConfigured != 0
 	security.GitHubLinked = githubLinked != 0
-	security.CanDisablePasswordLogin = security.FidoDeviceCount > 0 || security.GitHubLinked
+	security.CanDisablePasswordLogin = (security.FidoDeviceCount > 0 && !mfa.Passkey) || security.GitHubLinked
 	return security, nil
 }
 

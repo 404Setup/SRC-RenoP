@@ -72,13 +72,15 @@ type LoginRequest struct {
 }
 
 type Session struct {
-	PublicID    string
-	Username    string
-	IP          string
-	UserAgent   string
-	CreatedAt   int64
-	LastActive  atomic.Int64
-	LoginMethod string
+	AuthenticationSnapshot string
+	FidoCredentialID       []byte
+	PublicID               string
+	Username               string
+	IP                     string
+	UserAgent              string
+	CreatedAt              int64
+	LastActive             atomic.Int64
+	LoginMethod            string
 }
 
 // SessionDBDto is the database persistence representation of a session.

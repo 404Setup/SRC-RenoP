@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
@@ -93,6 +94,14 @@ func TestFidoBeginEndpoints(t *testing.T) {
 			assert.Equal(t, "user1", matched.Username)
 			assert.Equal(t, uint32(0), matched.SignCount)
 		}
+
+		assertion := &protocol.ParsedCredentialAssertionData{}
+		assertion.RawID = []byte("cred-123")
+		assertion.Response.AuthenticatorData.Flags = protocol.AuthenticatorFlags(8)
+		assertionUser := buildFidoAssertionUser("user1", state, assertion)
+		require.True(t, assertionUser.Credentials[0].Flags.BackupEligible)
+		require.False(t, state.GetFidoDeviceByCredentialID([]byte("cred-123")).BackupEligible,
+			"unverified assertion flags must not change stored credentials")
 
 		require.NoError(t, state.UpdateFidoSignCount([]byte("cred-123"), 42))
 		updated := state.GetFidoDeviceByCredentialID([]byte("cred-123"))

@@ -53,6 +53,7 @@ import {navigateToUserProfile, profileRouteFromPath} from './user-profiles.js';
 import {installBackendAvailabilityMonitor} from './backend-availability.js';
 import {initializeGitHubAuth} from './github-auth.js';
 import {updateAccountRecoveryPage} from './account-recovery.js';
+import {updateMFALoginPage} from './mfa-login.js';
 import {refreshPasswordRecoveryAvailability, updatePasswordRecoveryPage} from './password-recovery.js';
 import {initConfiguredFont} from './font.js';
 import {$} from '@renop/ui/jquery';
@@ -356,6 +357,7 @@ export async function switchTab(tabId) {
 
     if (enteringLogin) document.getElementById('username').focus({preventScroll: true});
     updateAccountRecoveryPage(tabId === 'recovery', enteringRecovery);
+    updateMFALoginPage(tabId === 'login', enteringLogin);
     updatePasswordRecoveryPage(tabId === 'password-recovery', enteringPasswordRecovery);
     if (accountPage) {
         void refreshPasswordRecoveryAvailability();
@@ -541,7 +543,8 @@ async function initializeApplication() {
 
         await initializeSession();
         await initializeGitHubAuth();
-        if (isLoginPath() && cachedIsLoggedIn) leaveLoginPage();
+        const loginQuery = new URLSearchParams(window.location.search);
+        if (isLoginPath() && cachedIsLoggedIn && !loginQuery.has('reauth') && !loginQuery.has('mfa')) leaveLoginPage();
 
         const mainTabs = document.querySelector('#tabs');
         if (mainTabs) {

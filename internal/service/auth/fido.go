@@ -92,6 +92,19 @@ type fidoSessionEntry struct {
 	createdAt   time.Time
 }
 
+func buildFidoAssertionUser(username string, state *core.AppState, response *protocol.ParsedCredentialAssertionData) *FidoUser {
+	user := buildFidoUser(username, state)
+	if response.Response.AuthenticatorData.Flags.HasBackupEligible() {
+		for index := range user.Credentials {
+			if bytes.Equal(user.Credentials[index].ID, response.RawID) {
+				// Older records acquire backup eligibility only after the signed assertion is validated.
+				user.Credentials[index].Flags.BackupEligible = true
+			}
+		}
+	}
+	return user
+}
+
 const (
 	fidoSessionTTL  = 10 * time.Minute
 	maxFidoSessions = 4096
@@ -630,16 +643,6 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState, opChan chan<- token.
 		return c.Status(fiber.StatusBadRequest).SendString("Failed to parse assertion response: " + err.Error())
 	}
 
-	incomingBE := parsedResponse.Response.AuthenticatorData.Flags.HasBackupEligible()
-	if incomingBE {
-		if matchedDevice := state.GetFidoDeviceByCredentialID(parsedResponse.RawID); matchedDevice != nil && !matchedDevice.BackupEligible {
-			matchedDevice.BackupEligible = true
-			if err := state.UpdateFidoDeviceState(matchedDevice.CredentialID, matchedDevice.SignCount, matchedDevice.BackupState, true); err != nil {
-				return c.Status(fiber.StatusInternalServerError).SendString("Failed to update FIDO device")
-			}
-		}
-	}
-
 	var authenticatedUser *config.User
 	var matchedCred *webauthn.Credential
 
@@ -665,12 +668,12 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState, opChan chan<- token.
 		if accessToken != nil {
 			authenticatedUser = buildSynthUser(accessToken)
 		}
-		return buildFidoUser(targetUsername, state), nil
+		return buildFidoAssertionUser(targetUsername, state, parsedResponse), nil
 	}
 
 	var lastErr error
 	if sessionUsername != "" {
-		fidoUser := buildFidoUser(sessionUsername, state)
+		fidoUser := buildFidoAssertionUser(sessionUsername, state, parsedResponse)
 		if len(fidoUser.Credentials) > 0 {
 			var loginErr error
 			matchedCred, loginErr = w.ValidateLogin(fidoUser, *sessionData, parsedResponse)
@@ -737,7 +740,11 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState, opChan chan<- token.
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update FIDO device")
 	}
 
+	c.Locals("verified_fido_credential", matchedCred.ID)
 	if err := issueBrowserSession(c, state, authenticatedUser, "fido"); err != nil {
+		if errors.Is(err, errMFARequired) || errors.Is(err, errMFAPrimaryRequired) || errors.Is(err, core.ErrMFAInvalid) {
+			return mfaError(c, err)
+		}
 		if code := accountAccessCode(err); code != "" {
 			c.Set("X-Renop-Error-Code", code)
 			return c.Status(fiber.StatusForbidden).SendString("Account suspended")

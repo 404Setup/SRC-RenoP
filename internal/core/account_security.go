@@ -41,6 +41,8 @@ var (
 
 // AccountSecurity is the private authentication state visible only to its account owner.
 type AccountSecurity struct {
+	TOTPEnabled             bool   `json:"totp_enabled"`
+	PasskeySecondFactor     bool   `json:"passkey_second_factor"`
 	Email                   string `json:"email"`
 	RecoveryGeneratedAt     int64  `json:"recovery_generated_at,omitempty"`
 	RecoveryCodeCount       int    `json:"recovery_code_count"`

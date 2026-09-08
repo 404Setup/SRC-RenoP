@@ -14,6 +14,11 @@ export const RESPONSE_ERROR_CODE_HEADER = 'X-Renop-Error-Code';
 
 const MAX_ERROR_BODY_BYTES = 2048;
 const commonErrorCodeKeys = Object.freeze({
+    MFA_REQUIRED: 'mfa.loginHint',
+    MFA_PRIMARY_REQUIRED: 'mfa.primaryRequired',
+    MFA_INVALID: 'mfa.invalid',
+    MFA_UNAVAILABLE: 'mfa.unavailable',
+    MFA_REAUTH_REQUIRED: 'mfa.reauth',
     cache_settings_invalid: 'cache.invalid',
     cache_settings_save_failed: 'cache.saveFailed',
     cache_connection_failed: 'cache.testFailed',

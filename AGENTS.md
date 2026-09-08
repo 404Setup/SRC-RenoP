@@ -38,7 +38,7 @@ Service paths in this table are relative to `internal/service/`; all other paths
 | HTTP routing, search, middleware, public API          | `internal/api/`, `internal/middleware/`, relevant service `routes.go`                                           |
 | SQL, migrations, transactions, persistence caches     | `internal/database/`; dialect logic in `clickhouse*.go`                                                         |
 | Memory, Redis, Valkey cache backends                  | `internal/cache/`, `internal/core/cache.go`, `internal/database/cache.go`; configuration in `settings/cache.go` |
-| Login, sessions, Passkey, OAuth, API tokens, profiles | `auth/`; GitHub split across `github_routes.go`, `github_client.go`, `github_account.go`                        |
+| Login, sessions, Passkey, TOTP, OAuth, API tokens, profiles | `auth/`; second factors in `mfa*.go`; GitHub in `github_routes.go`, `github_client.go`, `github_account.go` |
 | Retirement, recovery, avatars                         | `auth/`, `internal/database/`, matching `account_retirement*`, `recovery_codes*`, `password_reset*`, `avatar*` files |
 | Cargo registry and documentation                      | `cargo/`, `cargodocs/`                                                                                          |
 | Maven domains, verification, artifacts                | `maven/`                                                                                                        |
@@ -53,7 +53,7 @@ Service paths in this table are relative to `internal/service/`; all other paths
 | Email transports, templates, durable queue, accounting | `internal/mail/`, `mailqueue/`, `internal/database/mail*.go`, `settings/mail.go`                                |
 | Outbound networking                                   | `proxy/`, `outboundproxy/`                                                                                      |
 | Updates, services, Caddy                              | `updater/`, `internal/daemon/`, `internal/caddy/`, `internal/version/`                                          |
-| Shared bounds, renames, memory tuning, test cleanup   | `internal/utils/`, `internal/testutil/`                                                                         |
+| Shared bounds, secret encryption, renames, memory tuning, test cleanup | `internal/utils/` (AES-GCM in `secretcipher/`), `internal/testutil/` |
 | SPA and embedded assets                               | `internal/service/frontend/`; sources in `renop-html/`, embedding in `html.go`                                  |
 | Shared UI / website / documentation                   | `packages/renop-ui/`, `web/`, `web/content/docs/`                                                               |
 | API/session schemas and generated Go bindings         | `proto/`, `pkg/pb/`                                                                                             |
@@ -90,6 +90,9 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   Enforce live account, repository, package/team, and scoped-token permissions server-side. API tokens intersect current
   owner permissions; cookie-only sessions gate browser-only operations. Basic/password authentication is protocol-only.
   Moderator roles do not imply write or manager authority. Never expose secrets or private profile/team fields publicly.
+  Browser session issuance enforces live second-factor policy and credential snapshots. Secondary Passkeys cannot count
+  as primary login methods; MFA accounts use API tokens for package clients. Startup persists the private authenticator
+  encryption key before serving requests; preserve it across configuration updates.
 - **Account lifecycle:** Preserve alternate-login and atomic recovery-consumption invariants, hashed credentials,
   immediate revocation, and targeted cache invalidation. All login methods honor bans and retirement.
   Retirement rechecks protected roles, ownership, and pending reviews; keeps permanent tombstones, reserves email for

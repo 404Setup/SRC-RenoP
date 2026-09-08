@@ -111,6 +111,9 @@ func startGitHubOAuth(c fiber.Ctx, state *core.AppState, provider githubOAuthPro
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("GitHub login is unavailable")
 	}
+	if c.Query("intent") == "login" {
+		profile = nil
+	}
 	if profile != nil && returnTo == "/" {
 		returnTo = "/user/" + url.PathEscape(profile.Username) + "/edit"
 	}
@@ -227,7 +230,15 @@ func finishGitHubOAuth(c fiber.Ctx, state *core.AppState, opChan chan<- token.To
 		log.Printf("Failed to resolve GitHub login: %v", err)
 		return oauthResultRedirect(c, record.ReturnTo, "identity_failed")
 	}
+	mfa, err := state.GetDB().GetMFAState(user.Username)
+	if err != nil || mfa.GitHubID != identity.ID {
+		return oauthResultRedirect(c, record.ReturnTo, "session_failed")
+	}
+	user.AuthenticationSnapshot = mfa.Snapshot
 	if err := issueBrowserSession(c, state, user, "github"); err != nil {
+		if errors.Is(err, errMFARequired) {
+			return c.Redirect().To("/account/login?mfa=1&return_to=" + url.QueryEscape(record.ReturnTo))
+		}
 		if errors.Is(err, core.ErrAccountBanned) {
 			return oauthResultRedirect(c, record.ReturnTo, "account_banned")
 		}
@@ -278,7 +289,7 @@ func canDisconnectGitHub(state *core.AppState, username string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return security.FidoDeviceCount > 0 ||
+	return (security.FidoDeviceCount > 0 && !security.PasskeySecondFactor) ||
 		(security.PasswordConfigured && security.PasswordLoginEnabled), nil
 }
 

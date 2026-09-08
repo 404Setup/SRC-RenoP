@@ -55,6 +55,20 @@
     font-weight: 500;
 }
 
+button.account-form-link {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+#mfa-login-form :is(h2, p),
+.mfa-setup p {
+    margin: 0;
+}
+
 .account-page-back {
     display: inline-flex;
     align-items: center;
@@ -87,6 +101,31 @@
     border: 1px solid var(--border-color);
     border-radius: 1.5rem;
     background: var(--card-bg);
+}
+
+.account-page-form[hidden],
+#mfa-login-form [hidden] {
+    display: none;
+}
+
+.mfa-setup {
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.mfa-setup img {
+    width: min(100%, 320px);
+    height: auto;
+    justify-self: center;
+}
+
+.mfa-setup-secret {
+    overflow-wrap: anywhere;
+    padding: 0.75rem;
+    background: var(--bg-color);
+    border-radius: 0.5rem;
+    user-select: all;
 }
 
 .account-field {

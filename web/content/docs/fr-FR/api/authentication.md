@@ -13,6 +13,8 @@ jamais un mot de passe ou un API Token.
 
 La page de connexion du navigateur est `/account/login`. Après une connexion par mot de passe, Passkey ou GitHub, le navigateur revient au chemin local indiqué par le paramètre facultatif `return_to`, sans conserver la requête ni le fragment. Les adresses externes, les points de terminaison d’authentification et les valeurs de plus de 1 024 caractères sont remplacés par `/`. Une session expirée ouvre la page de connexion ; un refus d’accès pour un utilisateur connecté renvoie à l’accueil sans fermer sa session.
 
+La [vérification en deux étapes](../security/two-step-verification.md) décrit la configuration de l’authentificateur, les Passkeys secondaires, les réponses de connexion en attente et la récupération. Une Passkey secondaire ne compte pas comme méthode principale. La récupération hors ligne retire l’authentificateur et désactive les Passkeys secondaires ; la récupération par email conserve ces réglages.
+
 ## Connexion par mot de passe ou e-mail
 
 - **Chemin** : `POST /api/auth/login`

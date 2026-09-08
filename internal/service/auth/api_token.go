@@ -353,6 +353,10 @@ func VerifyAccountCredential(state *core.AppState, account *core.AccessToken, se
 	if err := bcrypt.CompareHashAndPassword([]byte(account.EncryptedSecret), []byte(secret)); err != nil {
 		return nil, nil
 	}
+	mfa, err := state.GetDB().GetMFAState(account.Name)
+	if err != nil || mfa.Enabled() {
+		return nil, err
+	}
 	return &VerifiedCredential{
 		Account: account, Kind: credentialKindPassword, ExpiresAt: account.ExpiresAt,
 	}, nil

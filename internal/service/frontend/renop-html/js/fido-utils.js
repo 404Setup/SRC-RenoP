@@ -42,3 +42,26 @@ export function bufferToBase64url(buffer) {
     const base64 = btoa(binary);
     return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
+
+/** Request a Passkey assertion using the server's verification policy. */
+export async function requestPasskeyAssertion(options, signal) {
+    if (!window.PublicKeyCredential || !options?.publicKey) throw new Error('Passkey is unavailable');
+    const publicKey = {...options.publicKey, challenge: base64urlToBuffer(options.publicKey.challenge)};
+    if (publicKey.allowCredentials?.length) {
+        publicKey.allowCredentials = publicKey.allowCredentials.map(credential => ({...credential, id: base64urlToBuffer(credential.id)}));
+    } else {
+        delete publicKey.allowCredentials;
+    }
+    publicKey.userVerification ||= 'preferred';
+    const assertion = await navigator.credentials.get({publicKey, signal});
+    if (!assertion) throw new Error('Passkey assertion was cancelled');
+    return {
+        id: assertion.id, rawId: bufferToBase64url(assertion.rawId), type: assertion.type,
+        response: {
+            authenticatorData: bufferToBase64url(assertion.response.authenticatorData),
+            clientDataJSON: bufferToBase64url(assertion.response.clientDataJSON),
+            signature: bufferToBase64url(assertion.response.signature),
+            userHandle: assertion.response.userHandle ? bufferToBase64url(assertion.response.userHandle) : null,
+        },
+    };
+}

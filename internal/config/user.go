@@ -19,12 +19,13 @@ import (
 )
 
 type User struct {
-	Username         string   `json:"username" yaml:"username"`
-	PasswordHash     string   `json:"password_hash" yaml:"password_hash"`
-	Tokens           []string `json:"tokens" yaml:"tokens"`
-	Roles            []string `json:"roles" yaml:"roles"`
-	ReadPermissions  []string `json:"read_permissions" yaml:"read_permissions"`
-	WritePermissions []string `json:"write_permissions" yaml:"write_permissions"`
+	AuthenticationSnapshot string   `json:"-" yaml:"-"`
+	Username               string   `json:"username" yaml:"username"`
+	PasswordHash           string   `json:"password_hash" yaml:"password_hash"`
+	Tokens                 []string `json:"tokens" yaml:"tokens"`
+	Roles                  []string `json:"roles" yaml:"roles"`
+	ReadPermissions        []string `json:"read_permissions" yaml:"read_permissions"`
+	WritePermissions       []string `json:"write_permissions" yaml:"write_permissions"`
 
 	once           sync.Once       `json:"-" yaml:"-"`
 	isAdmin        bool            `json:"-" yaml:"-"`

@@ -15,7 +15,8 @@ import {updateTabIndicator} from '@renop/ui/tabs';
 import {leaveLoginPage, navigateToLogin} from './login-route.js';
 import {stopDashboardRefresh} from './dashboard.js';
 import {LoginRequest, SessionDetails} from './proto/index.js';
-import {base64urlToBuffer, bufferToBase64url} from './fido-utils.js';
+import {requestPasskeyAssertion} from './fido-utils.js';
+import {showMFALogin} from './mfa-login.js';
 import {clearUserProfileCache, getUserProfile, profileDisplayName, renderProfileAvatar} from './user-profiles.js';
 import {responseErrorMessage} from './response-errors.js';
 import {runButtonAction} from './components/button.js';
@@ -370,22 +371,9 @@ export async function login(name, secret) {
         );
 
         if (response.ok) {
-            const permissions = (sessionData && sessionData.permissions) || [];
-            const routes = (sessionData && sessionData.routes) || [];
-            const isManager = isManagerFromSession(permissions);
-            const serverName = sessionData && sessionData.access_token && sessionData.access_token.name
-                ? sessionData.access_token.name
-                : name;
-
-            localStorage.removeItem('token-name');
-            localStorage.removeItem('token-secret');
-            localStorage.setItem('username', serverName);
-            localStorage.removeItem('session-token');
-
-            updateAuthUI(true, serverName, isManager, permissions, routes);
-            loginForm.reset();
-            showAlert(t('login.welcomeBack', {name: serverName}), 'success');
-            leaveLoginPage();
+            completeLogin(sessionData, name);
+        } else if (response.headers.get('X-Renop-Error-Code') === 'MFA_REQUIRED') {
+            await showMFALogin();
         } else {
             loginError.textContent = await responseErrorMessage(response, 'login.invalidCreds');
             loginError.style.display = 'block';
@@ -396,6 +384,23 @@ export async function login(name, secret) {
         loginError.style.display = 'block';
     }
 }
+
+/** Apply one completed browser login, including its optional second-factor step. */
+function completeLogin(session, fallback = '') {
+    const name = session?.access_token?.name || fallback;
+    const permissions = session?.permissions || [];
+    const routes = session?.routes || [];
+    localStorage.removeItem('token-name');
+    localStorage.removeItem('token-secret');
+    localStorage.removeItem('session-token');
+    localStorage.setItem('username', name);
+    updateAuthUI(true, name, isManagerFromSession(permissions), permissions, routes);
+    loginForm.reset();
+    showAlert(t('login.welcomeBack', {name}), 'success');
+    leaveLoginPage();
+}
+
+window.addEventListener('mfaLoginCompleted', event => completeLogin(event.detail));
 
 /**
  * End the server session, clear local auth state, and reset UI to the overview tab.
@@ -484,44 +489,7 @@ export async function fidoLogin() {
             return;
         }
 
-        const publicKey = options.publicKey;
-        publicKey.challenge = base64urlToBuffer(publicKey.challenge);
-
-        if (Array.isArray(publicKey.allowCredentials)) {
-            publicKey.allowCredentials = publicKey.allowCredentials.map(c => ({
-                ...c,
-                id: base64urlToBuffer(c.id)
-            }));
-            if (publicKey.allowCredentials.length === 0) {
-                delete publicKey.allowCredentials;
-            }
-        }
-
-        if (publicKey.authenticatorSelection) {
-            delete publicKey.authenticatorSelection.authenticatorAttachment;
-        }
-        if (!publicKey.userVerification) {
-            publicKey.userVerification = 'preferred';
-        }
-
-        const assertion = await navigator.credentials.get({publicKey});
-        if (!assertion) {
-            loginError.textContent = t('login.fidoFailed');
-            loginError.style.display = 'block';
-            return;
-        }
-
-        const credentialJSON = {
-            id: assertion.id,
-            rawId: bufferToBase64url(assertion.rawId),
-            type: assertion.type,
-            response: {
-                authenticatorData: bufferToBase64url(assertion.response.authenticatorData),
-                clientDataJSON: bufferToBase64url(assertion.response.clientDataJSON),
-                signature: bufferToBase64url(assertion.response.signature),
-                userHandle: assertion.response.userHandle ? bufferToBase64url(assertion.response.userHandle) : null,
-            }
-        };
+        const credentialJSON = await requestPasskeyAssertion(options);
 
         const finishRes = await fetch('/api/auth/fido/login/finish', {
             method: 'POST',
@@ -537,23 +505,9 @@ export async function fidoLogin() {
         });
 
         if (finishRes.ok) {
-            const sessionData = await finishRes.json();
-            const permissions = (sessionData && sessionData.permissions) || [];
-            const routes = (sessionData && sessionData.routes) || [];
-            const isManager = isManagerFromSession(permissions);
-
-            const serverName = sessionData && sessionData.access_token && sessionData.access_token.name
-                ? sessionData.access_token.name
-                : name;
-
-            if (serverName) {
-                localStorage.setItem('username', serverName);
-            }
-
-            updateAuthUI(true, serverName, isManager, permissions, routes);
-            loginForm.reset();
-            showAlert(t('login.welcomeBack', {name: serverName}), 'success');
-            leaveLoginPage();
+            completeLogin(await finishRes.json(), name);
+        } else if (finishRes.headers.get('X-Renop-Error-Code') === 'MFA_REQUIRED') {
+            await showMFALogin();
         } else {
             loginError.textContent = await responseErrorMessage(finishRes, 'error.invalidFidoCred');
             loginError.style.display = 'block';

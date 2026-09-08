@@ -10,6 +10,8 @@ description: Identifiants fins, récupération et vérification OpenPGP des publ
 RenoP sépare sessions navigateur, API Token, mots de passe, récupération et clés de signature. Leur stockage, transport
 et révocation diffèrent.
 
+La [vérification en deux étapes](../security/two-step-verification.md) décrit la configuration de l’authentificateur, les Passkeys secondaires, les réponses de connexion en attente et la récupération. Une Passkey secondaire ne compte pas comme méthode principale. La récupération hors ligne retire l’authentificateur et désactive les Passkeys secondaires ; la récupération par email conserve ces réglages.
+
 ## API Token et récupération
 
 Un API Token contient 256 bits aléatoires et le préfixe `rnp_pat_`. Le secret est affiché une fois ; seul son digest

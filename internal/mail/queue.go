@@ -9,7 +9,6 @@
 package mail
 
 import (
-	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
 	"errors"
@@ -17,6 +16,7 @@ import (
 	"github.com/emmansun/base64"
 
 	"github.com/goccy/go-json"
+	"renop/internal/utils/secretcipher"
 )
 
 // MaxPendingJobs bounds queued, paused, sending, and status-checking messages together.
@@ -78,15 +78,7 @@ func (c *Config) EnsureKey() error {
 }
 
 func queueCipher(key string) (cipher.AEAD, error) {
-	raw, err := base64.RawStdEncoding.DecodeString(key)
-	if err != nil || len(raw) != 32 {
-		return nil, errors.New("invalid mail encryption key")
-	}
-	block, err := aes.NewCipher(raw)
-	if err != nil {
-		return nil, err
-	}
-	return cipher.NewGCMWithRandomNonce(block)
+	return secretcipher.New(key)
 }
 
 // Seal encrypts durable mail content and binds it to its table row identity.

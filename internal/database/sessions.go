@@ -84,6 +84,24 @@ func (db *DB) SaveSession(session *core.Session, sessionToken string) error {
 	if err := lockAccountByUsernameTx(tx, session.Username); err != nil {
 		return err
 	}
+	if session.AuthenticationSnapshot != "" {
+		current, err := mfaStateQuery(tx.QueryRow, session.Username)
+		if err != nil {
+			return err
+		}
+		if current.Snapshot != session.AuthenticationSnapshot {
+			return core.ErrMFAInvalid
+		}
+	}
+	if len(session.FidoCredentialID) > 0 {
+		var count int
+		if err := tx.QueryRow(`SELECT COUNT(*) FROM fido_devices WHERE username = ? AND credential_id = ?`, session.Username, session.FidoCredentialID).Scan(&count); err != nil {
+			return err
+		}
+		if count != 1 {
+			return core.ErrMFAInvalid
+		}
+	}
 	_, err = tx.Exec(query, sessionToken, session.PublicID, strings.ToLower(session.Username), session.IP, session.UserAgent, session.CreatedAt, lastActive, loginMethod)
 	if err != nil {
 		return fmt.Errorf("failed to save session (%s): %w", sessionTokenPrefix(sessionToken), err)

@@ -24,7 +24,7 @@ let currentGitHubProfileStatus = null;
  */
 function startGitHubOAuth() {
     const returnTo = isLoginPath() ? loginReturnTo() : window.location.pathname || '/';
-    window.location.assign('/api/auth/github/start?return_to=' + encodeURIComponent(returnTo));
+    window.location.assign('/api/auth/github/start?return_to=' + encodeURIComponent(returnTo) + (isLoginPath() ? '&intent=login' : ''));
 }
 
 /**
@@ -155,7 +155,7 @@ $(window).on('accountSecurityUpdated', event => {
     const detail = event.originalEvent?.detail || event.detail;
     if (!currentGitHubProfileStatus?.linked || !detail) return;
     const security = detail;
-    const canDisconnect = Number(security.fido_device_count) > 0 ||
+    const canDisconnect = (Number(security.fido_device_count) > 0 && !security.passkey_second_factor) ||
         (security.password_configured === true && security.password_login_enabled === true);
     if (canDisconnect === Boolean(currentGitHubProfileStatus.can_disconnect)) return;
     renderGitHubConnection({...currentGitHubProfileStatus, can_disconnect: canDisconnect});

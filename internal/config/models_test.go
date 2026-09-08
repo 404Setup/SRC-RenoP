@@ -357,6 +357,9 @@ func TestMirrorCredentialsCustomHeaderValidation(t *testing.T) {
 
 func TestConfigDeepCopy(t *testing.T) {
 	orig := DefaultConfig()
+	orig.MFAEncryptionKey = "private-authenticator-key"
+	orig.CargodocExtractPath = "original_cargodoc"
+	orig.MaxCargodocSizeMb = 37
 	orig.StoragePath = "original_storage"
 	orig.Frontend.Title = "Original Title"
 	orig.Frontend.FontPreset = FrontendFontCustom
@@ -395,6 +398,10 @@ func TestConfigDeepCopy(t *testing.T) {
 	}
 
 	cloned := orig.DeepCopy()
+	if cloned.MFAEncryptionKey != orig.MFAEncryptionKey || cloned.EnableCargodocPreview != orig.EnableCargodocPreview ||
+		cloned.CargodocExtractPath != orig.CargodocExtractPath || cloned.MaxCargodocSizeMb != orig.MaxCargodocSizeMb {
+		t.Fatal("configuration copy changed authenticator or Cargo documentation settings")
+	}
 
 	cloned.StoragePath = "modified_storage"
 	cloned.Frontend.Title = "Modified Title"

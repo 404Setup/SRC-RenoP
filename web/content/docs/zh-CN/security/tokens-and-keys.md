@@ -9,6 +9,8 @@ description: 细粒度机器凭据、恢复材料与 OpenPGP 发布校验
 
 RenoP 将浏览器会话、API Token、密码认证、恢复材料与制品签名密钥分离，并分别使用不同的存储、传输与撤销规则。
 
+[二次验证](../security/two-step-verification.md)说明验证器配置、Passkey 二次验证、待完成登录响应与恢复流程。二次验证 Passkey 不算作初次登录方式。离线恢复会移除验证器并关闭 Passkey 二次验证；邮件重置密码会保留这两项设置。
+
 ## API Token 与恢复材料
 
 API Token 使用 256 位随机数与 `rnp_pat_` 前缀。密钥只显示一次，仅存储 SHA-256 查询摘要。每个 Token 具有
