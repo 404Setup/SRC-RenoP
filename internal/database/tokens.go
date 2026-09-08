@@ -625,6 +625,9 @@ func (db *DB) deleteToken(name string, retire bool, retiredAt int64) error {
 	if _, err := tx.Exec(`DELETE FROM github_identities WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete GitHub identity for token (%s): %w", lowerName, err)
 	}
+	if _, err := tx.Exec(`DELETE FROM oauth_identities WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("delete OAuth identities: %w", err)
+	}
 	if _, err := tx.Exec(`DELETE FROM user_recovery_codes WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete recovery codes for token (%s): %w", lowerName, err)
 	}

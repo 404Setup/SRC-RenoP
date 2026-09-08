@@ -26,6 +26,8 @@ type TransientAuthState struct {
 	Intent      string
 	SessionHash string
 	Snapshot    string
+	Verifier    string
+	ConfigHash  string
 	ExpiresAt   int64
 }
 
@@ -52,6 +54,8 @@ func (store *TransientAuthStateStore) Put(raw string, state TransientAuthState, 
 	state.Intent = strings.Clone(state.Intent)
 	state.SessionHash = strings.Clone(state.SessionHash)
 	state.Snapshot = strings.Clone(state.Snapshot)
+	state.Verifier = strings.Clone(state.Verifier)
+	state.ConfigHash = strings.Clone(state.ConfigHash)
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	var oldestKey [sha256.Size]byte

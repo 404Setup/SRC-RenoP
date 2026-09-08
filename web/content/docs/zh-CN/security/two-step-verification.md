@@ -11,7 +11,7 @@ description: Passkey 二次验证、验证器配置、账号恢复与私有验�
 
 在账号安全面板配置二次验证。密码或第三方账号验证成功后，RenoP 会要求完成已配置的二次验证，然后才签发浏览器会话。同时启用验证器和 Passkey 二次验证时，可任选一种完成此步骤。用于二次验证的 Passkey 不能单独登录；用于初次登录的 Passkey 则可以继续搭配验证器验证码。
 
-需要二次验证时，密码或初次 Passkey 登录返回 `409`，并带有 `X-Renop-Error-Code: MFA_REQUIRED`。GitHub 返回 `/account/login?mfa=1`，保留本地 `return_to` 目标。私有 HttpOnly `renop_mfa` Cookie 仅授权待完成验证接口，不属于浏览器会话。挑战有效期为五分钟，仅可使用一次，重启后失效。进程最多保留 4,096 个挑战，每个账号最多八个。
+需要二次验证时，密码或初次 Passkey 登录返回 `409`，并带有 `X-Renop-Error-Code: MFA_REQUIRED`。GitHub 和其他已配置的 OAuth 服务返回 `/account/login?mfa=1`，保留本地 `return_to` 目标。私有 HttpOnly `renop_mfa` Cookie 仅授权待完成验证接口，不属于浏览器会话。挑战有效期为五分钟，仅可使用一次，重启后失效。进程最多保留 4,096 个挑战，每个账号最多八个。
 
 ## 配置验证器
 

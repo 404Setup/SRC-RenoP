@@ -51,10 +51,14 @@ export async function refreshRegistrationAvailability() {
         availability.textContent = fields.disabled ? t('registration.disabled') : '';
         if (fields.disabled) return;
         email.required = status.email_required === true || Boolean(pending?.provider);
-        email.readOnly = Boolean(pending?.provider);
-        code.required = status.email_required === true && !pending?.provider;
+        email.readOnly = Boolean(pending?.provider) && pending.email_required !== true;
+        code.required = pending?.provider ? pending.email_required === true : status.email_required === true;
         code.closest('.account-field').hidden = !code.required;
         send.hidden = !code.required;
+        if (code.required && status.email_required !== true) {
+            fields.disabled = true;
+            availability.textContent = t('oauth.mailRequired');
+        }
         if (pending?.provider && pending.expires_at <= Date.now()) {
             fields.disabled = true;
             availability.textContent = t('registration.expired');
@@ -85,7 +89,8 @@ async function loadRegistration() {
         email.value = result.email || '';
         if (result.provider) {
             document.getElementById('registration-provider-info').hidden = false;
-            document.getElementById('registration-provider-hint').textContent = t('registration.providerHint');
+            document.getElementById('registration-provider-hint').textContent = result.provider === 'github' ? t('registration.providerHint')
+                : t(result.email_required ? 'oauth.providerEmailHint' : 'oauth.providerHint', {provider: result.provider_name || result.provider});
             if (!result.username_available) error.textContent = t('registration.chooseUsername');
             expiryTimer = setTimeout(() => {
                 if (!active || pending !== result) return;
@@ -164,7 +169,7 @@ send.addEventListener('click', () => runButtonAction(send, async () => {
     const revision = epoch, address = email.value.trim();
     error.textContent = '';
     try {
-        const result = await requestJSON('registration/code', {email: address});
+        const result = await requestJSON('registration/code', {email: address, provider: pending?.provider || ''});
         if (!active || revision !== epoch || address !== email.value.trim()) return;
         clearDelivery();
         receipt = {...result, deadline: Date.now() + 600000};
@@ -185,7 +190,8 @@ form.addEventListener('submit', event => {
         if (password.value !== confirmation.value) { error.textContent = t('login.passwordsDoNotMatch'); confirmation.focus(); return; }
         const revision = epoch, returnTo = loginReturnTo();
         const body = {username: username.value.trim(), nickname: nickname.value.trim(), email: email.value.trim(),
-            password: password.value, code: code.value.trim(), provider: pending?.provider || '', import_avatar: importProfile.checked};
+            password: password.value, code: code.value.trim(), provider: pending?.provider || '',
+            import_avatar: importProfile.checked && pending?.avatar_available !== false};
         if (!(await confirmWeakPasswordIfNeeded(body.password)) || !active || revision !== epoch) return;
         try {
             const result = await requestJSON('registration', body);

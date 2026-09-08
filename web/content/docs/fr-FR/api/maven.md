@@ -26,6 +26,8 @@ par domaine. Un administrateur peut utiliser `/verify/force`; l’action est ins
 Le domaine vérifié et son équipe sont globaux à l’instance. Ils sont réutilisés dans tous les dépôts Maven sans nouvelle
 preuve ni nouvelle invitation.
 
+Une association récente à GitLab.com peut aussi vérifier automatiquement un nouvel espace : le compte doit posséder l’espace personnel ou un groupe de premier niveau, avec une preuve datant de moins d’une heure. L’appartenance publique, la propriété d’un sous-groupe et les instances auto-hébergées ne suffisent pas. Voir [Connexion via un service tiers](../security/oauth-login.md).
+
 ## Autorisations du domaine
 
 Les équipes Maven appartiennent au domaine global :

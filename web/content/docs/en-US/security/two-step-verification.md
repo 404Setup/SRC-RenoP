@@ -11,7 +11,7 @@ description: Passkey second factors, authenticator setup, recovery, and private 
 
 Configure two-step verification in the account security panel. After a successful password or third-party login, RenoP requires a configured second factor before issuing a browser session. With an authenticator and a secondary Passkey both enabled, either may complete this step. A Passkey assigned to second-factor use cannot sign in on its own. A primary Passkey can still be followed by an authenticator code.
 
-Password and primary Passkey login return `409` with `X-Renop-Error-Code: MFA_REQUIRED` when a second factor is needed. GitHub returns to `/account/login?mfa=1` with the local `return_to` destination. The private HttpOnly `renop_mfa` cookie authorizes only the pending verification endpoints; it is not a browser session. Challenges expire after five minutes, are single-use, and are discarded on restart. The process retains at most 4,096 challenges and eight per account.
+Password and primary Passkey login return `409` with `X-Renop-Error-Code: MFA_REQUIRED` when a second factor is needed. GitHub and other configured OAuth providers return to `/account/login?mfa=1` with the local `return_to` destination. The private HttpOnly `renop_mfa` cookie authorizes only the pending verification endpoints; it is not a browser session. Challenges expire after five minutes, are single-use, and are discarded on restart. The process retains at most 4,096 challenges and eight per account.
 
 ## Authenticator setup
 

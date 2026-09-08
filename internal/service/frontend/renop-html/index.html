@@ -225,6 +225,7 @@
                                 <span data-i18n="login.githubLogin">Continue with GitHub</span>
                             </button>
                         </div>
+                        <div class="account-providers" hidden id="oauth-login-providers"></div>
                     </div>
                 </form>
                 <form class="account-page-form" id="mfa-login-form" hidden aria-labelledby="mfa-login-title">
@@ -360,9 +361,10 @@
                     <p class="account-form-error" id="registration-availability" role="status"></p>
                     <fieldset class="account-reset-fields" disabled id="registration-fields">
                         <button class="account-provider" data-i18n="login.githubLogin" hidden id="registration-github" type="button">Continue with GitHub</button>
+                        <div class="account-providers" hidden id="oauth-register-providers"></div>
                         <div id="registration-provider-info" hidden>
                             <p id="registration-provider-hint" role="status"></p>
-                            <label class="account-check"><input id="registration-import" type="checkbox"><span data-i18n="registration.importProfile">Use GitHub username, nickname, and avatar</span></label>
+                            <label class="account-check"><input id="registration-import" type="checkbox"><span data-i18n="oauth.importProfile">Use the provider username, nickname, and avatar</span></label>
                         </div>
                         <div class="account-field">
                             <label data-i18n="profile.usernameLabel" for="registration-username">Username</label>
@@ -1205,6 +1207,8 @@
                             </div>
                         </div>
                     </div>
+
+                    <div hidden id="profile-oauth-providers"></div>
 
                     <div class="profile-settings-section">
                         <div class="profile-section-card-header">

@@ -26,6 +26,8 @@ to the operation. Responses use protobuf where defined in `proto/api/v1/api.prot
   the
   client ID and write-only secret.
 
+**Other OAuth providers**: `GET /api/settings/oauth-providers` returns redacted clients and presets; `PUT /api/settings/oauth-providers` replaces the list. A `providers` array is required, and an explicit empty array removes all configured clients. Up to 32 clients and a 128 KiB request are supported. See [Third-party Login](../security/oauth-login.md) for credentials, provider presets, and account binding.
+
 ## Repository settings
 
 The generic `/api/settings/repositories` routes are preferred. Maven-prefixed aliases remain for compatibility.

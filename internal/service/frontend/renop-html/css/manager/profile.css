@@ -305,6 +305,16 @@
     gap: 0.75rem;
 }
 
+#profile-oauth-providers {
+    display: grid;
+    gap: 0.75rem;
+    grid-column: 1 / -1;
+}
+
+#profile-oauth-providers[hidden] {
+    display: none;
+}
+
 .profile-settings-section {
     min-width: 0;
     overflow: hidden;

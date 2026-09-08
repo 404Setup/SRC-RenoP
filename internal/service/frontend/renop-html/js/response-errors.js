@@ -14,6 +14,11 @@ export const RESPONSE_ERROR_CODE_HEADER = 'X-Renop-Error-Code';
 
 const MAX_ERROR_BODY_BYTES = 2048;
 const commonErrorCodeKeys = Object.freeze({
+    oauth_invalid: 'oauth.failed',
+    oauth_unavailable: 'oauth.failed',
+    oauth_last_login_method: 'oauth.onlyLogin',
+    oauth_settings_invalid: 'oauth.settingsInvalid',
+    oauth_settings_save_failed: 'oauth.failed',
     registration_disabled: 'registration.disabled',
     registration_ip_limited: 'registration.ipLimited',
     registration_cooldown: 'registration.cooldown',

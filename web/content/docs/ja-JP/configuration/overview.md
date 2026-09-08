@@ -65,6 +65,8 @@ TLS、compression、debug、一部 cache の変更は再起動が必要です。
 
 GitHub OAuth は `server.github_oauth` に保存し、Client ID と書き込み専用 Secret は UI で設定します。
 
+その他の [OAuth プロバイダー](../security/oauth-login.md)は `server.oauth_providers` で設定します。管理画面には公式プリセットがあり、認証情報を返さずに保存し、新しい認可に変更を即時適用します。
+
 ### `database` 接続
 
 ```yaml

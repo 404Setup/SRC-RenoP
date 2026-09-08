@@ -249,21 +249,28 @@ func avatarProfileResponse(c fiber.Ctx, state *core.AppState, username string) e
 	return c.JSON(response)
 }
 
-func storeAvatar(c fiber.Ctx, state *core.AppState, username, source string, avatar *core.UserAvatar) error {
+func persistProfileAvatar(state *core.AppState, username string, avatar *core.UserAvatar) (int, string) {
 	quota, err := publicationquota.Reserve(state, username, "", core.PublicationQuotaDelta{
 		Files: 1, Bytes: avatar.Size, Publications: 0,
 	})
 	if err != nil {
 		code := publicationquota.ErrorCode(err)
-		return avatarAPIError(c, fiber.StatusTooManyRequests, code)
+		return fiber.StatusTooManyRequests, code
 	}
 	defer quota.Release()
 	if err := quota.Commit(); err != nil {
-		return avatarAPIError(c, fiber.StatusServiceUnavailable, "publication_quota_unavailable")
+		return fiber.StatusServiceUnavailable, "publication_quota_unavailable"
 	}
 	avatar.UpdatedAt = time.Now().UnixMilli()
 	if err := state.GetDB().PutUserAvatar(username, avatar); err != nil {
-		return avatarAPIError(c, fiber.StatusInternalServerError, "avatar_storage_failed")
+		return fiber.StatusInternalServerError, "avatar_storage_failed"
+	}
+	return 0, ""
+}
+
+func storeAvatar(c fiber.Ctx, state *core.AppState, username, source string, avatar *core.UserAvatar) error {
+	if status, code := persistProfileAvatar(state, username, avatar); status != 0 {
+		return avatarAPIError(c, status, code)
 	}
 	_, operator, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
@@ -343,7 +350,7 @@ func fetchGitHubAvatar(ctx context.Context, state *core.AppState, provider githu
 	if githubUserID <= 0 || strings.TrimSpace(provider.AvatarURL) == "" {
 		return nil, "", errors.New("GitHub avatar endpoint is unavailable")
 	}
-	client, err := githubOAuthHTTPClient(state.Inner.Config.Load())
+	client, err := oauthHTTPClient(state.Inner.Config.Load())
 	if err != nil {
 		return nil, "", err
 	}

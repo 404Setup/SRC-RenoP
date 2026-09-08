@@ -30,6 +30,7 @@ import {exitProtectedRouteOnDenial} from './protected-route.js';
 import {restartApp} from './dashboard.js';
 import {renderCacheSettings} from './settings/cache.js';
 import {renderRegistrationSettings} from './settings/registration.js';
+import {renderOAuthSettings} from './settings/oauth.js';
 import {renderMailSettings} from './settings/mail.js';
 import {
     formatClickHouseDsn,
@@ -60,7 +61,7 @@ const DOMAIN_MESSAGE_TYPES = {
     index: IndexDomainSettings,
 };
 
-const SERVICE_DOMAINS = Object.freeze(['server', 'github_oauth', 'super_teams', 'publication_quota', 'cache', 'mail', 'registration', 'proxy', 'storage']);
+const SERVICE_DOMAINS = Object.freeze(['server', 'github_oauth', 'oauth_providers', 'super_teams', 'publication_quota', 'cache', 'mail', 'registration', 'proxy', 'storage']);
 const MERGED_SERVICE_DOMAINS = new Set(SERVICE_DOMAINS.filter(domain => domain !== 'server'));
 
 let currentDomain = null;
@@ -217,7 +218,7 @@ async function fetchPublicationQuotaSettings() {
 
 /** Load JSON settings with stored credentials omitted. */
 async function fetchJSONSettings(domain) {
-    const response = await apiRequest(`/api/settings/${domain}`);
+    const response = await apiRequest(`/api/settings/${domain.replaceAll('_', '-')}`);
     return {response, data: response.ok ? await response.json() : null};
 }
 
@@ -259,7 +260,7 @@ async function loadDomainSettings(domain, direction = 'next') {
             const serviceDomains = SERVICE_DOMAINS.filter(name => availableDomains.includes(name));
             const results = await Promise.all(serviceDomains.map(async name => ({
                 name,
-                result: ['cache', 'mail', 'registration'].includes(name) ? await fetchJSONSettings(name) : name === 'github_oauth'
+                result: ['cache', 'mail', 'registration', 'oauth_providers'].includes(name) ? await fetchJSONSettings(name) : name === 'github_oauth'
                     ? await fetchGitHubOAuthSettings()
                     : (name === 'publication_quota'
                         ? await fetchPublicationQuotaSettings()
@@ -583,6 +584,7 @@ function renderServiceSettings(container, data) {
     const stack = el('div', {class: 'cfg-service-stack'});
     if (data.server) renderServerSettings(stack, data.server);
     if (data.github_oauth) renderGitHubOAuthSettings(stack, data.github_oauth);
+    if (data.oauth_providers) renderOAuthSettings(stack, data.oauth_providers, enableSave);
     if (data.super_teams) renderSuperTeamSettings(stack, data.super_teams);
     if (data.publication_quota) renderPublicationQuotaSettings(stack, data.publication_quota);
     if (data.registration) renderRegistrationSettings(stack, data.registration, enableSave);
@@ -1592,7 +1594,7 @@ async function triggerIndexRebuild(mode) {
  * @returns {Promise<void>}
  */
 export async function saveDomainSettings() {
-    const invalidMailInput = document.querySelector('#settings-mail .cfg-fields input:invalid:not([data-mail-test]), #settings-registration input:invalid');
+    const invalidMailInput = document.querySelector('#settings-mail .cfg-fields input:invalid:not([data-mail-test]), #settings-registration input:invalid, #settings-oauth input:invalid');
     if (invalidMailInput) {
         invalidMailInput.reportValidity();
         return;
@@ -1617,9 +1619,10 @@ export async function saveDomainSettings() {
                 if (JSON.stringify(currentConfig[domain]) === JSON.stringify(initialConfig[domain])) continue;
                 let response;
                 let savedData = null;
-                if (['cache', 'mail', 'registration'].includes(domain)) {
-                    response = await apiRequest(`/api/settings/${domain}`, {
-                        method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(currentConfig[domain]),
+                if (['cache', 'mail', 'registration', 'oauth_providers'].includes(domain)) {
+                    response = await apiRequest(`/api/settings/${domain.replaceAll('_', '-')}`, {
+                        method: 'PUT', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(domain === 'oauth_providers' ? {providers: currentConfig[domain].providers} : currentConfig[domain]),
                     });
                     if (response.ok) savedData = await response.json();
                 } else if (domain === 'github_oauth') {
@@ -1667,6 +1670,10 @@ export async function saveDomainSettings() {
                     if (secretInput) secretInput.value = '';
                     const clearPassword = document.querySelector('#settings-cache-clear-password renop-toggle');
                     if (clearPassword) clearPassword.checked = false;
+                } else if (domain === 'oauth_providers' && savedData) {
+                    Object.assign(currentConfig[domain], savedData);
+                    document.getElementById('settings-oauth')?.dispatchEvent(new Event('oauth-saved'));
+                    window.dispatchEvent(new Event('oauthProvidersChanged'));
                 } else if (domain === 'mail' && savedData) {
                     Object.assign(currentConfig.mail, savedData, {clear_secrets: {}});
                     document.getElementById('settings-mail')?.dispatchEvent(new Event('mail-saved'));

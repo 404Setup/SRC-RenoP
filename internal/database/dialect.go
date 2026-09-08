@@ -40,6 +40,12 @@ func initDockerImageBlobTables(db *sql.DB) error {
 
 func initGitHubIdentityTables(db *sql.DB) error {
 	tables := [...]string{
+		`CREATE TABLE IF NOT EXISTS oauth_identities (
+			identity_hash VARCHAR(64) PRIMARY KEY, provider_id VARCHAR(32) NOT NULL,
+			subject VARCHAR(255) NOT NULL, authority VARCHAR(64) NOT NULL,
+			user_id VARCHAR(36) NOT NULL, login VARCHAR(255) NOT NULL, namespaces_json TEXT NOT NULL, authorized_at BIGINT NOT NULL,
+			UNIQUE (user_id, provider_id)
+		);`,
 		`CREATE TABLE IF NOT EXISTS github_identities (
 			github_user_id BIGINT PRIMARY KEY,
 			user_id VARCHAR(36) NOT NULL UNIQUE,

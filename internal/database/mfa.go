@@ -176,6 +176,9 @@ func passkeySecondFactorTx(tx *Tx, userID string) (bool, error) {
 }
 
 func hasPrimaryWithoutFidoTx(tx *Tx, userID, username string) (bool, error) {
+	if linked, err := hasOAuthLoginTx(tx, userID, ""); err != nil || linked {
+		return linked, err
+	}
 	var password string
 	var enabled, github int
 	if err := tx.QueryRow(`SELECT token.encrypted_secret, COALESCE(security.password_login_enabled, 1)

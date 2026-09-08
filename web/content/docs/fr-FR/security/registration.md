@@ -54,3 +54,5 @@ Les requêtes JSON publiques exigent `Content-Type: application/json` et sont li
 ```
 
 Utilisez `provider: "github"` pour confirmer GitHub, conservez l'adresse vérifiée et omettez `code`. `import_avatar` à `true` demande l'import de l'avatar. Le succès retourne `201`, `username` et `avatar_imported`, sans ouvrir de session. Les conflits retournent `409`, une confirmation invalide ou expirée `400`, une limite IP atteinte ou un délai fournisseur `429`. Compte, adresse, liaison, comptage IP et consommation de la confirmation sont validés dans une seule transaction.
+
+Les autres services suivent les [règles d’inscription externe](./oauth-login.md) : envoyez leur ID pour l’émission du code comme pour la confirmation. Une adresse absente ou non vérifiée par le fournisseur exige toujours un code RenoP ; cette inscription ne peut aboutir sans courrier disponible. Une adresse déjà vérifiée n’exige aucun code supplémentaire. L’e-mail facultatif sans courrier concerne uniquement l’inscription manuelle.

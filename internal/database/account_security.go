@@ -73,6 +73,9 @@ func lockAccountLoginMethodsTx(tx *Tx, userID string) error {
 }
 
 func hasExternalLoginTx(tx *Tx, userID, username string) (bool, error) {
+	if linked, err := hasOAuthLoginTx(tx, userID, ""); err != nil || linked {
+		return linked, err
+	}
 	var fidoCount, githubCount int
 	if err := tx.QueryRow(`SELECT COUNT(*) FROM fido_devices WHERE username = ?`, username).Scan(&fidoCount); err != nil {
 		return false, err
@@ -95,6 +98,9 @@ func hasLoginWithoutFidoTx(tx *Tx, userID, username, excludedDeviceID string) (b
 			return false, err
 		}
 		return remaining > 0, nil
+	}
+	if linked, err := hasOAuthLoginTx(tx, userID, ""); err != nil || linked {
+		return linked, err
 	}
 	var encryptedSecret string
 	var passwordEnabled, githubCount, remainingFido int
@@ -121,6 +127,9 @@ func hasLoginWithoutFidoTx(tx *Tx, userID, username, excludedDeviceID string) (b
 }
 
 func hasLoginWithoutGitHubTx(tx *Tx, userID, username string) (bool, error) {
+	if linked, err := hasOAuthLoginTx(tx, userID, ""); err != nil || linked {
+		return linked, err
+	}
 	var encryptedSecret string
 	var passwordEnabled, fidoCount int
 	if err := tx.QueryRow(`SELECT t.encrypted_secret, COALESCE(security.password_login_enabled, 1)
@@ -189,6 +198,9 @@ func (db *DB) GetAccountSecurity(username string) (*core.AccountSecurity, error)
 	}
 	security.TOTPEnabled = mfa.Secret != ""
 	security.PasskeySecondFactor = mfa.Passkey
+	if err := db.QueryRow(`SELECT COUNT(*) FROM oauth_identities WHERE user_id = ?`, mfa.UserID).Scan(&security.OAuthIdentityCount); err != nil {
+		return nil, err
+	}
 	var passwordEnabled, passwordConfigured, githubLinked int
 	if db.Dialect.Name() == "clickhouse" {
 		var userID string
@@ -221,7 +233,7 @@ func (db *DB) GetAccountSecurity(username string) (*core.AccountSecurity, error)
 		security.PasswordLoginEnabled = passwordEnabled != 0
 		security.PasswordConfigured = passwordConfigured != 0
 		security.GitHubLinked = githubLinked != 0
-		security.CanDisablePasswordLogin = (security.FidoDeviceCount > 0 && !mfa.Passkey) || security.GitHubLinked
+		security.CanDisablePasswordLogin = (security.FidoDeviceCount > 0 && !mfa.Passkey) || security.GitHubLinked || security.OAuthIdentityCount > 0
 		return security, nil
 	}
 	err = db.QueryRow(`SELECT COALESCE(security.email, ''),
@@ -251,7 +263,7 @@ func (db *DB) GetAccountSecurity(username string) (*core.AccountSecurity, error)
 	security.PasswordLoginEnabled = passwordEnabled != 0
 	security.PasswordConfigured = passwordConfigured != 0
 	security.GitHubLinked = githubLinked != 0
-	security.CanDisablePasswordLogin = (security.FidoDeviceCount > 0 && !mfa.Passkey) || security.GitHubLinked
+	security.CanDisablePasswordLogin = (security.FidoDeviceCount > 0 && !mfa.Passkey) || security.GitHubLinked || security.OAuthIdentityCount > 0
 	return security, nil
 }
 
@@ -367,8 +379,8 @@ func (db *DB) SetPasswordLoginEnabled(username string, enabled bool, updatedAt i
 		return nil, fmt.Errorf("initialize account security: %w", err)
 	}
 	if _, err := tx.Exec(`UPDATE user_account_security
-		SET password_login_enabled = ?, updated_at = ? WHERE user_id = ?`,
-		boolInt(enabled), updatedAt, userID); err != nil {
+		SET password_login_enabled = ?, updated_at = CASE WHEN updated_at >= ? THEN updated_at + 1 ELSE ? END WHERE user_id = ?`,
+		boolInt(enabled), updatedAt, updatedAt, userID); err != nil {
 		return nil, fmt.Errorf("update password-login policy: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
@@ -408,8 +420,8 @@ func (db *DB) SetAccountPassword(username, passwordHash string, updatedAt int64)
 	if err := ensureAccountSecurityTx(tx, userID, updatedAt); err != nil {
 		return fmt.Errorf("initialize account security: %w", err)
 	}
-	if _, err := tx.Exec(`UPDATE user_account_security SET password_login_enabled = 1, updated_at = ?
-		WHERE user_id = ?`, updatedAt, userID); err != nil {
+	if _, err := tx.Exec(`UPDATE user_account_security SET password_login_enabled = 1,
+		updated_at = CASE WHEN updated_at >= ? THEN updated_at + 1 ELSE ? END WHERE user_id = ?`, updatedAt, updatedAt, userID); err != nil {
 		return fmt.Errorf("enable password login: %w", err)
 	}
 	if err := tx.Commit(); err != nil {

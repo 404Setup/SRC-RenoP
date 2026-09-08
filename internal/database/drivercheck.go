@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
@@ -42,7 +43,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	suffix := uuid.NewString()[:8]
 	username := "dbcheck-" + suffix
 	now := time.Now().UnixMilli()
-	results := make([]DriverCheckResult, 0, 16)
+	results := make([]DriverCheckResult, 0, 17)
 	run := func(name string, check func() error) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -1158,6 +1159,100 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		identity, err := db.GetGitHubIdentityByProviderID(42000001)
 		if err != nil || identity == nil || identity.Username != request.Username {
 			return errorsOrMissing(err, "registered provider identity")
+		}
+		return nil
+	}); err != nil {
+		return results, err
+	}
+	if err := run("OAuth account lifecycle", func() error {
+		cfg := config.DefaultRegistrationConfig()
+		cfg.Enabled = true
+		mailCfg := mail.DefaultConfig()
+		if err := mailCfg.EnsureKey(); err != nil {
+			return err
+		}
+		hash := func(value string) string { return fmt.Sprintf("%x", sha256.Sum256([]byte(value+suffix))) }
+		identity := core.OAuthIdentity{ProviderID: "gitlab", Subject: "subject-" + suffix, Authority: hash("authority"), Login: "external",
+			Namespaces: []string{"external", "owned-group"}}
+		profile, err := json.Marshal(core.RegistrationProfile{OAuth: &identity})
+		if err != nil {
+			return err
+		}
+		pending := &core.PendingRegistration{IDHash: hash("oauth"), IPHash: hash("oauth-ip"),
+			ProviderKey: identity.ProviderID + ":" + identity.Key(), ProfileJSON: string(profile), CreatedAt: now,
+			ExpiresAt: now + 600000, CooldownUntil: now + 600000 + cfg.ProviderCooldown.Duration().Milliseconds()}
+		if err := db.BeginRegistration(pending, nil, "", "", mailCfg.ManualRate, cfg); err != nil {
+			return err
+		}
+		password, err := bcrypt.GenerateFromPassword([]byte("OAuthPassword2026!"), bcrypt.MinCost)
+		if err != nil {
+			return err
+		}
+		request := core.AccountRegistration{Provider: identity.ProviderID, Username: "oauth_" + suffix, PasswordHash: string(password),
+			IDHash: pending.IDHash, IPHash: pending.IPHash, Email: "oauth_" + suffix + "@example.test", CodeHash: hash("oauth-code")}
+		if _, err := db.RegisterAccount(request, cfg, now+1); !errors.Is(err, core.ErrRegistrationInvalid) {
+			return errorsOrMissing(err, "unverified OAuth email denial")
+		}
+		job := &mail.Job{ID: "oauth-" + suffix, AccountID: "driver-account", Scene: "registration_verify", TicketHash: hash("oauth-ticket"),
+			CreatedAt: now + 2, ExpiresAt: pending.ExpiresAt, Message: mail.Message{ID: "oauth-" + suffix, To: request.Email, Subject: "Verify", Text: "Code", CreatedAt: now + 2}}
+		if err := db.QueueProviderRegistrationEmail(pending.IDHash, pending.IPHash, request.CodeHash, job, mailCfg.EncryptionKey, "192.0.2.201", mailCfg.ManualRate, cfg); err != nil {
+			return err
+		}
+		if _, err := db.RegisterAccount(request, cfg, now+3); err != nil {
+			return err
+		}
+		linked, err := db.GetOAuthIdentity(identity)
+		if err != nil || linked == nil || linked.Username != request.Username || len(linked.Namespaces) != 2 {
+			return errorsOrMissing(err, "OAuth identity and namespace persistence")
+		}
+		identity.Namespaces = []string{"external"}
+		if err := db.RefreshOAuthIdentity(linked.UserID, identity, now+4); err != nil {
+			return err
+		}
+		identities, err := db.GetOAuthIdentities(request.Username)
+		if err != nil || len(identities) != 1 || len(identities[0].Namespaces) != 1 || identities[0].AuthorizedAt != now+4 {
+			return errorsOrMissing(err, "OAuth proof refresh")
+		}
+		sessionID := "oauth-session-" + suffix
+		session := &core.Session{PublicID: sessionID, Username: request.Username, CreatedAt: now, LoginMethod: "oauth:gitlab"}
+		session.LastActive.Store(now)
+		if err := db.SaveSession(session, sessionID); err != nil {
+			return err
+		}
+		security, err := db.SetPasswordLoginEnabled(request.Username, false, now+5)
+		if err != nil || security.OAuthIdentityCount != 1 || !security.CanDisablePasswordLogin {
+			return errorsOrMissing(err, "OAuth primary login alternative")
+		}
+		if err := db.DeleteOAuthIdentity(request.Username, sessionID, identity.ProviderID, now+6); !errors.Is(err, core.ErrLastLoginMethod) {
+			return errorsOrMissing(err, "last OAuth login preservation")
+		}
+		if err := db.RetireAccount(request.Username, now+7); err != nil {
+			return err
+		}
+		identities, err = db.GetOAuthIdentities(request.Username)
+		if err != nil || len(identities) != 0 {
+			return errorsOrMissing(err, "OAuth retirement release")
+		}
+		if err := db.RefreshOAuthIdentity(linked.UserID, identity, now+8); !errors.Is(err, core.ErrAccountDeleted) {
+			return errorsOrMissing(err, "retired OAuth refresh denial")
+		}
+		receiver, receiverSession := "oauthnew_"+suffix, "oauth-new-session-"+suffix
+		if err := db.SaveToken(&core.AccessToken{Name: receiver, EncryptedSecret: string(password), Permissions: []string{"base"}}); err != nil {
+			return err
+		}
+		session.PublicID, session.Username = receiverSession, receiver
+		if err := db.SaveSession(session, receiverSession); err != nil {
+			return err
+		}
+		mfa, err := db.GetMFAState(receiver)
+		if err != nil {
+			return err
+		}
+		if err := db.LinkOAuthIdentity(receiver, receiverSession, mfa.Snapshot, identity, now+9); err != nil {
+			return err
+		}
+		if _, err := db.UpdateAccountEmail(receiver, request.Email, now+10); !errors.Is(err, core.ErrEmailAlreadyExists) {
+			return errorsOrMissing(err, "OAuth release preserves retired email hold")
 		}
 		return nil
 	}); err != nil {

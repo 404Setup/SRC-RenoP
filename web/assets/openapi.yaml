@@ -306,6 +306,67 @@ components:
             $ref: "#/components/schemas/ErrorBody"
 
   schemas:
+    OAuthClaims:
+      type: object
+      description: Dotted JSON paths with numeric array indexes. Email verification requires boolean true. Subject must be a stable provider ID.
+      properties:
+        subject: {type: string, maxLength: 128}
+        username: {type: string, maxLength: 128}
+        name: {type: string, maxLength: 128}
+        email: {type: string, maxLength: 128}
+        email_verified: {type: string, maxLength: 128}
+        avatar: {type: string, maxLength: 128}
+    OAuthProvider:
+      type: object
+      required: [id, type, name]
+      description: >-
+        Built-in providers resolve official endpoints and claim mappings. Enabled clients require credentials,
+        an exact callback path /api/auth/oauth/{id}/callback, and valid HTTPS or loopback HTTP endpoints.
+        Stored credentials are returned as empty strings. Empty writes retain credentials only for the same
+        ID, type, client ID, and token endpoint. Changing the configuration invalidates pending authorizations.
+      properties:
+        id: {type: string, pattern: '^[a-z][a-z0-9_-]{0,31}$', description: Unique local provider ID. The value github is reserved.}
+        type: {type: string, enum: [microsoft, google, gitlab, cloudflare, stackexchange, custom]}
+        name: {type: string, maxLength: 80, description: Display name; limited to 80 UTF-8 bytes.}
+        enabled: {type: boolean, default: false}
+        client_id: {type: string, maxLength: 512}
+        client_secret: {type: string, format: password, maxLength: 4096}
+        callback_url: {type: string, maxLength: 2048}
+        tenant: {type: string, description: 'Microsoft common, organizations, consumers, or Entra tenant UUID.'}
+        base_url: {type: string, maxLength: 2048, description: GitLab instance; defaults to https://gitlab.com.}
+        site: {type: string, description: Stack Exchange site; defaults to stackoverflow.}
+        api_key: {type: string, format: password, maxLength: 4096}
+        authorize_url: {type: string, maxLength: 2048}
+        token_url: {type: string, maxLength: 2048}
+        userinfo_url: {type: string, maxLength: 2048}
+        issuer: {type: string, description: Custom OIDC issuer; requires jwks_url and the openid scope.}
+        jwks_url: {type: string, maxLength: 2048}
+        scopes: {type: string, maxLength: 1024, description: Space-separated scopes; built-in providers supply defaults.}
+        token_auth: {type: string, enum: [client_secret_post, client_secret_basic, none], default: client_secret_post}
+        disable_pkce: {type: boolean, default: false, description: Allowed only for custom providers with a client secret.}
+        claims: {$ref: '#/components/schemas/OAuthClaims'}
+        client_secret_configured: {type: boolean, readOnly: true}
+        api_key_configured: {type: boolean, readOnly: true}
+        clear_client_secret: {type: boolean, writeOnly: true}
+        clear_api_key: {type: boolean, writeOnly: true}
+    OAuthSettings:
+      type: object
+      required: [providers]
+      properties:
+        providers: {type: array, maxItems: 32, items: {$ref: '#/components/schemas/OAuthProvider'}}
+        presets: {type: array, readOnly: true, items: {$ref: '#/components/schemas/OAuthProvider'}}
+    OAuthProfileStatus:
+      type: object
+      properties:
+        id: {type: string}
+        name: {type: string}
+        login: {type: string, description: Private provider display login; never used to identify the account.}
+        configured: {type: boolean}
+        linked: {type: boolean}
+        can_disconnect: {type: boolean}
+        can_verify_email: {type: boolean}
+        can_import_avatar: {type: boolean}
+        authorized_at: {type: integer, format: int64, description: Unix milliseconds.}
     MailInterval:
       type: object
       required: [value, unit]
@@ -2749,6 +2810,134 @@ components:
 # Paths
 # ---------------------------------------------------------------------------
 paths:
+  /api/auth/oauth/providers:
+    get:
+      tags: [auth]
+      summary: List configured third-party login providers
+      operationId: getOAuthProviders
+      security: []
+      responses:
+        "200":
+          description: Public IDs and names only; response is not cached.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  providers:
+                    type: array
+                    maxItems: 32
+                    items:
+                      type: object
+                      properties:
+                        id: {type: string}
+                        name: {type: string}
+  /api/auth/oauth/{provider}/start:
+    get:
+      tags: [auth]
+      summary: Begin third-party authorization
+      operationId: startOAuth
+      description: >-
+        Creates single-use state and an HttpOnly browser cookie valid for ten minutes, then redirects with PKCE.
+        Link, email, and avatar intents require the initiating browser session. Register requires registration enabled.
+        Unbound login identities also enter registration. Email matching never selects an existing local account.
+      security: []
+      parameters:
+        - {name: provider, in: path, required: true, schema: {type: string, maxLength: 32}}
+        - {name: intent, in: query, schema: {type: string, enum: [login, register, link, email, avatar], default: login}}
+        - {name: return_to, in: query, schema: {type: string, maxLength: 1024}, description: Local pathname; unsafe values fall back to / and queries and fragments are discarded.}
+      responses:
+        "303": {description: Redirect to the provider authorization endpoint.}
+        "400": {$ref: '#/components/responses/PlainBadRequest'}
+        "403": {$ref: '#/components/responses/PlainForbidden'}
+        "404": {$ref: '#/components/responses/PlainNotFound'}
+        "503": {description: Authorization state or provider service unavailable.}
+  /api/auth/oauth/{provider}/callback:
+    get:
+      tags: [auth]
+      summary: Complete third-party authorization
+      operationId: finishOAuth
+      description: >-
+        Requires the initiating OAuth state cookie. Profile actions also recheck the initiating session and security revision.
+        OIDC verifies the signed ID token and the authenticated user-info subject. Login requires any configured second factor.
+        Returns a stable oauth result marker or redirects to registration or /account/login?mfa=1.
+      security: []
+      parameters:
+        - {name: provider, in: path, required: true, schema: {type: string, maxLength: 32}}
+        - {name: state, in: query, required: true, schema: {type: string, minLength: 43, maxLength: 43}}
+        - {name: code, in: query, schema: {type: string, maxLength: 4096}}
+        - {name: error, in: query, schema: {type: string}}
+      responses:
+        "303": {description: Local destination with the stable result marker, registration confirmation, or second-factor page.}
+  /api/auth/profile/oauth:
+    get:
+      tags: [auth]
+      summary: Read private third-party account connections
+      operationId: getProfileOAuth
+      security: [{sessionCookie: []}]
+      responses:
+        "200":
+          description: Configured providers and retained bindings; no stable subjects, client secrets, or access tokens are returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  providers: {type: array, maxItems: 64, items: {$ref: '#/components/schemas/OAuthProfileStatus'}}
+        "401": {$ref: '#/components/responses/PlainUnauthorized'}
+        "503": {description: Private provider state unavailable.}
+  /api/auth/profile/oauth/{provider}:
+    delete:
+      tags: [auth]
+      summary: Disconnect a third-party identity
+      operationId: deleteProfileOAuth
+      description: Preserves another primary login method and invalidates pending authentication proofs. Retired accounts cannot recreate bindings.
+      security: [{sessionCookie: []}]
+      parameters:
+        - {name: provider, in: path, required: true, schema: {type: string, maxLength: 32}}
+      responses:
+        "204": {description: Identity disconnected.}
+        "403": {$ref: '#/components/responses/PlainForbidden'}
+        "404": {$ref: '#/components/responses/PlainNotFound'}
+        "409": {description: oauth_last_login_method; another primary login method is required.}
+        "503": {description: Identity could not be disconnected.}
+  /api/settings/oauth-providers:
+    get:
+      tags: [settings]
+      summary: Read OAuth clients and built-in presets
+      operationId: getOAuthSettings
+      security: [{sessionCookie: []}, {bearerAuth: []}]
+      responses:
+        "200":
+          description: Administrator-only settings with credential flags and empty secret values.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/OAuthSettings'}
+        "403": {$ref: '#/components/responses/PlainForbidden'}
+    put:
+      tags: [settings]
+      summary: Replace the configured OAuth client list
+      operationId: updateOAuthSettings
+      description: >-
+        Administrator only; requires a providers array. Missing or null providers are rejected; an explicit empty array clears the list.
+        JSON body is limited to 128 KiB. Secrets are write-only and are preserved only for an unchanged client and token endpoint.
+        Applies to new authorizations immediately. Removing configuration does not delete existing account bindings.
+      security: [{sessionCookie: []}, {bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/OAuthSettings'}
+      responses:
+        "200":
+          description: Saved configuration with secrets removed from the response.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/OAuthSettings'}
+        "400": {description: oauth_settings_invalid; invalid client configuration or a missing provider list.}
+        "403": {$ref: '#/components/responses/PlainForbidden'}
+        "413": {description: Request exceeds 128 KiB.}
+        "500": {description: oauth_settings_save_failed; configuration could not be persisted.}
   /api/settings/mail:
     get:
       tags: [settings]

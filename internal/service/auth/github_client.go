@@ -64,7 +64,7 @@ type githubAPIIdentity struct {
 	Name  string `json:"name"`
 }
 
-func githubOAuthHTTPClient(cfg *config.Config) (*http.Client, error) {
+func oauthHTTPClient(cfg *config.Config) (*http.Client, error) {
 	transport := &http.Transport{
 		Proxy: nil,
 		DialContext: (&net.Dialer{
@@ -98,23 +98,23 @@ func githubOAuthHTTPClient(cfg *config.Config) (*http.Client, error) {
 	}, nil
 }
 
-func decodeGitHubResponse(response *http.Response, destination any) error {
+func decodeOAuthResponse(response *http.Response, destination any) error {
 	if response == nil {
-		return errors.New("GitHub response is missing")
+		return errors.New("OAuth response is missing")
 	}
 	defer utils.DiscardHTTPBody(response.Body, response.ContentLength)
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return fmt.Errorf("GitHub returned HTTP %d", response.StatusCode)
+		return fmt.Errorf("OAuth provider returned HTTP %d", response.StatusCode)
 	}
 	if response.ContentLength > githubOAuthResponseSize {
-		return errors.New("GitHub response exceeds the size limit")
+		return errors.New("OAuth response exceeds the size limit")
 	}
 	body, err := io.ReadAll(io.LimitReader(response.Body, githubOAuthResponseSize+1))
 	if err != nil {
 		return err
 	}
 	if len(body) > githubOAuthResponseSize {
-		return errors.New("GitHub response exceeds the size limit")
+		return errors.New("OAuth response exceeds the size limit")
 	}
 	return json.Unmarshal(body, destination)
 }
@@ -139,7 +139,7 @@ func exchangeGitHubCode(ctx context.Context, client *http.Client, provider githu
 		return githubTokenResponse{}, err
 	}
 	var tokenResponse githubTokenResponse
-	if err := decodeGitHubResponse(response, &tokenResponse); err != nil {
+	if err := decodeOAuthResponse(response, &tokenResponse); err != nil {
 		return githubTokenResponse{}, err
 	}
 	if tokenResponse.Error != "" || tokenResponse.AccessToken == "" ||
@@ -188,7 +188,7 @@ func getGitHubAPI(ctx context.Context, client *http.Client, endpoint, accessToke
 		return "", err
 	}
 	linkHeader := response.Header.Get("Link")
-	if err := decodeGitHubResponse(response, destination); err != nil {
+	if err := decodeOAuthResponse(response, destination); err != nil {
 		return "", err
 	}
 	return linkHeader, nil

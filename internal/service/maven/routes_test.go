@@ -573,6 +573,46 @@ func TestGitHubOAuthPrincipalAutoVerifiesMavenDomain(t *testing.T) {
 	assert.False(t, created.Verified)
 }
 
+func TestGitLabOAuthPrincipalAutoVerifiesMavenDomain(t *testing.T) {
+	state, currentUser := newMavenRouteState(t)
+	cfg := state.Inner.Config.Load().DeepCopy()
+	provider := config.OAuthProviderConfig{ID: "gitlab", Type: "gitlab", Name: "GitLab", Enabled: true,
+		ClientID: "client", ClientSecret: "secret", CallbackURL: "https://renop.example/api/auth/oauth/gitlab/callback"}
+	require.NoError(t, provider.Validate())
+	cfg.Server.OAuthProviders = []config.OAuthProviderConfig{provider}
+	state.Inner.Config.Store(cfg)
+	now := time.Now().UnixMilli()
+	session := &core.Session{PublicID: "gitlab-session", Username: "alice", CreatedAt: now}
+	session.LastActive.Store(now)
+	require.NoError(t, state.GetDB().SaveSession(session, "gitlab-session"))
+	mfa, err := state.GetDB().GetMFAState("alice")
+	require.NoError(t, err)
+	identity := core.OAuthIdentity{ProviderID: provider.ID, Authority: provider.Authority("https://gitlab.com"), Subject: "101",
+		Namespaces: []string{"alice", "owned-group"}}
+	require.NoError(t, state.GetDB().LinkOAuthIdentity("alice", "gitlab-session", mfa.Snapshot, identity, now))
+	app := fiber.New()
+	app.Use(func(c fiber.Ctx) error { c.Locals("user", currentUser); return c.Next() })
+	SetupRoutes(app.Group("/api"), state)
+	check := func(domain string, verified bool) {
+		t.Helper()
+		response := mavenRequest(t, app, http.MethodPost, "/api/maven/domains", `{"domain":"`+domain+`"}`)
+		require.Equal(t, http.StatusCreated, response.StatusCode)
+		var created core.MavenDomain
+		require.NoError(t, json.NewDecoder(response.Body).Decode(&created))
+		require.NoError(t, response.Body.Close())
+		require.Equal(t, verified, created.Verified, domain)
+	}
+	check("io.gitlab.owned-group.library", true)
+	check("io.gitlab.joined-public.library", false)
+	require.NoError(t, state.GetDB().RefreshOAuthIdentity(mfa.UserID, identity, now-core.GitHubPrincipalFreshnessMillis-1))
+	check("io.gitlab.alice.stale", false)
+	require.NoError(t, state.GetDB().RefreshOAuthIdentity(mfa.UserID, identity, now))
+	cfg = cfg.DeepCopy()
+	cfg.Server.OAuthProviders[0].BaseURL = "https://gitlab.example"
+	state.Inner.Config.Store(cfg)
+	check("io.gitlab.alice.selfhost", false)
+}
+
 func TestFileRepositoryAllowsReplacementWithoutMavenHelpers(t *testing.T) {
 	state, _ := newMavenRouteState(t)
 	currentUser := &config.User{Username: "admin", Roles: []string{"manager"}}

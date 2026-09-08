@@ -30,6 +30,7 @@ import {openAuditLogsDialog} from './audit.js';
 import {formatTimestamp} from './time.js';
 import {getRepositoryFormat} from './repository-formats.js';
 import {renderGitHubConnection} from './github-auth.js';
+import {refreshOAuthProfile} from './oauth.js';
 import {refreshAccountSecurity} from './account-security.js';
 import './account-retirement.js';
 import {refreshAPITokenSummary} from './api-tokens.js';
@@ -1307,6 +1308,7 @@ function showProfileEdit(profile) {
     });
     wireProfileEditActions(profile);
     renderGitHubConnection(profile.github);
+    void refreshOAuthProfile(profile.username);
     void refreshAccountSecurity();
     void refreshAPITokenSummary();
     window.scrollTo({top: 0, behavior: 'smooth'});

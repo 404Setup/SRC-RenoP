@@ -45,3 +45,5 @@ The callback is single-use, expires after 10 minutes, and must return to the ini
 RenoP retains at most 2,048 pending email changes. Expired records are removed before insertion and by mail cleanup. Verification codes are stored as keyed hashes; queued message contents are encrypted using the private mail encryption key. Codes and delivery tickets stay out of URLs, logs, and browser storage.
 
 Successful changes write a profile activity entry. The serial mail worker sends an `email_changed` notification through the configured routing and sending limits. Queue acceptance is distinct from delivery; the verification dialog displays provider delivery progress and failures.
+
+Other providers may offer [Use verified email](./oauth-login.md) in the profile editor. This also requests fresh authorization, preserves the current login binding, and applies the recipient policy. An address without an explicit verified-email claim must use RenoP email verification instead.

@@ -109,6 +109,7 @@ func SetupAuthRoutes(app fiber.Router, state *core.AppState, opChan chan<- token
 	setupAccountRetirementRoutes(auth, state, opChan)
 	setupAPITokenRoutes(auth, state)
 	setupGitHubRoutes(auth, state, opChan)
+	setupOAuthRoutes(auth, state)
 	SetupFidoRoutes(auth, state, opChan)
 }
 

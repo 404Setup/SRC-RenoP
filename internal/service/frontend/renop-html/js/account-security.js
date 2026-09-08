@@ -34,7 +34,7 @@ function renderAccountSecurity(security) {
 	if (passkeyMFA) {
 		passkeyMFA.checked = security.passkey_second_factor === true;
 		passkeyMFA.disabled = !passkeyMFA.checked && (!(Number(security.fido_device_count) > 0) ||
-			!(security.github_linked || (security.password_configured && security.password_login_enabled)));
+			!(security.github_linked || Number(security.oauth_identity_count) > 0 || (security.password_configured && security.password_login_enabled)));
 	}
 	$('#profile-mfa-totp-status').text(t(security.totp_enabled ? 'mfa.enabled' : 'mfa.disabled'));
 	$('#profile-mfa-totp').text(t(security.totp_enabled ? 'mfa.remove' : 'mfa.setup'));

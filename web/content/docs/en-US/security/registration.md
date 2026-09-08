@@ -25,7 +25,7 @@ Only successful registrations consume the IP allowance. The default is one accou
 
 Open the registration page from sign-in. Usernames contain 4–18 ASCII letters, digits, or underscores and are stored in lowercase. Nicknames are optional and allow 36 Unicode characters. Passwords are mandatory and contain 6–72 UTF-8 bytes.
 
-When mail is enabled, an email address and its eight-digit verification code are required. Codes expire after ten minutes and allow five incorrect attempts. Keep the same browser and IP address while confirming. Delivery uses the existing serial mail queue, recipient policy, quota, and rate limits. The page shows delivery status. Without mail, the email is optional. After success, sign in with the new credentials; a registration-success message is queued when mail is enabled.
+When mail is enabled, an email address and its eight-digit verification code are required. Codes expire after ten minutes and allow five incorrect attempts. Keep the same browser and IP address while confirming. Delivery uses the existing serial mail queue, recipient policy, quota, and rate limits. The page shows delivery status. For manual registration without mail, the email is optional. After success, sign in with the new credentials; a registration-success message is queued when mail is enabled.
 
 ## Register through GitHub
 
@@ -54,3 +54,5 @@ Public JSON requests require `Content-Type: application/json` and are limited to
 ```
 
 Use `provider: "github"` when confirming a pending GitHub registration; keep its verified email and omit `code`. Set `import_avatar` to `true` to request avatar import. Success returns `201` with `username` and `avatar_imported`, without creating a login session. Conflicts return `409`; expired or invalid confirmation returns `400`; exhausted IP limits or provider cooldown return `429`. Account, email, provider binding, IP accounting, and confirmation consumption commit together.
+
+Other configured services follow the [third-party registration rules](./oauth-login.md): send their provider ID for both code issuance and confirmation. A missing or unverified provider email always requires a RenoP verification code; this registration cannot complete while mail is unavailable. Verified provider emails need no additional code.

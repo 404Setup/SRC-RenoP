@@ -27,6 +27,8 @@ seconds for each domain. A system administrator can use `/verify/force`; this by
 A verified domain and its team are global to the RenoP instance. The same domain can publish to every Maven repository
 without another verification, domain reservation, or invitation cycle.
 
+A recent GitLab.com connection can also verify a new namespace automatically: the account must own the personal namespace or a top-level group, and its proof must be less than one hour old. Public membership, subgroup ownership, and self-hosted instances are insufficient. See [Third-party Login](../security/oauth-login.md).
+
 ## Domain permissions
 
 Maven teams are attached globally to domains rather than repositories or individual artifacts:

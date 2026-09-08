@@ -107,6 +107,22 @@ test('registration gates confirmation, verifies email, imports optional profile,
     assert.equal(body.import_avatar, true);
     assert.equal(body.email, 'verified@example.com');
     assert.equal(timers.size, 0);
+    pending = {provider: 'stackexchange', provider_name: 'Stack Exchange', email_required: true,
+        email: '', expires_at: Date.now() + 600000, username_available: true, avatar_available: false};
+    context.window.location.search = '?provider=stackexchange';
+    mail = false; context.updateRegistrationPage(true, true); await drain();
+    assert.equal(field('registration-fields').disabled, true);
+    assert.equal(field('registration-availability').textContent, 'oauth.mailRequired');
+    mail = true; await context.refreshRegistrationAvailability();
+    assert.equal(field('registration-fields').disabled, false);
+    assert.equal(field('registration-email').readOnly, false);
+    assert.equal(field('registration-code').required, true);
+    fill(); field('registration-send').handlers.click(); await drain();
+    assert.equal(JSON.parse(requests.filter(request => request.url.endsWith('/code')).at(-1).options.body).provider, 'stackexchange');
+    field('registration-code').value = '12345678'; field('registration-import').checked = true;
+    submit(); await drain();
+    assert.equal(JSON.parse(submissions()[2].options.body).import_avatar, false);
+    assert.equal(JSON.parse(submissions()[2].options.body).provider, 'stackexchange');
     pending = undefined; context.updateRegistrationPage(true, true); await drain();
     assert.equal(field('registration-fields').disabled, true);
     assert.equal(field('registration-availability').textContent, 'registration.expired');

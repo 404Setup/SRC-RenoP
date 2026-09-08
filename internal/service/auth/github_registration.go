@@ -19,7 +19,6 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"renop/internal/core"
 	"renop/internal/service/audit"
-	"renop/internal/service/publicationquota"
 	"renop/internal/utils"
 )
 
@@ -92,16 +91,7 @@ func importRegistrationGitHubAvatar(c fiber.Ctx, state *core.AppState, profile *
 	if err != nil {
 		return false
 	}
-	quota, err := publicationquota.Reserve(state, profile.Username, "", core.PublicationQuotaDelta{Files: 1, Bytes: avatar.Size})
-	if err != nil {
-		return false
-	}
-	defer quota.Release()
-	if quota.Commit() != nil {
-		return false
-	}
-	avatar.UpdatedAt = time.Now().UnixMilli()
-	if state.GetDB().PutUserAvatar(profile.Username, avatar) != nil {
+	if status, _ := persistProfileAvatar(state, profile.Username, avatar); status != 0 {
 		return false
 	}
 	audit.Log(state, &core.AuditLogEntry{Username: profile.Username, Operator: profile.Username, Action: audit.ActionProfileUpdate,

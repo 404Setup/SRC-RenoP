@@ -65,6 +65,8 @@ hosts; `*` allows every origin. Forwarded client-IP headers are trusted only whe
 
 GitHub OAuth is also stored under `server.github_oauth`; configure its client ID and write-only secret from the UI.
 
+Other [OAuth providers](../security/oauth-login.md) are configured through `server.oauth_providers`. The administrator editor supplies official presets, writes credentials without returning them, and applies changes to new authorizations immediately.
+
 ### `database` connection
 
 ```yaml

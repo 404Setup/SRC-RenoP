@@ -65,6 +65,8 @@ wildcards ; `*` autorise tout. Un en-tête IP transféré n’est fiable que si 
 
 GitHub OAuth réside sous `server.github_oauth`; configurez Client ID et secret en écriture seule dans l’interface.
 
+Les autres [fournisseurs OAuth](../security/oauth-login.md) sont configurés dans `server.oauth_providers`. L’éditeur administrateur propose des préréglages officiels, enregistre les identifiants sans les renvoyer et applique les changements aux nouvelles autorisations immédiatement.
+
 ### Connexion `database`
 
 ```yaml

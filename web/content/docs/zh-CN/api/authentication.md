@@ -10,7 +10,7 @@ description: 浏览器会话、个人资料、登录方式、恢复代码与会�
 浏览器认证使用 HttpOnly `renop_session` Cookie。个人资料与会话列表不会返回会话密钥，请求头和 URL 也不
 接受该密钥。私有安全设置接口仅接受浏览器会话，不接受密码或 API Token。
 
-浏览器登录页面为 `/account/login`。密码、Passkey 和 GitHub 登录完成后，会返回可选查询参数 `return_to` 指定的本站路径，不保留查询参数和片段。外部地址、认证接口及超过 1,024 个字符的值会回退到 `/`。会话过期时进入登录页；已登录用户遇到权限不足时返回首页，保留当前会话。
+浏览器登录页面为 `/account/login`。密码、Passkey 和第三方登录完成后，会返回可选查询参数 `return_to` 指定的本站路径，不保留查询参数和片段。外部地址、认证接口及超过 1,024 个字符的值会回退到 `/`。会话过期时进入登录页；已登录用户遇到权限不足时返回首页，保留当前会话。
 
 [二次验证](../security/two-step-verification.md)说明验证器配置、Passkey 二次验证、待完成登录响应与恢复流程。二次验证 Passkey 不算作初次登录方式。离线恢复会移除验证器并关闭 Passkey 二次验证；邮件重置密码会保留这两项设置。
 
@@ -47,6 +47,8 @@ Principal 快照，但不会持久化 OAuth Access Token。
 
 未绑定本地账号的 GitHub 身份需要完成[账号注册](../security/registration.md)并设置密码。OAuth 请求 `read:user read:org user:email`，回调必须携带发起授权时的浏览器 Cookie。
 
+Microsoft、Google、GitLab、Cloudflare、Stack Exchange 和自定义 OAuth 客户端使用[第三方登录 API](../security/oauth-login.md)，支持账号绑定、注册时必要的邮箱验证、可选资料导入，以及相同的二次验证策略。
+
 ## 当前账号与公开个人资料
 
 - **当前会话**：`GET /api/auth/me`
@@ -69,7 +71,7 @@ Principal 快照，但不会持久化 OAuth Access Token。
 - **读取状态**：`GET /api/auth/profile/security`
 - **设置邮箱**：`PUT /api/auth/profile/email`；邮件入队后的确认流程及 GitHub 验证见[安全邮箱验证](../security/email-verification.md)。
 - **启用或禁用密码登录**：`PUT /api/auth/profile/password-login`
-- 只有仍保留 Passkey 或 GitHub 时才能禁用密码登录；重新启用前必须已经设置密码。
+- 只有仍保留用于主要登录的 Passkey 或第三方账号时才能禁用密码登录；重新启用前必须已经设置密码。
 
 ### 邮件验证码找回密码
 
@@ -143,11 +145,11 @@ Principal 快照，但不会持久化 OAuth Access Token。
 超级管理员和仓库版主不能注销。账号不能仍持有超级团队 T4 身份、拥有使用中的 Maven 发布域、
 以 L4 身份管理未弃用的软件包，或存在待处理的审核申请。请先转让所有权、关闭发布域或将软件包永久弃用。
 
-注销后账号和用户名永久锁定，自动退出全部管理团队，解除 GitHub 登录绑定，并清空 Passkey、
+注销后账号和用户名永久锁定，自动退出全部管理团队，解除全部第三方登录绑定，并清空 Passkey、
 活跃会话、API Token、头像、恢复代码和消息。登录将返回 `ACCOUNT_DELETED`。
 绑定邮箱保留 14 天，行为日志保留 30 天；到期后由定时清理任务分批释放。已发布的软件包仍可下载。
 
-解除的 GitHub 身份可以立即绑定到其他有效账号；此操作不会释放已注销的用户名、缩短邮箱保留期或恢复已注销资源的所有权。
+解除的第三方身份可以立即绑定到其他有效账号；此操作不会释放已注销的用户名、缩短邮箱保留期或恢复已注销资源的所有权。
 
 超级管理员可通过 `GET /api/tokens/:name/retention` 查看保留期限，通过
 `DELETE /api/tokens/:name/retention/email` 提前释放邮箱，或通过

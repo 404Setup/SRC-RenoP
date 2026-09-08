@@ -34,6 +34,8 @@ func SetupSettingsRoutes(router fiber.Router, state *core.AppState) {
 	router.Post("/cache/test", func(c fiber.Ctx) error { return testCacheSettings(c, state) })
 	router.Get("/github-oauth", func(c fiber.Ctx) error { return getGitHubOAuthSettings(c, state) })
 	router.Put("/github-oauth", func(c fiber.Ctx) error { return putGitHubOAuthSettings(c, state) })
+	router.Get("/oauth-providers", func(c fiber.Ctx) error { return getOAuthSettings(c, state) })
+	router.Put("/oauth-providers", func(c fiber.Ctx) error { return putOAuthSettings(c, state) })
 	router.Get("/super-teams", func(c fiber.Ctx) error { return getSuperTeamSettings(c, state) })
 	router.Put("/super-teams", func(c fiber.Ctx) error { return putSuperTeamSettings(c, state) })
 	router.Get("/publication-quota", func(c fiber.Ctx) error { return getPublicationQuotaSettings(c, state) })

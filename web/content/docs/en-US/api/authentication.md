@@ -11,7 +11,7 @@ Browser authentication uses the HttpOnly `renop_session` cookie. Session secrets
 session-list APIs and are rejected in request headers and URLs. Private security endpoints accept only a browser
 session, never a password or API token.
 
-The browser sign-in page is `/account/login`. Password, Passkey, and GitHub sign-in return to the local pathname in the optional `return_to` query parameter; queries and fragments are not retained. External addresses, authentication endpoints, and values longer than 1,024 characters fall back to `/`. An expired session opens sign-in; an authenticated permission denial returns home without ending the session.
+The browser sign-in page is `/account/login`. Password, Passkey, and third-party sign-in return to the local pathname in the optional `return_to` query parameter; queries and fragments are not retained. External addresses, authentication endpoints, and values longer than 1,024 characters fall back to `/`. An expired session opens sign-in; an authenticated permission denial returns home without ending the session.
 
 [Two-step verification](../security/two-step-verification.md) covers authenticator setup, secondary Passkeys, the pending login response, and recovery. A secondary Passkey does not count as a primary login method. Offline recovery removes the authenticator and turns off secondary Passkeys; email password recovery preserves both settings.
 
@@ -48,6 +48,8 @@ stores immutable provider IDs and current principal snapshots, and never persist
 
 Unlinked GitHub identities now require [account registration](../security/registration.md) and a password. OAuth requests `read:user read:org user:email`; callbacks require the browser cookie that started authorization.
 
+Microsoft, Google, GitLab, Cloudflare, Stack Exchange, and custom OAuth clients use the [third-party login API](../security/oauth-login.md). They support account binding, required registration email verification, optional profile import, and the same second-factor policy.
+
 ## Current account and public profiles
 
 - **Current session**: `GET /api/auth/me`
@@ -70,7 +72,7 @@ Account-security routes require the current browser session and return `Cache-Co
 - **Read state**: `GET /api/auth/profile/security`
 - **Set email**: `PUT /api/auth/profile/email`; see [Security Email Verification](../security/email-verification.md) for queued confirmation and GitHub verification.
 - **Enable or disable password login**: `PUT /api/auth/profile/password-login`
-- Password login can be disabled only while Passkey or GitHub remains linked. Enabling it requires a configured
+- Password login can be disabled only while a primary Passkey or third-party account remains linked. Enabling it requires a configured
   password.
 
 ### Email password recovery
@@ -146,12 +148,12 @@ System administrators and repository moderators cannot close their accounts. The
 global-team T4 role, own an active Maven domain, own a non-deprecated package at L4, or have a pending review request.
 Transfer ownership, close publishing domains, or permanently deprecate packages before retrying.
 
-Closure permanently locks the account and username, removes all team memberships, releases GitHub login, and removes
+Closure permanently locks the account and username, removes all team memberships, releases all third-party login bindings, and removes
 Passkeys, sessions, API tokens, the profile photo, recovery codes, and messages. Login returns `ACCOUNT_DELETED`.
 The private email remains reserved for 14 days; activity remains for 30 days. Bounded scheduled cleanup releases
 expired holds. Published packages remain downloadable.
 
-The released GitHub identity can immediately be linked to another active account. This does not release the retired
+A released third-party identity can immediately be linked to another active account. This does not release the retired
 username, shorten the email hold, or restore ownership of retired resources.
 
 System administrators can read deadlines with `GET /api/tokens/:name/retention`, release email early with

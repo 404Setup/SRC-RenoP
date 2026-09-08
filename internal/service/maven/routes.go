@@ -419,6 +419,21 @@ func createDomain(c fiber.Ctx, state *core.AppState) error {
 			record.VerifiedAt = now
 		}
 	}
+	if verificationType == core.MavenVerificationGitLab {
+		identities, err := state.GetDB().GetOAuthIdentities(user.Username)
+		if err != nil {
+			return apiError(c, err)
+		}
+		for _, identity := range identities {
+			provider, configured := state.Inner.Config.Load().Server.OAuthProvider(identity.ProviderID)
+			if configured && provider.Type == "gitlab" && provider.UserInfoURL == "https://gitlab.com/oauth/userinfo" &&
+				identity.Authority == provider.Authority("https://gitlab.com") && identity.AuthorizedAt >= now-core.GitHubPrincipalFreshnessMillis &&
+				slices.Contains(identity.Namespaces, verificationHost) {
+				record.Verified, record.VerifiedAt = true, now
+				break
+			}
+		}
+	}
 	if err := state.GetDB().CreateMavenDomain(record, user.Username); err != nil {
 		return apiError(c, err)
 	}

@@ -11,7 +11,7 @@ Le navigateur utilise le cookie HttpOnly `renop_session`. Son secret n’est jam
 sessions et il est refusé dans les en-têtes et URL. Les paramètres de sécurité privés exigent une session navigateur,
 jamais un mot de passe ou un API Token.
 
-La page de connexion du navigateur est `/account/login`. Après une connexion par mot de passe, Passkey ou GitHub, le navigateur revient au chemin local indiqué par le paramètre facultatif `return_to`, sans conserver la requête ni le fragment. Les adresses externes, les points de terminaison d’authentification et les valeurs de plus de 1 024 caractères sont remplacés par `/`. Une session expirée ouvre la page de connexion ; un refus d’accès pour un utilisateur connecté renvoie à l’accueil sans fermer sa session.
+La page de connexion du navigateur est `/account/login`. Après une connexion par mot de passe, Passkey ou fournisseur tiers, le navigateur revient au chemin local indiqué par le paramètre facultatif `return_to`, sans conserver la requête ni le fragment. Les adresses externes, les points de terminaison d’authentification et les valeurs de plus de 1 024 caractères sont remplacés par `/`. Une session expirée ouvre la page de connexion ; un refus d’accès pour un utilisateur connecté renvoie à l’accueil sans fermer sa session.
 
 La [vérification en deux étapes](../security/two-step-verification.md) décrit la configuration de l’authentificateur, les Passkeys secondaires, les réponses de connexion en attente et la récupération. Une Passkey secondaire ne compte pas comme méthode principale. La récupération hors ligne retire l’authentificateur et désactive les Passkeys secondaires ; la récupération par email conserve ces réglages.
 
@@ -49,6 +49,8 @@ identifiants immuables et l’instantané des principals, mais jamais le jeton d
 
 Les identités GitHub non associées doivent terminer l'[inscription](../security/registration.md) et définir un mot de passe. OAuth demande `read:user read:org user:email` ; le rappel exige le cookie du navigateur ayant lancé l'autorisation.
 
+Microsoft, Google, GitLab, Cloudflare, Stack Exchange et les clients OAuth personnalisés utilisent [l’API de connexion externe](../security/oauth-login.md). Ils prennent en charge les associations de comptes, la vérification d’e-mail requise à l’inscription, l’importation facultative du profil et la même politique de second facteur.
+
 ## Compte courant et profils publics
 
 - **Session courante** : `GET /api/auth/me`
@@ -71,7 +73,7 @@ Ces routes exigent la session navigateur courante et renvoient `Cache-Control: n
 - **Lire l’état** : `GET /api/auth/profile/security`
 - **Définir l’e-mail** : `PUT /api/auth/profile/email` ; voir [Vérification de l’e-mail de sécurité](../security/email-verification.md) pour la confirmation par message en file et via GitHub.
 - **Activer ou désactiver le mot de passe** : `PUT /api/auth/profile/password-login`
-- Le mot de passe ne peut être désactivé que si Passkey ou GitHub reste lié. Son activation exige un mot de passe
+- Le mot de passe ne peut être désactivé que si une Passkey principale ou un compte tiers reste lié. Son activation exige un mot de passe
   défini.
 
 ### Réinitialisation par code e-mail
@@ -148,12 +150,12 @@ Les administrateurs système et les modérateurs de dépôt ne peuvent pas ferme
 globale, domaine Maven actif détenu, paquet non déprécié détenu au niveau L4 ou demande de révision en attente ne doit
 subsister. Transférez la propriété, fermez les domaines ou dépréciez définitivement les paquets avant de réessayer.
 
-La fermeture réserve définitivement le compte et son nom, retire les adhésions, libère la connexion GitHub et supprime
+La fermeture réserve définitivement le compte et son nom, retire les adhésions, libère toutes les associations de connexion externes et supprime
 les Passkeys, sessions, API tokens, photo, codes de récupération et messages. La connexion renvoie
 `ACCOUNT_DELETED`. L'adresse privée reste réservée 14 jours et l'activité est conservée 30 jours. Le nettoyage
 planifié traite les échéances par lots bornés. Les paquets publiés restent téléchargeables.
 
-L’identité GitHub libérée peut être immédiatement liée à un autre compte actif. Cela ne libère pas le nom réservé,
+L’identité externe libérée peut être immédiatement liée à un autre compte actif. Cela ne libère pas le nom réservé,
 ne raccourcit pas la rétention de l’adresse et ne restaure pas la propriété des ressources retirées.
 
 Les administrateurs consultent les échéances avec `GET /api/tokens/:name/retention`, libèrent l'adresse par

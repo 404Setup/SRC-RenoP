@@ -72,7 +72,7 @@ func safeOAuthReturnTo(value string) string {
 	}
 	parsed, err := url.ParseRequestURI(value)
 	if err != nil || parsed.Host != "" || parsed.Scheme != "" || parsed.Path == "" ||
-		strings.HasPrefix(parsed.Path, "/api/auth/github/") {
+		strings.HasPrefix(parsed.Path, "/api/auth/") {
 		return "/"
 	}
 	return parsed.EscapedPath()
@@ -199,7 +199,7 @@ func finishGitHubOAuth(c fiber.Ctx, state *core.AppState, opChan chan<- token.To
 	if cfg == nil || !cfg.Server.GitHubOAuth.Configured() {
 		return oauthResultRedirect(c, record.ReturnTo, "configuration_changed")
 	}
-	client, err := githubOAuthHTTPClient(cfg)
+	client, err := oauthHTTPClient(cfg)
 	if err != nil {
 		log.Printf("Failed to configure GitHub OAuth client: %v", err)
 		return oauthResultRedirect(c, record.ReturnTo, "exchange_failed")
@@ -327,7 +327,7 @@ func canDisconnectGitHub(state *core.AppState, username string) (bool, error) {
 		return false, err
 	}
 	return (security.FidoDeviceCount > 0 && !security.PasskeySecondFactor) ||
-		(security.PasswordConfigured && security.PasswordLoginEnabled), nil
+		(security.PasswordConfigured && security.PasswordLoginEnabled) || security.OAuthIdentityCount > 0, nil
 }
 
 func deleteProfileGitHub(c fiber.Ctx, state *core.AppState) error {

@@ -45,3 +45,5 @@ Le callback est à usage unique, expire après 10 minutes et doit revenir au com
 RenoP conserve au maximum 2 048 modifications d’e-mail en attente. Les enregistrements expirés sont supprimés avant insertion et lors du nettoyage du courrier. Les codes sont stockés sous forme de hachages avec clé ; le contenu des messages en file est chiffré avec la clé privée du courrier. Les codes et tickets restent exclus des URL, journaux et stockages du navigateur.
 
 Une modification réussie produit une entrée d’activité du profil. Le worker de courrier séquentiel envoie une notification `email_changed` selon le routage et les limites configurés. La mise en file est distincte de la livraison ; la boîte de vérification affiche la progression et les échecs signalés par le fournisseur.
+
+Les autres fournisseurs peuvent proposer [Utiliser l’e-mail vérifié](./oauth-login.md) dans l’éditeur de profil. Cette opération exige aussi une nouvelle autorisation, conserve l’association actuelle et respecte la politique des destinataires. Sans déclaration explicite de vérification, l’adresse doit être confirmée par un code RenoP.

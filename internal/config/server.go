@@ -13,6 +13,7 @@ package config
 import (
 	"net"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -58,29 +59,31 @@ type ServerConfig struct {
 	GPG GPGConfig `json:"gpg" yaml:"gpg"`
 
 	// GitHubOAuth contains administrator-managed GitHub login credentials.
-	GitHubOAuth GitHubOAuthConfig `json:"github_oauth" yaml:"github_oauth"`
+	GitHubOAuth    GitHubOAuthConfig     `json:"github_oauth" yaml:"github_oauth"`
+	OAuthProviders []OAuthProviderConfig `json:"oauth_providers" yaml:"oauth_providers"`
 }
 
 // serverConfigWire is used for JSON/YAML unmarshalling so we can accept the
 // legacy singular "domain" key while serializing only "domains".
 type serverConfigWire struct {
-	Host               string             `json:"host" yaml:"host"`
-	SslCertPath        string             `json:"ssl_cert_path" yaml:"ssl_cert_path"`
-	SslKeyPath         string             `json:"ssl_key_path" yaml:"ssl_key_path"`
-	Domain             string             `json:"domain" yaml:"domain"`
-	Domains            []string           `json:"domains" yaml:"domains"`
-	CorsOrigins        []string           `json:"cors_origins" yaml:"cors_origins"`
-	CdnIPHeader        string             `json:"cdn_ip_header" yaml:"cdn_ip_header"`
-	TrustedProxies     []string           `json:"trusted_proxies" yaml:"trusted_proxies"`
-	FileCacheSizeMb    uint32             `json:"file_cache_size_mb" yaml:"file_cache_size_mb"`
-	MaxActiveRequests  uint32             `json:"max_active_requests" yaml:"max_active_requests"`
-	AvatarMaxSizeBytes uint32             `json:"avatar_max_size_bytes" yaml:"avatar_max_size_bytes"`
-	Port               uint16             `json:"port" yaml:"port"`
-	SslEnabled         bool               `json:"ssl_enabled" yaml:"ssl_enabled"`
-	EnableCompression  bool               `json:"enable_compression" yaml:"enable_compression"`
-	DebugMode          bool               `json:"debug_mode" yaml:"debug_mode"`
-	GPG                *GPGConfig         `json:"gpg" yaml:"gpg"`
-	GitHubOAuth        *GitHubOAuthConfig `json:"github_oauth" yaml:"github_oauth"`
+	Host               string                `json:"host" yaml:"host"`
+	SslCertPath        string                `json:"ssl_cert_path" yaml:"ssl_cert_path"`
+	SslKeyPath         string                `json:"ssl_key_path" yaml:"ssl_key_path"`
+	Domain             string                `json:"domain" yaml:"domain"`
+	Domains            []string              `json:"domains" yaml:"domains"`
+	CorsOrigins        []string              `json:"cors_origins" yaml:"cors_origins"`
+	CdnIPHeader        string                `json:"cdn_ip_header" yaml:"cdn_ip_header"`
+	TrustedProxies     []string              `json:"trusted_proxies" yaml:"trusted_proxies"`
+	FileCacheSizeMb    uint32                `json:"file_cache_size_mb" yaml:"file_cache_size_mb"`
+	MaxActiveRequests  uint32                `json:"max_active_requests" yaml:"max_active_requests"`
+	AvatarMaxSizeBytes uint32                `json:"avatar_max_size_bytes" yaml:"avatar_max_size_bytes"`
+	Port               uint16                `json:"port" yaml:"port"`
+	SslEnabled         bool                  `json:"ssl_enabled" yaml:"ssl_enabled"`
+	EnableCompression  bool                  `json:"enable_compression" yaml:"enable_compression"`
+	DebugMode          bool                  `json:"debug_mode" yaml:"debug_mode"`
+	GPG                *GPGConfig            `json:"gpg" yaml:"gpg"`
+	GitHubOAuth        *GitHubOAuthConfig    `json:"github_oauth" yaml:"github_oauth"`
+	OAuthProviders     []OAuthProviderConfig `json:"oauth_providers" yaml:"oauth_providers"`
 }
 
 func (s *ServerConfig) applyWire(w *serverConfigWire) {
@@ -106,6 +109,7 @@ func (s *ServerConfig) applyWire(w *serverConfigWire) {
 	if w.GitHubOAuth != nil {
 		s.GitHubOAuth = w.GitHubOAuth.DeepCopy()
 	}
+	s.OAuthProviders = slices.Clone(w.OAuthProviders)
 
 	if len(w.Domains) > 0 {
 		s.Domains = normalizeDomainList(w.Domains)
@@ -449,6 +453,7 @@ func (s *ServerConfig) DeepCopy() ServerConfig {
 		DebugMode:          s.DebugMode,
 		GPG:                s.GPG.DeepCopy(),
 		GitHubOAuth:        s.GitHubOAuth.DeepCopy(),
+		OAuthProviders:     slices.Clone(s.OAuthProviders),
 	}
 	if s.Domains != nil {
 		cloned.Domains = make([]string, len(s.Domains))

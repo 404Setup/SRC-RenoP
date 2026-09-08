@@ -40,13 +40,12 @@ import {caughtErrorMessage, localizedResponseError} from './response-errors.js';
  * @returns {string}
  */
 function formatLoginMethod(method) {
-    if (method === 'fido') {
-        return t('sessions.methodFido');
-    }
-    if (method === 'github') {
-        return t('sessions.methodGithub');
-    }
-    return t('sessions.methodPassword');
+    const [primary, factor] = String(method || '').split('+');
+    let label = primary.startsWith('oauth:') ? t('oauth.sessionMethod', {provider: primary.slice(6)})
+        : t(primary === 'fido' ? 'sessions.methodFido' : primary === 'github' ? 'sessions.methodGithub' : 'sessions.methodPassword');
+    if (factor === 'totp') label += ' + ' + t('mfa.authenticator');
+    if (factor === 'passkey') label += ' + ' + t('sessions.methodFido');
+    return label;
 }
 
 /**

@@ -87,7 +87,7 @@ func registrationError(c fiber.Ctx, err error) error {
 		return passwordResetError(c, 400, "registration_invalid")
 	case errors.Is(err, core.ErrUsernameAlreadyExists):
 		return passwordResetError(c, 409, "registration_username_conflict")
-	case errors.Is(err, core.ErrGitHubIdentityLinked):
+	case errors.Is(err, core.ErrGitHubIdentityLinked), errors.Is(err, core.ErrOAuthIdentityLinked):
 		return passwordResetError(c, 409, "registration_identity_linked")
 	case errors.Is(err, core.ErrEmailAlreadyExists), errors.Is(err, mail.ErrRateLimited), errors.Is(err, mail.ErrQueueFull),
 		errors.Is(err, mailqueue.ErrNoAccount), errors.Is(err, mailqueue.ErrRecipientBlocked):
@@ -119,8 +119,14 @@ func getRegistrationPending(c fiber.Ctx, state *core.AppState) error {
 		available = existing == nil
 	}
 	provider, _, _ := strings.Cut(pending.ProviderKey, ":")
+	providerName := provider
+	if p, ok := state.Inner.Config.Load().Server.OAuthProvider(provider); ok {
+		providerName = p.Name
+	}
 	return c.JSON(fiber.Map{"provider": provider, "email": pending.Email, "expires_at": pending.ExpiresAt,
-		"username": profile.Username, "nickname": profile.Nickname, "username_available": available})
+		"username": profile.Username, "nickname": profile.Nickname, "username_available": available,
+		"provider_name": providerName, "email_required": provider == "" || profile.OAuth != nil && !profile.EmailVerified,
+		"mail_enabled": state.Inner.Config.Load().Mail.Enabled, "avatar_available": profile.GitHubID > 0 || profile.AvatarURL != ""})
 }
 
 func requestRegistrationCode(c fiber.Ctx, state *core.AppState) error {
@@ -135,7 +141,8 @@ func requestRegistrationCode(c fiber.Ctx, state *core.AppState) error {
 		return passwordResetError(c, 404, "mail_disabled")
 	}
 	var request struct {
-		Email string `json:"email"`
+		Email    string `json:"email"`
+		Provider string `json:"provider"`
 	}
 	if err := readPasswordResetRequest(c, &request); err != nil {
 		if errors.Is(err, fiber.ErrRequestEntityTooLarge) || errors.Is(err, fiber.ErrUnsupportedMediaType) {
@@ -148,6 +155,25 @@ func requestRegistrationCode(c fiber.Ctx, state *core.AppState) error {
 		return passwordResetError(c, 400, "ACCOUNT_EMAIL_INVALID")
 	}
 	capability := registrationCapability(c)
+	var providerPending *core.PendingRegistration
+	if capability != "" {
+		pending, err := state.GetDB().GetPendingRegistration(registrationHash(capability), time.Now().UnixMilli())
+		if request.Provider != "" {
+			if err != nil {
+				return registrationError(c, core.ErrRegistrationInvalid)
+			}
+			provider, _, _ := strings.Cut(pending.ProviderKey, ":")
+			if provider != request.Provider {
+				return registrationError(c, core.ErrRegistrationInvalid)
+			}
+			providerPending = pending
+		} else if err == nil && pending.ProviderKey != "" {
+			capability = ""
+		}
+	}
+	if request.Provider != "" && providerPending == nil {
+		return registrationError(c, core.ErrRegistrationInvalid)
+	}
 	if capability == "" {
 		var err error
 		capability, err = newOAuthState()
@@ -160,8 +186,12 @@ func requestRegistrationCode(c fiber.Ctx, state *core.AppState) error {
 		return registrationError(c, err)
 	}
 	ip := registrationIP(c, &cfg.Server)
+	expiresAt := time.Now().Add(10 * time.Minute).UnixMilli()
+	if providerPending != nil {
+		expiresAt = providerPending.ExpiresAt
+	}
 	job, receipt, err := mailqueue.Prepare(cfg.Mail, mailqueue.Request{To: email, Actor: "guest", Scene: "registration_verify",
-		IP: ip, Manual: true, ExpiresAt: time.Now().Add(10 * time.Minute).UnixMilli(),
+		IP: ip, Manual: true, ExpiresAt: expiresAt,
 		Data: mail.TemplateData{Code: code, URL: strings.TrimRight(cfg.Mail.PublicURL, "/") + "/account/register"}})
 	if err != nil {
 		return registrationError(c, err)
@@ -169,7 +199,13 @@ func requestRegistrationCode(c fiber.Ctx, state *core.AppState) error {
 	pending := &core.PendingRegistration{IDHash: registrationHash(capability), IPHash: registrationHash(ip), Email: email,
 		CodeHash:  emailVerificationHash(cfg.Mail.EncryptionKey, "registration", capability+"\x00"+email, code),
 		CreatedAt: job.CreatedAt, ExpiresAt: job.ExpiresAt, CooldownUntil: job.ExpiresAt}
-	if err = state.GetDB().BeginRegistration(pending, job, cfg.Mail.EncryptionKey, ip, cfg.Mail.ManualRate, cfg.Registration); err != nil {
+	if providerPending != nil {
+		err = state.GetDB().QueueProviderRegistrationEmail(pending.IDHash, pending.IPHash, pending.CodeHash, job,
+			cfg.Mail.EncryptionKey, ip, cfg.Mail.ManualRate, cfg.Registration)
+	} else {
+		err = state.GetDB().BeginRegistration(pending, job, cfg.Mail.EncryptionKey, ip, cfg.Mail.ManualRate, cfg.Registration)
+	}
+	if err != nil {
 		return registrationError(c, err)
 	}
 	setRegistrationCookie(c, capability)
@@ -221,11 +257,21 @@ func postRegistration(c fiber.Ctx, state *core.AppState) error {
 		state.Inner.ConfigWriteLock.Unlock()
 		return registrationError(c, mailqueue.ErrRecipientBlocked)
 	}
-	if request.Provider != "" && (request.Provider != "github" || !cfg.Server.GitHubOAuth.Configured()) {
+	provider, providerConfigured := cfg.Server.OAuthProvider(request.Provider)
+	if request.Provider != "" && !(request.Provider == "github" && cfg.Server.GitHubOAuth.Configured()) && !providerConfigured {
 		state.Inner.ConfigWriteLock.Unlock()
 		return registrationError(c, core.ErrRegistrationInvalid)
 	}
 	capability := registrationCapability(c)
+	if providerConfigured {
+		pending, pendingErr := state.GetDB().GetPendingRegistration(registrationHash(capability), time.Now().UnixMilli())
+		var pendingProfile core.RegistrationProfile
+		if pendingErr != nil || json.Unmarshal([]byte(pending.ProfileJSON), &pendingProfile) != nil ||
+			pendingProfile.ProviderConfigHash != oauthConfigurationHash(provider) {
+			state.Inner.ConfigWriteLock.Unlock()
+			return registrationError(c, core.ErrRegistrationInvalid)
+		}
+	}
 	if !cfg.Mail.Enabled && request.Provider == "" {
 		capability = ""
 	}
@@ -250,6 +296,9 @@ func postRegistration(c fiber.Ctx, state *core.AppState) error {
 	avatarImported := false
 	if request.ImportAvatar && profile.GitHubID > 0 {
 		avatarImported = importRegistrationGitHubAvatar(c, state, profile)
+	}
+	if request.ImportAvatar && profile.OAuth != nil {
+		avatarImported = importRegistrationOAuthAvatar(c, state, profile)
 	}
 	return c.Status(201).JSON(fiber.Map{"username": username, "avatar_imported": avatarImported})
 }

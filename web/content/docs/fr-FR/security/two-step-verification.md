@@ -11,7 +11,7 @@ description: Passkey comme second facteur, configuration de l’authentificateur
 
 Configurez la vérification en deux étapes dans le panneau de sécurité du compte. Après la validation du mot de passe ou du compte tiers, RenoP exige un second facteur configuré avant de créer une session. Si un authentificateur et une Passkey secondaire sont tous deux activés, l’un ou l’autre peut terminer cette étape. Une Passkey secondaire ne permet pas de se connecter seule. Une Passkey principale peut aussi être suivie d’un code d’authentification.
 
-La connexion par mot de passe ou Passkey principale renvoie `409` avec `X-Renop-Error-Code: MFA_REQUIRED` si un second facteur est nécessaire. GitHub revient à `/account/login?mfa=1` avec la destination locale `return_to`. Le cookie privé HttpOnly `renop_mfa` autorise uniquement les endpoints de vérification en attente ; ce n’est pas une session. Les défis expirent après cinq minutes, sont à usage unique et sont perdus au redémarrage. Le processus conserve au plus 4 096 défis et huit par compte.
+La connexion par mot de passe ou Passkey principale renvoie `409` avec `X-Renop-Error-Code: MFA_REQUIRED` si un second facteur est nécessaire. GitHub et les autres fournisseurs OAuth configurés reviennent à `/account/login?mfa=1` avec la destination locale `return_to`. Le cookie privé HttpOnly `renop_mfa` autorise uniquement les endpoints de vérification en attente ; ce n’est pas une session. Les défis expirent après cinq minutes, sont à usage unique et sont perdus au redémarrage. Le processus conserve au plus 4 096 défis et huit par compte.
 
 ## Configurer un authentificateur
 

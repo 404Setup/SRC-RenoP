@@ -132,9 +132,15 @@ type StateDB interface {
 	CleanRegistrations(now int64) error
 	CheckRegistrationIP(ipHash string, cfg config.RegistrationConfig, now int64) error
 	BeginRegistration(pending *PendingRegistration, job *mail.Job, key, ip string, rate mail.Rate, cfg config.RegistrationConfig) error
+	QueueProviderRegistrationEmail(idHash, ipHash, codeHash string, job *mail.Job, key, ip string, rate mail.Rate, cfg config.RegistrationConfig) error
 	GetPendingRegistration(idHash string, now int64) (*PendingRegistration, error)
 	RegisterAccount(request AccountRegistration, cfg config.RegistrationConfig, now int64) (*RegistrationProfile, error)
 	GetGitHubIdentity(username string) (*GitHubIdentity, error)
+	GetOAuthIdentities(username string) ([]OAuthIdentity, error)
+	GetOAuthIdentity(identity OAuthIdentity) (*OAuthIdentity, error)
+	RefreshOAuthIdentity(userID string, identity OAuthIdentity, now int64) error
+	LinkOAuthIdentity(username, session, snapshot string, identity OAuthIdentity, now int64) error
+	DeleteOAuthIdentity(username, session, provider string, now int64) error
 	GetGitHubIdentityByProviderID(githubUserID int64) (*GitHubIdentity, error)
 	StoreGitHubIdentity(userID string, githubUserID int64, githubLogin string, principals []GitHubPrincipal, authorizedAt int64) error
 	DeleteGitHubIdentity(username string) error

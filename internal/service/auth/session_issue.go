@@ -67,6 +67,9 @@ func issueBrowserSession(c fiber.Ctx, state *core.AppState, user *config.User, m
 	case "github":
 		authMethod = "GitHub"
 	}
+	if strings.HasPrefix(primary, "oauth:") {
+		authMethod = "OAuth " + strings.TrimPrefix(primary, "oauth:")
+	}
 	if factor == "totp" {
 		authMethod += " + TOTP"
 	}

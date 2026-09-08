@@ -24,6 +24,8 @@ l’opération. Les réponses utilisent protobuf lorsque `proto/api/v1/api.proto
 - **GitHub OAuth** : `GET /api/settings/github-oauth` renvoie un état masqué et `PUT /api/settings/github-oauth` modifie
   l’identifiant client et le secret en écriture seule.
 
+**Autres fournisseurs OAuth** : `GET /api/settings/oauth-providers` renvoie les clients et préréglages sans secrets ; `PUT /api/settings/oauth-providers` remplace la liste. Le tableau `providers` est obligatoire ; un tableau explicitement vide supprime tous les clients configurés. Jusqu’à 32 clients et un corps de 128 KiB sont acceptés. Voir [Connexion via un service tiers](../security/oauth-login.md) pour les identifiants, préréglages et associations.
+
 ## Paramètres des dépôts
 
 Préférez `/api/settings/repositories`. Les alias préfixés par Maven restent disponibles pour compatibilité.

@@ -24,6 +24,8 @@ description: 按域管理服务设置、存储库与索引重建
 - **GitHub OAuth**：`GET /api/settings/github-oauth` 返回脱敏状态；`PUT /api/settings/github-oauth` 更新
   Client ID 与只写 Secret。
 
+**其他 OAuth 服务**：`GET /api/settings/oauth-providers` 返回隐藏密钥的客户端配置和预设；`PUT /api/settings/oauth-providers` 替换列表。必须提供 `providers` 数组，显式空数组会移除全部已配置客户端。最多支持 32 个客户端，请求体上限为 128 KiB。凭据、预设和账号绑定详见[第三方登录](../security/oauth-login.md)。
+
 ## 存储库设置
 
 优先使用 `/api/settings/repositories`。带 Maven 前缀的旧接口继续用于兼容。

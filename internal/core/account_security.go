@@ -52,6 +52,7 @@ type AccountSecurity struct {
 	PasswordLoginEnabled      bool   `json:"password_login_enabled"`
 	PasswordConfigured        bool   `json:"password_configured"`
 	GitHubLinked              bool   `json:"github_linked"`
+	OAuthIdentityCount        int    `json:"oauth_identity_count"`
 	CanDisablePasswordLogin   bool   `json:"can_disable_password_login"`
 }
 

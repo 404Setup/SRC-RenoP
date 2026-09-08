@@ -204,6 +204,10 @@ func clickHouseSchemas() []clickHouseTableSchema {
 		{name: "github_identities", keyColumns: []string{"github_user_id"}, columns: []string{
 			"`github_user_id` Int64", "`user_id` String", "`github_login` String", "`authorized_at` Int64",
 		}},
+		{name: "oauth_identities", keyColumns: []string{"identity_hash"}, columns: []string{
+			"`identity_hash` String", "`provider_id` String", "`subject` String", "`authority` String",
+			"`user_id` String", "`login` String", "`namespaces_json` String", "`authorized_at` Int64",
+		}},
 		{name: "github_principals", keyColumns: []string{"user_id", "principal_type", "github_principal_id"}, columns: []string{
 			"`user_id` String", "`principal_type` String", "`github_principal_id` Int64", "`github_login` String", "`authorized_at` Int64",
 		}},

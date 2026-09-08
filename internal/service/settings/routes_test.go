@@ -1002,11 +1002,11 @@ func TestGetDomainsProtobuf(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected GET 200, got %d", resp.StatusCode)
 	}
-	if len(got.Domains) != 12 || !slices.Contains(got.Domains, "proxy") ||
+	if len(got.Domains) != 13 || !slices.Contains(got.Domains, "proxy") || !slices.Contains(got.Domains, "oauth_providers") ||
 		!slices.Contains(got.Domains, "github_oauth") || !slices.Contains(got.Domains, "super_teams") ||
 		!slices.Contains(got.Domains, "publication_quota") || !slices.Contains(got.Domains, "cache") ||
 		!slices.Contains(got.Domains, "mail") || !slices.Contains(got.Domains, "registration") || slices.Contains(got.Domains, "gpg") {
-		t.Fatalf("expected 12 domains including registration, cache and mail settings while excluding gpg, got %v", got.Domains)
+		t.Fatalf("expected 13 domains including OAuth, registration, cache and mail settings while excluding gpg, got %v", got.Domains)
 	}
 }
 

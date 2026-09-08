@@ -104,6 +104,7 @@ button.account-form-link {
 }
 
 .account-page-form[hidden],
+.account-providers[hidden],
 #mfa-login-form [hidden] {
     display: none;
 }

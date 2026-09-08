@@ -36,13 +36,18 @@ type PendingRegistration struct {
 	CooldownUntil int64
 }
 
-// RegistrationProfile retains provider identity and optional profile suggestions without access tokens.
+// RegistrationProfile retains provider suggestions and an optional encrypted, short-lived avatar capability.
 type RegistrationProfile struct {
-	Username    string            `json:"username"`
-	Nickname    string            `json:"nickname"`
-	GitHubID    int64             `json:"github_id,omitempty"`
-	GitHubLogin string            `json:"github_login,omitempty"`
-	Principals  []GitHubPrincipal `json:"principals,omitempty"`
+	OAuth              *OAuthIdentity    `json:"oauth,omitempty"`
+	EmailVerified      bool              `json:"email_verified,omitempty"`
+	AvatarURL          string            `json:"avatar_url,omitempty"`
+	AvatarToken        string            `json:"avatar_token,omitempty"`
+	ProviderConfigHash string            `json:"provider_config_hash,omitempty"`
+	Username           string            `json:"username"`
+	Nickname           string            `json:"nickname"`
+	GitHubID           int64             `json:"github_id,omitempty"`
+	GitHubLogin        string            `json:"github_login,omitempty"`
+	Principals         []GitHubPrincipal `json:"principals,omitempty"`
 }
 
 // AccountRegistration carries validated account fields and the browser's confirmation capability.

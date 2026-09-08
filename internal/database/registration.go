@@ -25,6 +25,21 @@ import (
 
 const registrationColumns = "id_hash, ip_hash, provider_key, email, code_hash, profile_json, attempts, created_at, expires_at, cooldown_until"
 
+func registrationProviderProfile(p *core.PendingRegistration) (*core.RegistrationProfile, error) {
+	profile := &core.RegistrationProfile{}
+	if json.Unmarshal([]byte(p.ProfileJSON), profile) != nil {
+		return nil, core.ErrRegistrationInvalid
+	}
+	if profile.OAuth != nil {
+		if !profile.OAuth.Valid() || profile.GitHubID != 0 || p.ProviderKey != profile.OAuth.ProviderID+":"+profile.OAuth.Key() {
+			return nil, core.ErrRegistrationInvalid
+		}
+	} else if profile.GitHubID <= 0 || p.ProviderKey != "github:"+strconv.FormatInt(profile.GitHubID, 10) {
+		return nil, core.ErrRegistrationInvalid
+	}
+	return profile, nil
+}
+
 func cleanRegistrationsTx(tx *Tx, now int64) error {
 	if _, err := tx.Exec(`DELETE FROM account_registrations WHERE cooldown_until <= ?`, now); err != nil {
 		return err
@@ -134,16 +149,21 @@ func (db *DB) BeginRegistration(p *core.PendingRegistration, job *mail.Job, key,
 		return core.ErrRegistrationInvalid
 	}
 	email, valid := core.NormalizeEmail(p.Email)
-	if !valid || email == "" || email != p.Email {
+	if !valid || email != p.Email {
 		return core.ErrRegistrationInvalid
 	}
 	if p.ProviderKey == "" {
-		if !validSelectorHash(p.CodeHash) || job == nil || job.Scene != "registration_verify" || job.Message.To != email ||
+		if email == "" || !validSelectorHash(p.CodeHash) || job == nil || job.Scene != "registration_verify" || job.Message.To != email ||
 			job.CreatedAt != p.CreatedAt || job.ExpiresAt != p.ExpiresAt || p.CooldownUntil != p.ExpiresAt {
 			return core.ErrRegistrationInvalid
 		}
 	} else if job != nil || p.CodeHash != "" || p.CooldownUntil != p.ExpiresAt+cfg.ProviderCooldown.Duration().Milliseconds() {
 		return core.ErrRegistrationInvalid
+	} else {
+		profile, err := registrationProviderProfile(p)
+		if err != nil || (email == "" && (profile.OAuth == nil || profile.EmailVerified)) {
+			return core.ErrRegistrationInvalid
+		}
 	}
 	db.mailWriteMu.Lock()
 	defer db.mailWriteMu.Unlock()
@@ -210,6 +230,54 @@ func (db *DB) BeginRegistration(p *core.PendingRegistration, job *mail.Job, key,
 	return tx.Commit()
 }
 
+// QueueProviderRegistrationEmail attaches verification to the original provider confirmation without extending its lifetime.
+func (db *DB) QueueProviderRegistrationEmail(idHash, ipHash, codeHash string, job *mail.Job, key, ip string,
+	rate mail.Rate, cfg config.RegistrationConfig) error {
+	if !validSelectorHash(idHash) || !validSelectorHash(ipHash) || !validSelectorHash(codeHash) || job == nil ||
+		job.Scene != "registration_verify" {
+		return core.ErrRegistrationInvalid
+	}
+	email, valid := core.NormalizeEmail(job.Message.To)
+	if !valid || email == "" || email != job.Message.To {
+		return core.ErrRegistrationInvalid
+	}
+	db.mailWriteMu.Lock()
+	defer db.mailWriteMu.Unlock()
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = lockMailTx(tx); err != nil {
+		return err
+	}
+	p, err := scanRegistration(tx.QueryRow(`SELECT `+registrationColumns+` FROM account_registrations WHERE id_hash = ?`, idHash))
+	if err != nil {
+		return err
+	}
+	if p.IPHash != ipHash || p.Attempts >= 5 || p.ExpiresAt <= job.CreatedAt || job.ExpiresAt != p.ExpiresAt {
+		return core.ErrRegistrationInvalid
+	}
+	profile, err := registrationProviderProfile(p)
+	if err != nil || profile.OAuth == nil || profile.EmailVerified {
+		return core.ErrRegistrationInvalid
+	}
+	if err = registrationRateTx(tx, ipHash, cfg, job.CreatedAt, false); err != nil {
+		return err
+	}
+	created, err := queueMailJobTx(tx, job, key, ip, rate)
+	if err != nil {
+		return err
+	}
+	if !created {
+		return core.ErrRegistrationInvalid
+	}
+	if _, err = tx.Exec(`UPDATE account_registrations SET email = ?, code_hash = ? WHERE id_hash = ?`, email, codeHash, idHash); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
 // RegisterAccount consumes confirmation, creates credentials and identity, and charges the IP in one transaction.
 func (db *DB) RegisterAccount(request core.AccountRegistration, cfg config.RegistrationConfig, now int64) (*core.RegistrationProfile, error) {
 	username, valid := core.NormalizeUsername(request.Username)
@@ -247,19 +315,20 @@ func (db *DB) RegisterAccount(request core.AccountRegistration, cfg config.Regis
 		if provider != request.Provider {
 			return nil, core.ErrRegistrationInvalid
 		}
-		if p.ProviderKey == "" {
-			if !validSelectorHash(request.CodeHash) || subtle.ConstantTimeCompare([]byte(p.CodeHash), []byte(request.CodeHash)) != 1 {
+		if p.ProviderKey != "" {
+			profile, err = registrationProviderProfile(p)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if p.ProviderKey == "" || profile.OAuth != nil && !profile.EmailVerified {
+			if email == "" || !validSelectorHash(p.CodeHash) || !validSelectorHash(request.CodeHash) || subtle.ConstantTimeCompare([]byte(p.CodeHash), []byte(request.CodeHash)) != 1 {
 				if _, err = tx.Exec(`UPDATE account_registrations SET attempts = attempts + 1 WHERE id_hash = ?`, p.IDHash); err != nil {
 					return nil, err
 				}
 				if err = tx.Commit(); err != nil {
 					return nil, err
 				}
-				return nil, core.ErrRegistrationInvalid
-			}
-		} else {
-			if json.Unmarshal([]byte(p.ProfileJSON), profile) != nil || profile.GitHubID <= 0 ||
-				p.ProviderKey != "github:"+strconv.FormatInt(profile.GitHubID, 10) {
 				return nil, core.ErrRegistrationInvalid
 			}
 		}
@@ -281,6 +350,11 @@ func (db *DB) RegisterAccount(request core.AccountRegistration, cfg config.Regis
 	}
 	if profile.GitHubID > 0 {
 		if err = storeGitHubIdentityTx(tx, userID, profile.GitHubID, profile.GitHubLogin, profile.Principals, now); err != nil {
+			return nil, err
+		}
+	}
+	if profile.OAuth != nil {
+		if err = storeOAuthIdentityTx(tx, userID, *profile.OAuth, now); err != nil {
 			return nil, err
 		}
 	}

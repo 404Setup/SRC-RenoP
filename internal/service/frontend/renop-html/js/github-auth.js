@@ -170,6 +170,7 @@ $(window).on('accountSecurityUpdated', event => {
     if (!currentGitHubProfileStatus?.linked || !detail) return;
     const security = detail;
     const canDisconnect = (Number(security.fido_device_count) > 0 && !security.passkey_second_factor) ||
+        Number(security.oauth_identity_count) > 0 ||
         (security.password_configured === true && security.password_login_enabled === true);
     if (canDisconnect === Boolean(currentGitHubProfileStatus.can_disconnect)) return;
     renderGitHubConnection({...currentGitHubProfileStatus, can_disconnect: canDisconnect});

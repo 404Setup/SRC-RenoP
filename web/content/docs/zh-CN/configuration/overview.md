@@ -64,6 +64,8 @@ server:
 
 GitHub OAuth 同样存储在 `server.github_oauth` 下；应通过界面配置 Client ID 与只写 Secret。
 
+其他 [OAuth 服务](../security/oauth-login.md)通过 `server.oauth_providers` 配置。后台编辑器提供官方预设，保存但不回传凭据，并立即将新配置应用于新的授权。
+
 ### `database` 数据库连接
 
 ```yaml

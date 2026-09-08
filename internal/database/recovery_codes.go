@@ -237,8 +237,8 @@ func resetAccountPasswordTx(tx *Tx, userID, username, passwordHash string, updat
 	if err := ensureAccountSecurityTx(tx, userID, updatedAt); err != nil {
 		return fmt.Errorf("initialize recovered account security: %w", err)
 	}
-	if _, err := tx.Exec(`UPDATE user_account_security SET password_login_enabled = 1, updated_at = ?
-		WHERE user_id = ?`, updatedAt, userID); err != nil {
+	if _, err := tx.Exec(`UPDATE user_account_security SET password_login_enabled = 1,
+		updated_at = CASE WHEN updated_at >= ? THEN updated_at + 1 ELSE ? END WHERE user_id = ?`, updatedAt, updatedAt, userID); err != nil {
 		return fmt.Errorf("restore password login: %w", err)
 	}
 	if _, err := tx.Exec(`DELETE FROM sessions WHERE username = ?`, username); err != nil {
