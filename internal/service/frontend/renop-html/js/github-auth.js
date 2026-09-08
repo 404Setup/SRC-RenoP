@@ -14,6 +14,7 @@ import {t} from './i18n.js';
 import {refreshAccountSecurity} from './account-security.js';
 import {runButtonAction} from './components.js';
 import {$} from '@renop/ui/jquery';
+import {isLoginPath, loginReturnTo} from './login-route.js';
 
 let currentGitHubProfileStatus = null;
 
@@ -22,7 +23,7 @@ let currentGitHubProfileStatus = null;
  * @returns {void}
  */
 function startGitHubOAuth() {
-    const returnTo = window.location.pathname || '/';
+    const returnTo = isLoginPath() ? loginReturnTo() : window.location.pathname || '/';
     window.location.assign('/api/auth/github/start?return_to=' + encodeURIComponent(returnTo));
 }
 

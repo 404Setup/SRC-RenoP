@@ -13,24 +13,50 @@ import {readdirSync, readFileSync} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import test from 'node:test';
 import {fileURLToPath, pathToFileURL} from 'node:url';
+import {isLoginPath, loginReturnTo, safeLoginReturnTo} from '../js/login-route.js';
 
 const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
+test('sign-in return paths stay local and cannot reenter authentication endpoints', () => {
+    for (const value of ['/account/reviews', '/user/alice/edit', '/packages/%E4%BB%A3%E7%A0%81/']) {
+        assert.equal(safeLoginReturnTo(value), value);
+        assert.equal(loginReturnTo('?return_to=' + encodeURIComponent(value)), value);
+    }
+    for (const value of [null, '', 'https://evil.example', '//evil.example', '/\\evil.example',
+        '/%2f%2fevil.example', '/%5cevil.example', '/bad%path', '/\nwrong', '/%0awrong',
+        '/account/login', '/account/login/', '/ACCOUNT/LOGIN', '/account/%6cogin', '/foo/../account/login',
+        '/api', '/API/auth/logout', '/api/auth/logout', '/' + 'a'.repeat(1024), '/' + '例'.repeat(500)]) {
+        assert.equal(safeLoginReturnTo(value), '/', String(value));
+    }
+    assert.equal(safeLoginReturnTo('/user/alice?ignored=value#fragment'), '/user/alice');
+    assert.equal(isLoginPath('/account/login/'), true);
+    assert.equal(isLoginPath('/account/login/extra'), false);
+    const index = readFileSync(join(frontendRoot, 'index.html'), 'utf8');
+    assert.match(index, /<section[^>]*id="tab-content-login"/);
+    assert.ok(index.indexOf('id="login-form"') < index.indexOf('</main>'));
+    assert.doesNotMatch(index, /id="login-modal"|id="close-login-modal"/);
+    const github = readFileSync(join(frontendRoot, 'js/github-auth.js'), 'utf8');
+    assert.match(github, /isLoginPath\(\) \? loginReturnTo\(\)/);
+});
+
 test('login alternatives place Passkey before optional GitHub below the divider', () => {
     const index = readFileSync(join(frontendRoot, 'index.html'), 'utf8');
-    const submit = index.indexOf('class="submit-btn"');
-    const divider = index.indexOf('class="login-provider-divider"');
+    const submit = index.indexOf('class="account-submit"');
+    const divider = index.indexOf('class="account-provider-divider"');
     const passkey = index.indexOf('id="btn-fido-login"');
     const github = index.indexOf('id="btn-github-login"');
     assert.ok(submit >= 0 && divider > submit && passkey > divider && github > passkey);
-    assert.match(index, /<button(?=[^>]*id="btn-fido-login")(?=[^>]*class="[^"]*\blogin-provider-btn\b[^"]*")[^>]*>/);
+    assert.match(index, /<button(?=[^>]*id="btn-fido-login")(?=[^>]*class="account-provider")[^>]*>/);
     assert.doesNotMatch(index, /Username, email, or token name|Password \/ Secret|password or secret/i);
 
     const auth = readFileSync(join(frontendRoot, 'js/auth.js'), 'utf8');
     assert.ok(auth.includes("runButtonAction(btnFidoLogin, fidoLogin)"));
-    const styles = readFileSync(join(frontendRoot, 'css/components/button.css'), 'utf8');
-    assert.ok(styles.includes('.login-provider-section'));
-    assert.ok(styles.includes('.passkey-login-btn'));
+    const styles = readFileSync(join(frontendRoot, 'css/account-pages.css'), 'utf8');
+    assert.ok(styles.includes('.account-page'));
+    assert.ok(styles.includes('.account-providers'));
+    const loginPage = index.slice(index.indexOf('id="tab-content-login"'), index.indexOf('id="tab-content-overview"'));
+    assert.doesNotMatch(loginPage, /modal-|form-group|submit-btn|login-provider-btn/);
+    assert.match(index, /<button[^>]*id="login-btn"[^>]*type="button"/);
 });
 
 test('all locales use Passkey copy and password-only login fields', async () => {

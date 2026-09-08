@@ -9,7 +9,7 @@
  */
 
 import {showAlert} from './alert.js';
-import {closeModalWithAnim} from './app-ui.js';
+import {navigateToLogin} from './login-route.js';
 import {RenopDialog} from './components.js';
 import {t} from './i18n.js';
 import {attachPasswordStrength, confirmWeakPasswordIfNeeded, getPasswordLengthError,} from './password-strength.js';
@@ -105,11 +105,8 @@ function openPasswordRecoveryDialog() {
                     if (usernameInput) usernameInput.value = loginName;
                     dialog.close(true);
                     showAlert(t('login.recoverySuccess'), 'success');
-                    const loginModal = document.getElementById('login-modal');
-                    if (loginModal) {
-                        loginModal.style.display = 'flex';
-                        if (window.updateModalInertState) window.updateModalInertState();
-                    }
+                    navigateToLogin();
+                    document.getElementById('password')?.focus();
                 } catch (requestError) {
                     console.error('Password recovery failed', requestError);
                     error.textContent = t('login.recoveryFailed');
@@ -140,10 +137,5 @@ function openPasswordRecoveryDialog() {
 
 document.getElementById('btn-forgot-password')?.addEventListener('click', event => {
     event.preventDefault();
-    const loginModal = document.getElementById('login-modal');
-    if (loginModal && loginModal.style.display !== 'none') {
-        closeModalWithAnim(loginModal, openPasswordRecoveryDialog);
-        return;
-    }
     openPasswordRecoveryDialog();
 });

@@ -1,0 +1,51 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+ * If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+/** Whether a pathname belongs to the sign-in page. */
+export function isLoginPath(pathname = window.location.pathname) {
+    return pathname.toLowerCase().replace(/\/$/, '') === '/account/login';
+}
+
+/** Keep login return paths local, bounded, and outside authentication endpoints. */
+export function safeLoginReturnTo(value) {
+    if (typeof value !== 'string' || value.length > 1024 || !value.startsWith('/') ||
+        value.startsWith('//') || /[\\\x00-\x20]/.test(value)) return '/';
+    try {
+        const target = new URL(value, 'https://renop.invalid');
+        const decoded = decodeURIComponent(target.pathname).toLowerCase();
+        if (target.origin !== 'https://renop.invalid' || decoded.startsWith('//') ||
+            /[\\\x00-\x20]/.test(decoded) || isLoginPath(decoded) ||
+            decoded === '/api' || decoded.startsWith('/api/') || target.pathname.length > 1024) return '/';
+        return target.pathname;
+    } catch {
+        return '/';
+    }
+}
+
+/** Read the destination shared by password, Passkey, and provider sign-in. */
+export function loginReturnTo(search = window.location.search) {
+    return safeLoginReturnTo(new URLSearchParams(search).get('return_to'));
+}
+
+/** Open sign-in while retaining the page to return to after authentication. */
+export function navigateToLogin(returnTo = window.location.pathname, {replace = false} = {}) {
+    if (isLoginPath()) return;
+    const target = safeLoginReturnTo(returnTo);
+    const route = '/account/login' + (target === '/' ? '' : '?return_to=' + encodeURIComponent(target));
+    if (replace) window.history.replaceState(null, '', route);
+    else window.history.pushState(null, '', route);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+}
+
+/** Replace the completed sign-in entry so Back does not reopen the form. */
+export function leaveLoginPage() {
+    if (!isLoginPath()) return;
+    window.history.replaceState(null, '', loginReturnTo());
+    window.dispatchEvent(new PopStateEvent('popstate'));
+}

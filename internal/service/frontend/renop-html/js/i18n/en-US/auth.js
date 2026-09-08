@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "login.pageDescription": "Sign in to manage your account and access your repositories.",
     "login.fidoLogin": "Continue with Passkey",
     "login.fidoFailed": "Passkey sign-in failed",
     "login.fidoUnsupported": "Passkeys are not supported by your browser",

@@ -693,11 +693,11 @@ func TestNotificationComposerAndAccountMenuUseCompactStructuredLayout(t *testing
 	}
 	indexText := string(indexSource)
 	composeStart := strings.Index(indexText, `id="message-compose-modal"`)
-	loginStart := strings.Index(indexText, `id="login-modal"`)
-	if composeStart < 0 || loginStart <= composeStart {
+	composeEnd := strings.Index(indexText, `id="user-fido-modal"`)
+	if composeStart < 0 || composeEnd <= composeStart {
 		t.Fatal("notification composer markup boundary is missing")
 	}
-	composer := indexText[composeStart:loginStart]
+	composer := indexText[composeStart:composeEnd]
 	for _, required := range []string{
 		`class="message-compose-heading-icon"`,
 		`class="message-compose-audience"`,
@@ -1160,6 +1160,7 @@ func TestRoutedPagesServeSPAIndex(t *testing.T) {
 	app := fiber.New()
 	SetupFrontendRoutes(app, state)
 	for _, path := range []string{
+		"/account/login", "/account/login?return_to=%2Faccount%2Freviews",
 		"/user/alice", "/user/alice/edit", "/user/alice/maven", "/user/alice/cargo", "/user/alice/docker", "/user/alice/npm",
 		"/domain/com.example", "/team/platform",
 		"/account/reviews", "/account/teams", "/account/teams/core", "/account/maven-domains", "/account/maven-domains/com.example",

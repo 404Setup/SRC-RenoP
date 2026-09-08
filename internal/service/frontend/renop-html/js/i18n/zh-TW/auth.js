@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "login.pageDescription": "登入以管理帳號及存取儲存庫。",
     "login.fidoLogin": "使用 Passkey 繼續",
     "login.fidoFailed": "Passkey 登入失敗",
     "login.fidoUnsupported": "您的瀏覽器不支援 Passkey",

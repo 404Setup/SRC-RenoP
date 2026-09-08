@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "login.pageDescription": "Melden Sie sich an, um Ihr Konto zu verwalten und auf Ihre Repositories zuzugreifen.",
     "login.fidoLogin": "Mit Passkey fortfahren",
     "login.fidoFailed": "Passkey-Anmeldung fehlgeschlagen",
     "login.fidoUnsupported": "Passkeys werden von Ihrem Browser nicht unterstützt",

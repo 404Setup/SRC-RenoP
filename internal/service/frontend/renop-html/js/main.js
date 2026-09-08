@@ -56,6 +56,7 @@ import './password-recovery.js';
 import {initConfiguredFont} from './font.js';
 import {$} from '@renop/ui/jquery';
 import {protectedRouteDeniedEvent} from './protected-route.js';
+import {isLoginPath, leaveLoginPage, navigateToLogin} from './login-route.js';
 
 await initI18n();
 initConfiguredFont();
@@ -281,8 +282,9 @@ async function navigateHome({replace = false} = {}) {
     await switchTab('overview');
 }
 
-window.addEventListener(protectedRouteDeniedEvent, () => {
-    void navigateHome({replace: true});
+window.addEventListener(protectedRouteDeniedEvent, event => {
+    if (event.detail?.status === 401) navigateToLogin(window.location.pathname, {replace: true});
+    else void navigateHome({replace: true});
 });
 
 /**
@@ -291,10 +293,15 @@ window.addEventListener(protectedRouteDeniedEvent, () => {
  * @returns {Promise<void>}
  */
 export async function switchTab(tabId) {
+    if (isLoginPath()) tabId = 'login';
     const routedAccountTab = accountTabFromPath();
     if (!cachedIsLoggedIn && (isAccountTab(tabId) || routedAccountTab)) {
-        if (routedAccountTab) window.history.replaceState(null, '', '/');
-        tabId = 'overview';
+        navigateToLogin(window.location.pathname, {replace: true});
+        return;
+    }
+    if (!cachedIsLoggedIn && profileRouteFromPath(window.location.pathname)?.section === 'edit') {
+        navigateToLogin(window.location.pathname, {replace: true});
+        return;
     }
     if (isManagerTab(tabId) && !cachedIsManager) tabId = 'overview';
     if (tabId === 'overview' && profileRouteFromPath(window.location.pathname)) {
@@ -327,6 +334,11 @@ export async function switchTab(tabId) {
         smoothScrollToTop();
     }
 
+    const enteringLogin = tabId === 'login' && !document.getElementById('tab-content-login').classList.contains('active');
+    if (tabId !== 'login') {
+        document.getElementById('login-form').reset();
+        document.getElementById('login-error').style.display = 'none';
+    }
     tabContents.forEach(content => {
         if (content.id === `tab-content-${tabId}`) {
             content.style.display = 'block';
@@ -337,7 +349,8 @@ export async function switchTab(tabId) {
         }
     });
 
-    if (tabId !== 'profile' && tabId !== 'maven-domain' && tabId !== 'super-team' && !isAccountTab(tabId)) {
+    if (enteringLogin) document.getElementById('username').focus({preventScroll: true});
+    if (tabId !== 'login' && tabId !== 'profile' && tabId !== 'maven-domain' && tabId !== 'super-team' && !isAccountTab(tabId)) {
         localStorage.setItem('selectedTab', tabId);
     }
 
@@ -390,7 +403,7 @@ tabs.forEach(tab => {
     tab.addEventListener('click', (e) => {
         e.preventDefault();
         if (tab.classList.contains('active')) return;
-        if (profileRouteFromPath(window.location.pathname) || accountTabFromPath()) {
+        if (isLoginPath() || profileRouteFromPath(window.location.pathname) || accountTabFromPath()) {
             window.history.pushState(null, '', '/');
         }
         switchTab(tab.dataset.tab);
@@ -511,6 +524,7 @@ async function initializeApplication() {
 
         await initializeSession();
         await initializeGitHubAuth();
+        if (isLoginPath() && cachedIsLoggedIn) leaveLoginPage();
 
         const mainTabs = document.querySelector('#tabs');
         if (mainTabs) {
@@ -528,7 +542,6 @@ async function initializeApplication() {
         }
         if ((!profileRoute && !accountTab && !cachedIsLoggedIn) ||
             (accountTab && !cachedIsLoggedIn) || (isManagerTab(savedTab) && !cachedIsManager)) {
-            if (accountTab && !cachedIsLoggedIn) window.history.replaceState(null, '', '/');
             savedTab = 'overview';
         }
         await switchTab(savedTab);
@@ -581,7 +594,7 @@ async function initializeApplication() {
                     return;
                 }
                 if (!cachedIsManager) return;
-                if (profileRouteFromPath(window.location.pathname) || accountTabFromPath()) {
+                if (isLoginPath() || profileRouteFromPath(window.location.pathname) || accountTabFromPath()) {
                     window.history.pushState(null, '', '/');
                 }
                 await switchTab(targetTab);

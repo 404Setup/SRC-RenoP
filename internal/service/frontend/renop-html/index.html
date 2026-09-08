@@ -173,6 +173,59 @@
 
 <div id="app">
     <main>
+        <section aria-labelledby="login-title" class="tab-content" id="tab-content-login" style="display: none;">
+            <div class="account-page">
+                <header class="account-page-heading">
+                    <renop-icon aria-hidden="true" class="account-page-symbol" name="identity"></renop-icon>
+                    <h1 data-i18n="nav.signIn" id="login-title">Sign in</h1>
+                    <p data-i18n="login.pageDescription">Sign in to manage your account and access your repositories.</p>
+                    <a class="account-page-back" href="/">
+                        <renop-icon aria-hidden="true" name="chevronLeft"></renop-icon>
+                        <span data-i18n="nav.backHome">Back to home</span>
+                    </a>
+                </header>
+                <form class="account-page-form" id="login-form">
+                    <div class="account-field">
+                        <label data-i18n="login.usernameLabel" for="username">Username or email</label>
+                        <input autocomplete="username" data-i18n-placeholder="login.usernamePlaceholder" id="username" placeholder="Enter username or private email"
+                               maxlength="254" required
+                               type="text">
+                    </div>
+                    <div class="account-field">
+                        <label data-i18n="login.passwordLabel" for="password">Password</label>
+                        <input autocomplete="current-password" data-i18n-placeholder="login.passwordPlaceholder" id="password" placeholder="Enter password"
+                               maxlength="72" required type="password">
+                    </div>
+                    <div class="account-form-error" id="login-error" role="alert" style="display: none;"></div>
+                    <div class="account-form-links">
+                        <a class="account-form-link" data-i18n="login.forgotPassword" href="javascript:void(0);"
+                           id="btn-forgot-password">Forgot password?</a>
+                    </div>
+                    <button class="account-submit" data-i18n="login.submitBtn" type="submit">
+                        Login
+                    </button>
+                    <div class="account-providers">
+                        <div class="account-provider-divider"><span data-i18n="login.or">or</span></div>
+                        <button class="account-provider" id="btn-fido-login" type="button">
+                            <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round"
+                                 stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+                                <circle cx="8" cy="15" r="4"></circle>
+                                <path d="m11 12 8-8M16 7l2 2M14 9l2 2"></path>
+                            </svg>
+                            <span data-i18n="login.fidoLogin">Continue with Passkey</span>
+                        </button>
+                        <div hidden id="github-login-wrapper">
+                            <button class="account-provider" id="btn-github-login" type="button">
+                                <svg aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.71.5.1.68-.22.68-.49 0-.24-.01-.89-.02-1.75-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.35 1.12 2.92.86.09-.66.35-1.12.64-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.34 9.34 0 0 1 12 6.97c.85 0 1.69.12 2.5.35 1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.59.69.49A10.23 10.23 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z"/>
+                                </svg>
+                                <span data-i18n="login.githubLogin">Continue with GitHub</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </section>
         <div class="tab-content active" id="tab-content-overview">
             <div class="layout-two-col">
                 <div class="col-left">
@@ -1282,61 +1335,6 @@
                 </button>
             </div>
         </form>
-    </div>
-</div>
-
-<div class="modal" id="login-modal" style="display: none;">
-    <div class="modal-backdrop" id="login-backdrop"></div>
-    <div class="modal-content" style="max-width: 420px;">
-        <button aria-label="Close modal" class="close-btn" data-i18n-aria-label="modal.close" id="close-login-modal">
-            &times;
-        </button>
-        <div class="modal-header">
-            <h2 class="modal-title" data-i18n="nav.signIn">Sign in</h2>
-        </div>
-        <div class="modal-body">
-            <form action="javascript:void(0);" id="login-form">
-                <div class="form-group">
-                    <label data-i18n="login.usernameLabel" for="username">Username or email</label>
-                    <input autocomplete="username" data-i18n-placeholder="login.usernamePlaceholder" id="username" placeholder="Enter username or private email"
-                           required
-                           type="text">
-                </div>
-                <div class="form-group">
-                    <label data-i18n="login.passwordLabel" for="password">Password</label>
-                    <input autocomplete="current-password" data-i18n-placeholder="login.passwordPlaceholder" id="password" placeholder="Enter password"
-                           required type="password">
-                </div>
-                <div id="login-error"
-                     style="display: none; color: #ef4444; margin-bottom: 12px; font-size: 0.85rem; font-weight: 500;"></div>
-                <div class="login-secondary-actions">
-                    <a class="login-secondary-link" data-i18n="login.forgotPassword" href="javascript:void(0);"
-                       id="btn-forgot-password">Forgot password?</a>
-                </div>
-                <button class="submit-btn" data-i18n="login.submitBtn" style="margin-top: 0.25rem;" type="submit">
-                    Login
-                </button>
-                <div class="login-provider-section">
-                    <div class="login-provider-divider"><span data-i18n="login.or">or</span></div>
-                    <button class="login-provider-btn passkey-login-btn" id="btn-fido-login" type="button">
-                        <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round"
-                             stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
-                            <circle cx="8" cy="15" r="4"></circle>
-                            <path d="m11 12 8-8M16 7l2 2M14 9l2 2"></path>
-                        </svg>
-                        <span data-i18n="login.fidoLogin">Continue with Passkey</span>
-                    </button>
-                    <div class="github-login-wrapper" hidden id="github-login-wrapper">
-                        <button class="login-provider-btn github-login-btn" id="btn-github-login" type="button">
-                            <svg aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.71.5.1.68-.22.68-.49 0-.24-.01-.89-.02-1.75-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.35 1.12 2.92.86.09-.66.35-1.12.64-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.34 9.34 0 0 1 12 6.97c.85 0 1.69.12 2.5.35 1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.59.69.49A10.23 10.23 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z"/>
-                            </svg>
-                            <span data-i18n="login.githubLogin">Continue with GitHub</span>
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
     </div>
 </div>
 

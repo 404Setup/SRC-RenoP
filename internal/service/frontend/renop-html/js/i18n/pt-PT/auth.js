@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "login.pageDescription": "Inicie sessão para gerir a sua conta e aceder aos seus repositórios.",
     "login.fidoLogin": "Continuar com Passkey",
     "login.fidoFailed": "Falha no início de sessão com Passkey",
     "login.fidoUnsupported": "O seu navegador não suporta Passkeys",

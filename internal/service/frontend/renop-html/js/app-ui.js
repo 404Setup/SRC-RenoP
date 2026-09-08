@@ -13,7 +13,6 @@ import {closeModalWithAnim as closeModalWithAnimShared, configureModalInert,} fr
 const FRONTEND_MODAL_IDS = [
     'user-editor-modal',
     'user-password-result-modal',
-    'login-modal',
     'privacy-policy-modal',
     'repo-mirrors-modal',
     'language-modal',

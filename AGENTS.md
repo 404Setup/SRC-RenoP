@@ -66,7 +66,7 @@ Check `packages/renop-ui/package.json` exports before building another shared co
 
 | Concern                                                 | Existing owner                                                                                                                                           |
 |---------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| History, protected routes, HTTP failures, offline state | `js/main.js`, `js/protected-route.js`, `js/api.js`, `js/response-errors.js`, `js/backend-availability.js`                                                |
+| History, sign-in page, protected routes, HTTP failures, offline state | `js/main.js`, `js/login-route.js`, `js/auth.js`, `css/account-pages.css`, `js/protected-route.js`, `js/api.js`, `js/response-errors.js`, `js/backend-availability.js` |
 | Identity, profile photos/links, profile cache           | `js/user-profiles.js`, `js/profile.js`, `js/profile-avatar.js`, `js/profile-links.js`, `js/components/user-avatar.js`                                    |
 | Account security / retirement / tokens / administration | `js/account-security.js`, `js/password-recovery.js`, `js/account-retirement.js`, `js/api-tokens.js`, `js/users/`                                         |
 | Email accounts, provider presets, billing, delivery     | `js/settings/mail.js`; JSON settings are integrated by `js/settings.js`                                                                                   |

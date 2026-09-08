@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "login.pageDescription": "로그인하여 계정을 관리하고 저장소에 접근하세요.",
     "login.fidoLogin": "Passkey로 계속",
     "login.fidoFailed": "Passkey 로그인 실패",
     "login.fidoUnsupported": "사용 중인 브라우저에서 Passkey를 지원하지 않습니다",

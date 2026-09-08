@@ -23,7 +23,7 @@ const frontendRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
  */
 const source = relativePath => readFileSync(join(frontendRoot, relativePath), 'utf8');
 
-test('protected route denial has one shell-owned home replacement boundary', () => {
+test('protected route denial sends expired sessions to sign-in and forbidden pages home', () => {
     const boundary = source('js/protected-route.js');
     const main = source('js/main.js');
     const auth = source('js/auth.js');
@@ -33,7 +33,9 @@ test('protected route denial has one shell-owned home replacement boundary', () 
     assert.match(main, /navigateHome\(\{replace: true}\)/);
     assert.match(main, /if \(replace\) window\.history\.replaceState\(null, '', '\/'\)/);
     assert.match(auth, /let logoutPromise = null/);
-    assert.match(auth, /requestProtectedRouteExit\(401\)[\s\S]*?if \(logoutPromise\) return logoutPromise/);
+    assert.match(main, /event\.detail\?\.status === 401\) navigateToLogin\(window\.location\.pathname, \{replace: true}\)/);
+    assert.match(auth, /requestProtectedRouteExit\(reason === 'expired' \|\| reason === 'kicked' \? 401 : 0\)/);
+    assert.match(auth, /if \(logoutPromise\) return logoutPromise/);
 });
 
 test('protected account loaders abandon denied pages without logging out valid sessions', () => {
@@ -47,7 +49,7 @@ test('protected account loaders abandon denied pages without logging out valid s
     const main = source('js/main.js');
     assert.match(main, /const routedAccountTab = accountTabFromPath\(\)/);
     assert.match(main, /!cachedIsLoggedIn && \(isAccountTab\(tabId\) \|\| routedAccountTab\)/);
-    assert.match(main, /if \(routedAccountTab\) window\.history\.replaceState\(null, '', '\/'\)/);
+    assert.match(main, /navigateToLogin\(window\.location\.pathname, \{replace: true}\)/);
     for (const relativePath of ['js/dashboard.js', 'js/repositories.js', 'js/settings.js', 'js/users.js']) {
         const moduleSource = source(relativePath);
         assert.match(moduleSource, /exitProtectedRouteOnDenial/,

@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "login.pageDescription": "ログインしてアカウントを管理し、リポジトリにアクセスします。",
     "login.fidoLogin": "Passkey で続行",
     "login.fidoFailed": "Passkey でのログインに失敗しました",
     "login.fidoUnsupported": "お使いのブラウザは Passkey に対応していません",

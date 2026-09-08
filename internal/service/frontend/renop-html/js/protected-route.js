@@ -12,7 +12,7 @@
 export const protectedRouteDeniedEvent = 'renop:protected-route-denied';
 
 /**
- * Ask the application shell to replace the active protected route with home.
+ * Ask the shell to replace the denied route with sign-in (401) or home (403).
  * @param {number} [status=0] - HTTP status that caused the route to be abandoned.
  * @returns {void}
  */

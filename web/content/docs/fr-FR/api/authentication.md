@@ -11,6 +11,8 @@ Le navigateur utilise le cookie HttpOnly `renop_session`. Son secret n’est jam
 sessions et il est refusé dans les en-têtes et URL. Les paramètres de sécurité privés exigent une session navigateur,
 jamais un mot de passe ou un API Token.
 
+La page de connexion du navigateur est `/account/login`. Après une connexion par mot de passe, Passkey ou GitHub, le navigateur revient au chemin local indiqué par le paramètre facultatif `return_to`, sans conserver la requête ni le fragment. Les adresses externes, les points de terminaison d’authentification et les valeurs de plus de 1 024 caractères sont remplacés par `/`. Une session expirée ouvre la page de connexion ; un refus d’accès pour un utilisateur connecté renvoie à l’accueil sans fermer sa session.
+
 ## Connexion par mot de passe ou e-mail
 
 - **Chemin** : `POST /api/auth/login`

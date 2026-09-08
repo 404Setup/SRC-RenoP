@@ -11,6 +11,8 @@ Browser authentication uses the HttpOnly `renop_session` cookie. Session secrets
 session-list APIs and are rejected in request headers and URLs. Private security endpoints accept only a browser
 session, never a password or API token.
 
+The browser sign-in page is `/account/login`. Password, Passkey, and GitHub sign-in return to the local pathname in the optional `return_to` query parameter; queries and fragments are not retained. External addresses, authentication endpoints, and values longer than 1,024 characters fall back to `/`. An expired session opens sign-in; an authenticated permission denial returns home without ending the session.
+
 ## Password or email login
 
 - **Path**: `POST /api/auth/login`

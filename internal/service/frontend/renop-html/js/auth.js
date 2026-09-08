@@ -12,8 +12,7 @@ import {fetchProto, getAuthHeaders, postProto} from './api.js';
 import {showAlert} from './alert.js';
 import {t} from './i18n.js';
 import {updateTabIndicator} from '@renop/ui/tabs';
-import {closeModalWithAnim} from './app-ui.js';
-import {loadDirectory} from './browser.js';
+import {leaveLoginPage, navigateToLogin} from './login-route.js';
 import {stopDashboardRefresh} from './dashboard.js';
 import {LoginRequest, SessionDetails} from './proto/index.js';
 import {base64urlToBuffer, bufferToBase64url} from './fido-utils.js';
@@ -26,8 +25,6 @@ const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
 const userInfo = document.getElementById('user-info');
 const usernameDisplay = document.getElementById('username-display');
-const loginModal = document.getElementById('login-modal');
-const closeLoginModal = document.getElementById('close-login-modal');
 const loginForm = document.getElementById('login-form');
 const loginError = document.getElementById('login-error');
 const btnFidoLogin = document.getElementById('btn-fido-login');
@@ -355,7 +352,7 @@ export async function initializeSession() {
 }
 
 /**
- * Authenticate with name/secret, update session UI, and reload the browser directory.
+ * Authenticate with name/secret and return to the page that requested sign-in.
  * Shows an inline error on the login form on failure.
  * @param {string} name - Access token / username.
  * @param {string} secret - Access token secret / password.
@@ -386,12 +383,9 @@ export async function login(name, secret) {
             localStorage.removeItem('session-token');
 
             updateAuthUI(true, serverName, isManager, permissions, routes);
-            closeModalWithAnim(loginModal, () => {
-                loginForm.reset();
-            });
-
+            loginForm.reset();
             showAlert(t('login.welcomeBack', {name: serverName}), 'success');
-            loadDirectory(window.location.pathname);
+            leaveLoginPage();
         } else {
             loginError.textContent = await responseErrorMessage(response, 'login.invalidCreds');
             loginError.style.display = 'block';
@@ -409,7 +403,7 @@ export async function login(name, secret) {
  * @returns {Promise<void>}
  */
 export function logout(reason) {
-    requestProtectedRouteExit(401);
+    requestProtectedRouteExit(reason === 'expired' || reason === 'kicked' ? 401 : 0);
     if (logoutPromise) return logoutPromise;
     logoutPromise = performLogout(reason).finally(() => {
         logoutPromise = null;
@@ -456,7 +450,6 @@ async function performLogout(reason) {
 
     localStorage.setItem('selectedTab', 'overview');
     requestSwitchTab('overview');
-    loadDirectory(window.location.pathname);
 }
 
 export async function fidoLogin() {
@@ -558,12 +551,9 @@ export async function fidoLogin() {
             }
 
             updateAuthUI(true, serverName, isManager, permissions, routes);
-            closeModalWithAnim(loginModal, () => {
-                loginForm.reset();
-            });
-
+            loginForm.reset();
             showAlert(t('login.welcomeBack', {name: serverName}), 'success');
-            loadDirectory(window.location.pathname);
+            leaveLoginPage();
         } else {
             loginError.textContent = await responseErrorMessage(finishRes, 'error.invalidFidoCred');
             loginError.style.display = 'block';
@@ -576,19 +566,7 @@ export async function fidoLogin() {
 }
 
 if (loginBtn) {
-    loginBtn.addEventListener('click', () => {
-        loginModal.style.display = 'flex';
-        if (window.updateModalInertState) window.updateModalInertState();
-    });
-}
-
-if (closeLoginModal) {
-    closeLoginModal.addEventListener('click', () => {
-        closeModalWithAnim(loginModal, () => {
-            loginError.style.display = 'none';
-            loginForm.reset();
-        });
-    });
+    loginBtn.addEventListener('click', () => navigateToLogin());
 }
 
 if (loginForm) {
@@ -596,7 +574,7 @@ if (loginForm) {
         e.preventDefault();
         const name = document.getElementById('username').value;
         const secret = document.getElementById('password').value;
-        login(name, secret);
+        void runButtonAction(loginForm.querySelector('[type="submit"]'), () => login(name, secret));
     });
 }
 
@@ -608,5 +586,5 @@ if (btnFidoLogin) {
 }
 
 if (logoutBtn) {
-    logoutBtn.addEventListener('click', logout);
+    logoutBtn.addEventListener('click', () => void logout());
 }
