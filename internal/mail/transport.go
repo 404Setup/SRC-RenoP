@@ -12,8 +12,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -30,6 +28,10 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/emmansun/base64"
+
+	"github.com/goccy/go-json"
 )
 
 // MaxBodyBytes bounds each rendered message and each provider response body.

@@ -11,11 +11,12 @@
 package utils
 
 import (
-	"encoding/base64"
 	"errors"
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/emmansun/base64"
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"

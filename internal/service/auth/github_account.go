@@ -12,12 +12,13 @@ package auth
 
 import (
 	"crypto/rand"
-	"encoding/base64"
 	"errors"
 	"log"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/emmansun/base64"
 
 	"renop/internal/config"
 	"renop/internal/core"

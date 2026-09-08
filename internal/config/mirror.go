@@ -11,7 +11,6 @@
 package config
 
 import (
-	"encoding/base64"
 	"errors"
 	"net/http"
 	"net/url"
@@ -19,6 +18,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/emmansun/base64"
 
 	"github.com/goccy/go-json"
 	"go.yaml.in/yaml/v3"

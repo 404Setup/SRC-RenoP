@@ -15,7 +15,6 @@ package message
 
 import (
 	"bytes"
-	"encoding/base64"
 	"errors"
 	"io"
 	"strconv"
@@ -23,6 +22,8 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/emmansun/base64"
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"

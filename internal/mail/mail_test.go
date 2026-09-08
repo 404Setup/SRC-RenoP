@@ -12,8 +12,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"mime"
@@ -28,6 +26,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/emmansun/base64"
+
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 )
 

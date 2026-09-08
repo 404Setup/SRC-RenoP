@@ -16,7 +16,6 @@ import (
 	"compress/gzip"
 	"crypto/sha1"
 	"crypto/sha512"
-	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -26,6 +25,8 @@ import (
 	"strings"
 	"sync/v2"
 	"time"
+
+	"github.com/emmansun/base64"
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"

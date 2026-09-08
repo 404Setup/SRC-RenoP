@@ -13,7 +13,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -21,6 +20,8 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/database"
+
+	"github.com/goccy/go-json"
 )
 
 func main() {

@@ -13,11 +13,12 @@ package database
 import (
 	"crypto/sha256"
 	"database/sql"
-	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/emmansun/base64"
 
 	"github.com/google/uuid"
 

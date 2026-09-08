@@ -13,12 +13,13 @@ package docker
 import (
 	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/emmansun/base64"
 
 	"github.com/goccy/go-json"
 	"github.com/google/uuid"

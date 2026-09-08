@@ -11,10 +11,11 @@
 package proxy
 
 import (
-	"encoding/base64"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/emmansun/base64"
 
 	"renop/internal/config"
 )

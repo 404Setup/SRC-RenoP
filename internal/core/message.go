@@ -10,7 +10,7 @@
 
 package core
 
-import "encoding/json"
+import "github.com/goccy/go-json"
 
 const (
 	MessageActionPending   = "pending"

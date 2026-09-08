@@ -15,13 +15,14 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base32"
-	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/emmansun/base64"
 
 	"golang.org/x/crypto/argon2"
 

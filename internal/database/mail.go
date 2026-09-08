@@ -10,7 +10,6 @@ package database
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"net/netip"
 	"slices"
@@ -19,6 +18,8 @@ import (
 
 	"renop/internal/core"
 	"renop/internal/mail"
+
+	"github.com/goccy/go-json"
 )
 
 const mailJobColumns = "id, account_id, user_id, actor, scene, status, payload, result_json, checks, created_at, updated_at, next_at, expires_at"

@@ -13,11 +13,12 @@ package docker
 import (
 	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/base64"
 	"errors"
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/emmansun/base64"
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"

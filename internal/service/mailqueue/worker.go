@@ -13,7 +13,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -23,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/goccy/go-json"
 	"go.yaml.in/yaml/v3"
 
 	"renop/internal/config"

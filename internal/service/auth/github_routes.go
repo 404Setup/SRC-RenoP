@@ -13,13 +13,14 @@ package auth
 import (
 	"context"
 	"crypto/rand"
-	"encoding/base64"
 	"errors"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/emmansun/base64"
 
 	"github.com/gofiber/fiber/v3"
 

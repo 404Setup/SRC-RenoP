@@ -12,11 +12,12 @@ package maven
 
 import (
 	"crypto/rand"
-	"encoding/base64"
 	"errors"
 	"regexp"
 	"slices"
 	"strings"
+
+	"github.com/emmansun/base64"
 
 	"golang.org/x/net/publicsuffix"
 

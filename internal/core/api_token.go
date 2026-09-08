@@ -13,9 +13,10 @@ package core
 import (
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"errors"
+
+	"github.com/emmansun/base64"
 )
 
 const (

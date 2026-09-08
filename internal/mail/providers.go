@@ -14,15 +14,17 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/emmansun/base64"
+
+	"github.com/goccy/go-json"
 )
 
 // OAuthToken is durable private state; rotated refresh credentials must survive restart.

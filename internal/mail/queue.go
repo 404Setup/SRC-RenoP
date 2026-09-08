@@ -12,9 +12,11 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
+
+	"github.com/emmansun/base64"
+
+	"github.com/goccy/go-json"
 )
 
 // MaxPendingJobs bounds queued, paused, sending, and status-checking messages together.
