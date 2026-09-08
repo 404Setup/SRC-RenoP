@@ -198,8 +198,8 @@
                     </div>
                     <div class="account-form-error" id="login-error" role="alert" style="display: none;"></div>
                     <div class="account-form-links">
-                        <a class="account-form-link" data-i18n="login.forgotPassword" href="javascript:void(0);"
-                           id="btn-forgot-password">Forgot password?</a>
+                        <a class="account-form-link" data-i18n="login.recoveryTitle" href="/account/recovery"
+                           id="btn-recover-account">Recover account</a>
                     </div>
                     <button class="account-submit" data-i18n="login.submitBtn" type="submit">
                         Login
@@ -223,6 +223,59 @@
                             </button>
                         </div>
                     </div>
+                </form>
+            </div>
+        </section>
+        <section aria-labelledby="recovery-title" class="tab-content" id="tab-content-recovery" style="display: none;">
+            <div class="account-page">
+                <header class="account-page-heading">
+                    <renop-icon aria-hidden="true" class="account-page-symbol" name="fileKey"></renop-icon>
+                    <h1 data-i18n="login.recoveryTitle" id="recovery-title">Recover account</h1>
+                    <p data-i18n="login.recoverySubtitle">Enter your username or private email, four unused recovery codes, and a new password.</p>
+                    <a class="account-page-back" href="/account/login" id="recovery-back-login">
+                        <renop-icon aria-hidden="true" name="chevronLeft"></renop-icon>
+                        <span data-i18n="nav.signIn">Sign in</span>
+                    </a>
+                </header>
+                <form class="account-page-form" id="account-recovery-form">
+                    <div class="account-field">
+                        <label data-i18n="login.recoveryIdentifier" for="recovery-identifier">Username or private email</label>
+                        <input autocomplete="username" data-i18n-placeholder="login.recoveryIdentifierPlaceholder"
+                               id="recovery-identifier" maxlength="254" required type="text">
+                    </div>
+                    <fieldset class="account-recovery-codes">
+                        <legend data-i18n="login.recoveryCodesPrompt">Four distinct recovery codes</legend>
+                        <div class="account-field">
+                            <label for="recovery-code-1">Recovery code 1</label>
+                            <input autocomplete="off" autocapitalize="characters" id="recovery-code-1" maxlength="64"
+                                   name="recovery-code" required spellcheck="false" type="text">
+                        </div>
+                        <div class="account-field">
+                            <label for="recovery-code-2">Recovery code 2</label>
+                            <input autocomplete="off" autocapitalize="characters" id="recovery-code-2" maxlength="64"
+                                   name="recovery-code" required spellcheck="false" type="text">
+                        </div>
+                        <div class="account-field">
+                            <label for="recovery-code-3">Recovery code 3</label>
+                            <input autocomplete="off" autocapitalize="characters" id="recovery-code-3" maxlength="64"
+                                   name="recovery-code" required spellcheck="false" type="text">
+                        </div>
+                        <div class="account-field">
+                            <label for="recovery-code-4">Recovery code 4</label>
+                            <input autocomplete="off" autocapitalize="characters" id="recovery-code-4" maxlength="64"
+                                   name="recovery-code" required spellcheck="false" type="text">
+                        </div>
+                    </fieldset>
+                    <div class="account-field">
+                        <label data-i18n="profile.newPasswordLabel" for="recovery-password">New password</label>
+                        <input autocomplete="new-password" id="recovery-password" maxlength="72" required type="password">
+                    </div>
+                    <div class="account-field">
+                        <label data-i18n="login.confirmNewPassword" for="recovery-password-confirmation">Confirm new password</label>
+                        <input autocomplete="new-password" id="recovery-password-confirmation" maxlength="72" required type="password">
+                    </div>
+                    <p class="account-form-error" id="recovery-error" role="alert"></p>
+                    <button class="account-submit" data-i18n="login.resetPassword" type="submit">Reset password</button>
                 </form>
             </div>
         </section>

@@ -1160,7 +1160,7 @@ func TestRoutedPagesServeSPAIndex(t *testing.T) {
 	app := fiber.New()
 	SetupFrontendRoutes(app, state)
 	for _, path := range []string{
-		"/account/login", "/account/login?return_to=%2Faccount%2Freviews",
+		"/account/login", "/account/login?return_to=%2Faccount%2Freviews", "/account/recovery",
 		"/user/alice", "/user/alice/edit", "/user/alice/maven", "/user/alice/cargo", "/user/alice/docker", "/user/alice/npm",
 		"/domain/com.example", "/team/platform",
 		"/account/reviews", "/account/teams", "/account/teams/core", "/account/maven-domains", "/account/maven-domains/com.example",

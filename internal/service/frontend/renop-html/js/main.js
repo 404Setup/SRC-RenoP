@@ -52,11 +52,11 @@ import './review-messages.js';
 import {navigateToUserProfile, profileRouteFromPath} from './user-profiles.js';
 import {installBackendAvailabilityMonitor} from './backend-availability.js';
 import {initializeGitHubAuth} from './github-auth.js';
-import './password-recovery.js';
+import {updateAccountRecoveryPage} from './account-recovery.js';
 import {initConfiguredFont} from './font.js';
 import {$} from '@renop/ui/jquery';
 import {protectedRouteDeniedEvent} from './protected-route.js';
-import {isLoginPath, leaveLoginPage, navigateToLogin} from './login-route.js';
+import {accountPageFromPath, isLoginPath, leaveLoginPage, loginReturnTo, navigateToLogin} from './login-route.js';
 
 await initI18n();
 initConfiguredFont();
@@ -283,6 +283,7 @@ async function navigateHome({replace = false} = {}) {
 }
 
 window.addEventListener(protectedRouteDeniedEvent, event => {
+    if (event.detail?.status === 401 && accountPageFromPath()) return;
     if (event.detail?.status === 401) navigateToLogin(window.location.pathname, {replace: true});
     else void navigateHome({replace: true});
 });
@@ -293,7 +294,8 @@ window.addEventListener(protectedRouteDeniedEvent, event => {
  * @returns {Promise<void>}
  */
 export async function switchTab(tabId) {
-    if (isLoginPath()) tabId = 'login';
+    const accountPage = accountPageFromPath();
+    if (accountPage) tabId = accountPage;
     const routedAccountTab = accountTabFromPath();
     if (!cachedIsLoggedIn && (isAccountTab(tabId) || routedAccountTab)) {
         navigateToLogin(window.location.pathname, {replace: true});
@@ -335,6 +337,7 @@ export async function switchTab(tabId) {
     }
 
     const enteringLogin = tabId === 'login' && !document.getElementById('tab-content-login').classList.contains('active');
+    const enteringRecovery = tabId === 'recovery' && !document.getElementById('tab-content-recovery').classList.contains('active');
     if (tabId !== 'login') {
         document.getElementById('login-form').reset();
         document.getElementById('login-error').style.display = 'none';
@@ -350,7 +353,14 @@ export async function switchTab(tabId) {
     });
 
     if (enteringLogin) document.getElementById('username').focus({preventScroll: true});
-    if (tabId !== 'login' && tabId !== 'profile' && tabId !== 'maven-domain' && tabId !== 'super-team' && !isAccountTab(tabId)) {
+    updateAccountRecoveryPage(tabId === 'recovery', enteringRecovery);
+    if (accountPage) {
+        const returnTo = loginReturnTo();
+        const search = returnTo === '/' ? '' : '?return_to=' + encodeURIComponent(returnTo);
+        document.getElementById('btn-recover-account').href = '/account/recovery' + search;
+        document.getElementById('recovery-back-login').href = '/account/login' + search;
+    }
+    if (!accountPage && tabId !== 'profile' && tabId !== 'maven-domain' && tabId !== 'super-team' && !isAccountTab(tabId)) {
         localStorage.setItem('selectedTab', tabId);
     }
 
@@ -403,7 +413,7 @@ tabs.forEach(tab => {
     tab.addEventListener('click', (e) => {
         e.preventDefault();
         if (tab.classList.contains('active')) return;
-        if (isLoginPath() || profileRouteFromPath(window.location.pathname) || accountTabFromPath()) {
+        if (accountPageFromPath() || profileRouteFromPath(window.location.pathname) || accountTabFromPath()) {
             window.history.pushState(null, '', '/');
         }
         switchTab(tab.dataset.tab);
@@ -594,7 +604,7 @@ async function initializeApplication() {
                     return;
                 }
                 if (!cachedIsManager) return;
-                if (isLoginPath() || profileRouteFromPath(window.location.pathname) || accountTabFromPath()) {
+                if (accountPageFromPath() || profileRouteFromPath(window.location.pathname) || accountTabFromPath()) {
                     window.history.pushState(null, '', '/');
                 }
                 await switchTab(targetTab);

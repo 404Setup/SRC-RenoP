@@ -71,6 +71,8 @@ Account-security routes require the current browser session and return `Cache-Co
 
 ### Recovery codes
 
+The standalone recovery page is `/account/recovery`, available from **Recover account** on the sign-in page. It works without email delivery. After recovery, the browser clears its previous session, returns to sign-in with the username filled in, and preserves a valid local `return_to` destination. Recovery codes and passwords are cleared when leaving the page and are never stored in browser history.
+
 - **Generate**: `POST /api/auth/profile/recovery-codes`
 - **Reset password**: `POST /api/auth/recovery/password`
 - Generation returns twelve one-time codes once. RenoP stores Argon2id verifiers, not plaintext. Recovery requires four

@@ -118,6 +118,27 @@
     font-size: 0.875rem;
 }
 
+.account-recovery-codes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.account-recovery-codes legend {
+    padding: 0 0 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.account-recovery-codes input {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    text-transform: uppercase;
+}
+
 .account-form-error {
     margin: 0;
     color: var(--danger-color, #dc2626);
@@ -204,6 +225,10 @@
 }
 
 @media (max-width: 760px) {
+    .account-recovery-codes {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     .account-page {
         grid-template-columns: minmax(0, 1fr);
         gap: 1.75rem;

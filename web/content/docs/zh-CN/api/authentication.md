@@ -69,6 +69,8 @@ Principal 快照，但不会持久化 OAuth Access Token。
 
 ### 恢复代码
 
+独立的恢复账号页面为 `/account/recovery`，可通过登录页的**恢复账号**入口打开，无需启用邮件服务。恢复成功后，浏览器清除原有会话并返回登录页，自动填入用户名，同时保留有效的本地 `return_to` 目标。离开页面时会清空恢复代码和密码，这些内容不会写入浏览器历史记录。
+
 - **生成**：`POST /api/auth/profile/recovery-codes`
 - **重设密码**：`POST /api/auth/recovery/password`
 - 系统一次显示 12 串一次性代码，只存储 Argon2id verifier。恢复时必须提供 4 串不同且未使用的代码；代码

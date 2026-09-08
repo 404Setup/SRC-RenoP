@@ -72,6 +72,8 @@ Ces routes exigent la session navigateur courante et renvoient `Cache-Control: n
 
 ### Codes de récupération
 
+La page dédiée à la récupération du compte, `/account/recovery`, est accessible depuis le lien de récupération de la page de connexion et fonctionne sans envoi de courriels. Après la récupération, le navigateur efface sa session précédente et revient à la connexion avec le nom d’utilisateur renseigné, en conservant une destination locale `return_to` valide. Les codes de récupération et les mots de passe sont effacés en quittant la page et ne sont jamais conservés dans l’historique du navigateur.
+
 - **Générer** : `POST /api/auth/profile/recovery-codes`
 - **Réinitialiser** : `POST /api/auth/recovery/password`
 - La génération montre une fois douze codes. Seuls des vérificateurs Argon2id sont stockés. Quatre codes distincts et

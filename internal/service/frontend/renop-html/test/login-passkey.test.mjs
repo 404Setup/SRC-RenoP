@@ -13,7 +13,7 @@ import {readdirSync, readFileSync} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import test from 'node:test';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {isLoginPath, loginReturnTo, safeLoginReturnTo} from '../js/login-route.js';
+import {accountPageFromPath, isLoginPath, loginReturnTo, safeLoginReturnTo} from '../js/login-route.js';
 
 const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -25,12 +25,14 @@ test('sign-in return paths stay local and cannot reenter authentication endpoint
     for (const value of [null, '', 'https://evil.example', '//evil.example', '/\\evil.example',
         '/%2f%2fevil.example', '/%5cevil.example', '/bad%path', '/\nwrong', '/%0awrong',
         '/account/login', '/account/login/', '/ACCOUNT/LOGIN', '/account/%6cogin', '/foo/../account/login',
-        '/api', '/API/auth/logout', '/api/auth/logout', '/' + 'a'.repeat(1024), '/' + '例'.repeat(500)]) {
+        '/account/recovery', '/ACCOUNT/RECOVERY/', '/account/%72ecovery', '/api', '/API/auth/logout', '/api/auth/logout', '/' + 'a'.repeat(1024), '/' + '例'.repeat(500)]) {
         assert.equal(safeLoginReturnTo(value), '/', String(value));
     }
     assert.equal(safeLoginReturnTo('/user/alice?ignored=value#fragment'), '/user/alice');
     assert.equal(isLoginPath('/account/login/'), true);
     assert.equal(isLoginPath('/account/login/extra'), false);
+    assert.equal(accountPageFromPath('/ACCOUNT/RECOVERY/'), 'recovery');
+    assert.equal(accountPageFromPath('/account/recovery/extra'), '');
     const index = readFileSync(join(frontendRoot, 'index.html'), 'utf8');
     assert.match(index, /<section[^>]*id="tab-content-login"/);
     assert.ok(index.indexOf('id="login-form"') < index.indexOf('</main>'));

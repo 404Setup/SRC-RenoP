@@ -208,7 +208,7 @@ func isFrontendShellOrAssetPath(reqPath string) bool {
 		return section == "edit" || section == "maven" || section == "cargo" ||
 			section == "docker" || section == "npm"
 	}
-	if cleaned == "/account/login" || cleaned == "/account/reviews" || cleaned == "/account/teams" || cleaned == "/account/maven-domains" {
+	if cleaned == "/account/login" || cleaned == "/account/recovery" || cleaned == "/account/reviews" || cleaned == "/account/teams" || cleaned == "/account/maven-domains" {
 		return true
 	}
 	for _, prefix := range [...]string{"/account/teams/", "/account/maven-domains/"} {

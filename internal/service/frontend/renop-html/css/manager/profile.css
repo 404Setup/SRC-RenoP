@@ -536,34 +536,6 @@
     user-select: none;
 }
 
-.password-recovery-layout,
-.password-recovery-form {
-    display: grid;
-    gap: 1rem;
-}
-
-.password-recovery-form label,
-.password-recovery-codes {
-    display: grid;
-    gap: 0.45rem;
-    color: var(--text-color);
-    font-size: 0.84rem;
-    font-weight: 600;
-}
-
-.password-recovery-codes {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.password-recovery-label {
-    grid-column: 1 / -1;
-}
-
-.recovery-code-input {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    text-transform: uppercase;
-}
-
 .password-recovery-error {
     min-height: 1.2em;
     margin: 0;
@@ -888,7 +860,6 @@
     }
 
     .profile-recovery-code-list,
-    .password-recovery-codes,
     .profile-api-token-scope-grid {
         grid-template-columns: 1fr;
     }

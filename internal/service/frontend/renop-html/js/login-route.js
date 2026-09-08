@@ -7,9 +7,17 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+/** Return the public account page represented by a pathname. */
+export function accountPageFromPath(pathname = window.location.pathname) {
+    const path = pathname.toLowerCase().replace(/\/$/, '');
+    if (path === '/account/login') return 'login';
+    if (path === '/account/recovery') return 'recovery';
+    return '';
+}
+
 /** Whether a pathname belongs to the sign-in page. */
 export function isLoginPath(pathname = window.location.pathname) {
-    return pathname.toLowerCase().replace(/\/$/, '') === '/account/login';
+    return accountPageFromPath(pathname) === 'login';
 }
 
 /** Keep login return paths local, bounded, and outside authentication endpoints. */
@@ -20,7 +28,7 @@ export function safeLoginReturnTo(value) {
         const target = new URL(value, 'https://renop.invalid');
         const decoded = decodeURIComponent(target.pathname).toLowerCase();
         if (target.origin !== 'https://renop.invalid' || decoded.startsWith('//') ||
-            /[\\\x00-\x20]/.test(decoded) || isLoginPath(decoded) ||
+            /[\\\x00-\x20]/.test(decoded) || accountPageFromPath(decoded) ||
             decoded === '/api' || decoded.startsWith('/api/') || target.pathname.length > 1024) return '/';
         return target.pathname;
     } catch {
