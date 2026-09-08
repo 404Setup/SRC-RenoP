@@ -69,6 +69,25 @@ Account-security routes require the current browser session and return `Cache-Co
 - Password login can be disabled only while Passkey or GitHub remains linked. Enabling it requires a configured
   password.
 
+### Email password recovery
+
+The independent page `/account/forgot-password` verifies the private email recorded on the account. When mail is disabled, this page and the request/confirm APIs return `404`; the sign-in and recovery pages hide their email-recovery links. Offline recovery at `/account/recovery` remains available.
+
+- **Availability**: `GET /api/auth/password-reset/status` returns `{"enabled":true}` or `{"enabled":false}`.
+- **Send code**: `POST /api/auth/password-reset/request` accepts `{"email":"admin@example.com"}`. It returns `202` with `{id,status,ticket}` after durable queue insertion, before sending.
+- **Delivery**: `GET /api/auth/mail/:id` accepts the private ticket in `X-Renop-Mail-Ticket`. The page polls every 3 seconds for at most 10 minutes, stops when left, and displays failed or uncertain delivery. Provider acceptance does not prove recipient delivery. Keep tickets out of URLs and browser storage.
+- **Reset**: `POST /api/auth/password-reset/confirm` accepts the JSON below. Both POST bodies require `Content-Type: application/json` and are limited to 4,096 bytes; passwords must contain 6–72 UTF-8 bytes.
+
+```json
+{"email":"admin@example.com","code":"01234567","new_password":"new_secure_password"}
+```
+
+The eight-digit code expires after 10 minutes and allows five wrong attempts. Each address has a 60-second issuance cooldown, in addition to the configured IP sending limit. A successfully queued replacement invalidates the prior code; failed insertion preserves it. Queue insertion, code storage, and rate accounting commit together. At most 2,048 email proofs are retained; expired proofs are pruned before insertion and by periodic cleanup.
+
+Every valid address allowed by recipient policy receives the same ownership-verification email, including unregistered addresses, so status lookup does not reveal whether an account exists. Reset requires the account identity, email, password, and security revision captured at issuance to remain valid. A later registration cannot use a previously issued code; retirement invalidates existing codes.
+
+Success consumes the code, resets the password, enables password login, and revokes browser sessions atomically. It returns `{status:"success",username}`, clears the browser cookie, and returns the page to sign-in; other credentials remain linked and bans remain effective. `ACCOUNT_EMAIL_CODE_INVALID` covers invalid, expired, exhausted, consumed, or stale proofs. Rate limits return `429`; queue or service failures return `503`. All responses use `Cache-Control: no-store`.
+
 ### Recovery codes
 
 The standalone recovery page is `/account/recovery`, available from **Recover account** on the sign-in page. It works without email delivery. After recovery, the browser clears its previous session, returns to sign-in with the username filled in, and preserves a valid local `return_to` destination. Recovery codes and passwords are cleared when leaving the page and are never stored in browser history.

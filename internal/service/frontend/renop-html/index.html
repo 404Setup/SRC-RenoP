@@ -198,6 +198,8 @@
                     </div>
                     <div class="account-form-error" id="login-error" role="alert" style="display: none;"></div>
                     <div class="account-form-links">
+                        <a class="account-form-link" data-i18n="login.forgotPassword" data-password-reset-link hidden
+                           href="/account/forgot-password">Forgot password?</a>
                         <a class="account-form-link" data-i18n="login.recoveryTitle" href="/account/recovery"
                            id="btn-recover-account">Recover account</a>
                     </div>
@@ -276,6 +278,53 @@
                     </div>
                     <p class="account-form-error" id="recovery-error" role="alert"></p>
                     <button class="account-submit" data-i18n="login.resetPassword" type="submit">Reset password</button>
+                    <div class="account-form-links">
+                        <a class="account-form-link" data-i18n="login.forgotPassword" data-password-reset-link hidden
+                           href="/account/forgot-password">Forgot password?</a>
+                    </div>
+                </form>
+            </div>
+        </section>
+        <section aria-labelledby="password-reset-title" class="tab-content" id="tab-content-password-recovery" style="display: none;">
+            <div class="account-page">
+                <header class="account-page-heading">
+                    <renop-icon aria-hidden="true" class="account-page-symbol" name="fileKey"></renop-icon>
+                    <h1 data-i18n="login.forgotPassword" id="password-reset-title">Forgot password?</h1>
+                    <p data-i18n="login.emailResetDescription">Verify your private email address with an eight-digit code, then set a new password. The code expires in 10 minutes.</p>
+                    <a class="account-page-back" href="/account/login" id="password-reset-back-login">
+                        <renop-icon aria-hidden="true" name="chevronLeft"></renop-icon>
+                        <span data-i18n="nav.signIn">Sign in</span>
+                    </a>
+                </header>
+                <form class="account-page-form" id="password-reset-form">
+                    <p class="account-form-error" id="password-reset-availability" role="status"></p>
+                    <fieldset class="account-reset-fields" disabled id="password-reset-fields">
+                        <div class="account-field">
+                            <label data-i18n="profile.privateEmailLabel" for="password-reset-email">Private email</label>
+                            <input autocomplete="email" id="password-reset-email" maxlength="254" required type="email">
+                        </div>
+                        <button class="account-provider" data-i18n="login.sendEmailCode" id="password-reset-send" type="button">Send verification code</button>
+                        <div aria-live="polite" class="account-mail-status" id="password-reset-delivery" role="status"></div>
+                        <button class="account-provider" data-i18n="mail.refreshStatus" hidden id="password-reset-refresh" type="button">Refresh</button>
+                        <div class="account-field">
+                            <label data-i18n="login.emailCode" for="password-reset-code">Verification code</label>
+                            <input autocomplete="one-time-code" id="password-reset-code" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" required type="text">
+                        </div>
+                        <div class="account-field">
+                            <label data-i18n="profile.newPasswordLabel" for="password-reset-password">New password</label>
+                            <input autocomplete="new-password" id="password-reset-password" maxlength="72" required type="password">
+                        </div>
+                        <div class="account-field">
+                            <label data-i18n="login.confirmNewPassword" for="password-reset-confirmation">Confirm new password</label>
+                            <input autocomplete="new-password" id="password-reset-confirmation" maxlength="72" required type="password">
+                        </div>
+                        <p class="account-form-error" id="password-reset-error" role="alert"></p>
+                        <button class="account-submit" data-i18n="login.resetPassword" type="submit">Reset password</button>
+                    </fieldset>
+                    <div class="account-form-links">
+                        <a class="account-form-link" data-i18n="login.recoveryTitle" href="/account/recovery"
+                           id="password-reset-recover-account">Recover account</a>
+                    </div>
                 </form>
             </div>
         </section>

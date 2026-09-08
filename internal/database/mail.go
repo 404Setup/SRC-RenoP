@@ -104,13 +104,6 @@ func requireMailLeaseTx(tx *Tx, owner string, now int64) error {
 
 // QueueMailJob atomically deduplicates, bounds the queue, and debits manual IP limits.
 func (db *DB) QueueMailJob(job *mail.Job, key, ip string, rate mail.Rate) (bool, error) {
-	if job == nil || job.Message.Validate() != nil || job.ID != job.Message.ID || len(job.AccountID) > 64 || len(job.UserID) > 36 || len(job.Actor) > 64 || !slices.Contains(mail.Scenes, job.Scene) || job.ExpiresAt <= job.CreatedAt || job.ExpiresAt-job.CreatedAt > int64(24*time.Hour/time.Millisecond) {
-		return false, errors.New("invalid mail job")
-	}
-	payload, err := mail.Seal(key, "job:"+job.ID, mail.JobPayload{Message: job.Message, TicketHash: job.TicketHash})
-	if err != nil {
-		return false, err
-	}
 	db.mailWriteMu.Lock()
 	defer db.mailWriteMu.Unlock()
 	tx, err := db.Begin()
@@ -118,6 +111,21 @@ func (db *DB) QueueMailJob(job *mail.Job, key, ip string, rate mail.Rate) (bool,
 		return false, err
 	}
 	defer tx.Rollback()
+	created, err := queueMailJobTx(tx, job, key, ip, rate)
+	if err != nil || !created {
+		return created, err
+	}
+	return true, tx.Commit()
+}
+
+func queueMailJobTx(tx *Tx, job *mail.Job, key, ip string, rate mail.Rate) (bool, error) {
+	if job == nil || job.Message.Validate() != nil || job.ID != job.Message.ID || len(job.AccountID) > 64 || len(job.UserID) > 36 || len(job.Actor) > 64 || !slices.Contains(mail.Scenes, job.Scene) || job.ExpiresAt <= job.CreatedAt || job.ExpiresAt-job.CreatedAt > int64(24*time.Hour/time.Millisecond) {
+		return false, errors.New("invalid mail job")
+	}
+	payload, err := mail.Seal(key, "job:"+job.ID, mail.JobPayload{Message: job.Message, TicketHash: job.TicketHash})
+	if err != nil {
+		return false, err
+	}
 	if err = lockMailTx(tx); err != nil {
 		return false, err
 	}
@@ -193,7 +201,7 @@ func (db *DB) QueueMailJob(job *mail.Job, key, ip string, rate mail.Rate) (bool,
 	job.Status = "queued"
 	job.UpdatedAt = job.CreatedAt
 	job.NextAt = job.CreatedAt
-	return true, tx.Commit()
+	return true, nil
 }
 
 func scanMailJob(scanner messageScanner, key string) (*mail.Job, error) {
@@ -449,6 +457,9 @@ func (db *DB) PreviousMailLoginIP(username string, before int64) (string, error)
 func (db *DB) CleanMailData(now int64, accountIDs []string) error {
 	if len(accountIDs) > mail.MaxAccounts {
 		return errors.New("invalid mail account count")
+	}
+	if _, err := db.Exec(`DELETE FROM user_password_resets WHERE expires_at <= ?`, now); err != nil {
+		return err
 	}
 	if _, err := db.Exec(`DELETE FROM mail_rate_limits WHERE expires_at <= ?`, now); err != nil {
 		return err

@@ -209,30 +209,42 @@ func (db *DB) ResetPasswordWithRecoveryCodes(identifier string, selectorHashes [
 	if affected != core.RecoveryCodesRequired {
 		return "", fmt.Errorf("recovery-code consumption changed: %w", core.ErrRecoveryCodesInvalid)
 	}
-	passwordResult, err := tx.Exec(`UPDATE tokens SET encrypted_secret = ? WHERE name = ?`, passwordHash, username)
-	if err != nil {
-		return "", fmt.Errorf("reset recovered password: %w", err)
-	}
-	affected, err = passwordResult.RowsAffected()
-	if err != nil {
-		return "", fmt.Errorf("count recovered password updates: %w", err)
-	}
-	if affected != 1 {
-		return "", fmt.Errorf("recovered account changed: %w", core.ErrRecoveryCodesInvalid)
-	}
-	if err := ensureAccountSecurityTx(tx, userID, updatedAt); err != nil {
-		return "", fmt.Errorf("initialize recovered account security: %w", err)
-	}
-	if _, err := tx.Exec(`UPDATE user_account_security SET password_login_enabled = 1, updated_at = ?
-		WHERE user_id = ?`, updatedAt, userID); err != nil {
-		return "", fmt.Errorf("restore password login: %w", err)
-	}
-	if _, err := tx.Exec(`DELETE FROM sessions WHERE username = ?`, username); err != nil {
-		return "", fmt.Errorf("revoke sessions after password recovery: %w", err)
+	if err := resetAccountPasswordTx(tx, userID, username, passwordHash, updatedAt); err != nil {
+		return "", err
 	}
 	if err := tx.Commit(); err != nil {
 		return "", fmt.Errorf("commit password recovery: %w", err)
 	}
+	db.invalidateRecoveredAccount(username)
+	return username, nil
+}
+
+func resetAccountPasswordTx(tx *Tx, userID, username, passwordHash string, updatedAt int64) error {
+	passwordResult, err := tx.Exec(`UPDATE tokens SET encrypted_secret = ? WHERE name = ?`, passwordHash, username)
+	if err != nil {
+		return fmt.Errorf("reset recovered password: %w", err)
+	}
+	affected, err := passwordResult.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("count recovered password updates: %w", err)
+	}
+	if affected != 1 {
+		return fmt.Errorf("recovered account changed: %w", core.ErrRecoveryCodesInvalid)
+	}
+	if err := ensureAccountSecurityTx(tx, userID, updatedAt); err != nil {
+		return fmt.Errorf("initialize recovered account security: %w", err)
+	}
+	if _, err := tx.Exec(`UPDATE user_account_security SET password_login_enabled = 1, updated_at = ?
+		WHERE user_id = ?`, updatedAt, userID); err != nil {
+		return fmt.Errorf("restore password login: %w", err)
+	}
+	if _, err := tx.Exec(`DELETE FROM sessions WHERE username = ?`, username); err != nil {
+		return fmt.Errorf("revoke sessions after password recovery: %w", err)
+	}
+	return nil
+}
+
+func (db *DB) invalidateRecoveredAccount(username string) {
 	db.tokenCache.Delete(username)
 	db.tokenSecretCache.DeleteFunc(func(_ string, token *core.AccessToken) bool {
 		return token == nil || strings.EqualFold(token.Name, username)
@@ -240,5 +252,4 @@ func (db *DB) ResetPasswordWithRecoveryCodes(identifier string, selectorHashes [
 	db.sessionCache.DeleteFunc(func(_ string, session *core.Session) bool {
 		return session == nil || strings.EqualFold(session.Username, username)
 	})
-	return username, nil
 }

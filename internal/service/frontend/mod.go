@@ -21,6 +21,12 @@ func SetupFrontendRoutes(app fiber.Router, state *core.AppState) {
 	app.Get("/index.html", func(c fiber.Ctx) error { return ServeIndex(c, state) })
 	app.Get("/account/login", func(c fiber.Ctx) error { return ServeIndex(c, state) })
 	app.Get("/account/recovery", func(c fiber.Ctx) error { return ServeIndex(c, state) })
+	app.Get("/account/forgot-password", func(c fiber.Ctx) error {
+		if !state.Inner.Config.Load().Mail.Enabled {
+			return c.SendStatus(404)
+		}
+		return ServeIndex(c, state)
+	})
 	app.Get("/user/:username", func(c fiber.Ctx) error { return ServeIndex(c, state) })
 	app.Get("/user/:username/edit", func(c fiber.Ctx) error { return ServeIndex(c, state) })
 	app.Get("/user/:username/maven", func(c fiber.Ctx) error { return ServeIndex(c, state) })

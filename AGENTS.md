@@ -39,7 +39,7 @@ Service paths in this table are relative to `internal/service/`; all other paths
 | SQL, migrations, transactions, persistence caches     | `internal/database/`; dialect logic in `clickhouse*.go`                                                         |
 | Memory, Redis, Valkey cache backends                  | `internal/cache/`, `internal/core/cache.go`, `internal/database/cache.go`; configuration in `settings/cache.go` |
 | Login, sessions, Passkey, OAuth, API tokens, profiles | `auth/`; GitHub split across `github_routes.go`, `github_client.go`, `github_account.go`                        |
-| Retirement, recovery, avatars                         | `auth/`, `internal/database/`, matching `account_retirement*`, `recovery_codes*`, `avatar*` files               |
+| Retirement, recovery, avatars                         | `auth/`, `internal/database/`, matching `account_retirement*`, `recovery_codes*`, `password_reset*`, `avatar*` files |
 | Cargo registry and documentation                      | `cargo/`, `cargodocs/`                                                                                          |
 | Maven domains, verification, artifacts                | `maven/`                                                                                                        |
 | Docker Registry v2, blobs, manifests, mirrors         | `docker/`                                                                                                       |
@@ -68,7 +68,7 @@ Check `packages/renop-ui/package.json` exports before building another shared co
 |---------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
 | History, sign-in page, protected routes, HTTP failures, offline state | `js/main.js`, `js/login-route.js`, `js/auth.js`, `css/account-pages.css`, `js/protected-route.js`, `js/api.js`, `js/response-errors.js`, `js/backend-availability.js` |
 | Identity, profile photos/links, profile cache           | `js/user-profiles.js`, `js/profile.js`, `js/profile-avatar.js`, `js/profile-links.js`, `js/components/user-avatar.js`                                    |
-| Account security / recovery / retirement / tokens / administration | `js/account-security.js`, `js/account-recovery.js`, `js/account-retirement.js`, `js/api-tokens.js`, `js/users/`                                         |
+| Account security / recovery / retirement / tokens / administration | `js/account-security.js`, `js/account-recovery.js`, `js/password-recovery.js`, `js/login-route.js`, `js/account-retirement.js`, `js/api-tokens.js`, `js/users/` |
 | Email accounts, provider presets, billing, delivery     | `js/settings/mail.js`; JSON settings are integrated by `js/settings.js`                                                                                   |
 | Reviews / messages / administrator composer             | `js/reviews.js`, `js/review-messages.js`, `js/messages.js`, `js/notification-composer.js`                                                                |
 | Teams and quota                                         | `js/super-teams.js`, `js/super-team-resources.js`, `js/publication-quota.js`                                                                             |

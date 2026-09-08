@@ -2912,6 +2912,95 @@ paths:
         "404": {$ref: "#/components/responses/PlainNotFound"}
         "503": {description: Mail storage unavailable.}
   # ========== Auth ==========
+  /api/auth/password-reset/status:
+    get:
+      tags: [auth]
+      summary: Read email password recovery availability
+      operationId: getPasswordResetStatus
+      security: []
+      responses:
+        "200":
+          description: Whether mail delivery is enabled. This endpoint remains available when recovery is disabled.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [enabled]
+                properties:
+                  enabled: {type: boolean}
+  /api/auth/password-reset/request:
+    post:
+      tags: [auth]
+      summary: Queue an email ownership code for password recovery
+      operationId: requestEmailPasswordReset
+      security: []
+      description: |
+        Queues the same email for any valid address allowed by recipient policy, including an unregistered address.
+        This proves mailbox ownership without disclosing registration status through the receipt or delivery lookup.
+        Codes contain eight digits, expire after ten minutes, and permit five wrong attempts.
+        Each address has a sixty-second issuance cooldown in addition to the configured manual IP rate.
+        Code replacement, queue insertion, and IP rate accounting commit atomically. JSON bodies are limited to 4096 bytes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: {type: string, format: email, maxLength: 254}
+      responses:
+        "202":
+          description: Queued, not a delivery guarantee. Use the ticket in X-Renop-Mail-Ticket for GET /api/auth/mail/{id}.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MailReceipt"}
+        "400": {description: Invalid address or JSON, or recipient policy rejected the address.}
+        "404": {description: Mail delivery disabled (mail_disabled).}
+        "413": {description: Request exceeds 4096 bytes.}
+        "415": {description: Content-Type must be application/json.}
+        "429": {description: Address cooldown or manual IP rate exceeded (mail_manual_rate_limited).}
+        "503": {description: Queue full, no enabled sending account, or storage unavailable.}
+  /api/auth/password-reset/confirm:
+    post:
+      tags: [auth]
+      summary: Consume an email code and reset the account password
+      operationId: confirmEmailPasswordReset
+      security: []
+      description: |
+        Accepts at most 4096 bytes of JSON. The new password must contain 6 to 72 UTF-8 bytes.
+        Rechecks the account identity, email, password fingerprint, and security revision captured at issuance.
+        A retired account or an account registered after issuance cannot be reset.
+        Successful consumption changes the password, enables password login, and revokes browser sessions atomically.
+        Other credentials remain linked. Success clears the cookie and does not sign in automatically.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code, new_password]
+              properties:
+                email: {type: string, format: email, maxLength: 254}
+                code: {type: string, pattern: '^[0-9]{8}$'}
+                new_password: {type: string, format: password, maxLength: 72, description: Must contain 6 to 72 UTF-8 bytes.}
+      responses:
+        "200":
+          description: Password reset; sign in with the new password.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, username]
+                properties:
+                  status: {type: string, enum: [success]}
+                  username: {type: string}
+        "400": {description: Invalid input (ACCOUNT_EMAIL_CODE_INVALID), or malformed JSON (mail_request_invalid).}
+        "401": {description: Invalid, expired, exhausted, consumed, or stale code (ACCOUNT_EMAIL_CODE_INVALID).}
+        "404": {description: Mail delivery disabled (mail_disabled).}
+        "413": {description: Request exceeds 4096 bytes.}
+        "415": {description: Content-Type must be application/json.}
+        "503": {description: Password recovery temporarily unavailable.}
   /api/auth/login:
     post:
       tags: [ auth ]

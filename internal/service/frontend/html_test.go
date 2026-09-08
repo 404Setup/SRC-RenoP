@@ -79,6 +79,7 @@ func TestOpenAPIDocumentIncludesFrontendRoutes(t *testing.T) {
 	}
 	for _, path := range []string{
 		"/api/users/{username}/profile", "/api/users/{username}/memberships",
+		"/api/auth/password-reset/status", "/api/auth/password-reset/request", "/api/auth/password-reset/confirm",
 		"/api/users/profiles", "/api/auth/profile",
 		"/api/maven/domains", "/api/maven/repositories/{repo_name}/domains",
 		"/api/maven/repositories/{repo_name}/packages",
@@ -1159,6 +1160,23 @@ func TestRoutedPagesServeSPAIndex(t *testing.T) {
 	state.Inner.Config.Store(config.DefaultConfig())
 	app := fiber.New()
 	SetupFrontendRoutes(app, state)
+	for _, enabled := range []bool{false, true, false} {
+		cfg := config.DefaultConfig()
+		cfg.Mail.Enabled = enabled
+		state.Inner.Config.Store(cfg)
+		response, err := app.Test(httptest.NewRequest(http.MethodGet, "/account/forgot-password", nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+		response.Body.Close()
+		expected := http.StatusNotFound
+		if enabled {
+			expected = http.StatusOK
+		}
+		if response.StatusCode != expected {
+			t.Fatalf("mail enabled=%v: forgot-password status=%d, want=%d", enabled, response.StatusCode, expected)
+		}
+	}
 	for _, path := range []string{
 		"/account/login", "/account/login?return_to=%2Faccount%2Freviews", "/account/recovery",
 		"/user/alice", "/user/alice/edit", "/user/alice/maven", "/user/alice/cargo", "/user/alice/docker", "/user/alice/npm",

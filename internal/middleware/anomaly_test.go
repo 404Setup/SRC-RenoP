@@ -57,7 +57,7 @@ func TestIPLimiterBoundsFreshEntries(t *testing.T) {
 func TestFrontendShellAndAssetPathClassification(t *testing.T) {
 	for _, requestPath := range []string{
 		"/", "/index.html", "/assets/app.js", "/js/main.js", "/css/app.css", "/svg/logo.svg",
-		"/user/alice", "/user/alice/edit", "/user/alice/npm", "/account/reviews", "/account/login", "/account/recovery",
+		"/user/alice", "/user/alice/edit", "/user/alice/npm", "/account/reviews", "/account/login", "/account/recovery", "/account/forgot-password",
 		"/account/teams", "/account/teams/core", "/account/maven-domains", "/account/maven-domains/com.example",
 	} {
 		if !isFrontendShellOrAssetPath(requestPath) {

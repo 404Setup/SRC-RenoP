@@ -53,6 +53,7 @@ import {navigateToUserProfile, profileRouteFromPath} from './user-profiles.js';
 import {installBackendAvailabilityMonitor} from './backend-availability.js';
 import {initializeGitHubAuth} from './github-auth.js';
 import {updateAccountRecoveryPage} from './account-recovery.js';
+import {refreshPasswordRecoveryAvailability, updatePasswordRecoveryPage} from './password-recovery.js';
 import {initConfiguredFont} from './font.js';
 import {$} from '@renop/ui/jquery';
 import {protectedRouteDeniedEvent} from './protected-route.js';
@@ -338,6 +339,7 @@ export async function switchTab(tabId) {
 
     const enteringLogin = tabId === 'login' && !document.getElementById('tab-content-login').classList.contains('active');
     const enteringRecovery = tabId === 'recovery' && !document.getElementById('tab-content-recovery').classList.contains('active');
+    const enteringPasswordRecovery = tabId === 'password-recovery' && !document.getElementById('tab-content-password-recovery').classList.contains('active');
     if (tabId !== 'login') {
         document.getElementById('login-form').reset();
         document.getElementById('login-error').style.display = 'none';
@@ -354,11 +356,16 @@ export async function switchTab(tabId) {
 
     if (enteringLogin) document.getElementById('username').focus({preventScroll: true});
     updateAccountRecoveryPage(tabId === 'recovery', enteringRecovery);
+    updatePasswordRecoveryPage(tabId === 'password-recovery', enteringPasswordRecovery);
     if (accountPage) {
+        void refreshPasswordRecoveryAvailability();
         const returnTo = loginReturnTo();
         const search = returnTo === '/' ? '' : '?return_to=' + encodeURIComponent(returnTo);
         document.getElementById('btn-recover-account').href = '/account/recovery' + search;
         document.getElementById('recovery-back-login').href = '/account/login' + search;
+        document.getElementById('password-reset-back-login').href = '/account/login' + search;
+        document.getElementById('password-reset-recover-account').href = '/account/recovery' + search;
+        document.querySelectorAll('[data-password-reset-link]').forEach(link => { link.href = '/account/forgot-password' + search; });
     }
     if (!accountPage && tabId !== 'profile' && tabId !== 'maven-domain' && tabId !== 'super-team' && !isAccountTab(tabId)) {
         localStorage.setItem('selectedTab', tabId);

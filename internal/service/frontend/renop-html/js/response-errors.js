@@ -36,6 +36,7 @@ const commonErrorCodeKeys = Object.freeze({
     ACCOUNT_BAN_SELF: 'users.banSelf',
     ACCOUNT_EMAIL_CONFLICT: 'profile.privateEmailConflict',
     ACCOUNT_EMAIL_INVALID: 'profile.privateEmailInvalid',
+    ACCOUNT_EMAIL_CODE_INVALID: 'login.emailCodeInvalid',
     ACCOUNT_LAST_LOGIN_METHOD: 'profile.passwordLoginNeedsAlternative',
     ACCOUNT_PASSWORD_NOT_CONFIGURED: 'profile.passwordLoginNotConfigured',
     API_TOKEN_INVALID: 'profile.apiTokenCreateFailed',

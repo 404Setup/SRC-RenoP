@@ -12,6 +12,7 @@ export function accountPageFromPath(pathname = window.location.pathname) {
     const path = pathname.toLowerCase().replace(/\/$/, '');
     if (path === '/account/login') return 'login';
     if (path === '/account/recovery') return 'recovery';
+    if (path === '/account/forgot-password') return 'password-recovery';
     return '';
 }
 

@@ -33,6 +33,8 @@ var (
 	ErrLastLoginMethod = errors.New("account must retain another login method")
 	// ErrPasswordNotConfigured indicates that password login cannot be enabled without a password hash.
 	ErrPasswordNotConfigured = errors.New("account password is not configured")
+	// ErrEmailCodeInvalid indicates an expired, spent, incorrect, or stale email verification code.
+	ErrEmailCodeInvalid = errors.New("email verification code is invalid")
 	// ErrRecoveryCodesInvalid indicates that password recovery did not provide four valid unused codes.
 	ErrRecoveryCodesInvalid = errors.New("recovery codes are invalid")
 )

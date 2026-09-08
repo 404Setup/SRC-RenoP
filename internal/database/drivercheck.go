@@ -41,7 +41,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	suffix := uuid.NewString()[:8]
 	username := "dbcheck-" + suffix
 	now := time.Now().UnixMilli()
-	results := make([]DriverCheckResult, 0, 12)
+	results := make([]DriverCheckResult, 0, 13)
 	run := func(name string, check func() error) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -848,6 +848,83 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 			return errorsOrMissing(err, "mail retained account counter")
 		}
 		return db.ReleaseMailLease(owner)
+	}); err != nil {
+		return results, err
+	}
+	if err := run("email password reset", func() error {
+		username := "reset_" + suffix
+		if err := db.SaveToken(&core.AccessToken{Name: username, EncryptedSecret: "old-password", Permissions: []string{"base"}}); err != nil {
+			return err
+		}
+		cfg := mail.DefaultConfig()
+		if err := cfg.EnsureKey(); err != nil {
+			return err
+		}
+		email := username + "@example.test"
+		if _, err := db.UpdateAccountEmail(username, email, now); err != nil {
+			return err
+		}
+		hash, wrong := strings.Repeat("a", 64), strings.Repeat("b", 64)
+		makeJob := func(id, address string) *mail.Job {
+			return &mail.Job{ID: id, AccountID: "driver-reset", Scene: "password_reset", TicketHash: hash,
+				CreatedAt: now, ExpiresAt: now + 600000,
+				Message: mail.Message{ID: id, To: address, Subject: "Reset", Text: "Verification code", CreatedAt: now}}
+		}
+		job := makeJob("reset-"+suffix, email)
+		created, err := db.QueueEmailPasswordReset(job, hash, cfg.EncryptionKey, "192.0.2.100", cfg.ManualRate)
+		if err != nil || !created {
+			return errorsOrMissing(err, "reset queue insert")
+		}
+		replacement := makeJob("reset-replace-"+suffix, email)
+		if _, err = db.QueueEmailPasswordReset(replacement, wrong, cfg.EncryptionKey, "192.0.2.101", cfg.ManualRate); !errors.Is(err, mail.ErrRateLimited) {
+			return errorsOrMissing(err, "reset email cooldown")
+		}
+		stored, err := db.GetMailJob(replacement.ID, cfg.EncryptionKey)
+		if err != nil || stored != nil {
+			return errorsOrMissing(err, "reset queue rollback")
+		}
+		if _, err = db.ResetPasswordWithEmailCode(email, wrong, "new-password", now+1); !errors.Is(err, core.ErrEmailCodeInvalid) {
+			return errorsOrMissing(err, "reset invalid code")
+		}
+		session := &core.Session{PublicID: "reset-session-" + suffix, Username: username, CreatedAt: now, LoginMethod: "password"}
+		session.LastActive.Store(now)
+		if err = db.SaveSession(session, "reset-secret-"+suffix); err != nil {
+			return err
+		}
+		recovered, err := db.ResetPasswordWithEmailCode(email, hash, "reset-password", now+2)
+		if err != nil || recovered != username {
+			return errorsOrMissing(err, "reset password consumption")
+		}
+		previous, err := db.GetSession("reset-secret-" + suffix)
+		if err != nil || previous != nil {
+			return errorsOrMissing(err, "reset session revocation")
+		}
+		token, err := db.GetTokenByName(username)
+		if err != nil || token == nil || token.EncryptedSecret != "reset-password" {
+			return errorsOrMissing(err, "reset password persistence")
+		}
+		if _, err = db.ResetPasswordWithEmailCode(email, hash, "replayed-password", now+3); !errors.Is(err, core.ErrEmailCodeInvalid) {
+			return errorsOrMissing(err, "reset replay rejection")
+		}
+		unknown := makeJob("reset-unknown-"+suffix, "unknown-"+email)
+		created, err = db.QueueEmailPasswordReset(unknown, hash, cfg.EncryptionKey, "192.0.2.101", cfg.ManualRate)
+		if err != nil || !created {
+			return errorsOrMissing(err, "unknown email ownership verification")
+		}
+		if _, err = db.ResetPasswordWithEmailCode(unknown.Message.To, hash, "new-password", now+2); !errors.Is(err, core.ErrEmailCodeInvalid) {
+			return errorsOrMissing(err, "unknown account reset rejection")
+		}
+		if err = db.CleanMailData(now+600000, nil); err != nil {
+			return err
+		}
+		var count int
+		if err = db.QueryRow(`SELECT COUNT(*) FROM user_password_resets WHERE email = ?`, unknown.Message.To).Scan(&count); err != nil {
+			return err
+		}
+		if count != 0 {
+			return errors.New("expired password proof retained")
+		}
+		return nil
 	}); err != nil {
 		return results, err
 	}

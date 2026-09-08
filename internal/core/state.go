@@ -120,6 +120,8 @@ type StateDB interface {
 	SetAccountPassword(username, passwordHash string, updatedAt int64) error
 	ReplaceRecoveryCodes(username string, codes []RecoveryCodeHash) error
 	GetRecoveryCodes(identifier string, selectorHashes []string) (string, []RecoveryCodeRecord, error)
+	QueueEmailPasswordReset(job *mail.Job, codeHash, key, ip string, rate mail.Rate) (bool, error)
+	ResetPasswordWithEmailCode(email, codeHash, passwordHash string, updatedAt int64) (string, error)
 	ResetPasswordWithRecoveryCodes(identifier string, selectorHashes []string, passwordHash string, updatedAt int64) (string, error)
 	GetGitHubIdentity(username string) (*GitHubIdentity, error)
 	GetGitHubIdentityByProviderID(githubUserID int64) (*GitHubIdentity, error)

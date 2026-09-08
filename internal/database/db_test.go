@@ -421,5 +421,5 @@ func TestSQLiteDriverContract(t *testing.T) {
 	db.UseRemoteCache(testutil.RemoteCache(t))
 	results, err := database.RunDriverCheck(context.Background(), db)
 	require.NoError(t, err)
-	require.Len(t, results, 12)
+	require.Len(t, results, 13)
 }

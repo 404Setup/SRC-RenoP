@@ -77,12 +77,35 @@ func Enqueue(state *core.AppState, request Request) (Receipt, error) {
 			request.To = security.Email
 		}
 	}
+	job, receipt, err := Prepare(cfg, request)
+	if err != nil {
+		return Receipt{}, err
+	}
+	ip := ""
+	if request.Manual {
+		ip = request.IP
+	}
+	created, err := state.GetDB().QueueMailJob(job, cfg.EncryptionKey, ip, cfg.ManualRate)
+	if err != nil {
+		return Receipt{}, err
+	}
+	if created {
+		Wake(state)
+	}
+	return receipt, nil
+}
+
+// Prepare validates routing and renders a private job without writing or sending it.
+func Prepare(cfg mail.Config, request Request) (*mail.Job, Receipt, error) {
+	if !cfg.Enabled {
+		return nil, Receipt{}, ErrDisabled
+	}
 	address, err := mail.Address(request.To)
 	if err != nil {
-		return Receipt{}, ErrRecipientBlocked
+		return nil, Receipt{}, ErrRecipientBlocked
 	}
 	if !cfg.Allows(address) {
-		return Receipt{}, ErrRecipientBlocked
+		return nil, Receipt{}, ErrRecipientBlocked
 	}
 	account := cfg.SelectAccount(request.Scene)
 	if request.AccountID != "" {
@@ -95,7 +118,7 @@ func Enqueue(state *core.AppState, request Request) (Receipt, error) {
 		}
 	}
 	if account == nil {
-		return Receipt{}, ErrNoAccount
+		return nil, Receipt{}, ErrNoAccount
 	}
 	if request.Data.Username == "" {
 		request.Data.Username = request.Username
@@ -108,7 +131,7 @@ func Enqueue(state *core.AppState, request Request) (Receipt, error) {
 	}
 	message, err := cfg.Render(request.Scene, request.Data)
 	if err != nil {
-		return Receipt{}, err
+		return nil, Receipt{}, err
 	}
 	if request.ID == "" {
 		request.ID = rand.Text()
@@ -124,23 +147,12 @@ func Enqueue(state *core.AppState, request Request) (Receipt, error) {
 	receipt := Receipt{ID: job.ID, Status: "queued"}
 	if request.Manual {
 		if request.IP == "" {
-			return Receipt{}, errors.New("mail_request_invalid")
+			return nil, Receipt{}, errors.New("mail_request_invalid")
 		}
 		receipt.Ticket = rand.Text()
 		job.TicketHash = ticketHash(receipt.Ticket)
 	}
-	ip := ""
-	if request.Manual {
-		ip = request.IP
-	}
-	created, err := state.GetDB().QueueMailJob(job, cfg.EncryptionKey, ip, cfg.ManualRate)
-	if err != nil {
-		return Receipt{}, err
-	}
-	if created {
-		Wake(state)
-	}
-	return receipt, nil
+	return job, receipt, nil
 }
 
 // Wake coalesces enqueue and configuration notifications without creating another worker.

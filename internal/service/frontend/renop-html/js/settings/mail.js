@@ -15,9 +15,9 @@ import {showAlert} from '../alert.js';
 import {LocalizedResponseError, responseErrorMessage} from '../response-errors.js';
 import {formatTimestamp} from '../time.js';
 import {t} from '../i18n.js';
+import {MAIL_STATUSES as STATUSES, mailStatusLabel} from '../mail-status.js';
 
 const PROVIDERS = {smtp: 'SMTP', cloudflare: 'Cloudflare Email', graph: 'Microsoft Graph', ses: 'Amazon SES', sendgrid: 'Twilio SendGrid', gmail: 'Gmail', aliyun: 'Alibaba Cloud Direct Mail', tencent: 'Tencent Cloud SES', feishu: 'Feishu / Lark Mail'};
-const STATUSES = ['queued', 'paused', 'sending', 'checking', 'accepted', 'sent', 'delivered', 'failed', 'unknown', 'expired', 'cancelled', 'queued_provider'];
 const SECRET_KEYS = ['password', 'api_key', 'api_secret', 'session_token', 'client_secret', 'access_token', 'refresh_token'];
 
 /** Request JSON while exposing only localized, stable failure messages. */
@@ -295,7 +295,7 @@ export function renderMailSettings(container, data, changed) {
         if (!response.ok) throw new Error(t('mail.requestFailed'));
         const job = await response.json();
         if (testReceipt !== receipt || !wrap.isConnected) return false;
-        testStatus.textContent = t(`mail.status.${STATUSES.includes(job.status) ? job.status : 'unknown'}`);
+        testStatus.textContent = mailStatusLabel(job.status);
         return ['queued', 'sending', 'checking'].includes(job.status);
     }
     operationFields.append(el('div', {class: 'mail-actions'}, action(t('mail.sendTest'), async () => {
@@ -335,7 +335,7 @@ export function renderMailSettings(container, data, changed) {
                 history.appendChild(el('div', {class: 'mail-job'},
                     el('strong', {}, data.accounts.find(account => account.id === job.account_id)?.name || job.account_id),
                     el('span', {}, t(`mail.scene.${job.scene}`)),
-                    el('span', {}, t(`mail.status.${STATUSES.includes(job.status) ? job.status : 'unknown'}`)),
+                    el('span', {}, mailStatusLabel(job.status)),
                     el('time', {}, formatTimestamp(job.created_at))));
             }
             history.appendChild(el('p', {}, t('common.pagination', {page: historyPage + 1, pages: Math.max(1, Math.ceil(value.total / 20)), total: value.total})));
