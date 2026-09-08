@@ -308,7 +308,10 @@ components:
   schemas:
     OAuthClaims:
       type: object
-      description: Dotted JSON paths with numeric array indexes. Email verification requires boolean true. Subject must be a stable provider ID.
+      description: >-
+        Dotted JSON paths with numeric array indexes. Email verification requires boolean true.
+        Subject must be a stable provider ID. OAuth-only custom clients bind identity to this selector;
+        changing the selector requires reconnecting accounts. OIDC clients verify the ID-token subject.
       properties:
         subject: {type: string, maxLength: 128}
         username: {type: string, maxLength: 128}

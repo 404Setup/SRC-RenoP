@@ -67,6 +67,8 @@ Custom `claims` select scalar values using dotted JSON paths and numeric array i
 
 Custom `token_auth` accepts `client_secret_post`, `client_secret_basic`, or `none`. PKCE S256 is enabled by default. `disable_pkce: true` is allowed only for custom providers with a client secret. For OpenID Connect, set both `issuer` and `jwks_url` and include `openid` in `scopes`; RenoP then requires and verifies an ID token. OAuth-only custom clients use the authenticated user-info response.
 
+OAuth-only custom clients include the subject-field path in their identity authority. Changing that field requires reconnecting the account binding. If you enabled a custom OAuth-only client from commit `26a1c1a`, reconnect it after updating to this isolation rule. OIDC clients continue to use the verified ID-token subject. Cloudflare exposes only `sub`, so email and photo import actions are unavailable; registration uses manual account details and a RenoP email code.
+
 Settings reads expose `client_secret_configured` and `api_key_configured`, with secret values blank. A blank write preserves a saved credential only for the same ID, provider type, client ID, and token endpoint. `clear_client_secret` and `clear_api_key` explicitly remove them. Changes to a client or endpoint require re-entering credentials. Removing a provider disables future authorizations but retains account bindings so users can disconnect them.
 
 ## Registration and account controls

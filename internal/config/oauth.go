@@ -106,6 +106,7 @@ func (p OAuthProviderConfig) Resolved() OAuthProviderConfig {
 		p.AuthorizeURL, p.TokenURL = "https://dash.cloudflare.com/oauth2/auth", "https://dash.cloudflare.com/oauth2/token"
 		p.UserInfoURL, p.JWKSURL = "https://dash.cloudflare.com/oauth2/userinfo", "https://dash.cloudflare.com/.well-known/jwks.json"
 		p.Issuer, defaultScopes = "https://dash.cloudflare.com", "openid"
+		p.Claims = OAuthClaims{Subject: "sub"}
 	case "stackexchange":
 		if p.Site == "" {
 			p.Site = "stackoverflow"
@@ -126,7 +127,12 @@ func (p OAuthProviderConfig) Resolved() OAuthProviderConfig {
 // Authority binds stable subjects to the client, identity endpoint, and verified issuer across configuration changes.
 func (p OAuthProviderConfig) Authority(issuer string) string {
 	p = p.Resolved()
-	hash := sha256.Sum256([]byte(strings.Join([]string{p.Type, p.ClientID, p.AuthorizeURL, p.TokenURL, p.UserInfoURL, issuer}, "\x00")))
+	parts := []string{p.Type, p.ClientID, p.AuthorizeURL, p.TokenURL, p.UserInfoURL, issuer}
+	// OIDC verifies sub; OAuth-only JSON selectors define their own subject namespace.
+	if p.Type == "custom" && issuer == "" {
+		parts = append(parts, p.Claims.Subject)
+	}
+	hash := sha256.Sum256([]byte(strings.Join(parts, "\x00")))
 	return hex.EncodeToString(hash[:])
 }
 

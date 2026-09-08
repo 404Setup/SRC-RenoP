@@ -292,7 +292,7 @@ func oauthProfileStatuses(state *core.AppState, username string) ([]oauthProfile
 		p = p.Resolved()
 		status := oauthProfileStatus{ID: p.ID, Name: p.Name, Configured: p.Configured()}
 		status.CanVerifyEmail = status.Configured && p.Claims.Email != "" && p.Claims.EmailVerified != ""
-		status.CanImportAvatar = status.Configured && p.Claims.Avatar != "" && p.Type != "cloudflare"
+		status.CanImportAvatar = status.Configured && p.Claims.Avatar != ""
 		for _, identity := range identities {
 			if identity.ProviderID == p.ID {
 				status.Linked, status.Login, status.AuthorizedAt = true, identity.Login, identity.AuthorizedAt

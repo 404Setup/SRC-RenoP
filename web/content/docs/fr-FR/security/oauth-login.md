@@ -67,6 +67,8 @@ Les `claims` personnalisés sélectionnent des valeurs scalaires à l’aide de 
 
 Pour un client personnalisé, `token_auth` accepte `client_secret_post`, `client_secret_basic` ou `none`. PKCE S256 est activé par défaut. `disable_pkce: true` est réservé aux fournisseurs personnalisés dotés d’un secret client. Pour OpenID Connect, configurez `issuer` et `jwks_url` et incluez `openid` dans `scopes` ; RenoP exige alors un jeton d’identité et le vérifie. Les clients OAuth sans OIDC utilisent la réponse authentifiée d’informations utilisateur.
 
+Les clients personnalisés utilisant uniquement OAuth incluent le chemin du champ d’identité dans leur autorité. Modifier ce champ exige une nouvelle association. Si vous avez activé un tel client depuis le commit `26a1c1a`, réassociez-le après cette mise à jour. Les clients OIDC utilisent toujours le sujet vérifié du jeton d’identité. Cloudflare ne fournit que `sub` : les actions d’importation d’e-mail et de photo sont indisponibles ; l’inscription utilise des informations saisies manuellement et un code e-mail RenoP.
+
 Les lectures exposent `client_secret_configured` et `api_key_configured`, mais laissent les secrets vides. Une écriture vide conserve un secret uniquement si l’ID, le type de fournisseur, l’ID client et le point de terminaison des jetons sont identiques. `clear_client_secret` et `clear_api_key` les suppriment explicitement. Un changement de client ou de point de terminaison exige de ressaisir les identifiants. Supprimer un fournisseur bloque les nouvelles autorisations mais conserve les associations pour que les utilisateurs puissent les retirer.
 
 ## Inscription et gestion des comptes

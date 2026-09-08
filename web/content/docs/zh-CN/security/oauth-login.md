@@ -67,6 +67,8 @@ server:
 
 自定义 `token_auth` 可为 `client_secret_post`、`client_secret_basic` 或 `none`。默认启用 PKCE S256。只有已配置客户端密钥的自定义服务才能设置 `disable_pkce: true`。使用 OpenID Connect 时，同时填写 `issuer`、`jwks_url`，并在 `scopes` 中包含 `openid`；此时 RenoP 会要求并验证 ID 令牌。仅使用 OAuth 的自定义客户端以经认证的用户信息响应作为身份依据。
 
+仅使用 OAuth 的自定义客户端会将身份字段路径纳入绑定的身份边界。修改该字段后需要重新关联账号。如果从提交 `26a1c1a` 开始启用了这类客户端，更新到此隔离规则后也需要重新关联。OIDC 客户端继续使用经过验证的 ID 令牌用户标识。Cloudflare 只提供 `sub`，因此不显示邮箱和头像导入操作；注册时需手动填写资料并使用 RenoP 邮箱验证码。
+
 读取设置时会返回 `client_secret_configured` 和 `api_key_configured`，但密钥值为空。只有 ID、服务类型、客户端 ID 和令牌端点均未变化时，空值写入才会保留已保存凭据。`clear_client_secret` 和 `clear_api_key` 可明确删除凭据。更换客户端或端点后必须重新填写。移除服务会停止新的授权，但保留账号绑定供用户自行解绑。
 
 ## 注册与账号操作

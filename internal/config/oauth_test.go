@@ -20,6 +20,9 @@ func TestOAuthProviderConfiguration(t *testing.T) {
 			CallbackURL: "https://renop.example/api/auth/oauth/" + kind + "/callback"}
 		require.NoError(t, p.Validate(), kind)
 		r := p.Resolved()
+		if kind == "cloudflare" {
+			require.Equal(t, OAuthClaims{Subject: "sub"}, r.Claims)
+		}
 		require.True(t, ValidOAuthURL(r.AuthorizeURL), kind)
 		require.True(t, ValidOAuthURL(r.TokenURL), kind)
 		require.True(t, ValidOAuthURL(r.UserInfoURL), kind)
@@ -65,4 +68,15 @@ func TestOAuthProviderConfiguration(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, cfg.Server.OAuthProviders, restored.OAuthProviders)
 	}
+}
+
+func TestOAuthSubjectSelectorIsolation(t *testing.T) {
+	p := OAuthProviderConfig{ID: "custom", Type: "custom", ClientID: "client", UserInfoURL: "https://id.example/me",
+		Claims: OAuthClaims{Subject: "data.id", Name: "data.name"}}
+	changed := p
+	changed.Claims.Subject = "data.alternate_id"
+	require.NotEqual(t, p.Authority(""), changed.Authority(""), "different JSON identity fields must not reuse account bindings")
+	changed = p
+	changed.Claims.Name = "data.display_name"
+	require.Equal(t, p.Authority(""), changed.Authority(""), "display metadata does not identify accounts")
 }
