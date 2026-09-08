@@ -15,7 +15,7 @@ import vm from 'node:vm';
 
 test('second-factor login keeps rejected and stale challenges out of authenticated UI', async () => {
     const elements = new Map(), requests = [], events = [], timers = new Map();
-    let timerID = 0, accept = false, available = true, delayed = false, release;
+    let timerID = 0, accept = false, available = true, delayed = false, release, passkeyError;
     const field = id => {
         if (!elements.has(id)) elements.set(id, {value: '', hidden: true, disabled: false, textContent: '', style: {}, handlers: {},
             focus() {}, checkValidity() { return /^\d{6}$/.test(this.value); },
@@ -29,7 +29,12 @@ test('second-factor login keeps rejected and stale challenges out of authenticat
         AbortController, Date, CustomEvent: class { constructor(type, {detail}) { this.type = type; this.detail = detail; } },
         setTimeout: fn => { timers.set(++timerID, fn); return timerID; }, clearTimeout: id => timers.delete(id),
         t: key => key, responseErrorMessage: async () => 'mfa.invalid',
-        requestPasskeyAssertion: async options => { assert.equal(options.publicKey.userVerification, 'required'); return {id: 'credential'}; },
+        passkeyErrorMessage: error => error.name === 'TimeoutError' ? 'fido.timeout' : 'login.fidoFailed',
+        requestPasskeyAssertion: async options => {
+            assert.equal(options.publicKey.userVerification, 'required');
+            if (passkeyError) throw passkeyError;
+            return {id: 'credential'};
+        },
         fetch: async (url, options) => {
             assert.equal(options.credentials, 'include');
             assert.equal(options.cache, 'no-store');
@@ -77,19 +82,33 @@ test('second-factor login keeps rejected and stale challenges out of authenticat
     assert.equal(events.length, 1, 'late success must not navigate after leaving');
     assert.equal(field('mfa-login-code').value, '');
     assert.ok(requests.some(request => request.options.method === 'DELETE'));
+    delayed = false;
+    await context.showMFALogin();
+    const finishes = requests.filter(request => request.url.endsWith('/finish')).length;
+    passkeyError = new DOMException('', 'TimeoutError');
+    await context.verifyFactor('passkey');
+    assert.equal(field('login-form').hidden, false);
+    assert.equal(field('login-error').textContent, 'fido.timeout');
+    assert.equal(timers.size, 0);
+    assert.equal(requests.filter(request => request.url.endsWith('/finish')).length, finishes);
+    assert.equal(events.length, 1);
+    await context.showMFALogin();
+    for (const expire of [...timers.values()]) expire();
+    assert.equal(field('login-error').textContent, 'mfa.invalid');
+    assert.equal(field('mfa-login-form').hidden, true);
 });
 
 test('Passkey assertion conversion preserves required user verification', async () => {
     let request;
     const buffer = new Uint8Array([1, 2, 3]).buffer;
-    const context = vm.createContext({Uint8Array, atob, btoa,
-        window: {PublicKeyCredential: true},
+    const context = vm.createContext({Uint8Array, atob, btoa, AbortController, DOMException, setTimeout, clearTimeout, setInterval, clearInterval,
+        window: {PublicKeyCredential: true, addEventListener() {}, removeEventListener() {}},
         navigator: {credentials: {get: async options => {
             request = options;
             return {id: 'key', rawId: buffer, type: 'public-key', response: {authenticatorData: buffer, clientDataJSON: buffer, signature: buffer, userHandle: null}};
         }}},
     });
-    vm.runInContext(readFileSync(new URL('../js/fido-utils.js', import.meta.url), 'utf8').replaceAll('export ', ''), context);
+    vm.runInContext(readFileSync(new URL('../js/fido-utils.js', import.meta.url), 'utf8').replace(/^import .*;\r?\n/gm, '').replaceAll('export ', ''), context);
     const result = await context.requestPasskeyAssertion({publicKey: {challenge: 'AQID', allowCredentials: [{type: 'public-key', id: 'AQID'}], userVerification: 'required'}});
     assert.equal(request.publicKey.userVerification, 'required');
     assert.deepEqual([...new Uint8Array(request.publicKey.challenge)], [1, 2, 3]);

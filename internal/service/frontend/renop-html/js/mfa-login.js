@@ -10,7 +10,7 @@
 
 import {t} from './i18n.js';
 import {responseErrorMessage} from './response-errors.js';
-import {requestPasskeyAssertion} from './fido-utils.js';
+import {passkeyErrorMessage, requestPasskeyAssertion} from './fido-utils.js';
 import {runButtonAction} from './components/button.js';
 
 const form = document.getElementById('mfa-login-form');
@@ -65,10 +65,8 @@ export async function showMFALogin({silent = false} = {}) {
         clearTimeout(deadline);
         deadline = setTimeout(() => {
             if (current !== sequence) return;
-            errorBox.textContent = t('mfa.invalid');
-            errorBox.hidden = false;
-            code.disabled = true;
-            passkey.disabled = true;
+            resetMFALogin();
+            showChallengeError(t('mfa.invalid'));
         }, Math.max(0, Number(status.expires_at) - Date.now()));
     } catch {
         if (!silent && current === sequence) showChallengeError(t('mfa.unavailable'));
@@ -100,31 +98,36 @@ export function updateMFALoginPage(visible, entering = false) {
 
 /** Complete one explicitly selected factor and publish the authenticated session to the login UI. */
 async function verifyFactor(factor) {
+    if (!active) return;
     const current = sequence;
     abort?.abort();
-    abort = new AbortController();
+    const controller = new AbortController();
+    abort = controller;
     errorBox.hidden = true;
     try {
         let payload = {code: code.value};
         if (factor === 'passkey') {
             const begin = await mfaRequest('/passkey/begin', {});
+            controller.signal.throwIfAborted();
             if (!begin.ok) { errorBox.textContent = await responseErrorMessage(begin, 'mfa.invalid'); errorBox.hidden = false; return; }
             const {options} = await begin.json();
-            payload = {credential: await requestPasskeyAssertion(options, abort.signal)};
+            controller.signal.throwIfAborted();
+            payload = {credential: await requestPasskeyAssertion(options, {signal: controller.signal, button: passkey})};
         }
+        controller.signal.throwIfAborted();
         const response = await mfaRequest(factor === 'totp' ? '/totp' : '/passkey/finish', payload);
-        if (current !== sequence) return;
+        if (current !== sequence || controller.signal.aborted) return;
         code.value = '';
         if (!response.ok) { errorBox.textContent = await responseErrorMessage(response, 'mfa.invalid'); errorBox.hidden = false; code.focus(); return; }
         const session = await response.json();
-        if (current !== sequence) return;
+        if (current !== sequence || controller.signal.aborted) return;
         active = false;
         resetMFALogin();
         window.dispatchEvent(new CustomEvent('mfaLoginCompleted', {detail: session}));
     } catch (error) {
-        if (current !== sequence || error.name === 'AbortError') return;
-        errorBox.textContent = t(factor === 'passkey' ? 'login.fidoFailed' : 'mfa.unavailable');
-        errorBox.hidden = false;
+        if (current !== sequence || controller.signal.aborted) return;
+        if (error.name === 'TimeoutError') resetMFALogin();
+        showChallengeError(factor === 'passkey' ? passkeyErrorMessage(error) : t('mfa.unavailable'));
     }
 }
 

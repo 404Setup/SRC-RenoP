@@ -9,6 +9,12 @@
  */
 
 export default Object.freeze({
+    "fido.waiting": "En attente de la Passkey ({seconds}s)",
+    "fido.timeout": "La Passkey a expiré. Recommencez la connexion.",
+    "fido.cancelled": "La Passkey a été annulée, refusée ou aucun identifiant correspondant n’a été trouvé. Réessayez.",
+    "fido.alreadyRegistered": "Cette Passkey est déjà enregistrée. Utilisez un autre identifiant.",
+    "fido.insecure": "Les Passkeys nécessitent une connexion sécurisée et une origine de site autorisée.",
+    "fido.verificationUnavailable": "L’authentificateur ne peut pas satisfaire la politique de vérification requise. Utilisez une autre Passkey.",
     "oauth.settingsTitle": "Connexion via un service tiers",
     "oauth.settingsHint": "Configurez jusqu’à 32 clients OAuth. GitHub dispose de sa propre section. Les nouvelles connexions utilisent immédiatement la configuration enregistrée.",
     "oauth.provider": "Fournisseur",

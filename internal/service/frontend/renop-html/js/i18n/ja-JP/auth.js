@@ -9,6 +9,12 @@
  */
 
 export default Object.freeze({
+    "fido.waiting": "Passkey を待機中（{seconds}s）",
+    "fido.timeout": "Passkey がタイムアウトしました。ログインをやり直してください。",
+    "fido.cancelled": "Passkey がキャンセルまたは拒否されたか、一致する認証情報が見つかりません。再試行してください。",
+    "fido.alreadyRegistered": "この Passkey は登録済みです。別の認証情報を使用してください。",
+    "fido.insecure": "Passkey には安全な接続と許可されたサイトのオリジンが必要です。",
+    "fido.verificationUnavailable": "認証器が必要な検証条件を満たせません。別の Passkey を使用してください。",
     "oauth.settingsTitle": "外部サービスでログイン",
     "oauth.settingsHint": "OAuth クライアントを最大 32 件設定できます。GitHub は専用の設定欄を使用します。保存後のログインには新しい設定がすぐに適用されます。",
     "oauth.provider": "プロバイダー",

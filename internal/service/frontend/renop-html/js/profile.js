@@ -12,10 +12,10 @@ import {apiRequest, fetchProto, postProto, putProto} from './api.js';
 import {showAlert} from './alert.js';
 import {t, translateKnownError} from './i18n.js';
 import {el} from '@renop/ui/dom';
-import {createIcon, RenopDialog} from './components.js';
+import {createIcon, RenopDialog, runButtonAction} from './components.js';
 import {attachPasswordStrength, confirmWeakPasswordIfNeeded, getPasswordLengthError} from './password-strength.js';
 import {openSessionsDialog} from './sessions.js';
-import {base64urlToBuffer, bufferToBase64url} from './fido-utils.js';
+import {passkeyErrorMessage, requestPasskeyRegistration} from './fido-utils.js';
 import {
     FidoDeviceList,
     GpgKeyDto,
@@ -506,73 +506,49 @@ export async function loadProfileFidoDevices() {
     }
 }
 
+let fidoRegistrationAbort;
+
+/** Cancel registration when its page or dialog closes. */
+function cancelFidoRegistration() {
+    fidoRegistrationAbort?.abort();
+}
+
+window.addEventListener('popstate', cancelFidoRegistration);
+window.addEventListener('pagehide', cancelFidoRegistration);
+
+/** Register a named Passkey from the account security dialog. */
 export async function addFidoDevice() {
     if (!window.PublicKeyCredential) {
         showAlert(t('login.fidoUnsupported'), 'error');
         return;
     }
 
-    const deviceName = await window.showPrompt(
-        t('profile.fidoPromptName'),
-        'YubiKey 5'
-    );
-
-    if (!deviceName || !deviceName.trim()) {
-        return;
-    }
-
+    cancelFidoRegistration();
+    const controller = new AbortController();
+    fidoRegistrationAbort = controller;
     try {
+        const deviceName = await window.showPrompt(t('profile.fidoPromptName'), 'YubiKey 5');
+        controller.signal.throwIfAborted();
+        if (!deviceName?.trim()) return;
         const beginRes = await apiRequest('/api/auth/profile/fido/register/begin', {
-            method: 'POST'
+            method: 'POST', signal: controller.signal,
         });
+        controller.signal.throwIfAborted();
         if (!beginRes.ok) {
             showAlert(await responseErrorMessage(beginRes, 'error.fidoBeginRegFailed'), 'error');
             return;
         }
 
         const {session_id, options} = await beginRes.json();
-        const publicKey = options.publicKey;
-        publicKey.challenge = base64urlToBuffer(publicKey.challenge);
-        publicKey.user.id = base64urlToBuffer(publicKey.user.id);
-        if (Array.isArray(publicKey.excludeCredentials)) {
-            publicKey.excludeCredentials = publicKey.excludeCredentials.map(c => ({
-                ...c,
-                id: base64urlToBuffer(c.id)
-            }));
-            if (publicKey.excludeCredentials.length === 0) {
-                delete publicKey.excludeCredentials;
-            }
-        }
-
-        if (!publicKey.authenticatorSelection) {
-            publicKey.authenticatorSelection = {};
-        }
-        delete publicKey.authenticatorSelection.authenticatorAttachment;
-        if (!publicKey.authenticatorSelection.userVerification) {
-            publicKey.authenticatorSelection.userVerification = 'preferred';
-        }
-        if (!publicKey.authenticatorSelection.residentKey) {
-            publicKey.authenticatorSelection.residentKey = 'preferred';
-        }
-
-        const credential = await navigator.credentials.create({publicKey});
-        if (!credential) {
-            showAlert(t('login.fidoFailed'), 'error');
-            return;
-        }
-
-        const credentialJSON = {
-            id: credential.id,
-            rawId: bufferToBase64url(credential.rawId),
-            type: credential.type,
-            response: {
-                attestationObject: bufferToBase64url(credential.response.attestationObject),
-                clientDataJSON: bufferToBase64url(credential.response.clientDataJSON),
-            }
-        };
+        controller.signal.throwIfAborted();
+        const credentialJSON = await requestPasskeyRegistration(options, {
+            signal: controller.signal, button: document.getElementById('btn-add-fido-device'),
+        });
+        controller.signal.throwIfAborted();
 
         const finishRes = await apiRequest('/api/auth/profile/fido/register/finish', {
             method: 'POST',
+            signal: controller.signal,
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
                 session_id,
@@ -581,6 +557,7 @@ export async function addFidoDevice() {
             })
         });
 
+        controller.signal.throwIfAborted();
         if (finishRes.ok) {
             showAlert(t('profile.fidoAdded'), 'success');
             loadProfileFidoDevices();
@@ -589,8 +566,9 @@ export async function addFidoDevice() {
             showAlert(await responseErrorMessage(finishRes, 'error.fidoRegFailed'), 'error');
         }
     } catch (err) {
-        console.error('FIDO registration error:', err);
-        showAlert(caughtErrorMessage(err, 'error.fidoRegFailed'), 'error');
+        if (!controller.signal.aborted) showAlert(passkeyErrorMessage(err), 'error');
+    } finally {
+        if (fidoRegistrationAbort === controller) fidoRegistrationAbort = undefined;
     }
 }
 
@@ -1453,7 +1431,7 @@ function wireProfileEditActions(profile) {
     if (btnAddFido && !btnAddFido.dataset.listenerAttached) {
         btnAddFido.dataset.listenerAttached = 'true';
         btnAddFido.addEventListener('click', () => {
-            addFidoDevice();
+            void runButtonAction(btnAddFido, addFidoDevice);
         });
     }
 
@@ -1475,6 +1453,7 @@ export function openProfileFidoDialog() {
     if (closeBtn && !closeBtn.dataset.listenerAttached) {
         closeBtn.dataset.listenerAttached = 'true';
         closeBtn.addEventListener('click', () => {
+            cancelFidoRegistration();
             profileFidoLoadSeq += 1;
             closeModalWithAnim(modal);
         });
@@ -1483,6 +1462,7 @@ export function openProfileFidoDialog() {
     if (backdrop && !backdrop.dataset.listenerAttached) {
         backdrop.dataset.listenerAttached = 'true';
         backdrop.addEventListener('click', () => {
+            cancelFidoRegistration();
             profileFidoLoadSeq += 1;
             closeModalWithAnim(modal);
         });

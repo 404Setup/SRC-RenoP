@@ -9,6 +9,12 @@
  */
 
 export default Object.freeze({
+    "fido.waiting": "Passkey 대기 중 ({seconds}s)",
+    "fido.timeout": "Passkey 시간이 초과되었습니다. 로그인을 다시 시작하세요.",
+    "fido.cancelled": "Passkey가 취소되거나 거부되었거나 일치하는 자격 증명이 없습니다. 다시 시도하세요.",
+    "fido.alreadyRegistered": "이미 등록된 Passkey입니다. 다른 자격 증명을 사용하세요.",
+    "fido.insecure": "Passkey에는 보안 연결과 허용된 사이트 출처가 필요합니다.",
+    "fido.verificationUnavailable": "인증 장치가 필요한 검증 정책을 충족하지 못합니다. 다른 Passkey를 사용하세요.",
     "oauth.settingsTitle": "외부 서비스 로그인",
     "oauth.settingsHint": "OAuth 클라이언트를 최대 32개 설정할 수 있습니다. GitHub는 별도 설정 영역을 사용합니다. 저장한 설정은 새 로그인에 즉시 적용됩니다.",
     "oauth.provider": "제공업체",

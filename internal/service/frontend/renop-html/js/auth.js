@@ -15,7 +15,7 @@ import {updateTabIndicator} from '@renop/ui/tabs';
 import {leaveLoginPage, navigateToLogin} from './login-route.js';
 import {stopDashboardRefresh} from './dashboard.js';
 import {LoginRequest, SessionDetails} from './proto/index.js';
-import {requestPasskeyAssertion} from './fido-utils.js';
+import {passkeyErrorMessage, requestPasskeyAssertion} from './fido-utils.js';
 import {showMFALogin} from './mfa-login.js';
 import {clearUserProfileCache, getUserProfile, profileDisplayName, renderProfileAvatar} from './user-profiles.js';
 import {responseErrorMessage} from './response-errors.js';
@@ -457,7 +457,19 @@ async function performLogout(reason) {
     requestSwitchTab('overview');
 }
 
+let fidoLoginAbort;
+
+/** Cancel unfinished Passkey login when navigating away. */
+function cancelFidoLogin() {
+    fidoLoginAbort?.abort();
+}
+
+window.addEventListener('popstate', cancelFidoLogin);
+window.addEventListener('pagehide', cancelFidoLogin);
+
+/** Complete one primary Passkey login while its originating page remains active. */
 export async function fidoLogin() {
+    cancelFidoLogin();
     loginError.style.display = 'none';
 
     if (!window.PublicKeyCredential) {
@@ -466,15 +478,19 @@ export async function fidoLogin() {
         return;
     }
 
+    const controller = new AbortController();
+    fidoLoginAbort = controller;
     const usernameInput = document.getElementById('username');
     const name = usernameInput ? usernameInput.value.trim() : '';
 
     try {
         const beginRes = await fetch('/api/auth/fido/login/begin', {
             method: 'POST',
+            signal: controller.signal,
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({username: name})
         });
+        controller.signal.throwIfAborted();
 
         if (!beginRes.ok) {
             loginError.textContent = await responseErrorMessage(beginRes, 'login.fidoFailed');
@@ -483,16 +499,19 @@ export async function fidoLogin() {
         }
 
         const {session_id, options} = await beginRes.json();
+        controller.signal.throwIfAborted();
         if (!options || !options.publicKey) {
             loginError.textContent = t('login.fidoFailed');
             loginError.style.display = 'block';
             return;
         }
 
-        const credentialJSON = await requestPasskeyAssertion(options);
+        const credentialJSON = await requestPasskeyAssertion(options, {signal: controller.signal, button: btnFidoLogin});
+        controller.signal.throwIfAborted();
 
         const finishRes = await fetch('/api/auth/fido/login/finish', {
             method: 'POST',
+            signal: controller.signal,
             credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
@@ -504,8 +523,11 @@ export async function fidoLogin() {
             })
         });
 
+        controller.signal.throwIfAborted();
         if (finishRes.ok) {
-            completeLogin(await finishRes.json(), name);
+            const session = await finishRes.json();
+            controller.signal.throwIfAborted();
+            completeLogin(session, name);
         } else if (finishRes.headers.get('X-Renop-Error-Code') === 'MFA_REQUIRED') {
             await showMFALogin();
         } else {
@@ -513,9 +535,11 @@ export async function fidoLogin() {
             loginError.style.display = 'block';
         }
     } catch (error) {
-        console.error('FIDO Login error:', error);
-        loginError.textContent = t('error.fidoLoginError');
+        if (controller.signal.aborted) return;
+        loginError.textContent = passkeyErrorMessage(error);
         loginError.style.display = 'block';
+    } finally {
+        if (fidoLoginAbort === controller) fidoLoginAbort = undefined;
     }
 }
 

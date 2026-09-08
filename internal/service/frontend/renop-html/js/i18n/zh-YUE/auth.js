@@ -9,6 +9,12 @@
  */
 
 export default Object.freeze({
+    "fido.waiting": "等緊 Passkey（{seconds}s）",
+    "fido.timeout": "Passkey 驗證逾時，請重新登入。",
+    "fido.cancelled": "Passkey 已取消、被拒絕或者搵唔到相符嘅憑證，請再試。",
+    "fido.alreadyRegistered": "呢個 Passkey 已經註冊，請用其他憑證。",
+    "fido.insecure": "Passkey 需要安全連線同獲准嘅網站來源。",
+    "fido.verificationUnavailable": "驗證器未能符合所需嘅驗證要求，請用其他 Passkey。",
     "oauth.settingsTitle": "第三方登入",
     "oauth.settingsHint": "最多設定 32 個 OAuth 客戶端。GitHub 使用獨立設定區域。儲存後，新的登入立即使用最新設定。",
     "oauth.provider": "服務提供者",
