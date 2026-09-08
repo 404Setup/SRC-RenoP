@@ -105,6 +105,7 @@ func SetupAuthRoutes(app fiber.Router, state *core.AppState, opChan chan<- token
 	setupAccountSecurityRoutes(auth, state)
 	setupMFARoutes(auth, state)
 	setupPasswordResetRoutes(auth, state)
+	setupRegistrationRoutes(auth, state)
 	setupAccountRetirementRoutes(auth, state, opChan)
 	setupAPITokenRoutes(auth, state)
 	setupGitHubRoutes(auth, state, opChan)

@@ -354,6 +354,28 @@ func (db *DB) CreateToken(token *core.AccessToken, nickname string, changedAt in
 	if db == nil || db.SQLDB == nil || token == nil {
 		return core.ErrDatabaseUnavailable
 	}
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin token creation: %w", err)
+	}
+	defer tx.Rollback()
+	if err := createTokenTx(tx, token, nickname, changedAt); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit token creation %s: %w", token.Name, err)
+	}
+	if len(token.Tokens) > 0 {
+		token.Tokens = []string{}
+	}
+	db.finishTokenUpdate(token.Name, token)
+	return nil
+}
+
+func createTokenTx(tx *Tx, token *core.AccessToken, nickname string, changedAt int64) error {
+	if token == nil {
+		return core.ErrDatabaseUnavailable
+	}
 	name, valid := core.NormalizeUsername(token.Name)
 	if !valid {
 		return errors.New("token name is invalid")
@@ -385,11 +407,6 @@ func (db *DB) CreateToken(token *core.AccessToken, nickname string, changedAt in
 	if err != nil {
 		return err
 	}
-	tx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("begin token creation: %w", err)
-	}
-	defer tx.Rollback()
 	var exists int
 	if err := tx.QueryRow(`SELECT 1 FROM tokens WHERE name = ?`, name).Scan(&exists); err == nil {
 		return core.ErrUsernameAlreadyExists
@@ -419,11 +436,6 @@ func (db *DB) CreateToken(token *core.AccessToken, nickname string, changedAt in
 			return err
 		}
 	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit token creation %s: %w", name, err)
-	}
-	token.Tokens = persistedTokens
-	db.finishTokenUpdate(name, token)
 	return nil
 }
 

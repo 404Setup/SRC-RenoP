@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "audit.action.USER_REGISTER": "账号注册",
     "audit.initiator": "触发者",
     "audit.globalTitle": "全局日志",
     "audit.kind": "类型",

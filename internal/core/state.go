@@ -129,6 +129,11 @@ type StateDB interface {
 	QueueEmailPasswordReset(job *mail.Job, codeHash, key, ip string, rate mail.Rate) (bool, error)
 	ResetPasswordWithEmailCode(email, codeHash, passwordHash string, updatedAt int64) (string, error)
 	ResetPasswordWithRecoveryCodes(identifier string, selectorHashes []string, passwordHash string, updatedAt int64) (string, error)
+	CleanRegistrations(now int64) error
+	CheckRegistrationIP(ipHash string, cfg config.RegistrationConfig, now int64) error
+	BeginRegistration(pending *PendingRegistration, job *mail.Job, key, ip string, rate mail.Rate, cfg config.RegistrationConfig) error
+	GetPendingRegistration(idHash string, now int64) (*PendingRegistration, error)
+	RegisterAccount(request AccountRegistration, cfg config.RegistrationConfig, now int64) (*RegistrationProfile, error)
 	GetGitHubIdentity(username string) (*GitHubIdentity, error)
 	GetGitHubIdentityByProviderID(githubUserID int64) (*GitHubIdentity, error)
 	StoreGitHubIdentity(userID string, githubUserID int64, githubLogin string, principals []GitHubPrincipal, authorizedAt int64) error

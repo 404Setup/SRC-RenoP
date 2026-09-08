@@ -511,7 +511,7 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 	if err := initGitHubIdentityTables(db); err != nil {
 		return err
 	}
-	if err := initAccountSecurityTables(db); err != nil {
+	if err := initAccountSecurityTables(db, true); err != nil {
 		return err
 	}
 	if err := initMailTables(db, true); err != nil {

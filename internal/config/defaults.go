@@ -202,6 +202,7 @@ func DefaultConfig() *Config {
 		PublicationQuota:      DefaultPublicationQuotaConfig(),
 		Cache:                 DefaultCacheConfig(),
 		Mail:                  mail.DefaultConfig(),
+		Registration:          DefaultRegistrationConfig(),
 		GPG:                   GPGConfig{KeyServers: DefaultGPGKeyServers()},
 		Proxy:                 ProxyConfig{},
 	}

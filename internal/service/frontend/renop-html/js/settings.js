@@ -29,6 +29,7 @@ import {logout} from './auth.js';
 import {exitProtectedRouteOnDenial} from './protected-route.js';
 import {restartApp} from './dashboard.js';
 import {renderCacheSettings} from './settings/cache.js';
+import {renderRegistrationSettings} from './settings/registration.js';
 import {renderMailSettings} from './settings/mail.js';
 import {
     formatClickHouseDsn,
@@ -59,7 +60,7 @@ const DOMAIN_MESSAGE_TYPES = {
     index: IndexDomainSettings,
 };
 
-const SERVICE_DOMAINS = Object.freeze(['server', 'github_oauth', 'super_teams', 'publication_quota', 'cache', 'mail', 'proxy', 'storage']);
+const SERVICE_DOMAINS = Object.freeze(['server', 'github_oauth', 'super_teams', 'publication_quota', 'cache', 'mail', 'registration', 'proxy', 'storage']);
 const MERGED_SERVICE_DOMAINS = new Set(SERVICE_DOMAINS.filter(domain => domain !== 'server'));
 
 let currentDomain = null;
@@ -258,7 +259,7 @@ async function loadDomainSettings(domain, direction = 'next') {
             const serviceDomains = SERVICE_DOMAINS.filter(name => availableDomains.includes(name));
             const results = await Promise.all(serviceDomains.map(async name => ({
                 name,
-                result: ['cache', 'mail'].includes(name) ? await fetchJSONSettings(name) : name === 'github_oauth'
+                result: ['cache', 'mail', 'registration'].includes(name) ? await fetchJSONSettings(name) : name === 'github_oauth'
                     ? await fetchGitHubOAuthSettings()
                     : (name === 'publication_quota'
                         ? await fetchPublicationQuotaSettings()
@@ -584,6 +585,7 @@ function renderServiceSettings(container, data) {
     if (data.github_oauth) renderGitHubOAuthSettings(stack, data.github_oauth);
     if (data.super_teams) renderSuperTeamSettings(stack, data.super_teams);
     if (data.publication_quota) renderPublicationQuotaSettings(stack, data.publication_quota);
+    if (data.registration) renderRegistrationSettings(stack, data.registration, enableSave);
     if (data.cache) renderCacheSettings(stack, data.cache, enableSave);
     if (data.mail) renderMailSettings(stack, data.mail, enableSave);
     if (data.proxy) renderProxySettings(stack, data.proxy);
@@ -1590,7 +1592,7 @@ async function triggerIndexRebuild(mode) {
  * @returns {Promise<void>}
  */
 export async function saveDomainSettings() {
-    const invalidMailInput = document.querySelector('#settings-mail .cfg-fields input:invalid:not([data-mail-test])');
+    const invalidMailInput = document.querySelector('#settings-mail .cfg-fields input:invalid:not([data-mail-test]), #settings-registration input:invalid');
     if (invalidMailInput) {
         invalidMailInput.reportValidity();
         return;
@@ -1615,7 +1617,7 @@ export async function saveDomainSettings() {
                 if (JSON.stringify(currentConfig[domain]) === JSON.stringify(initialConfig[domain])) continue;
                 let response;
                 let savedData = null;
-                if (domain === 'cache' || domain === 'mail') {
+                if (['cache', 'mail', 'registration'].includes(domain)) {
                     response = await apiRequest(`/api/settings/${domain}`, {
                         method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(currentConfig[domain]),
                     });

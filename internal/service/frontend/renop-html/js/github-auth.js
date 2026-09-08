@@ -55,6 +55,10 @@ function showGitHubOAuthResult() {
         email_conflict: ['profile.privateEmailConflict', 'error'],
         email_blocked: ['mail.recipientBlocked', 'error'],
         email_missing: ['profile.githubEmailMissing', 'error'],
+        registration_disabled: ['registration.disabled', 'error'],
+        registration_ip_limited: ['registration.ipLimited', 'error'],
+        registration_cooldown: ['registration.cooldown', 'error'],
+        registration_pending: ['registration.pending', 'error'],
         email_failed: ['profile.githubEmailFailed', 'error'],
     };
     const pair = messages[result] || ['login.githubFailed', 'error'];
@@ -79,6 +83,7 @@ export async function initializeGitHubAuth() {
         });
         const status = response.ok ? await response.json() : null;
         if (wrapper) $(wrapper).prop('hidden', !status?.enabled);
+        $('#registration-github').prop('hidden', !status?.enabled);
     } catch {
         if (wrapper) $(wrapper).prop('hidden', true);
     }

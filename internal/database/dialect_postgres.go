@@ -492,7 +492,7 @@ func (d *PostgresDialect) InitTables(db *sql.DB) error {
 	if err := initGitHubIdentityTables(db); err != nil {
 		return err
 	}
-	if err := initAccountSecurityTables(db); err != nil {
+	if err := initAccountSecurityTables(db, false); err != nil {
 		return err
 	}
 	if err := initMailTables(db, false); err != nil {

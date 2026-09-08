@@ -1002,11 +1002,11 @@ func TestGetDomainsProtobuf(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected GET 200, got %d", resp.StatusCode)
 	}
-	if len(got.Domains) != 11 || !slices.Contains(got.Domains, "proxy") ||
+	if len(got.Domains) != 12 || !slices.Contains(got.Domains, "proxy") ||
 		!slices.Contains(got.Domains, "github_oauth") || !slices.Contains(got.Domains, "super_teams") ||
 		!slices.Contains(got.Domains, "publication_quota") || !slices.Contains(got.Domains, "cache") ||
-		!slices.Contains(got.Domains, "mail") || slices.Contains(got.Domains, "gpg") {
-		t.Fatalf("expected 11 domains including cache and mail settings while excluding gpg, got %v", got.Domains)
+		!slices.Contains(got.Domains, "mail") || !slices.Contains(got.Domains, "registration") || slices.Contains(got.Domains, "gpg") {
+		t.Fatalf("expected 12 domains including registration, cache and mail settings while excluding gpg, got %v", got.Domains)
 	}
 }
 
@@ -1913,4 +1913,34 @@ func TestDomainUpdateDoesNotPublishOnWriteFailure(t *testing.T) {
 	if after != before {
 		t.Fatalf("in-memory config published despite disk failure: before=%s after=%s", before, after)
 	}
+}
+
+func TestRegistrationSettingsPersistAndRejectDisabledLimits(t *testing.T) {
+	app, state := setupSettingsTestApp(t, config.DefaultConfig())
+	body := `{"enabled":true,"ip_limit":2,"ip_interval":{"value":3,"unit":"week"},"provider_cooldown":{"value":12,"unit":"hour"}}`
+	request := httptest.NewRequest(http.MethodPut, "/registration", strings.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	response, err := app.Test(request)
+	require.NoError(t, err)
+	require.Equal(t, 200, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	require.True(t, state.Inner.Config.Load().Registration.Enabled)
+	persisted, err := os.ReadFile(os.Getenv("RENOP_CONFIG"))
+	require.NoError(t, err)
+	require.Contains(t, string(persisted), "registration:")
+	for _, invalid := range []string{strings.Replace(body, `"ip_limit":2`, `"ip_limit":0`, 1), strings.Replace(body, `"value":3`, `"value":-1`, 1), strings.Replace(body, `"unit":"week"`, `"unit":"second"`, 1), strings.Replace(body, `"value":3`, `"value":100`, 1)} {
+		request = httptest.NewRequest(http.MethodPut, "/registration", strings.NewReader(invalid))
+		request.Header.Set("Content-Type", "application/json")
+		response, err = app.Test(request)
+		require.NoError(t, err)
+		require.Equal(t, 400, response.StatusCode)
+		require.NoError(t, response.Body.Close())
+		require.EqualValues(t, 2, state.Inner.Config.Load().Registration.IPLimit)
+	}
+	guest := fiber.New()
+	SetupSettingsRoutes(guest, state)
+	response, err = guest.Test(httptest.NewRequest(http.MethodGet, "/registration", nil))
+	require.NoError(t, err)
+	require.Equal(t, 403, response.StatusCode)
+	require.NoError(t, response.Body.Close())
 }

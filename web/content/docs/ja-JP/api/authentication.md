@@ -46,6 +46,8 @@ description: ブラウザセッション、プロフィール、ログイン方�
 GitHub は管理者が OAuth を設定した場合だけ表示されます。ユーザーと Organization の読み取りを要求し、
 不変 Provider ID と Principal のスナップショットを保存しますが、OAuth Access Token は保存しません。
 
+未連携の GitHub ID は[アカウント登録](../security/registration.md)とパスワード設定が必要です。OAuth は `read:user read:org user:email` を要求し、コールバックには認可を開始したブラウザーの Cookie が必要です。
+
 ## 現在のアカウントと公開プロフィール
 
 - **現在のセッション**: `GET /api/auth/me`

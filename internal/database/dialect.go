@@ -63,7 +63,11 @@ func initGitHubIdentityTables(db *sql.DB) error {
 	return nil
 }
 
-func initAccountSecurityTables(db *sql.DB) error {
+func initAccountSecurityTables(db *sql.DB, mysql bool) error {
+	registrationText := "TEXT"
+	if mysql {
+		registrationText = "MEDIUMTEXT"
+	}
 	tables := [...]string{
 		`CREATE TABLE IF NOT EXISTS user_mfa (
 			user_id VARCHAR(36) PRIMARY KEY, secret TEXT NOT NULL, revision VARCHAR(36) NOT NULL,
@@ -82,6 +86,13 @@ func initAccountSecurityTables(db *sql.DB) error {
             security_updated_at BIGINT NOT NULL, attempts INT NOT NULL,
             created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL
         );`,
+		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS account_registrations (
+			id_hash CHAR(64) PRIMARY KEY, ip_hash CHAR(64) NOT NULL, provider_key VARCHAR(128) NOT NULL,
+			email VARCHAR(254) NOT NULL, code_hash VARCHAR(64) NOT NULL, profile_json %s NOT NULL, attempts INT NOT NULL,
+			created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL, cooldown_until BIGINT NOT NULL
+		);`, registrationText),
+		`CREATE TABLE IF NOT EXISTS registration_ips (ip_hash CHAR(64) PRIMARY KEY, used BIGINT NOT NULL,
+			period_start BIGINT NOT NULL, expires_at BIGINT NOT NULL);`,
 		`CREATE TABLE IF NOT EXISTS user_email_changes (
 			user_id VARCHAR(36) PRIMARY KEY, email VARCHAR(254) NOT NULL,
 			code_hash CHAR(64) NOT NULL, snapshot CHAR(64) NOT NULL, session_hash CHAR(64) NOT NULL,

@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "audit.action.USER_REGISTER": "Konto registriert",
     "audit.initiator": "Initiator",
     "audit.globalTitle": "Globale Protokolle",
     "audit.kind": "Typ",

@@ -45,6 +45,8 @@ description: 浏览器会话、个人资料、登录方式、恢复代码与会�
 只有管理员完成 OAuth 配置后才显示 GitHub 登录。RenoP 请求读取用户与组织，保存不可变 Provider ID 和当前
 Principal 快照，但不会持久化 OAuth Access Token。
 
+未绑定本地账号的 GitHub 身份需要完成[账号注册](../security/registration.md)并设置密码。OAuth 请求 `read:user read:org user:email`，回调必须携带发起授权时的浏览器 Cookie。
+
 ## 当前账号与公开个人资料
 
 - **当前会话**：`GET /api/auth/me`

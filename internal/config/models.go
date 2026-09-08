@@ -49,6 +49,7 @@ func (a *AuditLogConfig) setDefaults() {
 }
 
 type Config struct {
+	Registration          RegistrationConfig     `json:"registration" yaml:"registration"`
 	MFAEncryptionKey      string                 `json:"-" yaml:"mfa_encryption_key,omitempty"`
 	StoragePath           string                 `json:"storage_path" yaml:"storage_path"`
 	EnableJavadocPreview  bool                   `json:"enable_javadoc_preview" yaml:"enable_javadoc_preview"`
@@ -75,6 +76,7 @@ type Config struct {
 }
 
 func (c *Config) setDefaults() {
+	c.Registration.setDefaults()
 	if c.Mail.ManualRate.Interval.Unit == "" && c.Mail.ManualRate.Limit == 0 {
 		c.Mail = mail.DefaultConfig()
 	}
@@ -265,6 +267,7 @@ func (c *Config) DeepCopy() *Config {
 		PublicationQuota:      c.PublicationQuota.DeepCopy(),
 		Cache:                 c.Cache,
 		Mail:                  c.Mail.Clone(),
+		Registration:          c.Registration,
 		GPG:                   c.Server.GPG.DeepCopy(),
 		Proxy:                 c.Proxy.DeepCopy(),
 	}

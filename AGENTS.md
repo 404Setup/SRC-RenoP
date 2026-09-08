@@ -39,7 +39,7 @@ Service paths in this table are relative to `internal/service/`; all other paths
 | SQL, migrations, transactions, persistence caches     | `internal/database/`; dialect logic in `clickhouse*.go`                                                         |
 | Memory, Redis, Valkey cache backends                  | `internal/cache/`, `internal/core/cache.go`, `internal/database/cache.go`; configuration in `settings/cache.go` |
 | Login, sessions, Passkey, TOTP, OAuth, API tokens, profiles | `auth/`; second factors in `mfa*.go`; email verification in `email_verification.go`, `github_email.go`; GitHub login in `github_routes.go`, `github_client.go`, `github_account.go` |
-| Retirement, recovery, avatars                         | `auth/`, `internal/database/`, matching `account_retirement*`, `recovery_codes*`, `password_reset*`, `avatar*` files |
+| Registration, retirement, recovery, avatars           | `auth/`, `internal/database/`, matching `registration*`, `account_retirement*`, `recovery_codes*`, `password_reset*`, `avatar*` files; registration policy in `internal/config/registration.go` and `settings/registration.go` |
 | Cargo registry and documentation                      | `cargo/`, `cargodocs/`                                                                                          |
 | Maven domains, verification, artifacts                | `maven/`                                                                                                        |
 | Docker Registry v2, blobs, manifests, mirrors         | `docker/`                                                                                                       |
@@ -95,6 +95,9 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   encryption key before serving requests; preserve it across configuration updates.
 - **Account lifecycle:** Preserve alternate-login and atomic recovery-consumption invariants, hashed credentials,
   immediate revocation, and targeted cache invalidation. All login methods honor bans and retirement.
+  Registration is explicitly enabled; confirmation, credentials, email, provider identity, and persistent IP accounting
+  commit together. Pending provider registrations confer no account privileges. OAuth callbacks require the initiating
+  browser cookie as well as a single-use server state.
   Retirement rechecks protected roles, ownership, and pending reviews; keeps permanent tombstones, reserves email for
   14 days, retains audit activity for 30 days, and rejects stale writes or delayed audit resurrection.
 - **Teams and packages:** Preserve live T1-T4/L0-L4 permission mapping, the last owner, membership limits, and public

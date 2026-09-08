@@ -162,6 +162,17 @@ button.account-form-link {
     font-size: 0.875rem;
 }
 
+.account-check {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    line-height: 1.5;
+}
+
+.account-check input {
+    flex-shrink: 0;
+}
+
 .account-reset-fields {
     display: grid;
     gap: 1.25rem;

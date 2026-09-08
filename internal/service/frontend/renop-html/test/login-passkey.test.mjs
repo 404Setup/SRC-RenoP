@@ -25,10 +25,11 @@ test('sign-in return paths stay local and cannot reenter authentication endpoint
     for (const value of [null, '', 'https://evil.example', '//evil.example', '/\\evil.example',
         '/%2f%2fevil.example', '/%5cevil.example', '/bad%path', '/\nwrong', '/%0awrong',
         '/account/login', '/account/login/', '/ACCOUNT/LOGIN', '/account/%6cogin', '/foo/../account/login',
-        '/account/forgot-password', '/ACCOUNT/FORGOT-PASSWORD/', '/account/recovery', '/ACCOUNT/RECOVERY/', '/account/%72ecovery', '/api', '/API/auth/logout', '/api/auth/logout', '/' + 'a'.repeat(1024), '/' + '例'.repeat(500)]) {
+        '/account/forgot-password', '/ACCOUNT/FORGOT-PASSWORD/', '/account/register', '/ACCOUNT/REGISTER/', '/account/recovery', '/ACCOUNT/RECOVERY/', '/account/%72ecovery', '/api', '/API/auth/logout', '/api/auth/logout', '/' + 'a'.repeat(1024), '/' + '例'.repeat(500)]) {
         assert.equal(safeLoginReturnTo(value), '/', String(value));
     }
     assert.equal(safeLoginReturnTo('/user/alice?ignored=value#fragment'), '/user/alice');
+    assert.equal(accountPageFromPath('/account/register/'), 'registration');
     assert.equal(isLoginPath('/account/login/'), true);
     assert.equal(isLoginPath('/account/login/extra'), false);
     assert.equal(accountPageFromPath('/ACCOUNT/RECOVERY/'), 'recovery');

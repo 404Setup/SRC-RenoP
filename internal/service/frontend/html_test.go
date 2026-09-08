@@ -1177,6 +1177,23 @@ func TestRoutedPagesServeSPAIndex(t *testing.T) {
 			t.Fatalf("mail enabled=%v: forgot-password status=%d, want=%d", enabled, response.StatusCode, expected)
 		}
 	}
+	for _, enabled := range []bool{false, true, false} {
+		cfg := config.DefaultConfig()
+		cfg.Registration.Enabled = enabled
+		state.Inner.Config.Store(cfg)
+		response, err := app.Test(httptest.NewRequest(http.MethodGet, "/account/register", nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+		response.Body.Close()
+		expected := http.StatusNotFound
+		if enabled {
+			expected = http.StatusOK
+		}
+		if response.StatusCode != expected {
+			t.Fatalf("registration enabled=%v: register status=%d, want=%d", enabled, response.StatusCode, expected)
+		}
+	}
 	for _, path := range []string{
 		"/account/login", "/account/login?return_to=%2Faccount%2Freviews", "/account/recovery",
 		"/user/alice", "/user/alice/edit", "/user/alice/maven", "/user/alice/cargo", "/user/alice/docker", "/user/alice/npm",

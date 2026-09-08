@@ -70,18 +70,25 @@ func (db *DB) GetGitHubIdentityByProviderID(githubUserID int64) (*core.GitHubIde
 // StoreGitHubIdentity links an identity and atomically replaces its authorized principal snapshot.
 func (db *DB) StoreGitHubIdentity(userID string, githubUserID int64, githubLogin string,
 	principals []core.GitHubPrincipal, authorizedAt int64) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin GitHub identity update: %w", err)
+	}
+	defer tx.Rollback()
+	if err := storeGitHubIdentityTx(tx, userID, githubUserID, githubLogin, principals, authorizedAt); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func storeGitHubIdentityTx(tx *Tx, userID string, githubUserID int64, githubLogin string,
+	principals []core.GitHubPrincipal, authorizedAt int64) error {
 	userID = SanitizeInputString(strings.TrimSpace(userID), 36)
 	githubLogin = strings.ToLower(SanitizeInputString(strings.TrimSpace(githubLogin), 39))
 	if userID == "" || githubUserID <= 0 || githubLogin == "" || authorizedAt <= 0 ||
 		len(principals) == 0 || len(principals) > maxGitHubPrincipals {
 		return errors.New("GitHub identity payload is invalid")
 	}
-
-	tx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("begin GitHub identity update: %w", err)
-	}
-	defer tx.Rollback()
 
 	var profileExists int
 	if err := tx.QueryRow(`SELECT 1 FROM user_profiles WHERE user_id = ?`, userID).Scan(&profileExists); err != nil {
@@ -95,7 +102,7 @@ func (db *DB) StoreGitHubIdentity(userID string, githubUserID int64, githubLogin
 	if err := lockAccountLoginMethodsTx(tx, userID); err != nil {
 		return err
 	}
-	err = tx.QueryRow(`SELECT user_id FROM github_identities WHERE github_user_id = ?`, githubUserID).Scan(&linkedUserID)
+	err := tx.QueryRow(`SELECT user_id FROM github_identities WHERE github_user_id = ?`, githubUserID).Scan(&linkedUserID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("inspect GitHub provider identity: %w", err)
 	}
@@ -145,9 +152,6 @@ func (db *DB) StoreGitHubIdentity(userID string, githubUserID int64, githubLogin
 			principal.Login, authorizedAt); err != nil {
 			return fmt.Errorf("store GitHub principal: %w", err)
 		}
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit GitHub identity update: %w", err)
 	}
 	return nil
 }

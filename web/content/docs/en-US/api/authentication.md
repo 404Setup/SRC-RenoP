@@ -46,6 +46,8 @@ Success sets `renop_session` with `HttpOnly`, `SameSite=Lax`, and `Secure` when 
 GitHub login appears only after an administrator configures OAuth. RenoP requests user and organization read access,
 stores immutable provider IDs and current principal snapshots, and never persists the OAuth access token.
 
+Unlinked GitHub identities now require [account registration](../security/registration.md) and a password. OAuth requests `read:user read:org user:email`; callbacks require the browser cookie that started authorization.
+
 ## Current account and public profiles
 
 - **Current session**: `GET /api/auth/me`

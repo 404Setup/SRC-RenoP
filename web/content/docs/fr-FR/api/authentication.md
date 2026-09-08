@@ -47,6 +47,8 @@ contient les droits et routes du compte, mais laisse `session_token` vide.
 GitHub n’apparaît qu’après configuration OAuth. RenoP demande la lecture du compte et des organisations, conserve les
 identifiants immuables et l’instantané des principals, mais jamais le jeton d’accès OAuth.
 
+Les identités GitHub non associées doivent terminer l'[inscription](../security/registration.md) et définir un mot de passe. OAuth demande `read:user read:org user:email` ; le rappel exige le cookie du navigateur ayant lancé l'autorisation.
+
 ## Compte courant et profils publics
 
 - **Session courante** : `GET /api/auth/me`

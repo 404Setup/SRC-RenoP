@@ -202,6 +202,7 @@
                            href="/account/forgot-password">Forgot password?</a>
                         <a class="account-form-link" data-i18n="login.recoveryTitle" href="/account/recovery"
                            id="btn-recover-account">Recover account</a>
+                        <a class="account-form-link" data-i18n="registration.title" data-registration-link hidden href="/account/register">Create account</a>
                     </div>
                     <button class="account-submit" data-i18n="login.submitBtn" type="submit">
                         Login
@@ -341,6 +342,58 @@
                         <a class="account-form-link" data-i18n="login.recoveryTitle" href="/account/recovery"
                            id="password-reset-recover-account">Recover account</a>
                     </div>
+                </form>
+            </div>
+        </section>
+        <section aria-labelledby="registration-title" class="tab-content" id="tab-content-registration" style="display: none;">
+            <div class="account-page">
+                <header class="account-page-heading">
+                    <renop-icon aria-hidden="true" class="account-page-symbol" name="user"></renop-icon>
+                    <h1 data-i18n="registration.title" id="registration-title">Create account</h1>
+                    <p data-i18n="registration.description">Choose your account details and password. Verify your email when required.</p>
+                    <a class="account-page-back" href="/account/login" id="registration-back-login">
+                        <renop-icon aria-hidden="true" name="chevronLeft"></renop-icon>
+                        <span data-i18n="nav.signIn">Sign in</span>
+                    </a>
+                </header>
+                <form class="account-page-form" id="registration-form">
+                    <p class="account-form-error" id="registration-availability" role="status"></p>
+                    <fieldset class="account-reset-fields" disabled id="registration-fields">
+                        <button class="account-provider" data-i18n="login.githubLogin" hidden id="registration-github" type="button">Continue with GitHub</button>
+                        <div id="registration-provider-info" hidden>
+                            <p id="registration-provider-hint" role="status"></p>
+                            <label class="account-check"><input id="registration-import" type="checkbox"><span data-i18n="registration.importProfile">Use GitHub username, nickname, and avatar</span></label>
+                        </div>
+                        <div class="account-field">
+                            <label data-i18n="profile.usernameLabel" for="registration-username">Username</label>
+                            <input autocomplete="username" id="registration-username" minlength="4" maxlength="18" pattern="[A-Za-z0-9_]{4,18}" required type="text" aria-describedby="registration-username-hint">
+                            <p id="registration-username-hint" data-i18n="registration.usernameHint">4–18 letters, numbers, or underscores.</p>
+                        </div>
+                        <div class="account-field">
+                            <label data-i18n="registration.nickname" for="registration-nickname">Nickname (optional)</label>
+                            <input autocomplete="nickname" id="registration-nickname" maxlength="72" type="text">
+                        </div>
+                        <div class="account-field">
+                            <label data-i18n="profile.privateEmailLabel" for="registration-email">Private email</label>
+                            <input autocomplete="email" id="registration-email" maxlength="254" type="email">
+                        </div>
+                        <button class="account-provider" data-i18n="login.sendEmailCode" id="registration-send" type="button" hidden>Send verification code</button>
+                        <div aria-live="polite" class="account-mail-status" id="registration-delivery" role="status"></div>
+                        <div class="account-field" hidden>
+                            <label data-i18n="login.emailCode" for="registration-code">Verification code</label>
+                            <input autocomplete="one-time-code" id="registration-code" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" type="text">
+                        </div>
+                        <div class="account-field">
+                            <label data-i18n="profile.newPasswordLabel" for="registration-password">New password</label>
+                            <input autocomplete="new-password" id="registration-password" maxlength="72" required type="password">
+                        </div>
+                        <div class="account-field">
+                            <label data-i18n="login.confirmNewPassword" for="registration-confirmation">Confirm new password</label>
+                            <input autocomplete="new-password" id="registration-confirmation" maxlength="72" required type="password">
+                        </div>
+                        <p class="account-form-error" id="registration-error" role="alert"></p>
+                        <button class="account-submit" data-i18n="registration.title" type="submit">Create account</button>
+                    </fieldset>
                 </form>
             </div>
         </section>

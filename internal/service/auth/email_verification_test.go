@@ -144,17 +144,23 @@ func TestGitHubEmailVerificationBindsSessionAndUsesVerifiedContact(t *testing.T)
 	state.Inner.Config.Store(cfg)
 	provider := githubOAuthProvider{AuthorizeURL: providerServer.URL + "/authorize", TokenURL: providerServer.URL + "/token", APIURL: providerServer.URL}
 	setupGitHubRoutesWithProvider(app.Group("/api/auth"), state, nil, provider)
+	var oauthCookie *http.Cookie
 	start := func() string {
 		response := accountSecurityRequest(t, app, "GET", "/api/auth/github/start?intent=email&return_to=%2Fuser%2Falice%2Fedit", nil, "original-session")
 		require.Equal(t, 303, response.StatusCode)
 		location, err := url.Parse(response.Header.Get("Location"))
 		require.NoError(t, err)
 		require.Equal(t, "user:email", location.Query().Get("scope"))
+		oauthCookie = response.Cookies()[0]
 		require.NoError(t, response.Body.Close())
 		return "/api/auth/github/callback?code=code&state=" + url.QueryEscape(location.Query().Get("state"))
 	}
 	callback := func(path, session, result string) {
-		response := accountSecurityRequest(t, app, "GET", path, nil, session)
+		request := httptest.NewRequest(http.MethodGet, path, nil)
+		request.AddCookie(&http.Cookie{Name: sessionCookieName, Value: session})
+		request.AddCookie(oauthCookie)
+		response, err := app.Test(request)
+		require.NoError(t, err)
 		require.Equal(t, 303, response.StatusCode)
 		require.Contains(t, response.Header.Get("Location"), "github_oauth="+result)
 		require.Empty(t, response.Cookies())

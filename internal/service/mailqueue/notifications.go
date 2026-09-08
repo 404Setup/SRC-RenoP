@@ -33,6 +33,8 @@ func (w *worker) notifications(control mail.Control, now time.Time) error {
 	for _, entry := range entries {
 		scene := ""
 		switch entry.Action {
+		case audit.ActionUserRegister:
+			scene = "registration_success"
 		case audit.ActionProfileUpdate:
 			if entry.Details == "Updated private login email" {
 				scene = "email_changed"

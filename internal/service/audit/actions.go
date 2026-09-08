@@ -29,6 +29,7 @@ const (
 	ActionTokenDisable           = "TOKEN_DISABLE"
 	ActionTokenEnable            = "TOKEN_ENABLE"
 	ActionUserPermissionUpdate   = "USER_PERMISSION_UPDATE"
+	ActionUserRegister           = "USER_REGISTER"
 	ActionUserBan                = "USER_BAN"
 	ActionUserUnban              = "USER_UNBAN"
 	ActionAccountRetire          = "ACCOUNT_RETIRE"
@@ -135,6 +136,7 @@ func KnownActions() []string {
 		ActionTokenDisable,
 		ActionTokenEnable,
 		ActionUserPermissionUpdate,
+		ActionUserRegister,
 		ActionUserBan,
 		ActionUserUnban,
 		ActionAccountRetire,

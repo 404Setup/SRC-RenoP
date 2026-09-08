@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 
 	"renop/internal/config"
 	"renop/internal/core"
@@ -41,7 +42,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	suffix := uuid.NewString()[:8]
 	username := "dbcheck-" + suffix
 	now := time.Now().UnixMilli()
-	results := make([]DriverCheckResult, 0, 15)
+	results := make([]DriverCheckResult, 0, 16)
 	run := func(name string, check func() error) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -1067,6 +1068,96 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		}
 		if _, err = db.UpdateAccountEmailFromSession(username, sessionID, newEmail, account.Snapshot, now+4); !errors.Is(err, core.ErrEmailCodeInvalid) {
 			return errorsOrMissing(err, "stale external email proof denial")
+		}
+		return nil
+	}); err != nil {
+		return results, err
+	}
+	if err := run("account registration", func() error {
+		cfg := config.DefaultRegistrationConfig()
+		cfg.Enabled = true
+		mailCfg := mail.DefaultConfig()
+		if err := mailCfg.EnsureKey(); err != nil {
+			return err
+		}
+		password, err := bcrypt.GenerateFromPassword([]byte("DriverCheckPassword!"), bcrypt.MinCost)
+		if err != nil {
+			return err
+		}
+		hash := func(value string) string { return fmt.Sprintf("%x", sha256.Sum256([]byte(value+suffix))) }
+		request := core.AccountRegistration{Username: "reg_" + suffix, Email: "reg_" + suffix + "@example.com", PasswordHash: string(password),
+			IDHash: hash("registration"), CodeHash: hash("registration-code"), IPHash: hash("registration-ip"), RequireEmail: true}
+		pending := &core.PendingRegistration{IDHash: request.IDHash, IPHash: request.IPHash, Email: request.Email, CodeHash: request.CodeHash,
+			CreatedAt: now, ExpiresAt: now + 600000, CooldownUntil: now + 600000}
+		job := &mail.Job{ID: "registration-" + suffix, AccountID: "driver-account", Scene: "registration_verify", CreatedAt: now,
+			ExpiresAt: pending.ExpiresAt, TicketHash: hash("ticket"), Message: mail.Message{ID: "registration-" + suffix, To: request.Email, Subject: "Verify", Text: "Code", CreatedAt: now}}
+		if err := db.BeginRegistration(pending, job, mailCfg.EncryptionKey, "192.0.2.254", mailCfg.ManualRate, cfg); err != nil {
+			return err
+		}
+		wrong := request
+		wrong.CodeHash = hash("wrong")
+		if _, err := db.RegisterAccount(wrong, cfg, now+1); !errors.Is(err, core.ErrRegistrationInvalid) {
+			return errorsOrMissing(err, "registration code denial")
+		}
+		if _, err := db.RegisterAccount(request, cfg, now+2); err != nil {
+			return err
+		}
+		account, err := db.GetTokenByEmail(request.Email)
+		if err != nil || account == nil || account.Name != request.Username {
+			return errorsOrMissing(err, "registered email and account")
+		}
+		if _, err := db.GetPendingRegistration(request.IDHash, now+3); !errors.Is(err, core.ErrRegistrationInvalid) {
+			return errorsOrMissing(err, "registration challenge consumption")
+		}
+		if _, err := db.RegisterAccount(request, cfg, now+3); !errors.Is(err, core.ErrRegistrationRateLimited) {
+			return errorsOrMissing(err, "registration IP limit")
+		}
+		if err := db.RetireAccount(request.Username, now+3); err != nil {
+			return err
+		}
+		if err := db.CheckRegistrationIP(request.IPHash, cfg, now+4); !errors.Is(err, core.ErrRegistrationRateLimited) {
+			return errorsOrMissing(err, "retirement retains registration allowance")
+		}
+		pending.IDHash, pending.IPHash, pending.CodeHash = hash("provider"), hash("provider-ip"), ""
+		pending.ProviderKey = "github:42000001"
+		pending.ProfileJSON = `{"github_id":42000001,"github_login":"external","principals":[{"type":"user","github_id":42000001,"login":"external"}]}`
+		pending.CooldownUntil = pending.ExpiresAt + cfg.ProviderCooldown.Duration().Milliseconds()
+		if err := db.BeginRegistration(pending, nil, "", "", mailCfg.ManualRate, cfg); err != nil {
+			return err
+		}
+		if err := db.CleanRegistrations(pending.ExpiresAt); err != nil {
+			return err
+		}
+		var email, profile string
+		if err := db.QueryRow(`SELECT email, profile_json FROM account_registrations WHERE id_hash = ?`, pending.IDHash).Scan(&email, &profile); err != nil {
+			return err
+		}
+		if email != "" || profile != "" {
+			return errorsOrMissing(nil, "expired provider profile cleanup")
+		}
+		next := *pending
+		next.IDHash = hash("provider-retry")
+		next.CreatedAt = pending.ExpiresAt
+		next.ExpiresAt = next.CreatedAt + 600000
+		next.CooldownUntil = next.ExpiresAt + cfg.ProviderCooldown.Duration().Milliseconds()
+		if err := db.BeginRegistration(&next, nil, "", "", mailCfg.ManualRate, cfg); !errors.Is(err, core.ErrRegistrationCooldown) {
+			return errorsOrMissing(err, "provider cooldown")
+		}
+		next.CreatedAt = pending.CooldownUntil
+		next.ExpiresAt = next.CreatedAt + 600000
+		next.CooldownUntil = next.ExpiresAt + cfg.ProviderCooldown.Duration().Milliseconds()
+		next.Email = "provider_" + suffix + "@example.com"
+		if err := db.BeginRegistration(&next, nil, "", "", mailCfg.ManualRate, cfg); err != nil {
+			return err
+		}
+		request.Provider, request.Username, request.Email = "github", "ext_"+suffix, next.Email
+		request.IDHash, request.IPHash, request.CodeHash = next.IDHash, next.IPHash, ""
+		if _, err := db.RegisterAccount(request, cfg, next.CreatedAt+1); err != nil {
+			return err
+		}
+		identity, err := db.GetGitHubIdentityByProviderID(42000001)
+		if err != nil || identity == nil || identity.Username != request.Username {
+			return errorsOrMissing(err, "registered provider identity")
 		}
 		return nil
 	}); err != nil {

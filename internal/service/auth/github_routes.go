@@ -14,6 +14,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"errors"
 	"fmt"
 	"log"
@@ -32,6 +33,7 @@ import (
 )
 
 const githubOAuthStateTTL = 10 * time.Minute
+const githubOAuthCookie = "renop_oauth_github"
 
 type githubProfileStatus struct {
 	GitHubLogin    string `json:"github_login,omitempty"`
@@ -100,6 +102,7 @@ func currentSessionProfile(c fiber.Ctx, state *core.AppState) (*core.UserProfile
 }
 
 func startGitHubOAuth(c fiber.Ctx, state *core.AppState, provider githubOAuthProvider) error {
+	setPrivateResponseHeaders(c)
 	cfg := state.Inner.Config.Load()
 	if cfg == nil || !cfg.Server.GitHubOAuth.Configured() {
 		return c.SendStatus(fiber.StatusNotFound)
@@ -113,7 +116,10 @@ func startGitHubOAuth(c fiber.Ctx, state *core.AppState, provider githubOAuthPro
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("GitHub login is unavailable")
 	}
-	if c.Query("intent") == "login" {
+	if c.Query("intent") == "register" && !cfg.Registration.Enabled {
+		return registrationError(c, core.ErrRegistrationDisabled)
+	}
+	if c.Query("intent") == "login" || c.Query("intent") == "register" {
 		profile = nil
 	}
 	if profile != nil && returnTo == "/" {
@@ -150,12 +156,15 @@ func startGitHubOAuth(c fiber.Ctx, state *core.AppState, provider githubOAuthPro
 	query := url.Values{
 		"client_id":    {cfg.Server.GitHubOAuth.ClientID},
 		"redirect_uri": {cfg.Server.GitHubOAuth.CallbackURL},
-		"scope":        {"read:user read:org"},
+		"scope":        {"read:user read:org user:email"},
 		"state":        {rawState},
 	}
 	if record.Intent == "email" {
 		query.Set("scope", "user:email")
 	}
+	c.Cookie(&fiber.Cookie{Name: githubOAuthCookie, Value: rawState, Path: "/api/auth/github",
+		MaxAge: int(githubOAuthStateTTL.Seconds()), Expires: time.Now().Add(githubOAuthStateTTL),
+		Secure: isSecure(c), HTTPOnly: true, SameSite: "Lax"})
 	return c.Redirect().To(provider.AuthorizeURL + "?" + query.Encode())
 }
 
@@ -167,10 +176,14 @@ func oauthResultRedirect(c fiber.Ctx, returnTo, result string) error {
 
 func finishGitHubOAuth(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenOp,
 	provider githubOAuthProvider) error {
+	setPrivateResponseHeaders(c)
 	if state.Inner.ExternalAuthStates == nil {
 		return oauthResultRedirect(c, "/", "state_invalid")
 	}
 	rawState := c.Query("state")
+	if len(rawState) != 43 || subtle.ConstantTimeCompare([]byte(rawState), []byte(c.Cookies(githubOAuthCookie))) != 1 {
+		return oauthResultRedirect(c, "/", "state_invalid")
+	}
 	record, ok := state.Inner.ExternalAuthStates.Consume(rawState, "github", time.Now().UnixMilli())
 	if !ok {
 		return oauthResultRedirect(c, "/", "state_invalid")
@@ -237,7 +250,10 @@ func finishGitHubOAuth(c fiber.Ctx, state *core.AppState, opChan chan<- token.To
 		})
 		return oauthResultRedirect(c, record.ReturnTo, "linked")
 	}
-	user, err := resolveGitHubLogin(state, opChan, identity, principals, authorizedAt)
+	user, err := resolveGitHubLogin(state, identity, principals, authorizedAt)
+	if errors.Is(err, core.ErrGitHubIdentityNotFound) {
+		return beginGitHubRegistration(c, state, record, ctx, client, provider, tokenResponse.AccessToken, identity, principals)
+	}
 	if errors.Is(err, core.ErrGitHubIdentityLinked) {
 		return oauthResultRedirect(c, record.ReturnTo, "identity_linked")
 	}

@@ -218,6 +218,13 @@ func clickHouseSchemas() []clickHouseTableSchema {
 			"`email` String", "`user_id` String", "`code_hash` String", "`credential_hash` String",
 			"`security_updated_at` Int64", "`attempts` Int32", "`created_at` Int64", "`expires_at` Int64",
 		}},
+		{name: "account_registrations", keyColumns: []string{"id_hash"}, columns: []string{
+			"`id_hash` String", "`ip_hash` String", "`provider_key` String", "`email` String", "`code_hash` String",
+			"`profile_json` String", "`attempts` Int32", "`created_at` Int64", "`expires_at` Int64", "`cooldown_until` Int64",
+		}},
+		{name: "registration_ips", keyColumns: []string{"ip_hash"}, columns: []string{
+			"`ip_hash` String", "`used` Int64", "`period_start` Int64", "`expires_at` Int64",
+		}},
 		{name: "user_email_changes", keyColumns: []string{"user_id"}, columns: []string{
 			"`user_id` String", "`email` String", "`code_hash` String", "`snapshot` String", "`session_hash` String",
 			"`attempts` Int32", "`created_at` Int64", "`expires_at` Int64",

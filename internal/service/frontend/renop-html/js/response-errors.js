@@ -14,6 +14,16 @@ export const RESPONSE_ERROR_CODE_HEADER = 'X-Renop-Error-Code';
 
 const MAX_ERROR_BODY_BYTES = 2048;
 const commonErrorCodeKeys = Object.freeze({
+    registration_disabled: 'registration.disabled',
+    registration_ip_limited: 'registration.ipLimited',
+    registration_cooldown: 'registration.cooldown',
+    registration_pending: 'registration.pending',
+    registration_invalid: 'registration.invalid',
+    registration_unavailable: 'registration.unavailable',
+    registration_username_conflict: 'registration.usernameConflict',
+    registration_identity_linked: 'registration.identityLinked',
+    registration_settings_invalid: 'registration.settingsInvalid',
+    registration_settings_save_failed: 'registration.unavailable',
     MFA_REQUIRED: 'mfa.loginHint',
     MFA_PRIMARY_REQUIRED: 'mfa.primaryRequired',
     MFA_INVALID: 'mfa.invalid',

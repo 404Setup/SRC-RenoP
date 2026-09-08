@@ -20,6 +20,8 @@ import (
 )
 
 func SetupSettingsRoutes(router fiber.Router, state *core.AppState) {
+	router.Get("/registration", func(c fiber.Ctx) error { return getRegistrationSettings(c, state) })
+	router.Put("/registration", func(c fiber.Ctx) error { return putRegistrationSettings(c, state) })
 	router.Get("/mail", func(c fiber.Ctx) error { return getMailSettings(c, state) })
 	router.Put("/mail", func(c fiber.Ctx) error { return putMailSettings(c, state) })
 	router.Get("/mail/presets", getMailPresets)

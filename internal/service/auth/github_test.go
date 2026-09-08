@@ -15,7 +15,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -30,7 +29,7 @@ import (
 	"renop/internal/testutil"
 )
 
-func TestGitHubOAuthCreatesAccountAndSingleUseSession(t *testing.T) {
+func TestGitHubOAuthExistingAccountAndSingleUseSession(t *testing.T) {
 	providerServer := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Set("Content-Type", "application/json")
 		switch request.URL.Path {
@@ -70,6 +69,10 @@ func TestGitHubOAuthCreatesAccountAndSingleUseSession(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
 	state.Inner.DB = db
+	require.NoError(t, db.CreateToken(&core.AccessToken{Name: "octo_cat", Permissions: []string{"base"}}, "Octo Cat", 1))
+	seedProfile, err := db.GetUserProfile("octo_cat")
+	require.NoError(t, err)
+	require.NoError(t, db.StoreGitHubIdentity(seedProfile.UserID, 42, "Octo-Cat", []core.GitHubPrincipal{{Type: core.GitHubPrincipalUser, GitHubID: 42, Login: "Octo-Cat"}}, 1))
 	operations := make(chan token.TokenOp, 8)
 	go token.StartTokenConsumer(state, operations)
 	t.Cleanup(func() { close(operations) })
@@ -89,11 +92,19 @@ func TestGitHubOAuthCreatesAccountAndSingleUseSession(t *testing.T) {
 	require.NoError(t, err)
 	stateValue := location.Query().Get("state")
 	require.NotEmpty(t, stateValue)
-	assert.Equal(t, "read:user read:org", location.Query().Get("scope"))
+	assert.Equal(t, "read:user read:org user:email", location.Query().Get("scope"))
 	require.NoError(t, startResponse.Body.Close())
 
-	callbackResponse, err := app.Test(httptest.NewRequest(http.MethodGet,
-		"/auth/github/callback?state="+url.QueryEscape(stateValue)+"&code=test-code", nil))
+	callbackURL := "/auth/github/callback?state=" + url.QueryEscape(stateValue) + "&code=test-code"
+	foreignCallback, err := app.Test(httptest.NewRequest(http.MethodGet, callbackURL, nil))
+	require.NoError(t, err)
+	require.Equal(t, "/?github_oauth=state_invalid", foreignCallback.Header.Get("Location"), "a callback from another browser must not sign in")
+	require.NoError(t, foreignCallback.Body.Close())
+	callbackRequest := httptest.NewRequest(http.MethodGet, callbackURL, nil)
+	for _, cookie := range startResponse.Cookies() {
+		callbackRequest.AddCookie(cookie)
+	}
+	callbackResponse, err := app.Test(callbackRequest)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusSeeOther, callbackResponse.StatusCode)
 	assert.Equal(t, "/packages?github_oauth=success", callbackResponse.Header.Get("Location"))
@@ -138,6 +149,9 @@ func TestGitHubOAuthCreatesAccountAndSingleUseSession(t *testing.T) {
 	require.NoError(t, reauthStart.Body.Close())
 	reauthCallback := httptest.NewRequest(http.MethodGet, "/auth/github/callback?state="+url.QueryEscape(reauthURL.Query().Get("state"))+"&code=test-code", nil)
 	reauthCallback.AddCookie(sessionCookie)
+	for _, cookie := range reauthStart.Cookies() {
+		reauthCallback.AddCookie(cookie)
+	}
 	secondFactor, err := app.Test(reauthCallback)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusSeeOther, secondFactor.StatusCode)
@@ -180,5 +194,4 @@ func TestGitHubOAuthScopeAndReturnPathValidation(t *testing.T) {
 	assert.Equal(t, "/", safeOAuthReturnTo("//evil.example/"))
 	assert.Equal(t, "/", safeOAuthReturnTo("/api/auth/github/callback"))
 	assert.Equal(t, "/user/alice/edit", safeOAuthReturnTo("/user/alice/edit?ignored=yes"))
-	assert.Equal(t, "github_user", githubUsernameBase(strings.Repeat("-", 50)))
 }
