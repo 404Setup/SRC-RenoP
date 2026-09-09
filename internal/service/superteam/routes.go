@@ -79,6 +79,8 @@ func SetupRoutes(router fiber.Router, state *core.AppState) {
 	base.Post("", func(c fiber.Ctx) error { return createTeam(c, state) })
 	base.Get("/:prefix/resources", func(c fiber.Ctx) error { return listTeamResources(c, state) })
 	base.Get("/:prefix/users/search", func(c fiber.Ctx) error { return searchUsers(c, state) })
+	base.Put("/:prefix/locks", func(c fiber.Ctx) error { return setResourceLock(c, state) })
+	base.Delete("/:prefix/locks", func(c fiber.Ctx) error { return setResourceLock(c, state) })
 	base.Get("/:prefix", func(c fiber.Ctx) error { return getTeam(c, state) })
 	base.Put("/:prefix", func(c fiber.Ctx) error { return updateTeam(c, state) })
 	base.Delete("/:prefix", func(c fiber.Ctx) error { return deleteTeam(c, state) })
@@ -115,6 +117,12 @@ func apiError(c fiber.Ctx, err error) error {
 		status, code = fiber.StatusNotFound, "team_not_found"
 	case errors.Is(err, core.ErrSuperTeamPermissionDenied):
 		status, code = fiber.StatusForbidden, "permission_denied"
+	case errors.Is(err, core.ErrResourceLockPermission):
+		status, code = fiber.StatusForbidden, "permission_denied"
+	case errors.Is(err, core.ErrResourceLockInvalid):
+		status, code = fiber.StatusBadRequest, "invalid_request"
+	case errors.Is(err, core.ErrResourceLocked):
+		status, code = fiber.StatusLocked, "resource_locked"
 	case errors.Is(err, core.ErrSuperTeamExists):
 		status, code = fiber.StatusConflict, "team_exists"
 	case errors.Is(err, core.ErrSuperTeamMemberExists):
@@ -243,7 +251,7 @@ func listTeamResources(c fiber.Ctx, state *core.AppState) error {
 		viewerName = ""
 	}
 	resources, total, err := state.GetDB().ListSuperTeamResources(core.SuperTeamResourceListOptions{
-		Prefix: c.Params("prefix"), Format: format, Viewer: viewerName,
+		Prefix: c.Params("prefix"), Format: format, Viewer: viewerName, Moderator: viewer.CheckModeratePermission(""),
 		VisibleRepositories: visibleRepositories, PrivateRepositories: privateRepositories,
 		ModeratedRepositories: moderatedRepositories,
 		Limit:                 limit, Offset: offset,
@@ -297,7 +305,7 @@ func getTeam(c fiber.Ctx, state *core.AppState) error {
 		if err != nil {
 			return apiError(c, err)
 		}
-		details, err := state.GetDB().GetSuperTeamDetails(c.Params("prefix"), user.Username, user.IsManager())
+		details, err := state.GetDB().GetSuperTeamDetails(c.Params("prefix"), user.Username, user.IsManager(), user.CheckModeratePermission(""))
 		if err != nil {
 			return apiError(c, err)
 		}
@@ -311,7 +319,7 @@ func getTeam(c fiber.Ctx, state *core.AppState) error {
 		username = user.Username
 		administrator = user.IsManager()
 	}
-	details, err := state.GetDB().GetPublicSuperTeamDetails(c.Params("prefix"), username, administrator)
+	details, err := state.GetDB().GetPublicSuperTeamDetails(c.Params("prefix"), username, administrator, user != nil && user.CheckModeratePermission(""))
 	if err != nil {
 		return apiError(c, err)
 	}
@@ -389,7 +397,7 @@ func addMembers(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusCreated).JSON(fiber.Map{"added": len(request.Users)})
 	}
 
-	details, err := state.GetDB().GetSuperTeamDetails(prefix, user.Username, false)
+	details, err := state.GetDB().GetSuperTeamDetails(prefix, user.Username, false, false)
 	if err != nil || details.Team.RoleLevel < core.SuperTeamRoleManage ||
 		request.Level >= core.SuperTeamRoleManage && details.Team.RoleLevel < core.SuperTeamRoleOwner {
 		return apiError(c, core.ErrSuperTeamPermissionDenied)
@@ -603,7 +611,7 @@ func searchUsers(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return apiError(c, err)
 	}
-	details, err := state.GetDB().GetSuperTeamDetails(c.Params("prefix"), user.Username, user.IsManager())
+	details, err := state.GetDB().GetSuperTeamDetails(c.Params("prefix"), user.Username, user.IsManager(), user.CheckModeratePermission(""))
 	if err != nil || !user.IsManager() && details.Team.RoleLevel < core.SuperTeamRoleManage {
 		return apiError(c, core.ErrSuperTeamPermissionDenied)
 	}

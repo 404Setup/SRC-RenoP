@@ -77,6 +77,16 @@ func (db *DB) ListSuperTeamResources(options core.SuperTeamResourceListOptions) 
 		}
 	}
 
+	if !options.Moderator {
+		var visible int
+		if err := db.QueryRow(`SELECT 1 FROM super_teams t WHERE t.prefix = ? AND (`+
+			superTeamReadCondition("t.prefix")+` OR EXISTS (SELECT 1 FROM super_team_members m
+			WHERE m.team_prefix = t.prefix AND m.user_id = ?))`, prefix, viewerID).Scan(&visible); errors.Is(err, sql.ErrNoRows) {
+			return nil, 0, core.ErrSuperTeamNotFound
+		} else if err != nil {
+			return nil, 0, err
+		}
+	}
 	selectColumns := ""
 	fromClause := ""
 	whereClause := ""
@@ -103,7 +113,7 @@ func (db *DB) ListSuperTeamResources(options core.SuperTeamResourceListOptions) 
 			` OR explicit_member.user_id IS NOT NULL OR team_member.user_id IS NOT NULL)`
 		whereClause += ` AND (explicit_member.user_id IS NOT NULL OR team_member.user_id IS NOT NULL OR ` +
 			resourceRepositoryCondition("resource.repository", normalizeResourceRepositories(options.ModeratedRepositories), &args) +
-			` OR NOT EXISTS (SELECT 1 FROM resource_locks l WHERE l.format = 'cargo' AND l.mode = 'read'
+			` OR NOT EXISTS (SELECT 1 FROM ` + resourceLocksQuery(format) + ` l WHERE l.format = 'cargo' AND l.mode = 'read'
 			AND l.version = '' AND l.repository = resource.repository AND l.resource_name = resource.normalized_name))`
 		orderClause = ` ORDER BY resource.repository, resource.normalized_name`
 	case config.RepositoryFormatDocker, config.RepositoryFormatNPM:
@@ -134,7 +144,7 @@ func (db *DB) ListSuperTeamResources(options core.SuperTeamResourceListOptions) 
 			`) OR (resource.private = 1 AND (` + strings.Join(privateConditions, " OR ") + `)))`
 		whereClause += ` AND (explicit_member.user_id IS NOT NULL OR team_member.user_id IS NOT NULL OR ` +
 			resourceRepositoryCondition("resource.repository", normalizeResourceRepositories(options.ModeratedRepositories), &args) +
-			` OR NOT EXISTS (SELECT 1 FROM resource_locks l WHERE l.format = '` + format + `' AND l.mode = 'read'
+			` OR NOT EXISTS (SELECT 1 FROM ` + resourceLocksQuery(format) + ` l WHERE l.format = '` + format + `' AND l.mode = 'read'
 				AND l.version = '' AND l.repository = resource.repository AND l.resource_name = resource.` + nameColumn + `))`
 		orderClause = ` ORDER BY resource.repository, resource.` + nameColumn
 	default:

@@ -74,34 +74,69 @@ func MetadataPathFilter(state *core.AppState, user *config.User, repository stri
 	if err != nil {
 		return nil, err
 	}
-	targets := make([]core.ResourceLockTarget, 0, len(locks))
+	byFormat := make(map[string][]core.ResourceLockTarget)
 	for _, lock := range locks {
 		if lock.Mode == core.ResourceLockRead {
-			targets = append(targets, lock.ResourceLockTarget)
+			byFormat[lock.Format] = append(byFormat[lock.Format], lock.ResourceLockTarget)
 		}
 	}
 	hidden := make(map[core.ResourceLockTarget]bool)
+	allowedArtifacts := make(map[string]bool)
+	knownDomains := make(map[string]bool)
 	username, moderator := "", false
 	if user != nil {
 		username, moderator = user.Username, user.CheckModeratePermission(repository)
 	}
-	for start := 0; start < len(targets); start += 128 {
-		batch := targets[start:min(start+128, len(targets))]
-		visible, err := state.GetDB().ResourceMetadataVisibility("maven", repository, username, moderator, batch)
+	if len(byFormat["maven-domain"]) > 0 {
+		domains, err := state.GetDB().ListMavenDomains(username, false)
 		if err != nil {
 			return nil, err
 		}
-		for i, allowed := range visible {
-			if !allowed {
-				target := batch[i]
-				target.Version = core.ResourceLockVersionKey("maven", target.Version)
-				hidden[target] = true
+		for _, domain := range domains {
+			if domain.Verified {
+				knownDomains[strings.ReplaceAll(domain.Domain, ".", "/")] = true
+			}
+		}
+		for _, target := range byFormat["maven-domain"] {
+			knownDomains[strings.ReplaceAll(target.Name, ".", "/")] = true
+		}
+	}
+	for format, targets := range byFormat {
+		for start := 0; start < len(targets); start += 128 {
+			batch := targets[start:min(start+128, len(targets))]
+			visible, err := state.GetDB().ResourceMetadataVisibility(format, repository, username, moderator, batch)
+			if err != nil {
+				return nil, err
+			}
+			for i, allowed := range visible {
+				if allowed && format == "maven" && batch[i].Version == "" {
+					group, artifact, _ := strings.Cut(batch[i].Name, ":")
+					allowedArtifacts[core.ResourceLockVersionKey("maven", strings.ReplaceAll(group, ".", "/")+"/"+artifact)] = true
+				}
+				if !allowed {
+					target := batch[i]
+					target.Version = core.ResourceLockVersionKey("maven", target.Version)
+					hidden[target] = true
+				}
 			}
 		}
 	}
 	return func(path string) bool {
 		if len(hidden) == 0 {
 			return true
+		}
+		cleanPath := strings.Trim(strings.ReplaceAll(path, `\`, "/"), "/")
+		parts := strings.Split(cleanPath, "/")
+		longestDomain, artifactAllowed := "", false
+		for i := 1; i <= len(parts); i++ {
+			prefix := strings.Join(parts[:i], "/")
+			if knownDomains[strings.ToLower(prefix)] {
+				longestDomain = strings.ToLower(prefix)
+			}
+			artifactAllowed = artifactAllowed || allowedArtifacts[core.ResourceLockVersionKey("maven", prefix)]
+		}
+		if !artifactAllowed && hidden[core.ResourceLockTarget{Format: "maven-domain", Name: strings.ReplaceAll(longestDomain, "/", ".")}] {
+			return false
 		}
 		targets, err := mavenPathTargets(strings.ToLower(repository), path)
 		if err != nil {
@@ -130,6 +165,14 @@ func VisibleMetadataPaths(state *core.AppState, user *config.User, repository st
 		username, moderator = user.Username, user.CheckModeratePermission(repository)
 	}
 	visible := make([]bool, len(paths))
+	for start := 0; start < len(paths); start += 128 {
+		end := min(start+128, len(paths))
+		allowed, err := state.GetDB().MavenDomainPathVisibility(repository, username, moderator, paths[start:end])
+		if err != nil {
+			return nil, err
+		}
+		copy(visible[start:end], allowed)
+	}
 	targets, indexes := make([]core.ResourceLockTarget, 0, 128), make([]int, 0, 128)
 	flush := func() error {
 		result, err := state.GetDB().ResourceMetadataVisibility("maven", repository, username, moderator, targets)
@@ -143,7 +186,6 @@ func VisibleMetadataPaths(state *core.AppState, user *config.User, repository st
 		return nil
 	}
 	for i, path := range paths {
-		visible[i] = true
 		candidates, err := mavenPathTargets(repository, path)
 		if err != nil {
 			return nil, err

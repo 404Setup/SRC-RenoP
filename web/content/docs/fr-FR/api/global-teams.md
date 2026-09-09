@@ -77,3 +77,18 @@ la dérogation `admin:users`, et les réglages globaux `admin:settings`. Un Toke
 
 Les erreurs exposent un `X-Renop-Error-Code` stable et un corps générique borné. Les clients utilisent le statut HTTP
 et le code enregistré, jamais le texte brut.
+
+## Verrouillage des ressources
+
+Les administrateurs système et les modérateurs globaux (`canmoderate:*`) peuvent verrouiller une équipe avec un cookie de session navigateur actif. La modération limitée à un dépôt ne permet pas de modifier une équipe globale ; les jetons API ne peuvent pas gérer les verrous.
+
+- `PUT /api/super-teams/{prefix}/locks`
+- `DELETE /api/super-teams/{prefix}/locks`
+
+```json
+{"mode":"read","reason":"abuse"}
+```
+
+Les deux modes figent les informations de l’équipe, les modifications de membres, les acceptations d’invitations, les quotas personnalisés, les transferts de propriété et la création ou modification des ressources liées. `write` conserve les téléchargements. `read` masque l’équipe aux non-membres et réserve les métadonnées des paquets au personnel autorisé et aux propriétaires/collaborateurs existants, y compris T1 ; personne ne peut lire les fichiers. Les listes de membres et les rôles sont conservés. Le verrou de l’équipe d’un domaine Maven couvre aussi les chemins non catalogués ; les sous-domaines vérifiés indépendamment conservent leur propre autorité.
+
+Les listes et détails exposent les `locks` publics ; le champ `moderator` des détails reflète les droits de la requête sans accorder la gestion d’équipe. Les pages du compte et publiques affichent les motifs traduits et les commandes du personnel. DELETE accepte `{}` et retire seulement le verrou manuel ; les verrous système restent indépendants. Les écritures bloquées renvoient `423` avec `X-Renop-Error-Code: resource_locked` ; les ressources masquées renvoient `404`. Le déverrouillage rétablit les droits conservés, sous réserve des autres verrous actifs.

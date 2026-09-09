@@ -177,7 +177,7 @@ func publicUserSuperTeams(c fiber.Ctx, state *core.AppState) error {
 		administrator = viewer.IsManager()
 	}
 	teams, total, err := state.GetDB().ListVisibleUserSuperTeams(
-		profile.UserID, viewerName, administrator, limit, offset)
+		profile.UserID, viewerName, administrator, viewer != nil && viewer.CheckModeratePermission(""), limit, offset)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load global team memberships")
 	}

@@ -76,3 +76,18 @@ cannot list all teams or create a prefix outside its exact target.
 
 Management failures return a stable `X-Renop-Error-Code` and a bounded generic body. Clients should branch on the HTTP
 status and registered code rather than displaying response text.
+
+## Resource locks
+
+System administrators and global moderators (`canmoderate:*`) can lock a team with an active browser session cookie. Repository-only moderation does not authorize changes to a global team; API tokens cannot manage locks.
+
+- `PUT /api/super-teams/{prefix}/locks`
+- `DELETE /api/super-teams/{prefix}/locks`
+
+```json
+{"mode":"read","reason":"abuse"}
+```
+
+Both modes freeze team metadata, membership changes, accepted invitations, quota overrides, ownership transfers, and creation or modification of bound resources. `write` preserves downloads. `read` hides the team from nonmembers and restricts package metadata to authorized staff and existing owners/collaborators, including T1 members; file bytes are unavailable to everyone. Membership lists and role levels are retained. Locks on a Maven domain's team also cover its uncatalogued paths; independently verified child domains retain their own authority.
+
+Team lists and details expose public `locks`; details expose `moderator` for the current request without granting team-management rights. The account and public pages show localized reasons and staff controls. DELETE accepts `{}` and removes only the manual lock; system locks remain independent. Locked writes return `423` with `X-Renop-Error-Code: resource_locked`; hidden resources return `404`. Unlocking restores retained permissions, subject to any other effective locks.

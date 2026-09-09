@@ -544,7 +544,7 @@ func lockMavenDomain(tx *Tx, domain string) error {
 	} else if err != nil {
 		return fmt.Errorf("inspect Maven domain team lock: %w", err)
 	}
-	return nil
+	return ensureMavenDomainMutableQuery(tx.QueryRow, domain)
 }
 
 func requireAnotherMavenOwner(tx *Tx, domain, excludedUserID string) error {

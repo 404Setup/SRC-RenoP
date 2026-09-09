@@ -203,6 +203,9 @@ func mavenArtifactTeamPermissionTx(tx *Tx, repository, resourceKey, userID strin
 func requireTransferRequesterPermissionTx(tx *Tx, request core.SuperTeamTransferRequest,
 	resource reviewResourceState, userID string, administrator bool,
 ) error {
+	if err := ensureSuperTeamMutableQuery(tx.QueryRow, resource.binding); err != nil {
+		return err
+	}
 	if administrator {
 		return nil
 	}

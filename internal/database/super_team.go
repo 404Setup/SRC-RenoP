@@ -323,11 +323,14 @@ func (db *DB) ListSuperTeams(username string, administrator bool, limit, offset 
 	if err := rows.Err(); err != nil {
 		return nil, 0, fmt.Errorf("iterate global teams: %w", err)
 	}
-	return teams, total, nil
+	if err := rows.Close(); err != nil {
+		return nil, 0, err
+	}
+	return teams, total, db.attachSuperTeamLocks(teams)
 }
 
 // ListVisibleUserSuperTeams returns a bounded profile page after applying per-membership visibility.
-func (db *DB) ListVisibleUserSuperTeams(userID, viewer string, administrator bool,
+func (db *DB) ListVisibleUserSuperTeams(userID, viewer string, administrator, moderator bool,
 	limit, offset int,
 ) ([]*core.UserSuperTeamMembership, int, error) {
 	if db == nil || db.SQLDB == nil {
@@ -354,6 +357,9 @@ func (db *DB) ListVisibleUserSuperTeams(userID, viewer string, administrator boo
 		WHERE target.user_id = ? AND (target.public_visible = 1 OR ? = 1 OR
 			COALESCE(viewer_member.role_level, 0) >= ?)`
 	args := []any{viewerID, userID, boolInt(administrator), core.SuperTeamRoleManage}
+	if !administrator && !moderator {
+		baseJoin += ` AND (viewer_member.user_id IS NOT NULL OR ` + superTeamReadCondition("team.prefix") + `)`
+	}
 	var total int
 	if err := db.QueryRow(`SELECT COUNT(*)`+baseJoin, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count visible user global teams: %w", err)
@@ -398,7 +404,8 @@ func (db *DB) ListManageableSuperTeams(username string, minimumRole, limit, offs
 		LEFT JOIN user_profiles creator ON creator.user_id = t.created_by
 		JOIN super_team_members member ON member.team_prefix = t.prefix AND member.user_id = ?
 		LEFT JOIN (SELECT team_prefix, COUNT(*) AS member_count FROM super_team_members GROUP BY team_prefix) member_counts
-			ON member_counts.team_prefix = t.prefix WHERE member.role_level >= ?`
+			ON member_counts.team_prefix = t.prefix WHERE member.role_level >= ?
+		AND NOT EXISTS (SELECT 1 FROM resource_locks l WHERE l.format = 'superteam' AND l.repository = '' AND l.resource_name = t.prefix)`
 	var total int
 	if err := db.QueryRow(`SELECT COUNT(*)`+baseJoin, userID, minimumRole).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count manageable global teams: %w", err)
@@ -449,16 +456,16 @@ func (db *DB) GetSuperTeamRole(prefix, username string) (int, error) {
 }
 
 // GetSuperTeamDetails returns one visible global team and its members.
-func (db *DB) GetSuperTeamDetails(prefix, username string, administrator bool) (*core.SuperTeamDetails, error) {
-	return db.getSuperTeamDetails(prefix, username, administrator, false)
+func (db *DB) GetSuperTeamDetails(prefix, username string, administrator, moderator bool) (*core.SuperTeamDetails, error) {
+	return db.getSuperTeamDetails(prefix, username, administrator, moderator, false)
 }
 
 // GetPublicSuperTeamDetails returns one global team and its public member list.
-func (db *DB) GetPublicSuperTeamDetails(prefix, username string, administrator bool) (*core.SuperTeamDetails, error) {
-	return db.getSuperTeamDetails(prefix, username, administrator, true)
+func (db *DB) GetPublicSuperTeamDetails(prefix, username string, administrator, moderator bool) (*core.SuperTeamDetails, error) {
+	return db.getSuperTeamDetails(prefix, username, administrator, moderator, true)
 }
 
-func (db *DB) getSuperTeamDetails(prefix, username string, administrator, public bool) (*core.SuperTeamDetails, error) {
+func (db *DB) getSuperTeamDetails(prefix, username string, administrator, moderator, public bool) (*core.SuperTeamDetails, error) {
 	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
@@ -482,12 +489,18 @@ func (db *DB) getSuperTeamDetails(prefix, username string, administrator, public
 		LEFT JOIN super_team_members creator_member ON creator_member.team_prefix = t.prefix
 			AND creator_member.user_id = t.created_by
 		LEFT JOIN super_team_members member ON member.team_prefix = t.prefix AND member.user_id = ?
-		WHERE t.prefix = ? AND (? = 1 OR member.user_id IS NOT NULL)`, userID, prefix, boolInt(administrator || public)))
+		WHERE t.prefix = ? AND (? = 1 OR member.user_id IS NOT NULL)`, userID, prefix, boolInt(administrator || moderator || public)))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, core.ErrSuperTeamNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("get global team: %w", err)
+	}
+	if err := db.attachSuperTeamLocks([]*core.SuperTeam{team}); err != nil {
+		return nil, err
+	}
+	if core.ReadLocked(team.Locks) && team.RoleLevel == 0 && !administrator && !moderator {
+		return nil, core.ErrSuperTeamNotFound
 	}
 	if !administrator && team.RoleLevel < core.SuperTeamRoleManage && !creatorVisible &&
 		(public || !strings.EqualFold(team.CreatedBy, username)) {
@@ -524,7 +537,7 @@ func (db *DB) getSuperTeamDetails(prefix, username string, administrator, public
 		return nil, fmt.Errorf("iterate global team members: %w", err)
 	}
 	team.MemberCount = len(members)
-	return &core.SuperTeamDetails{Team: team, Members: members, Administrator: administrator}, nil
+	return &core.SuperTeamDetails{Team: team, Members: members, Administrator: administrator, Moderator: administrator || moderator}, nil
 }
 
 // ListSuperTeamReviewerNames returns active T3/T4 members eligible to decide team reviews.
@@ -583,6 +596,9 @@ func (db *DB) UpdateSuperTeam(prefix, actor, name, description string, links cor
 		return fmt.Errorf("begin global team update: %w", err)
 	}
 	defer tx.Rollback()
+	if err := ensureSuperTeamMutableQuery(tx.QueryRow, prefix); err != nil {
+		return err
+	}
 	if !administrator {
 		var level int
 		if err := tx.QueryRow(`SELECT role_level FROM super_team_members
@@ -630,6 +646,9 @@ func (db *DB) DeleteSuperTeam(prefix, actor string, administrator bool, actedAt 
 		return fmt.Errorf("begin global team deletion: %w", err)
 	}
 	defer tx.Rollback()
+	if err := ensureSuperTeamMutableQuery(tx.QueryRow, prefix); err != nil {
+		return err
+	}
 	var exists int
 	if err := tx.QueryRow(`SELECT 1 FROM super_teams WHERE prefix = ?`, prefix).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
 		return core.ErrSuperTeamNotFound
@@ -816,6 +835,9 @@ func (db *DB) CreateSuperTeamInvitations(invitations []*core.SuperTeamInvitation
 		return fmt.Errorf("begin global team invitation: %w", err)
 	}
 	defer tx.Rollback()
+	if err := ensureSuperTeamMutableQuery(tx.QueryRow, prefix); err != nil {
+		return err
+	}
 	if err := lockAccountLoginMethodsTx(tx, inviterID); err != nil {
 		return err
 	}
@@ -923,6 +945,9 @@ func (db *DB) ForceAddSuperTeamMembers(prefix, actor string, usernames []string,
 		return fmt.Errorf("begin global team member addition: %w", err)
 	}
 	defer tx.Rollback()
+	if err := ensureSuperTeamMutableQuery(tx.QueryRow, prefix); err != nil {
+		return err
+	}
 	var teamName string
 	if err := tx.QueryRow(`SELECT name FROM super_teams WHERE prefix = ?`, prefix).Scan(&teamName); errors.Is(err, sql.ErrNoRows) {
 		return core.ErrSuperTeamNotFound
@@ -1008,6 +1033,9 @@ func (db *DB) RespondSuperTeamInvitation(id, recipient string, accept bool, glob
 		return fmt.Errorf("load global team invitation: %w", err)
 	}
 	if accept {
+		if err := ensureSuperTeamMutableQuery(tx.QueryRow, invitation.TeamPrefix); err != nil {
+			return err
+		}
 		var inviterLevel int
 		if err := tx.QueryRow(`SELECT role_level FROM super_team_members
 			WHERE team_prefix = ? AND user_id = ?`, invitation.TeamPrefix, inviterID).Scan(&inviterLevel); errors.Is(err, sql.ErrNoRows) || inviterLevel < core.SuperTeamRoleManage ||
@@ -1089,6 +1117,9 @@ func (db *DB) SetSuperTeamMemberLevel(prefix, actor, target string, level int, a
 		return fmt.Errorf("begin global team member update: %w", err)
 	}
 	defer tx.Rollback()
+	if err := ensureSuperTeamMutableQuery(tx.QueryRow, prefix); err != nil {
+		return err
+	}
 	if err := lockAccountLoginMethodsTx(tx, targetID); err != nil {
 		return err
 	}
@@ -1142,6 +1173,9 @@ func (db *DB) SetSuperTeamMemberVisibility(prefix, username string, visible bool
 	}
 	superTeamMutationLock.Lock()
 	defer superTeamMutationLock.Unlock()
+	if err := ensureSuperTeamMutableQuery(db.QueryRow, prefix); err != nil {
+		return err
+	}
 	var current int
 	if err := db.QueryRow(`SELECT public_visible FROM super_team_members WHERE team_prefix = ? AND user_id = ?`,
 		prefix, userID).Scan(&current); errors.Is(err, sql.ErrNoRows) {
@@ -1184,6 +1218,9 @@ func (db *DB) RemoveSuperTeamMember(prefix, actor, target string, administrator 
 		return fmt.Errorf("begin global team member removal: %w", err)
 	}
 	defer tx.Rollback()
+	if err := ensureSuperTeamMutableQuery(tx.QueryRow, prefix); err != nil {
+		return err
+	}
 	actorLevel := core.SuperTeamRoleOwner
 	if !administrator {
 		if err := tx.QueryRow(`SELECT role_level FROM super_team_members WHERE team_prefix = ? AND user_id = ?`,

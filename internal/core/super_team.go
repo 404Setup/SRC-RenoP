@@ -48,15 +48,16 @@ var (
 
 // SuperTeam is a global, engine-independent package publishing team.
 type SuperTeam struct {
-	Prefix      string      `json:"prefix"`
-	Name        string      `json:"name"`
-	Description string      `json:"description"`
-	Links       PublicLinks `json:"links"`
-	CreatedBy   string      `json:"created_by"`
-	RoleLevel   int         `json:"role_level"`
-	MemberCount int         `json:"member_count"`
-	CreatedAt   int64       `json:"created_at"`
-	UpdatedAt   int64       `json:"updated_at"`
+	Locks       []*ResourceLock `json:"locks,omitempty"`
+	Prefix      string          `json:"prefix"`
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	Links       PublicLinks     `json:"links"`
+	CreatedBy   string          `json:"created_by"`
+	RoleLevel   int             `json:"role_level"`
+	MemberCount int             `json:"member_count"`
+	CreatedAt   int64           `json:"created_at"`
+	UpdatedAt   int64           `json:"updated_at"`
 }
 
 // SuperTeamMember is one immutable-user membership in a global team.
@@ -88,6 +89,7 @@ type SuperTeamResource struct {
 
 // SuperTeamResourceListOptions bounds and authorizes one global-team resource page.
 type SuperTeamResourceListOptions struct {
+	Moderator             bool
 	Prefix                string
 	Format                string
 	Viewer                string
@@ -100,6 +102,7 @@ type SuperTeamResourceListOptions struct {
 
 // SuperTeamDetails combines one team with the members visible to its managers.
 type SuperTeamDetails struct {
+	Moderator     bool               `json:"moderator"`
 	Team          *SuperTeam         `json:"team"`
 	Members       []*SuperTeamMember `json:"members"`
 	Administrator bool               `json:"administrator"`

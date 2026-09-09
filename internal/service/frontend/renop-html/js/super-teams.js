@@ -12,6 +12,8 @@ import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {morphElementHeight} from '@renop/ui/height-anim';
 import {apiRequest} from './api.js';
+import {cachedIsLoggedIn} from './auth.js';
+import {createResourceLockButton, createResourceLockNotices, resourceWriteLocked} from './resource-locks.js';
 import {showAlert, showConfirm} from './alert.js';
 import {createFieldRow, createIcon, createUserIdentity, RenopDialog, runButtonAction} from './components.js';
 import {t} from './i18n.js';
@@ -235,6 +237,8 @@ function teamCard(team) {
             el('span', {class: 'super-team-card-description'}, team.description || t('superTeam.noDescription'))
         ),
         el('span', {class: 'super-team-card-meta'},
+            resourceWriteLocked(team) ? el('span', {class: 'super-team-role-badge'},
+                t(`resourceLock.${team.locks.some(lock => lock.mode === 'read') ? 'read' : 'write'}`)) : null,
             team.role_level ? el('span', {class: 'super-team-role-badge'}, roleLabel(team.role_level)) : null,
             el('span', {}, t('superTeam.memberCount', {count: Number(team.member_count) || 0})),
             createIcon('chevron')
@@ -592,7 +596,7 @@ function memberRow(details, member, {readOnly = false} = {}) {
     const currentUsername = String(localStorage.getItem('username') || '').toLowerCase();
     const own = String(member.username || '').toLowerCase() === currentUsername;
     const visible = member.visible !== false;
-    const canManage = !readOnly && (details.administrator || actorLevel >= 4 ||
+    const canManage = !readOnly && !resourceWriteLocked(details.team) && (details.administrator || actorLevel >= 4 ||
         actorLevel >= 3 && memberLevel < 3);
     const controls = el('div', {class: 'super-team-member-controls'});
     if (canManage && !own) {
@@ -604,7 +608,7 @@ function memberRow(details, member, {readOnly = false} = {}) {
     }
     if (!visible) controls.appendChild(el('span', {class: 'super-team-visibility-badge'},
         createIcon('eye'), el('span', {}, t('superTeam.membershipHidden'))));
-    if (own && !readOnly) {
+    if (own && !readOnly && !resourceWriteLocked(details.team)) {
         const visibilityButton = el('button', {
             type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
             onclick: () => void changeMembershipVisibility(details, member, visibilityButton)
@@ -656,10 +660,12 @@ async function deleteTeam(details) {
 function teamDetailContent(details, prefix, {publicView = false, quotaStatus = null} = {}) {
     const team = details.team || {};
     const actorLevel = Number(team.role_level) || 0;
-    const canOwn = !publicView && (details.administrator || actorLevel >= 4);
-    const canManage = !publicView && (details.administrator || actorLevel >= 3);
+    const locked = resourceWriteLocked(team);
+    const generation = loadGeneration;
+    const canOwn = !publicView && !locked && (details.administrator || actorLevel >= 4);
+    const canManage = !publicView && !locked && (details.administrator || actorLevel >= 3);
     const actions = el('div', {class: 'super-team-detail-actions'});
-    if (!publicView && actorLevel > 0 && actorLevel < 4) actions.appendChild(el('button', {
+    if (!publicView && !locked && actorLevel > 0 && actorLevel < 4) actions.appendChild(el('button', {
         type: 'button', class: 'pill-btn pill-btn--ghost-danger pill-btn--sm',
         onclick: () => openLeaveTeamDialog(details)
     }, createIcon('logout'), el('span', {}, t('superTeam.leave'))));
@@ -682,6 +688,16 @@ function teamDetailContent(details, prefix, {publicView = false, quotaStatus = n
                 createIcon('delete'), el('span', {}, t('common.delete')))
         );
     }
+    if (details.moderator && cachedIsLoggedIn) actions.appendChild(createResourceLockButton({
+        locks: team.locks, name: team.prefix || prefix,
+        request: (mode, reason) => apiRequest(`/api/super-teams/${encodeURIComponent(team.prefix || prefix)}/locks`, {
+            method: mode ? 'PUT' : 'DELETE', body: JSON.stringify({mode, reason})
+        }),
+        onSuccess: () => {
+            if (generation !== loadGeneration) return;
+            return publicView ? loadPublicSuperTeamPage() : loadDetails(prefix);
+        },
+    }));
     const hero = el('section', {class: 'super-team-detail-hero'},
         el('button', {
             type: 'button', class: 'super-team-back',
@@ -711,13 +727,13 @@ function teamDetailContent(details, prefix, {publicView = false, quotaStatus = n
             ...members.map(member => memberRow(details, member, {readOnly: publicView})))
     );
     const quotaPanel = quotaStatus ? createPublicationQuotaPanel(quotaStatus, {
-        editable: Boolean(details.administrator),
+        editable: Boolean(details.administrator) && !locked,
         onEdit: () => void openPublicationQuotaDialog({
             ownerType: 'super_team', ownerKey: team.prefix || prefix,
             onSaved: () => void loadDetails(prefix),
         }),
     }) : null;
-    return [hero, quotaPanel, createSuperTeamResourcesSection(team.prefix || prefix), memberSection];
+    return [hero, createResourceLockNotices(team.locks), quotaPanel, createSuperTeamResourcesSection(team.prefix || prefix), memberSection];
 }
 
 /**
@@ -735,11 +751,11 @@ async function loadDetails(prefix) {
             apiRequest(`/api/super-teams/${encodeURIComponent(prefix)}?manage=true`),
             apiRequest(`/api/publication-quota/super-teams/${encodeURIComponent(prefix)}`),
         ]);
-        if (exitProtectedRouteOnDenial(response) || exitProtectedRouteOnDenial(quotaResponse)) return;
+        if (exitProtectedRouteOnDenial(response)) return;
         if (!response.ok) throw await localizedResponseError(response, 'superTeam.loadFailed', {}, SUPER_TEAM_ERROR_KEYS);
-        if (!quotaResponse.ok) throw await localizedResponseError(quotaResponse, 'publicationQuota.loadFailed');
+        if (!quotaResponse.ok && quotaResponse.status !== 403) throw await localizedResponseError(quotaResponse, 'publicationQuota.loadFailed');
         const details = await response.json();
-        const quotaStatus = await quotaResponse.json();
+        const quotaStatus = quotaResponse.ok ? await quotaResponse.json() : null;
         if (generation !== loadGeneration) return;
         await replaceContent(...teamDetailContent(details, prefix, {quotaStatus}));
     } catch (error) {

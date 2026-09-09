@@ -78,6 +78,7 @@ type StateDB interface {
 	SetResourceLock(lock *ResourceLock, actor, session string) error
 	DeleteResourceLock(target ResourceLockTarget, source, actor, session string) error
 	GetResourceLocks(target ResourceLockTarget, allVersions bool) ([]*ResourceLock, error)
+	MavenDomainPathVisibility(repository, username string, moderator bool, paths []string) ([]bool, error)
 	GetMavenPathLocks(repository, path string, descendants bool) ([]*ResourceLock, error)
 	EnsureResourceMutable(target ResourceLockTarget, allVersions bool) error
 	EnsureRepositoryResourcesMutable(repository string) error
@@ -219,12 +220,12 @@ type StateDB interface {
 	SetSuperTeamLimitOverride(username string, createLimit, joinLimit *int, updatedAt int64) error
 	CreateSuperTeam(team *SuperTeam, owner string, globalCreateLimit, globalJoinLimit int) error
 	ListSuperTeams(username string, administrator bool, limit, offset int) ([]*SuperTeam, int, error)
-	ListVisibleUserSuperTeams(userID, viewer string, administrator bool, limit, offset int) ([]*UserSuperTeamMembership, int, error)
+	ListVisibleUserSuperTeams(userID, viewer string, administrator, moderator bool, limit, offset int) ([]*UserSuperTeamMembership, int, error)
 	ListSuperTeamResources(options SuperTeamResourceListOptions) ([]*SuperTeamResource, int, error)
 	ListManageableSuperTeams(username string, minimumRole, limit, offset int) ([]*SuperTeam, int, error)
 	GetSuperTeamRole(prefix, username string) (int, error)
-	GetSuperTeamDetails(prefix, username string, administrator bool) (*SuperTeamDetails, error)
-	GetPublicSuperTeamDetails(prefix, username string, administrator bool) (*SuperTeamDetails, error)
+	GetSuperTeamDetails(prefix, username string, administrator, moderator bool) (*SuperTeamDetails, error)
+	GetPublicSuperTeamDetails(prefix, username string, administrator, moderator bool) (*SuperTeamDetails, error)
 	ListSuperTeamReviewerNames(prefix string) ([]string, error)
 	UpdateSuperTeam(prefix, actor, name, description string, links PublicLinks, administrator bool, updatedAt int64) error
 	DeleteSuperTeam(prefix, actor string, administrator bool, actedAt int64) error

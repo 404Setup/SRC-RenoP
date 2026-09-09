@@ -66,3 +66,18 @@ PUT /api/super-teams/{prefix}/members/{username} 修改角色。DELETE /api/supe
 
 管理失败会返回稳定的 `X-Renop-Error-Code` 与受限的通用正文。客户端应依据 HTTP 状态和已登记错误码处理，不应直接
 显示响应文本。
+
+## 资源锁定
+
+系统管理员和全局版主（`canmoderate:*`）可使用有效的浏览器会话 Cookie 锁定团队。仅有仓库版主权限不能修改全局团队；API Token 不能管理锁定。
+
+- `PUT /api/super-teams/{prefix}/locks`
+- `DELETE /api/super-teams/{prefix}/locks`
+
+```json
+{"mode":"read","reason":"abuse"}
+```
+
+两种模式都会冻结团队资料、成员变更、接受邀请、配额覆盖、所有权转移，以及绑定资源的创建与修改。`write` 保留下载；`read` 向非成员隐藏团队，并仅允许有权工作人员和已有所有者、协作者（包括 T1 成员）查看包元数据，所有人均无法读取文件内容。成员列表与角色级别保持不变。Maven 发布域所属团队的锁定也覆盖未入索引的路径；独立验证的子发布域保持自身权限。
+
+团队列表和详情返回公开的 `locks`，详情中的 `moderator` 表示当前请求的版主权限，不授予团队管理权。账户页和公共页显示本地化原因及工作人员控制。DELETE 接受 `{}`，仅移除手动锁定，系统锁定独立保留。被锁定的写入返回 `423` 和 `X-Renop-Error-Code: resource_locked`；被隐藏的资源返回 `404`。解除锁定后恢复保留的权限，但其他有效锁定仍然生效。

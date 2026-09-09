@@ -90,11 +90,11 @@ func TestPostgresUserProfileIntegration(t *testing.T) {
 	team := &core.SuperTeam{Prefix: "profile-pg", Name: "Profile PostgreSQL", CreatedAt: changedAt + 1}
 	require.NoError(t, db.CreateSuperTeam(team, "profile_pg", 2, 2))
 	require.NoError(t, db.SetSuperTeamMemberVisibility(team.Prefix, "profile_pg", false))
-	publicTeam, err := db.GetPublicSuperTeamDetails(team.Prefix, "", false)
+	publicTeam, err := db.GetPublicSuperTeamDetails(team.Prefix, "", false, false)
 	require.NoError(t, err)
 	require.Empty(t, publicTeam.Members)
 	require.Empty(t, publicTeam.Team.CreatedBy)
-	visibleTeams, visibleTotal, err := db.ListVisibleUserSuperTeams(profile.UserID, "profile_pg", false, 10, 0)
+	visibleTeams, visibleTotal, err := db.ListVisibleUserSuperTeams(profile.UserID, "profile_pg", false, false, 10, 0)
 	require.NoError(t, err)
 	require.Len(t, visibleTeams, 1)
 	require.Equal(t, 1, visibleTotal)

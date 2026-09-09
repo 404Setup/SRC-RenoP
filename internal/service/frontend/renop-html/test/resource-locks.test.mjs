@@ -107,3 +107,44 @@ test('Docker lock refreshes discard responses after navigation or view dismissal
     assert.equal(renders, 0);
     assert.equal(requests.length, 1);
 });
+
+
+test('team and domain locks retain members and staff actions while hiding mutation controls', () => {
+    const nodes = [];
+    const context = vm.createContext({
+        el: (tag, attributes, ...children) => {
+            const node = {tag, ...attributes, children, appendChild(child) { this.children.push(child); },
+                append(...items) { this.children.push(...items); }, get childElementCount() { return this.children.length; }};
+            nodes.push(node);
+            return node;
+        },
+        t: key => key, roleLabel: level => `T${level}`, permissionLabel: level => `L${level}`,
+        createIcon: name => ({icon: name}), createResourceLockNotices: locks => ({locks}),
+        createResourceLockButton: () => ({tag: 'button', staffLock: true}),
+        createUserIdentity: name => ({name}), createPublicProfileLinks: () => null,
+        createSuperTeamResourcesSection: () => null,
+        createPublicationQuotaPanel: (_status, options) => ({quotaEditable: options.editable}),
+        makeCustomSelect: () => ({tag: 'select'}), roleOptions: () => [],
+        localStorage: {getItem: () => 'alice'}, cachedIsLoggedIn: true, loadGeneration: 1,
+    });
+    const team = readFileSync(new URL('../js/super-teams.js', import.meta.url), 'utf8');
+    const maven = readFileSync(new URL('../js/browser/maven.js', import.meta.url), 'utf8');
+    const locks = readFileSync(new URL('../js/resource-locks.js', import.meta.url), 'utf8');
+    const extract = (source, name) => source.match(new RegExp(`(?:export )?function ${name}\\([^]*?\\n}`))[0].replace('export ', '');
+    vm.runInContext([extract(locks, 'resourceWriteLocked'), extract(team, 'memberRow'),
+        extract(team, 'teamDetailContent'), extract(maven, 'teamPanel')].join('\n'), context);
+    const restriction = {mode: 'read', reason: 'abuse'};
+    const members = [{username: 'alice', level: 3}, {username: 'bob', level: 2}];
+    const content = context.teamDetailContent({team: {prefix: 'demo', role_level: 4, locks: [restriction]},
+        members, administrator: true, moderator: true}, 'demo', {quotaStatus: {}});
+    assert.equal(content[1].locks[0], restriction);
+    assert.equal(content[2].quotaEditable, false);
+    assert.equal(nodes.filter(node => node.tag === 'select').length, 0);
+    assert.equal(nodes.filter(node => node.tag === 'button').length, 1); // Back navigation.
+    assert.equal(nodes.find(node => node.class === 'super-team-detail-actions').children[0].staffLock, true);
+    nodes.length = 0;
+    context.teamPanel({domain: {domain: 'com.example', permission_level: 4, locks: [restriction]},
+        members, administrator: true}, () => {});
+    assert.equal(nodes.filter(node => ['button', 'select', 'form'].includes(node.tag)).length, 0);
+    assert.equal(nodes.filter(node => node.class === 'maven-team-row').length, 2);
+});

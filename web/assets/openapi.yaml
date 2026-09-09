@@ -1657,6 +1657,9 @@ components:
       type: object
       required: [ prefix, name, description, created_by, role_level, member_count, created_at, updated_at ]
       properties:
+        locks:
+          type: array
+          items: { $ref: "#/components/schemas/ResourceLock" }
         prefix:
           type: string
           minLength: 2
@@ -1676,7 +1679,7 @@ components:
           type: integer
           minimum: 0
           maximum: 4
-          description: Current account role. Zero is returned only for a system administrator who is not a member.
+          description: Current account role. Zero identifies a viewer who is not a member.
         member_count:
           type: integer
           minimum: 1
@@ -1703,8 +1706,11 @@ components:
 
     SuperTeamDetails:
       type: object
-      required: [ team, members, administrator ]
+      required: [ team, members, administrator, moderator ]
       properties:
+        moderator:
+          type: boolean
+          description: Current request may moderate global teams; does not grant team-management rights.
         team:
           $ref: "#/components/schemas/SuperTeam"
         members:
@@ -1865,6 +1871,9 @@ components:
       type: object
       required: [ domain, verification_type, verification_host, verified, created_at, permission_level, artifact_count, repository_count, member_count ]
       properties:
+        locks:
+          type: array
+          items: { $ref: "#/components/schemas/ResourceLock" }
         domain:
           type: string
           example: com.example
@@ -4426,6 +4435,52 @@ paths:
         - bearerAuth: [ ]
       responses:
         "204": { description: Team deleted. }
+
+  /api/super-teams/{prefix}/locks:
+    parameters:
+      - name: prefix
+        in: path
+        required: true
+        schema: { type: string, minLength: 2, maxLength: 64 }
+    put:
+      tags: [ super-teams ]
+      summary: Set a manual global-team lock
+      description: Requires an active browser session and system-administrator or global-moderator authority. Both modes freeze team and bound-resource writes; read locks restrict metadata to authorized staff and existing collaborators and deny all file bytes. Memberships are retained. System locks remain independent.
+      operationId: putSuperTeamLock
+      security:
+        - sessionCookie: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ mode, reason ]
+              properties:
+                mode: { type: string, enum: [ write, read ] }
+                reason: { type: string, enum: [ hold, prohibited, expired, trojan, abuse, dmca, reup, squatting, quality ] }
+      responses:
+        "204": { description: Manual team lock saved. }
+        "400": { $ref: "#/components/responses/PlainBadRequest" }
+        "403": { $ref: "#/components/responses/PlainForbidden" }
+        "404": { $ref: "#/components/responses/PlainNotFound" }
+    delete:
+      tags: [ super-teams ]
+      summary: Remove a manual global-team lock
+      description: Requires an active browser session and system-administrator or global-moderator authority. Other effective restrictions remain active.
+      operationId: deleteSuperTeamLock
+      security:
+        - sessionCookie: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+            example: { }
+      responses:
+        "204": { description: Manual team lock removed. }
+        "403": { $ref: "#/components/responses/PlainForbidden" }
+        "404": { $ref: "#/components/responses/PlainNotFound" }
 
   /api/super-teams/{prefix}/members:
     post:

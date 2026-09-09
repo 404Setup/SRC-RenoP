@@ -96,6 +96,89 @@ func TestMavenLocksCoverMetadataCompanionsAndCatalogMutations(t *testing.T) {
 	require.Len(t, artifacts, 1)
 }
 
+func TestSuperTeamLocksFollowBindingsAndPreserveMembership(t *testing.T) {
+	db := newMavenDB(t)
+	now := time.Now().UnixMilli()
+	team := &core.SuperTeam{Prefix: "locked-team", Name: "Locked Team", CreatedAt: now}
+	require.NoError(t, db.CreateSuperTeam(team, "alice", 5, 10))
+	require.NoError(t, db.ForceAddSuperTeamMembers(team.Prefix, "admin", []string{"bob"}, core.SuperTeamRoleRead, 5, 10, now))
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "moderator", Permissions: []string{"canmoderate:*"}}))
+	_, err := db.CreateNPMPackageForTeam("npm", "@locked-team/demo", "alice", team.Prefix, false, now)
+	require.NoError(t, err)
+	_, err = db.CreateDockerImageForTeam("docker", "locked-team/demo", "alice", team.Prefix, false, now)
+	require.NoError(t, err)
+	require.NoError(t, db.RecordCargoPublication(&core.CargoPackage{Repository: "cargo", Name: "demo", NormalizedName: "demo", CreatedAt: now, UpdatedAt: now},
+		&core.CargoVersion{Version: "1.0.0", CreatedAt: now}, "alice"))
+	_, err = db.Exec(`UPDATE cargo_packages SET super_team_prefix = ? WHERE repository = ? AND normalized_name = ?`, team.Prefix, "cargo", "demo")
+	require.NoError(t, err)
+	require.NoError(t, db.CreateMavenDomain(&core.MavenDomain{Domain: "com.example", SuperTeamPrefix: team.Prefix,
+		VerificationType: "dns", VerificationHost: "example.com", VerificationCode: "proof", CreatedAt: now}, "alice"))
+	require.NoError(t, db.MarkMavenDomainVerified("com.example", "proof", now))
+	publish := func(name string) error {
+		return db.RecordMavenPublication(&core.MavenArtifact{Repository: "maven", Domain: "com.example",
+			GroupID: "com.example", ArtifactID: name, CreatedAt: now}, &core.MavenVersion{Version: "1.0", Publisher: "alice", CreatedAt: now})
+	}
+	require.NoError(t, publish("demo"))
+	lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "superteam", Name: team.Prefix},
+		Mode: core.ResourceLockRead, Source: core.ResourceLockSystem, Reason: "abuse", LockedAt: now}
+	require.NoError(t, db.SetResourceLock(lock, "", ""))
+	for _, target := range []core.ResourceLockTarget{
+		{Format: "cargo", Repository: "cargo", Name: "demo"},
+		{Format: "npm", Repository: "npm", Name: "@locked-team/demo"},
+		{Format: "docker", Repository: "docker", Name: "locked-team/demo"},
+		{Format: "maven", Repository: "maven", Name: "com.example:demo"},
+	} {
+		locks, err := db.GetResourceLocks(target, true)
+		require.NoError(t, err)
+		require.Len(t, locks, 1, target.Format)
+		require.True(t, locks[0].Inherited)
+		require.ErrorIs(t, db.EnsureResourceMutable(target, false), core.ErrResourceLocked)
+		for _, viewer := range []string{"guest", "alice", "bob"} {
+			visible, err := db.ResourceMetadataVisibility(target.Format, target.Repository, viewer, false, []core.ResourceLockTarget{target})
+			require.NoError(t, err)
+			require.Equal(t, []bool{viewer != "guest"}, visible, target.Format)
+		}
+	}
+	for _, viewer := range []string{"alice", "bob", "moderator"} {
+		details, err := db.GetPublicSuperTeamDetails(team.Prefix, viewer, false, viewer == "moderator")
+		require.NoError(t, err)
+		require.Len(t, details.Team.Locks, 1)
+	}
+	_, err = db.GetPublicSuperTeamDetails(team.Prefix, "", false, false)
+	require.ErrorIs(t, err, core.ErrSuperTeamNotFound)
+	require.ErrorIs(t, db.UpdateSuperTeam(team.Prefix, "alice", "Changed", "", core.PublicLinks{}, false, now), core.ErrResourceLocked)
+	require.ErrorIs(t, db.SetSuperTeamMemberLevel(team.Prefix, "alice", "bob", core.SuperTeamRoleWrite, false), core.ErrResourceLocked)
+	require.ErrorIs(t, db.SetSuperTeamMemberVisibility(team.Prefix, "bob", false), core.ErrResourceLocked)
+	require.ErrorIs(t, db.RemoveSuperTeamMember(team.Prefix, "alice", "bob", false, now), core.ErrResourceLocked)
+	require.ErrorIs(t, db.DeleteSuperTeam(team.Prefix, "admin", true, now), core.ErrResourceLocked)
+	require.ErrorIs(t, db.ForceAddMavenMembers("com.example", "alice", []string{"moderator"}, 0), core.ErrResourceLocked)
+	require.ErrorIs(t, publish("new"), core.ErrResourceLocked)
+	require.ErrorIs(t, db.SetPublicationQuotaOverride(core.PublicationQuotaSubject{OwnerType: core.PublicationQuotaOwnerSuperTeam, OwnerKey: team.Prefix}, core.PublicationQuotaOverride{}, now), core.ErrResourceLocked)
+	_, err = db.CreateSuperTeamTransferReview(core.SuperTeamTransferRequest{
+		ResourceType: core.ReviewResourceMavenDomain, ResourceKey: "com.example"}, "admin", true, now)
+	require.ErrorIs(t, err, core.ErrResourceLocked)
+	_, err = db.GetPublicSuperTeamDetails(team.Prefix, "moderator", false, false)
+	require.ErrorIs(t, err, core.ErrSuperTeamNotFound)
+
+	_, err = db.CreateNPMPackageForTeam("npm", "@locked-team/new", "alice", team.Prefix, false, now)
+	require.ErrorIs(t, err, core.ErrResourceLocked)
+	eligible, total, err := db.ListManageableSuperTeams("alice", core.SuperTeamRoleManage, 10, 0)
+	require.NoError(t, err)
+	require.Empty(t, eligible)
+	require.Zero(t, total)
+	profile, err := db.GetUserProfile("alice")
+	require.NoError(t, err)
+	visibleTeams, total, err := db.ListVisibleUserSuperTeams(profile.UserID, "", false, false, 10, 0)
+	require.NoError(t, err)
+	require.Empty(t, visibleTeams)
+	require.Zero(t, total)
+	require.NoError(t, db.DeleteResourceLock(lock.ResourceLockTarget, core.ResourceLockSystem, "", ""))
+	require.NoError(t, publish("new"))
+	role, err := db.GetSuperTeamRole(team.Prefix, "bob")
+	require.NoError(t, err)
+	require.Equal(t, core.SuperTeamRoleRead, role)
+}
+
 func TestDockerLocksProtectAliasesIndexChildrenAndSharedBlobs(t *testing.T) {
 	db := newMavenDB(t)
 	now := time.Now().UnixMilli()

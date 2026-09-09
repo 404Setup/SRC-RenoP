@@ -88,7 +88,7 @@ func mavenInspectCondition(alias, userID string, moderated []string, args *[]any
 
 // mavenReadCondition includes explicit L0 members and either bound global team.
 func (db *DB) mavenReadCondition(alias, version, userID string, moderated []string, args *[]any) string {
-	return `(NOT EXISTS (SELECT 1 FROM resource_locks l WHERE l.format = 'maven' AND l.mode = 'read'
+	return `(NOT EXISTS (SELECT 1 FROM ` + resourceLocksQuery("maven") + ` l WHERE l.format = 'maven' AND l.mode = 'read'
 		AND l.repository = ` + alias + `.repository AND l.resource_name = ` + db.mavenResourceName(alias) + `
 		AND (l.version = '' OR ` + resourceLockVersionColumn("maven", "l.version") + ` = ` + version + `))
 		OR ` + mavenInspectCondition(alias, userID, moderated, args) + `)`
@@ -108,7 +108,7 @@ func (db *DB) filterMavenArtifactVersions(artifacts []*core.MavenArtifact, userI
 	}
 	where := ` WHERE (` + strings.Join(conditions, " OR ") + `) AND NOT ` + mavenInspectCondition("a", userID, moderated, &args)
 	rows, err := db.Query(`SELECT DISTINCT a.repository, a.group_id, a.artifact_id FROM maven_artifacts a
-		JOIN resource_locks l ON l.format = 'maven' AND l.repository = a.repository AND l.resource_name = `+db.mavenResourceName("a")+`
+		JOIN `+resourceLocksQuery("maven")+` l ON l.format = 'maven' AND l.repository = a.repository AND l.resource_name = `+db.mavenResourceName("a")+`
 		AND l.mode = 'read' AND l.version != ''`+where, args...)
 	if err != nil {
 		return err
@@ -189,7 +189,7 @@ func (db *DB) mavenMetadataVisibility(repository, username string, moderator boo
 		conditions[i] = `(l.resource_name = ? AND (l.version = '' OR ` + resourceLockVersionColumn("maven", "l.version") + ` = ?))`
 		args = append(args, normalized[i].Name, normalized[i].Version)
 	}
-	rows, err := db.Query(`SELECT l.resource_name, l.version FROM resource_locks l
+	rows, err := db.Query(`SELECT l.resource_name, l.version FROM `+resourceLocksQuery("maven")+` l
 		LEFT JOIN maven_artifacts a ON a.repository = l.repository AND `+db.mavenResourceName("a")+` = l.resource_name
 		LEFT JOIN maven_domain_members m ON m.repository = '' AND m.domain = a.domain AND m.user_id = ?
 		LEFT JOIN super_team_members am ON am.team_prefix = a.super_team_prefix AND am.user_id = ?
@@ -225,6 +225,10 @@ func (db *DB) GetMavenPathLocks(repository, path string, descendants bool) ([]*c
 	if len(parts) > core.MaxMavenPathParts {
 		return nil, core.ErrResourceLockInvalid
 	}
+	locks, err := db.mavenPathDomainLocks(path, descendants)
+	if err != nil {
+		return nil, err
+	}
 	args := []any{strings.ToLower(repository)}
 	conditions := make([]string, 0, len(parts)+2)
 	for i := 2; i < len(parts); i++ {
@@ -255,20 +259,21 @@ func (db *DB) GetMavenPathLocks(repository, path string, descendants bool) ([]*c
 		}
 	}
 	if len(conditions) == 0 {
-		return nil, nil
+		return locks, nil
 	}
-	rows, err := db.Query(`SELECT resource_name, version, source, mode, reason, locked_at FROM resource_locks
+	rows, err := db.Query(`SELECT resource_name, version, source, mode, reason, locked_at, inherited FROM `+resourceLocksQuery("maven")+` l
 		WHERE format = 'maven' AND repository = ? AND (`+strings.Join(conditions, " OR ")+`) LIMIT 8193`, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	locks := make([]*core.ResourceLock, 0)
 	for rows.Next() {
 		lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "maven", Repository: strings.ToLower(repository)}}
-		if err := rows.Scan(&lock.Name, &lock.Version, &lock.Source, &lock.Mode, &lock.Reason, &lock.LockedAt); err != nil {
+		var inherited int
+		if err := rows.Scan(&lock.Name, &lock.Version, &lock.Source, &lock.Mode, &lock.Reason, &lock.LockedAt, &inherited); err != nil {
 			return nil, err
 		}
+		lock.Inherited = inherited != 0
 		locks = append(locks, lock)
 		if len(locks) > 8192 {
 			return nil, core.ErrResourceLockInvalid

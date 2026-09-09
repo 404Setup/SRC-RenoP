@@ -54,7 +54,8 @@ test('global teams expose a standalone read-only public route', () => {
     assert.match(superTeamSource, /export async function loadPublicSuperTeamPage/);
     assert.match(superTeamSource, /teamDetailContent\(details, route\.prefix, \{publicView: true\}\)/);
     assert.match(superTeamSource, /const canManage = !readOnly/);
-    assert.doesNotMatch(superTeamSource, /loadPublicSuperTeamPage[\s\S]*?publication-quota\/super-teams/);
+    const publicLoader = superTeamSource.match(/export async function loadPublicSuperTeamPage\([^]*?\n}/)[0];
+    assert.doesNotMatch(publicLoader, /publication-quota\/super-teams/);
 });
 
 test('global team controls share bounded dialogs, user suggestions, errors, and mobile layout', () => {

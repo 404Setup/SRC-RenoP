@@ -316,7 +316,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		if err := db.CreateSuperTeam(team, username, 5, 20); err != nil {
 			return err
 		}
-		details, err := db.GetSuperTeamDetails(team.Prefix, username, false)
+		details, err := db.GetSuperTeamDetails(team.Prefix, username, false, false)
 		if err != nil || details == nil || details.Team == nil ||
 			details.Team.RoleLevel != core.SuperTeamRoleOwner || len(details.Members) != 1 {
 			return errorsOrMissing(err, "global team")

@@ -35,6 +35,8 @@ func quotaAPIError(c fiber.Ctx, err error) error {
 		status, code = fiber.StatusUnauthorized, "authentication_required"
 	case errors.Is(err, core.ErrUserProfileNotFound), errors.Is(err, core.ErrSuperTeamNotFound):
 		status, code = fiber.StatusNotFound, "owner_not_found"
+	case errors.Is(err, core.ErrResourceLocked):
+		status, code = fiber.StatusLocked, "resource_locked"
 	case errors.Is(err, core.ErrSuperTeamPermissionDenied):
 		status, code = fiber.StatusForbidden, "permission_denied"
 	case errors.Is(err, core.ErrPublicationQuotaInvalid), errors.Is(err, fiber.ErrBadRequest):
@@ -103,7 +105,7 @@ func getOwnerQuota(c fiber.Ctx, state *core.AppState, ownerType string) error {
 			return quotaAPIError(c, core.ErrSuperTeamPermissionDenied)
 		}
 	} else if !user.IsManager() {
-		if _, err := state.GetDB().GetSuperTeamDetails(subject.OwnerKey, user.Username, false); err != nil {
+		if _, err := state.GetDB().GetSuperTeamDetails(subject.OwnerKey, user.Username, false, false); err != nil {
 			return quotaAPIError(c, core.ErrSuperTeamPermissionDenied)
 		}
 	}

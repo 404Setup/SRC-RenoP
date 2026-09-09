@@ -355,6 +355,9 @@ func listDomains(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return apiError(c, err)
 	}
+	domains = slices.DeleteFunc(domains, func(domain *core.MavenDomain) bool {
+		return core.ReadLocked(domain.Locks) && !domain.Member && (user == nil || !user.CheckModeratePermission(""))
+	})
 	for _, domain := range domains {
 		redactMavenDomainForViewer(domain, administrator, true)
 	}
@@ -467,6 +470,9 @@ func authorizedDomain(c fiber.Ctx, state *core.AppState, required int) (*config.
 	} else {
 		details.Administrator = true
 	}
+	if c.Method() != fiber.MethodGet && c.Method() != fiber.MethodHead && len(details.Domain.Locks) > 0 {
+		return nil, nil, core.ErrResourceLocked
+	}
 	return user, details, nil
 }
 
@@ -485,6 +491,10 @@ func visibleDomain(c fiber.Ctx, state *core.AppState) (*core.MavenDomainDetails,
 	details, err := state.GetDB().GetMavenDomainDetails(domain, username)
 	if err != nil {
 		return nil, err
+	}
+	if core.ReadLocked(details.Domain.Locks) && !details.Domain.Member &&
+		(user == nil || !user.CheckModeratePermission("")) {
+		return nil, core.ErrMavenDomainNotFound
 	}
 	if !details.Domain.Verified && details.Domain.ClosedAt == 0 && !administrator && !details.Domain.Member {
 		return nil, core.ErrMavenDomainNotFound

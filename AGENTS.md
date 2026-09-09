@@ -120,6 +120,9 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   Docker index references are captured in `internal/database/docker_locks.go`; preserve source-specific inheritance
   and shared-blob protection. Cross-repository mounts acquire ordered gates in `repositorygate/`.
   Shared mirror authorization is wired in `internal/service/storage/mirror.go`.
+  Global-team lock routes live in `internal/service/superteam/locks.go`; bindings inherit restrictions through
+  `internal/database/resource_lock.go`. Maven domain/path inheritance lives in `internal/database/maven_domain_locks.go`.
+  Preserve retained memberships, independent verified child domains, and current-request moderator scopes.
   Keep manual and system locks independent. Read locks freeze writes, restrict metadata to live staff/members, and deny
   files to everyone. Include index/search/profile visibility, cached files, mirror refreshes, and repository changes.
 - **Maven lifecycle:** Domains are global across repositories. Closure blocks mutations, preserves downloads, and holds

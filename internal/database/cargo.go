@@ -319,7 +319,7 @@ func (db *DB) SearchCargoPackages(repository, query, username string, moderator 
 		}
 	}
 	if !moderator {
-		where += ` AND (NOT EXISTS (SELECT 1 FROM resource_locks l WHERE l.format = 'cargo'
+		where += ` AND (NOT EXISTS (SELECT 1 FROM ` + resourceLocksQuery("cargo") + ` l WHERE l.format = 'cargo'
 			AND l.repository = cargo_packages.repository AND l.resource_name = cargo_packages.normalized_name
 			AND l.version = '' AND l.mode = 'read')
 			OR EXISTS (SELECT 1 FROM cargo_members m WHERE m.repository = cargo_packages.repository
@@ -372,7 +372,7 @@ func (db *DB) SearchCargoPackages(repository, query, username string, moderator 
 		JOIN cargo_packages p ON p.repository = v.repository AND p.normalized_name = v.normalized_name
 		WHERE v.repository = ? AND v.yanked = 0 AND v.normalized_name IN (` + strings.Join(placeholders, ",") + `)`
 	if !moderator {
-		versionQuery += ` AND (NOT EXISTS (SELECT 1 FROM resource_locks l WHERE l.format = 'cargo'
+		versionQuery += ` AND (NOT EXISTS (SELECT 1 FROM ` + resourceLocksQuery("cargo") + ` l WHERE l.format = 'cargo'
 			AND l.repository = v.repository AND l.resource_name = v.normalized_name
 			AND ` + resourceLockVersionColumn("cargo", "l.version") + ` = ` + resourceLockVersionColumn("cargo", "v.version") + ` AND l.mode = 'read')
 			OR EXISTS (SELECT 1 FROM cargo_members m WHERE m.repository = v.repository

@@ -49,6 +49,12 @@ func requireSuperTeamRoleTx(tx *Tx, prefix, userID string, required int) error {
 	if prefix == "" {
 		return nil
 	}
+	if err := lockSuperTeamTx(tx, prefix); err != nil {
+		return err
+	}
+	if err := ensureSuperTeamMutableQuery(tx.QueryRow, prefix); err != nil {
+		return err
+	}
 	role, member, err := superTeamRoleTx(tx, prefix, userID)
 	if err != nil {
 		return err

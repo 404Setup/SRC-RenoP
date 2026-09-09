@@ -311,7 +311,7 @@ func (db *DB) queryNPMPackages(repository, username, search string, administrato
 		args = append(args, userID)
 	}
 	if !moderator {
-		where += ` AND (NOT EXISTS (SELECT 1 FROM resource_locks l WHERE l.format = 'npm'
+		where += ` AND (NOT EXISTS (SELECT 1 FROM ` + resourceLocksQuery("npm") + ` l WHERE l.format = 'npm'
 			AND l.repository = p.repository AND l.resource_name = p.package_name AND l.version = '' AND l.mode = 'read')
 			OR EXISTS (SELECT 1 FROM npm_members m WHERE m.repository = p.repository AND m.package_name = p.package_name AND m.user_id = ?)
 			OR EXISTS (SELECT 1 FROM super_team_members m WHERE m.team_prefix = p.super_team_prefix AND m.user_id = ?))`

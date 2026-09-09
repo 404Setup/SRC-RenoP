@@ -259,6 +259,11 @@ function openCreateDomainDialog(onCreated) {
  * @returns {HTMLElement}
  */
 function mavenDomainStatus(domain) {
+    if (resourceWriteLocked(domain)) {
+        const lock = domain.locks.find(lock => lock.mode === 'read') || domain.locks[0];
+        return {tone: 'pending', icon: 'fileLock', label: t(`resourceLock.${lock.mode}`),
+            description: t(`resourceLock.reason.${lock.reason}`)};
+    }
     if (Number(domain?.closed_at) > 0) {
         const released = domain.released === true;
         return {
@@ -398,7 +403,8 @@ function domainInformationSection(details, {repository = '', repositoryArtifactC
         },
         {label: t('maven.accessLevel'), value: access}
     ];
-    return createRepositoryFactsSection(t('maven.domainInformation'), facts);
+    return el('div', {}, createResourceLockNotices(domain.locks),
+        createRepositoryFactsSection(t('maven.domainInformation'), facts));
 }
 
 /**
@@ -762,8 +768,9 @@ function teamPanel(details, refresh) {
     const administrator = Boolean(details.administrator);
     if (members.length === 0 && !administrator) return null;
     const level = Number(details.domain.permission_level) || 0;
-    const canManage = administrator || level >= 3;
-    const canTransfer = administrator || level === 4;
+    const locked = resourceWriteLocked(details.domain);
+    const canManage = !locked && (administrator || level >= 3);
+    const canTransfer = !locked && (administrator || level === 4);
     const currentUsername = String(localStorage.getItem('username') || '').toLowerCase();
     const list = el('div', {class: 'maven-team-list'});
     members.forEach(member => {
@@ -791,7 +798,7 @@ function teamPanel(details, refresh) {
         } else {
             controls.appendChild(el('span', {class: 'maven-permission-badge'}, permissionLabel(memberLevel)));
         }
-        if ((canManage && memberLevel < 4) || (isSelf && memberLevel < 4)) {
+        if (!locked && ((canManage && memberLevel < 4) || (isSelf && memberLevel < 4))) {
             controls.appendChild(el('button', {
                 type: 'button', class: 'maven-icon-btn is-danger', title: isSelf ? t('team.leave') : t('common.delete'),
                 onclick: async () => {
@@ -1091,7 +1098,8 @@ async function renderManagedDomain(container, domainName) {
         if (!response.ok) throw await localizedResponseError(response, 'maven.domainLoadFailed');
         const details = await response.json();
         const domain = details.domain;
-        const canOwn = details.administrator || Number(domain.permission_level) === 4;
+        const locked = resourceWriteLocked(domain);
+        const canOwn = !locked && (details.administrator || Number(domain.permission_level) === 4);
         const closed = Number(domain.closed_at) > 0;
         const claimPending = domain.claim_status === 'pending';
         const status = mavenDomainStatus(domain);
@@ -1138,7 +1146,7 @@ async function renderManagedDomain(container, domainName) {
                 }
             }, createIcon('warning'), el('span', {}, t('maven.forceVerify'))));
         }
-        if (claimPending && details.administrator) {
+        if (!locked && claimPending && details.administrator) {
             for (const decision of ['approved', 'rejected']) {
                 const approve = decision === 'approved';
                 actions.appendChild(el('button', {

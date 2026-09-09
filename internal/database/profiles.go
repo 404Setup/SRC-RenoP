@@ -158,7 +158,7 @@ func (db *DB) ListUserPackageMemberships(userID, format, viewer string, moderate
 		args = append(args, format, viewerID, viewerID)
 		query = `SELECT ` + selectColumns + ` FROM ` + members + ` m JOIN ` + table + ` p ON p.repository = m.repository
 			AND p.` + nameColumn + ` = m.` + nameColumn + ` WHERE m.user_id = ?
-			AND (NOT EXISTS (SELECT 1 FROM resource_locks l WHERE l.format = ? AND l.mode = 'read'
+			AND (NOT EXISTS (SELECT 1 FROM ` + resourceLocksQuery(format) + ` l WHERE l.format = ? AND l.mode = 'read'
 			AND l.repository = p.repository AND l.resource_name = p.` + nameColumn + ` AND l.version = '')
 			OR EXISTS (SELECT 1 FROM ` + members + ` v WHERE v.repository = p.repository AND v.` + nameColumn + ` = p.` + nameColumn + ` AND v.user_id = ?)
 			OR EXISTS (SELECT 1 FROM super_team_members v WHERE v.team_prefix = p.super_team_prefix AND v.user_id = ?)

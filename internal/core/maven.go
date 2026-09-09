@@ -71,26 +71,27 @@ var (
 
 // MavenDomain is one verified or pending Maven publishing namespace.
 type MavenDomain struct {
-	Repository       string `json:"-"`
-	Domain           string `json:"domain"`
-	VerificationType string `json:"verification_type"`
-	VerificationHost string `json:"verification_host"`
-	VerificationCode string `json:"verification_code,omitempty"`
-	SuperTeamPrefix  string `json:"super_team_prefix,omitempty"`
-	CreatedAt        int64  `json:"created_at"`
-	VerifiedAt       int64  `json:"verified_at,omitempty"`
-	LastCheckAt      int64  `json:"last_check_at,omitempty"`
-	ClosedAt         int64  `json:"closed_at,omitempty"`
-	ReleaseAt        int64  `json:"release_at,omitempty"`
-	ClaimStatus      string `json:"claim_status,omitempty"`
-	ClaimVerifiedAt  int64  `json:"claim_verified_at,omitempty"`
-	PermissionLevel  int    `json:"permission_level,omitempty"`
-	ArtifactCount    int    `json:"artifact_count"`
-	RepositoryCount  int    `json:"repository_count"`
-	MemberCount      int    `json:"member_count"`
-	Verified         bool   `json:"verified"`
-	Released         bool   `json:"released,omitempty"`
-	Member           bool   `json:"member,omitempty"`
+	Locks            []*ResourceLock `json:"locks,omitempty"`
+	Repository       string          `json:"-"`
+	Domain           string          `json:"domain"`
+	VerificationType string          `json:"verification_type"`
+	VerificationHost string          `json:"verification_host"`
+	VerificationCode string          `json:"verification_code,omitempty"`
+	SuperTeamPrefix  string          `json:"super_team_prefix,omitempty"`
+	CreatedAt        int64           `json:"created_at"`
+	VerifiedAt       int64           `json:"verified_at,omitempty"`
+	LastCheckAt      int64           `json:"last_check_at,omitempty"`
+	ClosedAt         int64           `json:"closed_at,omitempty"`
+	ReleaseAt        int64           `json:"release_at,omitempty"`
+	ClaimStatus      string          `json:"claim_status,omitempty"`
+	ClaimVerifiedAt  int64           `json:"claim_verified_at,omitempty"`
+	PermissionLevel  int             `json:"permission_level,omitempty"`
+	ArtifactCount    int             `json:"artifact_count"`
+	RepositoryCount  int             `json:"repository_count"`
+	MemberCount      int             `json:"member_count"`
+	Verified         bool            `json:"verified"`
+	Released         bool            `json:"released,omitempty"`
+	Member           bool            `json:"member,omitempty"`
 }
 
 // MavenDomainListOptions controls the account domain-management listing.

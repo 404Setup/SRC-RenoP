@@ -322,3 +322,73 @@ func TestSuperTeamResourceRoutesFilterPrivatePackages(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, response.StatusCode)
 	response.Body.Close()
 }
+
+func TestSuperTeamLocksRequireLiveCookieAuthorityAndPreserveMetadata(t *testing.T) {
+	_, state := setupSuperTeamApp(t)
+	db := state.GetDB()
+	now := time.Now().UnixMilli()
+	users := map[string]*config.User{
+		"alice": {Username: "alice"}, "admin": {Username: "admin", Roles: []string{"admin"}},
+		"staff":    {Username: "staff", Roles: []string{"canmoderate:*"}},
+		"regional": {Username: "regional", Roles: []string{"canmoderate:releases"}},
+		"scoped":   {Username: "staff", Roles: []string{"canview:releases"}},
+		"guest":    {Username: "guest"},
+	}
+	for name, user := range users {
+		if name == "guest" || name == "scoped" {
+			continue
+		}
+		require.NoError(t, db.SaveToken(&core.AccessToken{Name: name, Permissions: user.Roles}))
+		session := &core.Session{PublicID: name, Username: name, CreatedAt: now}
+		session.LastActive.Store(now)
+		require.NoError(t, db.SaveSession(session, name+"-session"))
+	}
+	team := &core.SuperTeam{Prefix: "locked", Name: "Locked", CreatedAt: now}
+	require.NoError(t, db.CreateSuperTeam(team, "alice", 5, 10))
+	app := fiber.New()
+	app.Use(func(c fiber.Ctx) error {
+		name := c.Get("X-Test-User", "guest")
+		c.Locals("user", users[name])
+		c.Locals("current_session_id", name+"-session")
+		c.Locals("auth_credential_kind", "session")
+		return c.Next()
+	})
+	SetupRoutes(app.Group("/api"), state)
+	request := func(method, path, name string, cookie bool) *http.Response {
+		t.Helper()
+		req := httptest.NewRequest(method, path, bytes.NewBufferString(`{"mode":"read","reason":"abuse"}`))
+		req.Header.Set("X-Test-User", name)
+		req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+		if cookie {
+			req.AddCookie(&http.Cookie{Name: "renop_session", Value: name + "-session"})
+		}
+		response, err := app.Test(req)
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = response.Body.Close() })
+		return response
+	}
+	for _, name := range []string{"alice", "regional", "scoped", "guest"} {
+		require.Equal(t, http.StatusForbidden, request(http.MethodPut, "/api/super-teams/locked/locks", name, true).StatusCode)
+	}
+	require.Equal(t, http.StatusForbidden, request(http.MethodPut, "/api/super-teams/locked/locks", "staff", false).StatusCode)
+	require.Equal(t, http.StatusNoContent, request(http.MethodPut, "/api/super-teams/locked/locks", "staff", true).StatusCode)
+	for _, name := range []string{"alice", "staff", "admin", "guest", "scoped", "regional"} {
+		want := http.StatusNotFound
+		if name == "alice" || name == "staff" || name == "admin" {
+			want = http.StatusOK
+		}
+		response := request(http.MethodGet, "/api/super-teams/locked", name, true)
+		require.Equal(t, want, response.StatusCode, name)
+		if want == http.StatusOK {
+			var details core.SuperTeamDetails
+			decodeSuperTeamResponse(t, response, &details)
+			require.Len(t, details.Team.Locks, 1)
+			require.Equal(t, name != "alice", details.Moderator)
+		}
+	}
+	require.Equal(t, http.StatusLocked, request(http.MethodDelete, "/api/super-teams/locked", "admin", true).StatusCode)
+	require.NoError(t, db.DeleteSession("staff-session"))
+	require.Equal(t, http.StatusForbidden, request(http.MethodDelete, "/api/super-teams/locked/locks", "staff", true).StatusCode)
+	require.Equal(t, http.StatusNoContent, request(http.MethodDelete, "/api/super-teams/locked/locks", "admin", true).StatusCode)
+	require.Equal(t, http.StatusOK, request(http.MethodGet, "/api/super-teams/locked", "guest", false).StatusCode)
+}

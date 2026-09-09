@@ -76,7 +76,9 @@ func TestMavenLocksSeparateMetadataFromBytesAndRejectFrozenWrites(t *testing.T) 
 		session.LastActive.Store(now)
 		require.NoError(t, db.SaveSession(session, name+"-session"))
 	}
-	domain := &core.MavenDomain{Domain: "com.example", VerificationType: core.MavenVerificationDNS,
+	team := &core.SuperTeam{Prefix: "domain-team", Name: "Domain", CreatedAt: now}
+	require.NoError(t, db.CreateSuperTeam(team, "alice", 5, 10))
+	domain := &core.MavenDomain{Domain: "com.example", SuperTeamPrefix: team.Prefix, VerificationType: core.MavenVerificationDNS,
 		VerificationHost: "example.com", VerificationCode: "renop-verification=locks", CreatedAt: now}
 	require.NoError(t, db.CreateMavenDomain(domain, "alice"))
 	require.NoError(t, db.MarkMavenDomainVerified(domain.Domain, domain.VerificationCode, now))
@@ -173,4 +175,65 @@ func TestMavenLocksSeparateMetadataFromBytesAndRejectFrozenWrites(t *testing.T) 
 	require.Equal(t, http.StatusOK, status, string(body))
 	status, _ = request(http.MethodGet, "/releases/com/example/demo/2.0/demo-2.0.jar", "guest", "", false)
 	require.Equal(t, http.StatusOK, status)
+	t.Run("team locks cover domain metadata, uncatalogued files, and independent subdomains", func(t *testing.T) {
+		nested := &core.MavenDomain{Domain: "com.example.independent", VerificationType: core.MavenVerificationDNS,
+			VerificationHost: "independent.example.com", VerificationCode: "nested", CreatedAt: now}
+		require.NoError(t, db.CreateMavenDomain(nested, "writer"))
+		require.NoError(t, db.MarkMavenDomainVerified(nested.Domain, nested.VerificationCode, now))
+		for relative, data := range map[string]string{
+			"com/example/maven-metadata.xml":                  `<metadata><plugins><plugin><prefix>demo</prefix><artifactId>demo</artifactId></plugin></plugins></metadata>`,
+			"com/example/uncatalogued/file.bin":               "private bytes",
+			"com/example/independent/other/1.0/other-1.0.jar": "independent bytes",
+		} {
+			file := filepath.Join(cfg.StoragePath, "releases", filepath.FromSlash(relative))
+			require.NoError(t, os.MkdirAll(filepath.Dir(file), 0700))
+			require.NoError(t, os.WriteFile(file, []byte(data), 0600))
+			state.Inner.FileIndex.EnsureParentDirs(file)
+			state.Inner.FileIndex.InsertFile(file, index.FileInfo{Size: int64(len(data)), ModTime: time.Now().UnixNano()})
+		}
+		lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "superteam", Name: team.Prefix},
+			Mode: core.ResourceLockRead, Source: core.ResourceLockSystem, Reason: "hold", LockedAt: now}
+		require.NoError(t, db.SetResourceLock(lock, "", ""))
+		for _, viewer := range []string{"guest", "writer", "alice", "bob", "staff", "admin"} {
+			inspect := viewer != "guest" && viewer != "writer"
+			want := http.StatusNotFound
+			if inspect {
+				want = http.StatusOK
+			}
+			for _, path := range []string{"com/example/maven-metadata.xml", "com/example/demo/maven-metadata.xml"} {
+				status, body := request(http.MethodGet, "/releases/"+path, viewer, "", true)
+				require.Equal(t, want, status, viewer+": "+string(body))
+			}
+			status, _ := request(http.MethodGet, "/releases/com/example/uncatalogued/file.bin", viewer, "", true)
+			require.Equal(t, http.StatusNotFound, status, viewer)
+			status, body := request(http.MethodGet, "/releases/com/example/independent/other/1.0/other-1.0.jar", viewer, "", true)
+			require.Equal(t, http.StatusOK, status, viewer+": "+string(body))
+			paths := []string{"com/example", "com/example/demo", "com/example/uncatalogued/file.bin", "com/example/independent/other/1.0"}
+			visible, err := VisibleMetadataPaths(state, users[viewer], "releases", paths)
+			require.NoError(t, err)
+			require.Equal(t, []bool{inspect, inspect, inspect, true}, visible, viewer)
+			filter, err := MetadataPathFilter(state, users[viewer], "releases")
+			require.NoError(t, err)
+			for i, path := range paths {
+				require.Equal(t, visible[i], filter(path), viewer+": "+path)
+			}
+		}
+		status, body := request(http.MethodGet, "/api/maven/domains/com.example", "alice", "", true)
+		require.Equal(t, http.StatusOK, status, string(body))
+		var details core.MavenDomainDetails
+		require.NoError(t, json.Unmarshal(body, &details))
+		require.Len(t, details.Domain.Locks, 1)
+		status, _ = request(http.MethodGet, "/api/maven/domains/com.example", "guest", "", false)
+		require.Equal(t, http.StatusNotFound, status)
+		status, body = request(http.MethodPut, "/releases/com/example/new/1.0/new-1.0.jar", "alice", "blocked", true)
+		require.Equal(t, http.StatusLocked, status, string(body))
+		status, body = request(http.MethodPost, "/api/maven/domains/com.example/close", "admin", "", true)
+		require.Equal(t, http.StatusLocked, status, string(body))
+		require.ErrorIs(t, db.ReserveMavenVerificationAttempt(domain.Domain, "alice", false, now+1, now), core.ErrResourceLocked)
+		require.ErrorIs(t, EnsurePathMutable(state, cfg.Maven.Repositories["releases"], "com/example/uncatalogued/new.bin"), core.ErrResourceLocked)
+		require.NoError(t, db.DeleteResourceLock(lock.ResourceLockTarget, core.ResourceLockSystem, "", ""))
+		status, _ = request(http.MethodGet, "/releases/com/example/uncatalogued/file.bin", "guest", "", false)
+		require.Equal(t, http.StatusOK, status)
+	})
+
 }

@@ -37,19 +37,56 @@ func initResourceLockTable(db *sql.DB) error {
 	return err
 }
 
-// Docker index locks retain their content references until their exact source is removed.
+// Parent restrictions follow live bindings; Docker indexes also retain captured content references.
 func resourceLocksQuery(format string) string {
 	const columns = `id, source, package_id, format, repository, resource_name, version, mode, reason, locked_at`
-	if format != "docker" {
-		return `(SELECT ` + columns + `, 0 AS inherited FROM resource_locks)`
+	query := `SELECT ` + columns + `, 0 AS inherited FROM resource_locks`
+	if format == "docker" {
+		query += ` UNION ALL SELECT l.id, l.source, l.package_id, l.format, l.repository, l.resource_name,
+			v.version, l.mode, l.reason, l.locked_at, 1 AS inherited
+			FROM resource_locks l JOIN resource_lock_versions v ON v.lock_id = l.id AND v.source = l.source`
 	}
-	return `(SELECT ` + columns + `, 0 AS inherited FROM resource_locks UNION ALL
-		SELECT l.id, l.source, l.package_id, l.format, l.repository, l.resource_name,
-		v.version, l.mode, l.reason, l.locked_at, 1 AS inherited
-		FROM resource_locks l JOIN resource_lock_versions v ON v.lock_id = l.id AND v.source = l.source)`
+	table, name := "", ""
+	join := ""
+	binding := `p.super_team_prefix = l.resource_name`
+	switch format {
+	case "cargo":
+		table, name = "cargo_packages", "p.normalized_name"
+	case "npm":
+		table, name = "npm_packages", "p.package_name"
+	case "docker":
+		table, name = "docker_images", "p.image_name"
+	case "maven":
+		table, name = "maven_artifacts", resourceLockVersionColumn("maven", "CONCAT(p.group_id, ':', p.artifact_id)")
+		join = ` LEFT JOIN maven_domains d ON d.repository = '' AND d.domain = p.domain`
+		binding = `(` + binding + ` OR d.super_team_prefix = l.resource_name)`
+	case "maven-domain":
+		table, name = "maven_domains", "p.domain"
+		binding += ` AND p.repository = ''`
+	}
+	if table != "" {
+		query += ` UNION ALL SELECT l.id, l.source, '', '` + format + `', p.repository, ` + name + `,
+			'', l.mode, l.reason, l.locked_at, 1 FROM ` + table + ` p` + join + `
+			JOIN resource_locks l ON l.format = 'superteam' AND l.repository = '' AND ` + binding
+	}
+	return `(` + query + `)`
 }
 
 func normalizeResourceLockTarget(target core.ResourceLockTarget) (core.ResourceLockTarget, error) {
+	if target.Format == "maven-domain" {
+		domain := sanitizeMavenDomain(target.Name)
+		if target.Repository != "" || target.Version != "" || domain == "" || len(domain) > 253 || !core.ValidMavenCoordinatePart(domain) {
+			return core.ResourceLockTarget{}, core.ErrResourceLockInvalid
+		}
+		return core.ResourceLockTarget{Format: "maven-domain", Name: domain}, nil
+	}
+	if strings.EqualFold(strings.TrimSpace(target.Format), "superteam") {
+		prefix, valid := core.NormalizeSuperTeamPrefix(target.Name)
+		if !valid || target.Repository != "" || target.Version != "" {
+			return core.ResourceLockTarget{}, core.ErrResourceLockInvalid
+		}
+		return core.ResourceLockTarget{Format: "superteam", Name: prefix}, nil
+	}
 	var valid bool
 	target.Format, target.Repository, target.Name, valid = normalizePackageDeprecation(
 		target.Format, target.Repository, target.Name)
@@ -97,6 +134,10 @@ func (db *DB) SetResourceLock(lock *core.ResourceLock, actor, session string) er
 		return err
 	}
 	id := resourceLockID(target)
+	if target.Format == "superteam" {
+		superTeamMutationLock.Lock()
+		defer superTeamMutationLock.Unlock()
+	}
 	tx, err := db.Begin()
 	if err != nil {
 		return err
@@ -104,6 +145,11 @@ func (db *DB) SetResourceLock(lock *core.ResourceLock, actor, session string) er
 	defer tx.Rollback()
 	if err := authorizeResourceLockTx(tx, target, lock.Source, actor, session); err != nil {
 		return err
+	}
+	if target.Format == "superteam" {
+		if err := lockSuperTeamTx(tx, target.Name); err != nil {
+			return err
+		}
 	}
 	if target.Format == "maven" {
 		if err := lockMavenArtifactTargetTx(tx, target); err != nil {
@@ -132,6 +178,10 @@ func (db *DB) DeleteResourceLock(target core.ResourceLockTarget, source, actor, 
 	if err != nil || (source != core.ResourceLockManual && source != core.ResourceLockSystem) {
 		return core.ErrResourceLockInvalid
 	}
+	if target.Format == "superteam" {
+		superTeamMutationLock.Lock()
+		defer superTeamMutationLock.Unlock()
+	}
 	tx, err := db.Begin()
 	if err != nil {
 		return err
@@ -139,6 +189,11 @@ func (db *DB) DeleteResourceLock(target core.ResourceLockTarget, source, actor, 
 	defer tx.Rollback()
 	if err := authorizeResourceLockTx(tx, target, source, actor, session); err != nil {
 		return err
+	}
+	if target.Format == "superteam" {
+		if err := lockSuperTeamTx(tx, target.Name); err != nil {
+			return err
+		}
 	}
 	if target.Format == "maven" {
 		if err := lockMavenArtifactTargetTx(tx, target); err != nil {
@@ -189,8 +244,8 @@ func (db *DB) GetResourceLocks(target core.ResourceLockTarget, allVersions bool)
 		return nil, err
 	}
 	query := `SELECT format, repository, resource_name, version, source, mode, reason, locked_at, inherited
-		FROM ` + resourceLocksQuery(target.Format) + ` l WHERE package_id = ?`
-	args := []any{packageDeprecationID(target.Format, target.Repository, target.Name)}
+		FROM ` + resourceLocksQuery(target.Format) + ` l WHERE format = ? AND repository = ? AND resource_name = ?`
+	args := []any{target.Format, target.Repository, target.Name}
 	if !allVersions {
 		query += ` AND (version = '' OR ` + resourceLockVersionColumn(target.Format, "version") + ` = ?)`
 		args = append(args, core.ResourceLockVersionKey(target.Format, target.Version))
@@ -224,8 +279,8 @@ func ensureResourceMutableQuery(queryRow func(string, ...any) row, target core.R
 	if err != nil {
 		return err
 	}
-	query := `SELECT 1 FROM ` + resourceLocksQuery(target.Format) + ` l WHERE package_id = ?`
-	args := []any{packageDeprecationID(target.Format, target.Repository, target.Name)}
+	query := `SELECT 1 FROM ` + resourceLocksQuery(target.Format) + ` l WHERE format = ? AND repository = ? AND resource_name = ?`
+	args := []any{target.Format, target.Repository, target.Name}
 	if !allVersions {
 		query += ` AND (version = '' OR ` + resourceLockVersionColumn(target.Format, "version") + ` = ?)`
 		args = append(args, core.ResourceLockVersionKey(target.Format, target.Version))
@@ -243,6 +298,9 @@ func ensureResourceMutableQuery(queryRow func(string, ...any) row, target core.R
 
 // ResourceMetadataVisibility checks a bounded package page without per-entry membership or lock queries.
 func (db *DB) ResourceMetadataVisibility(format, repository, username string, moderator bool, targets []core.ResourceLockTarget) ([]bool, error) {
+	if format == "maven-domain" {
+		return db.mavenDomainMetadataVisibility(username, moderator, targets)
+	}
 	if format == "maven" {
 		return db.mavenMetadataVisibility(repository, username, moderator, targets)
 	}
@@ -318,13 +376,34 @@ func (db *DB) ResourceMetadataVisibility(format, repository, username string, mo
 
 // EnsureRepositoryResourcesMutable prevents reconfiguration or deletion from bypassing resource locks.
 func (db *DB) EnsureRepositoryResourcesMutable(repository string) error {
-	var exists int
-	err := db.QueryRow(`SELECT 1 FROM resource_locks WHERE repository = ? LIMIT 1`, strings.ToLower(repository)).Scan(&exists)
-	if errors.Is(err, sql.ErrNoRows) {
+	for _, format := range []string{"cargo", "npm", "docker", "maven"} {
+		var exists int
+		err := db.QueryRow(`SELECT 1 FROM `+resourceLocksQuery(format)+` l WHERE repository = ? LIMIT 1`, strings.ToLower(repository)).Scan(&exists)
+		if err == nil {
+			return core.ErrResourceLocked
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+	}
+	return nil
+}
+
+func ensureSuperTeamMutableQuery(queryRow func(string, ...any) row, prefix string) error {
+	if prefix == "" {
 		return nil
 	}
-	if err != nil {
+	return ensureResourceMutableQuery(queryRow, core.ResourceLockTarget{Format: "superteam", Name: prefix}, false)
+}
+
+func lockSuperTeamTx(tx *Tx, prefix string) error {
+	if _, err := tx.Exec(`UPDATE super_teams SET updated_at = updated_at WHERE prefix = ?`, prefix); err != nil {
 		return err
 	}
-	return core.ErrResourceLocked
+	var exists int
+	err := tx.QueryRow(`SELECT 1 FROM super_teams WHERE prefix = ?`, prefix).Scan(&exists)
+	if errors.Is(err, sql.ErrNoRows) {
+		return core.ErrSuperTeamNotFound
+	}
+	return err
 }

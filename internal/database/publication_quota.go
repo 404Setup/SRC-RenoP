@@ -225,6 +225,14 @@ func (db *DB) SetPublicationQuotaOverride(subject core.PublicationQuotaSubject,
 	if err != nil {
 		return err
 	}
+	if resolved.OwnerType == core.PublicationQuotaOwnerSuperTeam {
+		if err := lockSuperTeamTx(tx, resolved.OwnerKey); err != nil {
+			return err
+		}
+		if err := ensureSuperTeamMutableQuery(tx.QueryRow, resolved.OwnerKey); err != nil {
+			return err
+		}
+	}
 	if override.FileLimit == nil && override.ByteLimit == nil && override.PublicationLimit == nil &&
 		override.Period == nil && override.Unlimited == nil {
 		if _, err := tx.Exec(`DELETE FROM publication_quota_overrides WHERE owner_type = ? AND owner_key = ?`,

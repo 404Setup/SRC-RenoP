@@ -181,7 +181,10 @@ func checkResourceLocks(db *DB, repository, npmRepository, dockerRepository, mav
 	if err := checkDockerLocks(db, dockerRepository, prefix, owner, moderator, sessionToken, now); err != nil {
 		return err
 	}
-	return checkMavenLocks(db, mavenRepository, mavenDomain, owner, moderator, sessionToken, now)
+	if err := checkMavenLocks(db, mavenRepository, mavenDomain, owner, moderator, sessionToken, now); err != nil {
+		return err
+	}
+	return checkSuperTeamLocks(db, repository, npmRepository, dockerRepository, mavenRepository, mavenDomain, prefix, owner, now)
 }
 
 func checkDockerLocks(db *DB, repository, prefix, owner, moderator, session string, now int64) error {
@@ -357,4 +360,70 @@ func checkNPMLocks(db *DB, repository, prefix, owner, moderator, session string,
 		return err
 	}
 	return db.DeleteResourceLock(lock.ResourceLockTarget, core.ResourceLockManual, moderator, session)
+}
+
+func checkSuperTeamLocks(db *DB, cargo, npm, docker, maven, domain, prefix, owner string, now int64) error {
+	lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "superteam", Name: prefix},
+		Source: core.ResourceLockSystem, Mode: core.ResourceLockRead, Reason: "abuse", LockedAt: now}
+	if err := db.SetResourceLock(lock, "", ""); err != nil {
+		return err
+	}
+	for _, target := range []core.ResourceLockTarget{
+		{Format: "cargo", Repository: cargo, Name: "lock-demo"},
+		{Format: "npm", Repository: npm, Name: "npm-lock-demo"},
+		{Format: "docker", Repository: docker, Name: "docker-lock-demo"},
+		{Format: "maven", Repository: maven, Name: domain + ":lock-demo"},
+		{Format: "maven-domain", Name: domain},
+	} {
+		locks, err := db.GetResourceLocks(target, true)
+		if err != nil || len(locks) != 1 || !locks[0].Inherited {
+			return errorsOrMissing(err, "inherited "+target.Format+" team lock")
+		}
+		if err := db.EnsureResourceMutable(target, false); !errors.Is(err, core.ErrResourceLocked) {
+			return errorsOrMissing(err, "inherited "+target.Format+" mutation denial")
+		}
+		for _, viewer := range []string{"", owner} {
+			visible, err := db.ResourceMetadataVisibility(target.Format, target.Repository, viewer, false, []core.ResourceLockTarget{target})
+			if err != nil || len(visible) != 1 || visible[0] != (viewer == owner) {
+				return errorsOrMissing(err, "inherited "+target.Format+" metadata visibility")
+			}
+		}
+		if target.Repository != "" {
+			if err := db.EnsureRepositoryResourcesMutable(target.Repository); !errors.Is(err, core.ErrResourceLocked) {
+				return errorsOrMissing(err, "inherited repository restriction")
+			}
+		}
+	}
+	details, err := db.GetPublicSuperTeamDetails(prefix, owner, false, false)
+	if err != nil || len(details.Team.Locks) != 1 {
+		return errorsOrMissing(err, "locked team metadata")
+	}
+	if _, err := db.GetPublicSuperTeamDetails(prefix, "", false, false); !errors.Is(err, core.ErrSuperTeamNotFound) {
+		return errorsOrMissing(err, "locked team public visibility")
+	}
+	if err := db.UpdateSuperTeam(prefix, owner, "Blocked", "", core.PublicLinks{}, false, now); !errors.Is(err, core.ErrResourceLocked) {
+		return errorsOrMissing(err, "locked team update")
+	}
+	domainDetails, err := db.GetMavenDomainDetails(domain, owner)
+	if err != nil || len(domainDetails.Domain.Locks) != 1 {
+		return errorsOrMissing(err, "locked domain metadata")
+	}
+	path := strings.ReplaceAll(domain, ".", "/") + "/uncatalogued/file.bin"
+	locks, err := db.GetMavenPathLocks(maven, path, false)
+	if err != nil || !core.ReadLocked(locks) {
+		return errorsOrMissing(err, "uncatalogued domain file restriction")
+	}
+	for _, viewer := range []string{"", owner} {
+		visible, err := db.MavenDomainPathVisibility(maven, viewer, false, []string{path})
+		if err != nil || len(visible) != 1 || visible[0] != (viewer == owner) {
+			return errorsOrMissing(err, "uncatalogued domain path visibility")
+		}
+	}
+	if err := db.ReserveMavenVerificationAttempt(domain, owner, false, now+1, now); !errors.Is(err, core.ErrResourceLocked) {
+		return errorsOrMissing(err, "locked domain verification denial")
+	}
+	if err := db.DeleteResourceLock(lock.ResourceLockTarget, core.ResourceLockSystem, "", ""); err != nil {
+		return err
+	}
+	return db.EnsureResourceMutable(core.ResourceLockTarget{Format: "maven", Repository: maven, Name: domain + ":lock-demo"}, false)
 }
