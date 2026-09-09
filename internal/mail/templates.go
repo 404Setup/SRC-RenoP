@@ -81,17 +81,40 @@ var chineseTemplates = []templateCopy{
 
 // Inline colors mirror @renop/ui tokens because email clients may strip stylesheets.
 var emailTemplate = template.Must(template.New("email").Parse(`<!doctype html>
-<html lang="{{.Locale}}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>{{.Title}}</title>
-<style>@media(prefers-color-scheme:dark){.mail-background{background:#000000!important;color:#f9fafb!important}.mail-card{background:#1f2937!important;border-color:#374151!important}.mail-notice{border-top-color:#d97706!important}.mail-code{background:#111827!important;border-color:#374151!important}.mail-muted{color:#9ca3af!important}.mail-button{background:#f9fafb!important;color:#111827!important;border-color:#f9fafb!important}}</style></head>
-<body class="mail-background" style="margin:0;padding:32px 12px;background:#f3f4f6;color:#111827;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;line-height:1.7">
-<table role="presentation" style="width:100%;max-width:600px;margin:0 auto;border-collapse:separate;border-spacing:0;table-layout:fixed"><tr><td style="padding:0 8px 20px;font-size:23px;font-weight:750;letter-spacing:-0.6px;overflow-wrap:anywhere">{{.SiteName}}</td></tr>
-<tr><td class="mail-card{{if eq .Style "notice"}} mail-notice{{end}}" style="padding:{{if eq .Style "compact"}}20px{{else}}32px{{end}};background:#ffffff;border:1px solid #e5e7eb;border-radius:24px;{{if eq .Style "notice"}}border-top:4px solid #d97706;{{end}}">
-<h1 style="margin:0 0 20px;font-size:24px;line-height:1.3;letter-spacing:-0.5px;overflow-wrap:anywhere;word-break:break-word">{{.Title}}</h1>
-{{if .Username}}<p style="margin:0 0 12px;overflow-wrap:anywhere">{{.Username}},</p>{{end}}<p style="margin:0 0 20px">{{.Body}}</p>
-{{if .Code}}<div class="mail-code" style="padding:16px;margin:20px 0;border:1px solid #e5e7eb;background:#f3f4f6;border-radius:16px;text-align:center;font:700 28px ui-monospace,Menlo,Consolas,monospace;letter-spacing:4px;overflow-wrap:anywhere">{{.Code}}</div>{{end}}
-{{if .Detail}}<p style="margin:0 0 20px;white-space:pre-wrap;overflow-wrap:anywhere">{{.Detail}}</p>{{end}}
-{{if .URL}}<a class="mail-button" href="{{.URL}}" style="display:inline-block;padding:11px 24px;border:1px solid #111827;border-radius:999px;background:#111827;color:#ffffff;text-decoration:none;font-weight:600;text-align:center">{{.OpenLabel}}</a>{{end}}
-</td></tr><tr><td class="mail-muted" style="padding:20px 8px;color:#6b7280;font-size:12px">{{.Footer}}</td></tr></table></body></html>`))
+<html lang="{{.Locale}}">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark"><title>{{.Title}}</title>
+<style>
+@media(max-width:480px){.mail-background{padding:24px 12px!important}.mail-content{padding:24px 20px!important}.mail-compact{padding:20px!important}.mail-title{font-size:24px!important}}
+@media(prefers-color-scheme:dark){
+.mail-background{background:#000000!important;color:#f9fafb!important}
+.mail-card{background:#1f2937!important;border-color:#374151!important}
+.mail-brand,.mail-code{background:#172b49!important;border-color:#28466f!important;color:#bfdbfe!important}
+.mail-rule{border-color:#374151!important}.mail-notice{border-top-color:#f59e0b!important}
+.mail-muted{color:#9ca3af!important}.mail-button{background:#2563eb!important;border-color:#3b82f6!important;color:#ffffff!important}
+}
+</style>
+</head>
+<body class="mail-background" style="margin:0;padding:40px 16px;background:#f3f4f6;color:#111827;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;font-size:16px;line-height:1.65">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;margin:0 auto;border-collapse:separate;border-spacing:0;table-layout:fixed">
+<tr><td style="padding:0 4px 18px;overflow-wrap:anywhere;word-break:break-word">
+<span class="mail-brand" style="display:inline-block;padding:6px 14px;border:1px solid #dbeafe;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:14px;font-weight:700;letter-spacing:0.1px">{{.SiteName}}</span>
+</td></tr>
+<tr><td class="mail-card{{if eq .Style "notice"}} mail-notice{{end}}" style="background:#ffffff;border:1px solid #e5e7eb;border-radius:18px;{{if eq .Style "notice"}}border-top:4px solid #d97706;{{end}}">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed">
+<tr><td class="mail-content{{if eq .Style "compact"}} mail-compact{{end}}" style="padding:{{if eq .Style "compact"}}22px{{else}}32px{{end}};overflow-wrap:anywhere;word-break:break-word">
+<h1 class="mail-title" style="margin:0 0 20px;font-size:{{if eq .Style "compact"}}24px{{else}}28px{{end}};font-weight:700;line-height:1.25;letter-spacing:-0.5px">{{.Title}}</h1>
+{{if .Username}}<p class="mail-muted" style="margin:0 0 12px;color:#6b7280;font-size:14px">{{.Username}},</p>{{end}}
+<p style="margin:0 0 20px">{{.Body}}</p>
+{{if .Code}}<div class="mail-code" style="padding:18px 12px;margin:24px 0;border:1px solid #dbeafe;border-radius:12px;background:#eff6ff;color:#1d4ed8;text-align:center;font:700 30px ui-monospace,Menlo,Consolas,monospace;line-height:1.5;letter-spacing:4px;overflow-wrap:anywhere;word-break:break-word">{{.Code}}</div>{{end}}
+{{if .Detail}}<div class="mail-rule" style="margin:24px 0;padding-top:20px;border-top:1px solid #e5e7eb;white-space:pre-wrap">{{.Detail}}</div>{{end}}
+{{if .URL}}<a class="mail-button" href="{{.URL}}" style="display:inline-block;box-sizing:border-box;max-width:100%;padding:11px 24px;border:1px solid #2563eb;border-radius:999px;background:#2563eb;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;text-align:center;line-height:1.5">{{.OpenLabel}}</a>{{end}}
+</td></tr></table>
+</td></tr>
+<tr><td class="mail-muted" style="padding:20px 4px 0;color:#6b7280;font-size:12px;line-height:1.6;overflow-wrap:anywhere;word-break:break-word">{{.Footer}}</td></tr>
+</table>
+</body></html>`))
 
 // Render creates RenoUI-styled HTML and a matching plain-text alternative.
 func (c Config) Render(scene string, data TemplateData) (Message, error) {
