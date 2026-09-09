@@ -250,6 +250,9 @@ func clickHouseSchemas() []clickHouseTableSchema {
 		{name: "package_deprecations", keyColumns: []string{"id"}, columns: []string{
 			"`id` String", "`format` String", "`repository` String", "`package_key` String", "`deprecated_at` Int64",
 		}},
+		{name: "resource_lock_versions", keyColumns: []string{"lock_id", "source", "version"}, columns: []string{
+			"`lock_id` String", "`source` String", "`version` String",
+		}},
 		{name: "resource_locks", keyColumns: []string{"id", "source"}, columns: []string{
 			"`id` String", "`source` String", "`package_id` String", "`format` String",
 			"`repository` String", "`resource_name` String", "`version` String", "`mode` String",

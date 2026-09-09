@@ -132,12 +132,10 @@ func (db *DB) ListSuperTeamResources(options core.SuperTeamResourceListOptions) 
 		}
 		whereClause = ` WHERE resource.super_team_prefix = ? AND ((resource.private = 0 AND ` + publicCondition +
 			`) OR (resource.private = 1 AND (` + strings.Join(privateConditions, " OR ") + `)))`
-		if format == config.RepositoryFormatNPM {
-			whereClause += ` AND (explicit_member.user_id IS NOT NULL OR team_member.user_id IS NOT NULL OR ` +
-				resourceRepositoryCondition("resource.repository", normalizeResourceRepositories(options.ModeratedRepositories), &args) +
-				` OR NOT EXISTS (SELECT 1 FROM resource_locks l WHERE l.format = 'npm' AND l.mode = 'read'
-				AND l.version = '' AND l.repository = resource.repository AND l.resource_name = resource.package_name))`
-		}
+		whereClause += ` AND (explicit_member.user_id IS NOT NULL OR team_member.user_id IS NOT NULL OR ` +
+			resourceRepositoryCondition("resource.repository", normalizeResourceRepositories(options.ModeratedRepositories), &args) +
+			` OR NOT EXISTS (SELECT 1 FROM resource_locks l WHERE l.format = '` + format + `' AND l.mode = 'read'
+				AND l.version = '' AND l.repository = resource.repository AND l.resource_name = resource.` + nameColumn + `))`
 		orderClause = ` ORDER BY resource.repository, resource.` + nameColumn
 	default:
 		return nil, 0, errors.New("global team resource format is invalid")

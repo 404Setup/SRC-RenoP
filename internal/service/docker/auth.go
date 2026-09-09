@@ -72,6 +72,13 @@ func CanReadDocker(state *core.AppState, user *config.User, repo *config.Reposit
 			if err != nil {
 				return false
 			}
+			locks, err := db.GetResourceLocks(dockerLockTarget(repo.Name, imageName, ""), false)
+			if err != nil {
+				return false
+			}
+			if core.ReadLocked(locks) {
+				return member || user != nil && user.CheckModeratePermission(repo.Name)
+			}
 			if exists && private {
 				if user != nil && (user.IsManager() || user.CheckUpdatePermission(repo.Name)) {
 					return true
@@ -113,12 +120,10 @@ func FilterReadableDockerImages(state *core.AppState, user *config.User, repo *c
 	if len(images) == 0 {
 		return images, nil
 	}
-	if user != nil && (user.IsManager() || user.CheckUpdatePermission(repo.Name)) {
-		return images, nil
-	}
+	administrator := user != nil && (user.IsManager() || user.CheckUpdatePermission(repo.Name))
 	var privateNames []string
 	for _, image := range images {
-		if image != nil && image.Private {
+		if image != nil && image.Private && !administrator {
 			privateNames = append(privateNames, image.ImageName)
 		}
 	}
@@ -142,11 +147,32 @@ func FilterReadableDockerImages(state *core.AppState, user *config.User, repo *c
 		if image == nil {
 			continue
 		}
-		if _, member := memberLevels[image.ImageName]; !image.Private || member {
+		if _, member := memberLevels[image.ImageName]; !image.Private || member || administrator {
 			visible = append(visible, image)
 		}
 	}
-	return visible, nil
+	if state == nil || state.GetDB() == nil {
+		return nil, core.ErrDatabaseUnavailable
+	}
+	username, moderator := "", false
+	if user != nil {
+		username, moderator = user.Username, user.CheckModeratePermission(repo.Name)
+	}
+	targets := make([]core.ResourceLockTarget, len(visible))
+	for i, image := range visible {
+		targets[i] = dockerLockTarget(repo.Name, image.ImageName, "")
+	}
+	allowed, err := state.GetDB().ResourceMetadataVisibility("docker", repo.Name, username, moderator, targets)
+	if err != nil {
+		return nil, err
+	}
+	filtered := visible[:0]
+	for i, image := range visible {
+		if allowed[i] {
+			filtered = append(filtered, image)
+		}
+	}
+	return filtered, state.GetDB().FilterDockerImageVersions(filtered, username, moderator)
 }
 
 // CanWriteDocker checks whether a user has push/mutate access to a Docker repository or specific image.
@@ -162,6 +188,9 @@ func CanWriteDocker(state *core.AppState, user *config.User, repo *config.Reposi
 		return false
 	}
 	_, imageName := ParseRepositoryAndImage(repoFullName)
+	if db.EnsurePackageMutable(config.RepositoryFormatDocker, repo.Name, imageName) != nil {
+		return false
+	}
 	exists, _, pushEnabled, member, level, err := db.GetDockerImageAccess(repo.Name, imageName, user.Username)
 	if err != nil || !exists || !pushEnabled {
 		return false

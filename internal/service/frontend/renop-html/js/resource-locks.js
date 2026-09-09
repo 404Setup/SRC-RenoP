@@ -37,7 +37,7 @@ export function createResourceLockNotices(locks = []) {
 
 /** Create a staff action that changes only the selected resource's manual lock. */
 export function createResourceLockButton({locks = [], name, request, onSuccess}) {
-    const manual = locks.find(lock => lock.source === 'manual');
+    const manual = locks.find(lock => lock.source === 'manual' && !lock.inherited);
     return el('button', {
         type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
         onclick: () => {
@@ -57,7 +57,8 @@ export function createResourceLockButton({locks = [], name, request, onSuccess})
                     el('p', {}, t('resourceLock.explanation')),
                     el('div', {class: 'form-group'}, el('label', {for: modeSelect.querySelector('button').id}, t('resourceLock.mode')), modeSelect),
                     el('div', {class: 'form-group'}, el('label', {for: reasonSelect.querySelector('button').id}, t('resourceLock.reason')), reasonSelect),
-                    locks.some(lock => lock.source === 'system') ? el('p', {}, t('resourceLock.systemNotice')) : null
+                    locks.some(lock => lock.source === 'system') ? el('p', {}, t('resourceLock.systemNotice')) : null,
+                    locks.some(lock => lock.inherited) ? el('p', {}, t('resourceLock.inheritedNotice')) : null
                 ].filter(Boolean),
                 footer: [
                     {text: t('common.cancel'), className: 'action-btn', onClick: (_event, dialog) => dialog.close(false)},

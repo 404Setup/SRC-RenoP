@@ -296,6 +296,10 @@ func ApprovePublicationReview(state *core.AppState, task *core.ReviewTask, store
 	if err != nil {
 		return nil, err
 	}
+	tag, _, _ := normalizeManifestReference(payload.Reference, payload.Digest)
+	if err := state.GetDB().EnsureDockerManifestMutable(payload.Repository, payload.ImageName, payload.Digest, tag); err != nil {
+		return nil, err
+	}
 	for _, digest := range payload.BlobDigests {
 		recorded, _, recordErr := state.GetDB().HasDockerBlob(payload.Repository, digest)
 		stored, _, storeErr := store.BlobExists(payload.Repository, digest)
@@ -316,7 +320,6 @@ func ApprovePublicationReview(state *core.AppState, task *core.ReviewTask, store
 		payload.Digest, payload.RawJSON); err != nil {
 		return nil, err
 	}
-	tag, _, _ := normalizeManifestReference(payload.Reference, payload.Digest)
 	decided, err := state.GetDB().ApproveDockerPublicationReview(task.ID, reviewer, &core.DockerManifest{
 		Repository: payload.Repository, ImageName: payload.ImageName, Digest: payload.Digest,
 		MediaType: payload.MediaType, Size: payload.Size, ConfigDigest: payload.ConfigDigest,

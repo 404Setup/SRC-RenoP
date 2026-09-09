@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "resourceLock.inheritedNotice": "Inherited locks remain active until they are removed from the parent resource.",
     "resourceLock.manage": "Manage lock",
     "resourceLock.mode": "Lock type",
     "resourceLock.reason": "Public reason",

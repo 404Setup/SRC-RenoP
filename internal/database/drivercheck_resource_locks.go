@@ -8,15 +8,17 @@
 package database
 
 import (
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"time"
 
 	"renop/internal/core"
 )
 
-func checkResourceLocks(db *DB, repository, npmRepository, prefix, owner, suffix string, now int64) error {
+func checkResourceLocks(db *DB, repository, npmRepository, dockerRepository, prefix, owner, suffix string, now int64) error {
 	moderator := "lockmod-" + suffix
-	if err := db.SaveToken(&core.AccessToken{Name: moderator, Permissions: []string{"canmoderate:" + repository, "canmoderate:" + npmRepository}}); err != nil {
+	if err := db.SaveToken(&core.AccessToken{Name: moderator, Permissions: []string{"canmoderate:" + repository, "canmoderate:" + npmRepository, "canmoderate:" + dockerRepository}}); err != nil {
 		return err
 	}
 	sessionToken := "lock-session-" + suffix
@@ -106,7 +108,110 @@ func checkResourceLocks(db *DB, repository, npmRepository, prefix, owner, suffix
 	if err := db.DeleteResourceLock(target, core.ResourceLockManual, moderator, sessionToken); err != nil {
 		return err
 	}
-	return checkNPMLocks(db, npmRepository, prefix, owner, moderator, sessionToken, now)
+	if err := checkNPMLocks(db, npmRepository, prefix, owner, moderator, sessionToken, now); err != nil {
+		return err
+	}
+	return checkDockerLocks(db, dockerRepository, prefix, owner, moderator, sessionToken, now)
+}
+
+func checkDockerLocks(db *DB, repository, prefix, owner, moderator, session string, now int64) error {
+	image, err := db.CreateDockerImageForTeam(repository, "docker-lock-demo", owner, prefix, false, now)
+	if err != nil {
+		return err
+	}
+	digestOf := func(raw string) string { return fmt.Sprintf("sha256:%x", sha256.Sum256([]byte(raw))) }
+	blob := digestOf("layer")
+	childRaw := fmt.Sprintf(`{"schemaVersion":2,"layers":[{"digest":%q}]}`, blob)
+	child := digestOf(childRaw)
+	indexRaw := fmt.Sprintf(`{"schemaVersion":2,"manifests":[{"digest":%q}]}`, child)
+	index := digestOf(indexRaw)
+	put := func(digest, raw, tag string, blobs ...string) error {
+		return db.PutDockerManifest(&core.DockerManifest{Repository: repository, ImageName: image.ImageName,
+			Digest: digest, MediaType: "application/vnd.oci.image.manifest.v1+json", RawJSON: []byte(raw), BlobDigests: blobs}, tag, owner)
+	}
+	if err := put(child, childRaw, "amd64", blob); err != nil {
+		return err
+	}
+	if err := put(index, indexRaw, "latest"); err != nil {
+		return err
+	}
+	if err := put(digestOf(`{}`), `{}`, "unlocked"); err != nil {
+		return err
+	}
+	lock := &core.ResourceLock{ResourceLockTarget: dockerLockTarget(repository, image.ImageName, index),
+		Source: core.ResourceLockManual, Mode: core.ResourceLockRead, Reason: "trojan", LockedAt: now}
+	if err := db.SetResourceLock(lock, moderator, session); err != nil {
+		return err
+	}
+	for _, digest := range []string{index, child, blob} {
+		target := dockerLockTarget(repository, image.ImageName, digest)
+		locks, err := db.GetResourceLocks(target, false)
+		if err != nil || len(locks) != 1 || locks[0].Inherited != (digest != index) {
+			return errorsOrMissing(err, "Docker index lock inheritance")
+		}
+		visible, err := db.ResourceMetadataVisibility("docker", repository, "", false, []core.ResourceLockTarget{target})
+		if err != nil || len(visible) != 1 || visible[0] {
+			return errorsOrMissing(err, "Docker locked digest visibility")
+		}
+		if err := db.EnsureResourceMutable(target, false); !errors.Is(err, core.ErrResourceLocked) {
+			return errorsOrMissing(err, "Docker inherited mutation denial")
+		}
+	}
+	if err := db.DeleteDockerTag(repository, image.ImageName, "latest"); !errors.Is(err, core.ErrResourceLocked) {
+		return errorsOrMissing(err, "Docker locked tag mutation")
+	}
+	if err := db.EnsureDockerBlobMutable(repository, blob); !errors.Is(err, core.ErrResourceLocked) {
+		return errorsOrMissing(err, "Docker shared blob protection")
+	}
+	for _, viewer := range []struct {
+		name  string
+		count int
+	}{{"", 1}, {owner, 3}} {
+		tags, err := db.ListDockerTagsForViewer(repository, image.ImageName, "", 10, viewer.name, false)
+		if err != nil || len(tags) != viewer.count {
+			return errorsOrMissing(err, "Docker visible tag pagination")
+		}
+		if err := db.FilterDockerImageVersions([]*core.DockerRepositoryImage{image}, viewer.name, false); err != nil {
+			return err
+		}
+		if image.TagCount != viewer.count {
+			return fmt.Errorf("Docker visible tag count: got %d, want %d", image.TagCount, viewer.count)
+		}
+		details, err := db.GetDockerImageDetailsForViewer(repository, image.ImageName, viewer.name, false)
+		if err != nil || details == nil || len(details.Tags) != viewer.count {
+			return errorsOrMissing(err, "Docker visible image details")
+		}
+	}
+	options := core.SuperTeamResourceListOptions{Prefix: prefix, Format: "docker", VisibleRepositories: []string{repository}, Limit: 10}
+	_, before, err := db.ListSuperTeamResources(options)
+	if err != nil {
+		return err
+	}
+	lock.Version = ""
+	if err := db.SetResourceLock(lock, moderator, session); err != nil {
+		return err
+	}
+	_, after, err := db.ListSuperTeamResources(options)
+	if err != nil || after != before-1 {
+		return errorsOrMissing(err, "Docker locked team resources")
+	}
+	profile, err := db.GetUserProfile(owner)
+	if err != nil {
+		return err
+	}
+	resources, err := db.ListUserPackageMemberships(profile.UserID, "docker", "", nil)
+	if err != nil {
+		return err
+	}
+	for _, resource := range resources {
+		if resource.Repository == repository && resource.Name == image.ImageName {
+			return errors.New("Docker locked image exposed on public profile")
+		}
+	}
+	if err := db.DeleteResourceLock(lock.ResourceLockTarget, core.ResourceLockManual, moderator, session); err != nil {
+		return err
+	}
+	return db.DeleteResourceLock(dockerLockTarget(repository, image.ImageName, index), core.ResourceLockManual, moderator, session)
 }
 
 func checkNPMLocks(db *DB, repository, prefix, owner, moderator, session string, now int64) error {

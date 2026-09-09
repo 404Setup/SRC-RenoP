@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "resourceLock.inheritedNotice": "継承されたロックは、親リソースで解除されるまで有効です。",
     "resourceLock.manage": "ロックを管理",
     "resourceLock.mode": "ロックの種類",
     "resourceLock.reason": "公開する理由",

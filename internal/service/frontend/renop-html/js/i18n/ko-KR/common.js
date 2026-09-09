@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "resourceLock.inheritedNotice": "상속된 잠금은 상위 리소스에서 해제할 때까지 유지됩니다.",
     "resourceLock.manage": "잠금 관리",
     "resourceLock.mode": "잠금 유형",
     "resourceLock.reason": "공개 사유",

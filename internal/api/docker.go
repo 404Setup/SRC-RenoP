@@ -48,6 +48,9 @@ func ensureDockerImageMutable(state *core.AppState, repository, image string) er
 }
 
 func dockerImageMutationError(c fiber.Ctx, err error) error {
+	if errors.Is(err, core.ErrResourceLocked) {
+		return dockerAPIError(c, fiber.StatusLocked, "resource_locked", "Docker resource is locked")
+	}
 	if errors.Is(err, core.ErrPackageDeprecated) {
 		return dockerAPIError(c, fiber.StatusConflict, "package_deprecated",
 			"Docker image is permanently deprecated and pull-only")
@@ -307,7 +310,7 @@ func GetDockerImageDetailsAPI(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusServiceUnavailable).SendString("Database unavailable")
 	}
 
-	details, err := db.GetDockerImageDetails(repoName, imageName, user.Username)
+	details, err := db.GetDockerImageDetailsForViewer(repoName, imageName, user.Username, user.CheckModeratePermission(repoName))
 	if err != nil || details == nil {
 		return c.Status(fiber.StatusNotFound).SendString("Image not found")
 	}
@@ -327,6 +330,13 @@ func GetDockerImageDetailsAPI(c fiber.Ctx, state *core.AppState) error {
 			return c.Status(fiber.StatusInternalServerError).SendString("Failed to load pending Docker publications")
 		}
 	}
+	if err := docker.ApplyImageLocks(state, user, details); err != nil {
+		if errors.Is(err, core.ErrDockerImageNotFound) {
+			return dockerAPIError(c, fiber.StatusNotFound, "image_not_found", "Docker image was not found")
+		}
+		return dockerImageMutationError(c, err)
+	}
+	c.Set(fiber.HeaderCacheControl, "no-store")
 
 	c.Set(fiber.HeaderContentType, "application/json; charset=utf-8")
 	return c.Status(fiber.StatusOK).JSON(details)
@@ -360,6 +370,8 @@ func DeprecateDockerImageAPI(c fiber.Ctx, state *core.AppState) error {
 		switch {
 		case errors.Is(err, core.ErrPackageDeprecated):
 			return dockerAPIError(c, fiber.StatusConflict, "package_deprecated", "Docker image is already deprecated")
+		case errors.Is(err, core.ErrResourceLocked):
+			return dockerImageMutationError(c, err)
 		case errors.Is(err, core.ErrPackageDeprecationPending):
 			return dockerAPIError(c, fiber.StatusConflict, "review_pending", "Resolve pending reviews before deprecating this image")
 		default:
@@ -483,6 +495,9 @@ func DeleteDockerImageAPI(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	if err := db.DeleteDockerImage(repoName, imageName); err != nil {
+		if errors.Is(err, core.ErrResourceLocked) {
+			return dockerImageMutationError(c, err)
+		}
 		if errors.Is(err, core.ErrDockerImageNotFound) {
 			return c.Status(fiber.StatusNotFound).SendString("Image not found")
 		}
@@ -552,6 +567,9 @@ func DeleteDockerTagAPI(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	if err := db.DeleteDockerTag(repoName, imageName, tag); err != nil {
+		if errors.Is(err, core.ErrResourceLocked) {
+			return dockerImageMutationError(c, err)
+		}
 		if errors.Is(err, core.ErrDockerTagNotFound) {
 			return c.Status(fiber.StatusNotFound).SendString("Tag not found")
 		}
@@ -633,6 +651,14 @@ func GetDockerManifestAPI(c fiber.Ctx, state *core.AppState) error {
 	if err != nil || manifest == nil {
 		return c.Status(fiber.StatusNotFound).SendString("Manifest not found")
 	}
+	locks, err := docker.ManifestLocks(state, user, repoName, imageName, manifest.Digest)
+	if err != nil {
+		if errors.Is(err, core.ErrDockerManifestNotFound) {
+			return dockerAPIError(c, fiber.StatusNotFound, "manifest_not_found", "Manifest was not found")
+		}
+		return dockerImageMutationError(c, err)
+	}
+	c.Set(fiber.HeaderCacheControl, "no-store")
 
 	c.Set(fiber.HeaderContentType, "application/json; charset=utf-8")
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
@@ -645,6 +671,7 @@ func GetDockerManifestAPI(c fiber.Ctx, state *core.AppState) error {
 		"publisher":     manifest.Publisher,
 		"created_at":    manifest.CreatedAt,
 		"raw_json":      string(manifest.RawJSON),
+		"locks":         locks,
 	})
 }
 

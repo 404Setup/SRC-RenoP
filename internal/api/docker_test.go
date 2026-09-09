@@ -186,6 +186,87 @@ func TestDockerAPIErrorCodeFallback(t *testing.T) {
 	require.NoError(t, ok.Body.Close())
 }
 
+func TestDockerLockAPIAuthorityAndMetadataVisibility(t *testing.T) {
+	app, state := setupTestAPIDockerApp(t)
+	db := state.GetDB()
+	app.Put("/api/docker/repositories/:repo_name/locks", func(c fiber.Ctx) error { return setDockerResourceLockAPI(c, state) })
+	app.Delete("/api/docker/repositories/:repo_name/locks", func(c fiber.Ctx) error { return setDockerResourceLockAPI(c, state) })
+	now := time.Now().UnixMilli()
+	for name, roles := range map[string][]string{"moderator": {"canmoderate:docker-pub"}, "reader": {"base"}, "writer": {"canupdate:docker-pub"}} {
+		saveDockerAPITestAccount(t, db, name, name+"-token", roles, []string{core.APITokenScopeRepositoryRead})
+		session := &core.Session{PublicID: name, Username: name, CreatedAt: now}
+		session.LastActive.Store(now)
+		require.NoError(t, db.SaveSession(session, name+"-session"))
+	}
+	_, err := db.CreateDockerImage("docker-pub", "guarded", "admin", false, now)
+	require.NoError(t, err)
+	require.NoError(t, db.ForceAddDockerMembers("docker-pub", "guarded", "admin", []string{"reader"}, 0))
+	digests := []string{}
+	for _, tag := range []string{"old", "current"} {
+		body := []byte(`{"schemaVersion":2,"annotations":{"tag":"` + tag + `"}}`)
+		digest := docker.CalculateDigest(body)
+		digests = append(digests, digest)
+		require.NoError(t, db.PutDockerManifest(&core.DockerManifest{Repository: "docker-pub", ImageName: "guarded", Digest: digest,
+			MediaType: docker.MediaTypeOCIManifest1, RawJSON: body}, tag, "admin"))
+	}
+	lockPath := "/api/docker/repositories/docker-pub/locks?image=guarded"
+	requestLock := func(cookie, version string, status int) {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPut, lockPath, strings.NewReader(`{"version":"`+version+`","mode":"read","reason":"trojan","source":"system"}`))
+		req.Header.Set("Content-Type", "application/json")
+		if cookie != "" {
+			req.AddCookie(&http.Cookie{Name: "renop_session", Value: cookie + "-session"})
+		} else {
+			req.Header.Set("X-Token", "admin-test-token")
+		}
+		response, err := app.Test(req)
+		require.NoError(t, err)
+		require.Equal(t, status, response.StatusCode)
+		require.NoError(t, response.Body.Close())
+	}
+	requestLock("", digests[0], http.StatusForbidden)
+	requestLock("writer", digests[0], http.StatusForbidden)
+	requestLock("moderator", digests[0], http.StatusOK)
+	locks, err := db.GetResourceLocks(core.ResourceLockTarget{Format: "docker", Repository: "docker-pub", Name: "guarded", Version: digests[0]}, false)
+	require.NoError(t, err)
+	require.Len(t, locks, 1)
+	require.Equal(t, core.ResourceLockManual, locks[0].Source)
+	for _, viewer := range []struct {
+		name  string
+		count int
+	}{{"", 1}, {"writer", 1}, {"reader", 2}, {"moderator", 2}} {
+		req := httptest.NewRequest(http.MethodGet, "/api/docker/repositories/docker-pub/images?image=guarded", nil)
+		if viewer.name != "" {
+			req.AddCookie(&http.Cookie{Name: "renop_session", Value: viewer.name + "-session"})
+		}
+		response, err := app.Test(req)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, response.StatusCode, viewer.name)
+		var details core.DockerImageDetails
+		require.NoError(t, json.NewDecoder(response.Body).Decode(&details))
+		require.NoError(t, response.Body.Close())
+		require.Len(t, details.Tags, viewer.count, viewer.name)
+		require.Equal(t, viewer.count, details.Image.TagCount, viewer.name)
+		require.True(t, details.Image.VersionLocked)
+		if viewer.name == "reader" {
+			require.True(t, details.Member)
+			require.Zero(t, details.PermissionLevel)
+		}
+	}
+	requestLock("moderator", "", http.StatusOK)
+	req := httptest.NewRequest(http.MethodGet, "/api/docker/repositories/docker-pub/images", nil)
+	response, err := app.Test(req)
+	require.NoError(t, err)
+	var catalog struct {
+		Images []*core.DockerRepositoryImage `json:"images"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&catalog))
+	require.NoError(t, response.Body.Close())
+	require.Empty(t, catalog.Images)
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "moderator", Permissions: []string{"base"}}))
+	requestLock("moderator", "", http.StatusForbidden)
+}
+
 func TestDockerPermanentDeprecationBlocksManagement(t *testing.T) {
 	app, state := setupTestAPIDockerApp(t)
 	_, err := state.GetDB().CreateDockerImage("docker-pub", "frozen", "admin", false,

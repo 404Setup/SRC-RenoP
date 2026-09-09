@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "resourceLock.inheritedNotice": "Os bloqueios herdados permanecem ativos até serem removidos do recurso principal.",
     "resourceLock.manage": "Gerir bloqueio",
     "resourceLock.mode": "Tipo de bloqueio",
     "resourceLock.reason": "Motivo público",

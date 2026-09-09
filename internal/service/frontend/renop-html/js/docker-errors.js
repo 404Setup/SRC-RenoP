@@ -27,6 +27,7 @@ const dockerErrorKeys = Object.freeze({
     publication_count_quota: 'publicationQuota.countExceeded',
     readme_too_large: 'docker.readmeTooLarge',
     repository_not_found: 'docker.repositoryNotFound',
+    resource_locked: 'resourceLock.blocked',
     review_pending: 'review.alreadyPending',
     review_unavailable: 'review.serviceUnavailable',
     service_unavailable: 'docker.serviceUnavailable',

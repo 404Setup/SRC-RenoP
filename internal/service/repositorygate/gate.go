@@ -11,13 +11,16 @@
 // Package repositorygate serializes format/configuration changes with repository mutations.
 package repositorygate
 
-import "sync"
+import (
+	"slices"
+	"sync"
+)
 
 const gateStripeCount = 64
 
 var gateStripes [gateStripeCount]sync.RWMutex
 
-func repositoryStripe(repository string) *sync.RWMutex {
+func repositoryStripeIndex(repository string) uint32 {
 	var hash uint32 = 2166136261
 	for index := 0; index < len(repository); index++ {
 		value := repository[index]
@@ -27,21 +30,39 @@ func repositoryStripe(repository string) *sync.RWMutex {
 		hash ^= uint32(value)
 		hash *= 16777619
 	}
-	return &gateStripes[hash%gateStripeCount]
+	return hash % gateStripeCount
 }
 
 // AcquireMutation allows concurrent operations for one repository while excluding configuration migration.
 func AcquireMutation(repository string) func() {
-	gate := repositoryStripe(repository)
+	gate := &gateStripes[repositoryStripeIndex(repository)]
 	gate.RLock()
 	return gate.RUnlock
 }
 
 // AcquireMigration excludes repository mutations while an engine or storage configuration changes.
 func AcquireMigration(repository string) func() {
-	gate := repositoryStripe(repository)
+	gate := &gateStripes[repositoryStripeIndex(repository)]
 	gate.Lock()
 	return gate.Unlock
+}
+
+// AcquireMutations holds distinct repository gates in order for a cross-repository operation.
+func AcquireMutations(repositories ...string) func() {
+	stripes := make([]uint32, 0, len(repositories))
+	for _, repository := range repositories {
+		stripes = append(stripes, repositoryStripeIndex(repository))
+	}
+	slices.Sort(stripes)
+	stripes = slices.Compact(stripes)
+	for _, stripe := range stripes {
+		gateStripes[stripe].RLock()
+	}
+	return func() {
+		for i := len(stripes) - 1; i >= 0; i-- {
+			gateStripes[stripes[i]].RUnlock()
+		}
+	}
 }
 
 // AcquireAllMigrations excludes every repository mutation during one cross-repository account retirement.

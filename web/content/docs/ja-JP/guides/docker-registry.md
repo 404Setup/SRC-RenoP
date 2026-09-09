@@ -76,3 +76,5 @@ public image は匿名で読めます。private image は L0-L4 member または
 - **Cross-repository mount**: source read と事前作成 destination write が必要です。
 - **Delete**: Token capability と image/repository authorization の両方が必要です。
 - **Mirror**: upstream origin を付けて stream/catalog 化し、mirror image への push は禁止します。
+
+イメージページには翻訳された公開ロック理由を表示します。スタッフはイメージ全体または不変のマニフェストダイジェストをロックでき、タグ別名や参照先のマルチアーキテクチャ内容も対象です。書き込みロックは変更を禁止し、読み取りロックはスタッフと協力者向けのメタデータのみを残して、全員のダウンロードとマウントを禁止します。システムや継承されたロックは元のリソースで解除します。ロック変更後の再読み込み中に別のページへ移動した場合、古い結果は破棄します。

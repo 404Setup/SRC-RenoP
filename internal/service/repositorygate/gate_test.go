@@ -16,7 +16,7 @@ import (
 )
 
 func TestMigrationWaitsForRepositoryMutation(t *testing.T) {
-	releaseMutation := AcquireMutation("releases")
+	releaseMutation := AcquireMutations("releases", "other", "RELEASES")
 	acquired := make(chan func(), 1)
 	started := make(chan struct{})
 	go func() {

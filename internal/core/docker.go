@@ -24,51 +24,55 @@ const (
 
 // DockerRepositoryImage represents a container image within a Docker repository.
 type DockerRepositoryImage struct {
-	Repository      string `json:"repository"`
-	ImageName       string `json:"image_name"`
-	Description     string `json:"description"`
-	Publisher       string `json:"publisher"`
-	TagCount        int    `json:"tag_count"`
-	LatestTag       string `json:"latest_tag"`
-	PullCount       int64  `json:"pull_count"`
-	Private         bool   `json:"private"`
-	PushEnabled     bool   `json:"push_enabled"`
-	Deprecated      bool   `json:"deprecated,omitempty"`
-	Mirrored        bool   `json:"mirrored"`
-	SuperTeamPrefix string `json:"super_team_prefix,omitempty"`
-	PermissionLevel int    `json:"permission_level,omitempty"`
-	CreatedAt       int64  `json:"created_at"`
-	UpdatedAt       int64  `json:"updated_at"`
+	Repository      string          `json:"repository"`
+	ImageName       string          `json:"image_name"`
+	Description     string          `json:"description"`
+	Publisher       string          `json:"publisher"`
+	TagCount        int             `json:"tag_count"`
+	LatestTag       string          `json:"latest_tag"`
+	PullCount       int64           `json:"pull_count"`
+	Private         bool            `json:"private"`
+	PushEnabled     bool            `json:"push_enabled"`
+	Deprecated      bool            `json:"deprecated,omitempty"`
+	Mirrored        bool            `json:"mirrored"`
+	SuperTeamPrefix string          `json:"super_team_prefix,omitempty"`
+	PermissionLevel int             `json:"permission_level,omitempty"`
+	CreatedAt       int64           `json:"created_at"`
+	UpdatedAt       int64           `json:"updated_at"`
+	Locks           []*ResourceLock `json:"locks,omitempty"`
+	VersionLocked   bool            `json:"version_locked,omitempty"`
 }
 
 // DockerTag represents a named image tag pointing to a specific manifest digest.
 type DockerTag struct {
-	Repository   string `json:"repository"`
-	ImageName    string `json:"image_name"`
-	Tag          string `json:"tag"`
-	Digest       string `json:"digest"`
-	MediaType    string `json:"media_type"`
-	Size         int64  `json:"size"`
-	ConfigDigest string `json:"config_digest"`
-	Publisher    string `json:"publisher"`
-	CreatedAt    int64  `json:"created_at"`
-	UpdatedAt    int64  `json:"updated_at"`
-	ReviewStatus string `json:"review_status,omitempty"`
-	ReviewID     string `json:"review_id,omitempty"`
+	Repository   string          `json:"repository"`
+	ImageName    string          `json:"image_name"`
+	Tag          string          `json:"tag"`
+	Digest       string          `json:"digest"`
+	MediaType    string          `json:"media_type"`
+	Size         int64           `json:"size"`
+	ConfigDigest string          `json:"config_digest"`
+	Publisher    string          `json:"publisher"`
+	CreatedAt    int64           `json:"created_at"`
+	UpdatedAt    int64           `json:"updated_at"`
+	ReviewStatus string          `json:"review_status,omitempty"`
+	ReviewID     string          `json:"review_id,omitempty"`
+	Locks        []*ResourceLock `json:"locks,omitempty"`
 }
 
 // DockerManifest represents a stored OCI or Docker v2 image manifest.
 type DockerManifest struct {
-	Repository   string   `json:"repository"`
-	ImageName    string   `json:"image_name"`
-	Digest       string   `json:"digest"`
-	MediaType    string   `json:"media_type"`
-	Size         int64    `json:"size"`
-	ConfigDigest string   `json:"config_digest"`
-	Publisher    string   `json:"publisher"`
-	RawJSON      []byte   `json:"-"`
-	BlobDigests  []string `json:"-"`
-	CreatedAt    int64    `json:"created_at"`
+	Repository   string          `json:"repository"`
+	ImageName    string          `json:"image_name"`
+	Digest       string          `json:"digest"`
+	MediaType    string          `json:"media_type"`
+	Size         int64           `json:"size"`
+	ConfigDigest string          `json:"config_digest"`
+	Publisher    string          `json:"publisher"`
+	RawJSON      []byte          `json:"-"`
+	BlobDigests  []string        `json:"-"`
+	CreatedAt    int64           `json:"created_at"`
+	Locks        []*ResourceLock `json:"locks,omitempty"`
 }
 
 // DockerMember represents an authorized collaborator for a container image.
@@ -106,6 +110,8 @@ type DockerImageDetails struct {
 	Members         []*DockerMember        `json:"members,omitempty"`
 	PermissionLevel int                    `json:"permission_level"`
 	Administrator   bool                   `json:"administrator"`
+	Moderator       bool                   `json:"moderator"`
+	Member          bool                   `json:"member"`
 	TotalSize       int64                  `json:"total_size"`
 	LayersCount     int                    `json:"layers_count"`
 }

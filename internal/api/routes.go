@@ -102,6 +102,11 @@ func SetupAPIRoutes(router fiber.Router, state *core.AppState) {
 		return ListDockerImagesAPI(c, state)
 	}))
 	router.Post("/docker/repositories/:repo_name/images", dockerRoute(CreateDockerImageAPI))
+	for _, method := range []string{fiber.MethodPut, fiber.MethodDelete} {
+		router.Add([]string{method}, "/docker/repositories/:repo_name/locks", withDockerAPIErrorCode(func(c fiber.Ctx) error {
+			return setDockerResourceLockAPI(c, state)
+		}))
+	}
 	router.Get("/docker/repositories/:repo_name/images/*", dockerRoute(GetDockerImageDetailsAPI))
 	router.Put("/docker/repositories/:repo_name/images", dockerRoute(UpdateDockerImageDescriptionAPI))
 	router.Put("/docker/repositories/:repo_name/images/deprecate", dockerRoute(DeprecateDockerImageAPI))

@@ -40,10 +40,11 @@ type ResourceLockTarget struct {
 // ResourceLock exposes the public reason for an independently removable restriction.
 type ResourceLock struct {
 	ResourceLockTarget
-	Source   string `json:"source"`
-	Mode     string `json:"mode"`
-	Reason   string `json:"reason"`
-	LockedAt int64  `json:"locked_at"`
+	Source    string `json:"source"`
+	Mode      string `json:"mode"`
+	Reason    string `json:"reason"`
+	LockedAt  int64  `json:"locked_at"`
+	Inherited bool   `json:"inherited,omitempty"`
 }
 
 // ValidResourceLockReason accepts the public, localized moderation reasons.

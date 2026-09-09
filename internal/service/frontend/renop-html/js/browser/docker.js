@@ -48,6 +48,7 @@ import {
     setRepositoryViewBusy
 } from './repository-view.js';
 import {RepositoryUserSuggestions} from './user-suggestions.js';
+import {createResourceLockButton, createResourceLockNotices, resourceReadLocked, resourceWriteLocked} from '../resource-locks.js';
 
 const dockerRepositoryIcon = getRepositoryFormat('docker').icon;
 const dockerTagPageSize = 10;
@@ -102,6 +103,7 @@ function ensureDockerContainer() {
  * @returns {void}
  */
 export function hideDockerRepositoryView() {
+    ++dockerLoadSequence;
     hideRepositoryView(dockerViewContainer);
     dockerUserSuggestions.detach();
 }
@@ -142,6 +144,7 @@ function dockerDate(value) {
  * @returns {Promise<void>}
  */
 async function openManifestDetails(repoName, imageName, digest, tag) {
+    const sequence = dockerLoadSequence;
     const reference = digest || tag;
     try {
         const resp = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/manifests?image=${encodeURIComponent(imageName)}&ref=${encodeURIComponent(reference)}`);
@@ -150,7 +153,10 @@ async function openManifestDetails(repoName, imageName, digest, tag) {
             return;
         }
         const manifest = await resp.json();
+        if (sequence !== dockerLoadSequence) return;
         const bodyNodes = [];
+        const lockNotice = createResourceLockNotices(manifest.locks);
+        if (lockNotice) bodyNodes.push(lockNotice);
 
         const gridItems = [
             {label: t('docker.digest'), value: manifest.digest || '-', isCode: true},
@@ -636,6 +642,8 @@ async function removeDockerTeamMember({container, repoName, imageName, sequence,
  * @returns {Promise<void>}
  */
 async function renderImageDetailsView(container, repoName, imageName, seq) {
+    if (seq !== dockerLoadSequence || container.hidden) return;
+    seq = ++dockerLoadSequence;
     const animateTeam = container.querySelector('.docker-team-list') !== null;
     dockerUserSuggestions.detach();
     setRepositoryViewBusy(container, true);
@@ -658,6 +666,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         }
 
         const details = await response.json();
+        if (seq !== dockerLoadSequence) return;
         let image = details.image || {};
         const tags = details.tags || [];
         const visibleTags = tags.filter(tag => tag.review_status !== 'pending');
@@ -672,18 +681,30 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         const permissionLevel = Number(details.permission_level || 0);
         const isAdministrator = Boolean(details.administrator);
         const isDeprecated = image.deprecated === true;
+        const isLocked = resourceWriteLocked(image);
+        const anyVersionLocked = image.version_locked === true;
+        const lockButton = (version = '', locks = image.locks) => details.moderator === true
+            ? createResourceLockButton({
+                locks, name: version ? `${imageName}@${version}` : imageName,
+                request: (mode, reason) => apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/locks?image=${encodeURIComponent(imageName)}`, {
+                    method: mode ? 'PUT' : 'DELETE', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({version, mode, reason})
+                }),
+                onSuccess: () => renderImageDetailsView(container, repoName, imageName, seq)
+            }) : null;
         const currentUsername = String(localStorage.getItem('username') || '').trim().toLowerCase();
 
-        const canDeprecate = isAdministrator || permissionLevel >= 3;
-        const canManageL2 = !isDeprecated && (isAdministrator || permissionLevel >= 2);
-        const canManageL3 = !isDeprecated && canDeprecate;
-        const canTransferOwnership = !isDeprecated && (isAdministrator || permissionLevel === 4);
-        const canPush = !isDeprecated && (isAdministrator || permissionLevel >= 1);
+        const canDeprecate = !isLocked && !anyVersionLocked && (isAdministrator || permissionLevel >= 3);
+        const canManageL2 = !isDeprecated && !isLocked && (isAdministrator || permissionLevel >= 2);
+        const canManageL3 = !isDeprecated && !isLocked && (isAdministrator || permissionLevel >= 3);
+        const canTransferOwnership = !isDeprecated && !isLocked && (isAdministrator || permissionLevel === 4);
+        const canPush = !isDeprecated && !isLocked && (isAdministrator || permissionLevel >= 1);
 
-        const latestTag = visibleTags[0]?.tag || 'latest';
-        const clientCommand = visibleTags.length > 0
+        const pullableTag = visibleTags.find(tag => !resourceReadLocked(image, tag));
+        const latestTag = pullableTag?.tag || visibleTags[0]?.tag || 'latest';
+        const clientCommand = pullableTag
             ? `docker pull ${window.location.host}/${repoName}/${imageName}:${latestTag}`
-            : (pendingTags.length === 0 && canPush
+            : (visibleTags.length === 0 && pendingTags.length === 0 && canPush
                 ? `docker push ${window.location.host}/${repoName}/${imageName}:<tag>` : '');
 
         const backBtn = createRepositoryBackButton({
@@ -700,7 +721,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         );
 
         let deleteImgBtn = null;
-        if (canManageL3) {
+        if (canManageL3 && !anyVersionLocked) {
             deleteImgBtn = el('button', {
                 class: 'docker-btn-danger',
                 type: 'button',
@@ -763,7 +784,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                 () => renderImageDetailsView(container, repoName, imageName, seq)
             )
             : null;
-        const headerActions = el('div', {class: 'docker-page-actions'}, deprecateBtn, transferBtn, deleteImgBtn);
+        const headerActions = el('div', {class: 'docker-page-actions'}, lockButton(), deprecateBtn, transferBtn, deleteImgBtn);
         if (image.super_team_prefix) {
             metaRow.appendChild(el('div', {class: 'docker-meta-chip'},
                 createIcon('identity', {class: 'icon-svg'}),
@@ -831,7 +852,8 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                 }, createIcon('copy', {class: 'icon-svg'}))
             )
             : el('p', {class: 'docker-create-first-hint'},
-                t(pendingTags.length > 0 ? 'docker.awaitingReview' : 'docker.awaitingFirstPush'));
+                t(resourceReadLocked(image) || visibleTags.some(tag => resourceReadLocked(tag))
+                    ? 'resourceLock.blocked' : pendingTags.length > 0 ? 'docker.awaitingReview' : 'docker.awaitingFirstPush'));
 
         const hero = el('div', {class: 'docker-page-hero'},
             topNav,
@@ -889,23 +911,24 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
 
                 const actionsWrap = el('div', {class: 'docker-tag-actions'});
                 if (!pendingReview) {
-                    actionsWrap.append(
-                        el('button', {
+                    if (!resourceReadLocked(image, tObj)) actionsWrap.append(el('button', {
                             class: 'docker-action-btn',
                             type: 'button',
                             title: t('docker.copyPull'),
                             onclick: (e) => triggerDockerCopy(e.currentTarget, tagPullCmd)
-                        }, createIcon('copy', {class: 'icon-svg'})),
-                        el('button', {
+                        }, createIcon('copy', {class: 'icon-svg'})));
+                    actionsWrap.append(el('button', {
                             class: 'docker-action-btn',
                             type: 'button',
                             title: t('docker.inspect'),
                             onclick: () => openManifestDetails(repoName, imageName, tObj.digest, tObj.tag)
                         }, createIcon('eye', {class: 'icon-svg'}))
                     );
+                    const manageLock = lockButton(tObj.digest, tObj.locks);
+                    if (manageLock) actionsWrap.append(manageLock);
                 }
 
-                if (canManageL2 && !pendingReview) {
+                if (canManageL2 && !resourceWriteLocked(tObj) && !pendingReview) {
                     actionsWrap.appendChild(
                         el('button', {
                             class: 'docker-action-btn docker-action-btn--delete',
@@ -944,7 +967,8 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                         digestPill,
                         sizeStr ? el('span', {class: 'docker-tag-size'}, sizeStr) : null,
                         publisherChip,
-                        timeChip
+                        timeChip,
+                        createResourceLockNotices(tObj.locks)
                     ),
                     actionsWrap
                 );
@@ -1081,7 +1105,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                     memberControls.appendChild(
                         el('span', {class: 'docker-permission-badge'}, levelLabel)
                     );
-                    if (!isDeprecated && !canManageL3 && isSelf && memberLevel < 4) {
+                    if (!isDeprecated && !isLocked && !canManageL3 && isSelf && memberLevel < 4) {
                         memberControls.appendChild(el('button', {
                             class: 'docker-action-btn docker-action-btn--delete',
                             type: 'button',
@@ -1216,7 +1240,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         });
 
         await replaceRepositoryView(container,
-            [hero, isDeprecated ? createPackageDeprecationNotice() : null, detail].filter(Boolean),
+            [hero, createResourceLockNotices(image.locks), isDeprecated ? createPackageDeprecationNotice() : null, detail].filter(Boolean),
             {duration: 280, enterDuration: 440});
     } catch (err) {
         if (seq !== dockerLoadSequence) return;

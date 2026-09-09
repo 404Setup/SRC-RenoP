@@ -282,6 +282,73 @@ func TestDockerPermanentDeprecationKeepsPullAndBlocksPush(t *testing.T) {
 	require.NoError(t, response.Body.Close())
 }
 
+func TestDockerReadLocksCoverDigestsAliasesAndSharedBlobOperations(t *testing.T) {
+	app, state, genericStore := setupTestDockerApp(t)
+	store := genericStore.(*memoryDockerStore)
+	db := state.GetDB()
+	for _, image := range []string{"locked", "other"} {
+		createTestDockerImage(t, state, "docker-local", image, false)
+	}
+	blobBody := []byte("locked layer")
+	blob := CalculateDigest(blobBody)
+	manifestBody := []byte(fmt.Sprintf(`{"schemaVersion":2,"layers":[{"digest":%q,"size":12}]}`, blob))
+	digest := CalculateDigest(manifestBody)
+	for _, image := range []string{"locked", "other"} {
+		require.NoError(t, db.PutDockerManifest(&core.DockerManifest{Repository: "docker-local", ImageName: image,
+			Digest: digest, MediaType: MediaTypeOCIManifest1, RawJSON: manifestBody, BlobDigests: []string{blob}}, "latest", "admin"))
+		store.manifests["docker-local/"+image+"/"+digest] = manifestBody
+	}
+	store.blobs["docker-local/"+blob] = blobBody
+	lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "docker", Repository: "docker-local", Name: "locked", Version: digest},
+		Source: core.ResourceLockSystem, Mode: core.ResourceLockRead, Reason: "trojan", LockedAt: time.Now().UnixMilli()}
+	require.NoError(t, db.SetResourceLock(lock, "", ""))
+	for _, check := range []struct {
+		method, path, body string
+		admin              bool
+		status             int
+	}{
+		{http.MethodGet, "/v2/docker-local/locked/manifests/latest", "", false, http.StatusNotFound},
+		{http.MethodGet, "/v2/docker-local/locked/manifests/" + digest, "", true, http.StatusOK},
+		{http.MethodGet, "/v2/docker-local/locked/blobs/" + blob, "", true, http.StatusNotFound},
+		{http.MethodHead, "/v2/docker-local/locked/blobs/" + blob, "", true, http.StatusNotFound},
+		{http.MethodGet, "/v2/docker-local/other/blobs/" + blob, "", false, http.StatusOK},
+		{http.MethodDelete, "/v2/docker-local/other/blobs/" + blob, "", true, http.StatusLocked},
+		{http.MethodPost, "/v2/docker-local/other/blobs/uploads/?mount=" + blob + "&from=docker-local/locked", "", true, http.StatusNotFound},
+		{http.MethodPut, "/v2/docker-local/locked/manifests/latest", `{"schemaVersion":2}`, true, http.StatusLocked},
+		{http.MethodDelete, "/v2/docker-local/locked/manifests/latest", "", true, http.StatusLocked},
+	} {
+		req := httptest.NewRequest(check.method, check.path, strings.NewReader(check.body))
+		if check.admin {
+			req.SetBasicAuth("admin", "admin-secret-token")
+		}
+		req.Header.Set(fiber.HeaderIfNoneMatch, `"`+blob+`"`)
+		response, err := app.Test(req)
+		require.NoError(t, err)
+		body, err := io.ReadAll(response.Body)
+		require.NoError(t, err)
+		require.NoError(t, response.Body.Close())
+		require.Equal(t, check.status, response.StatusCode, "%s %s: %s", check.method, check.path, body)
+	}
+	require.Equal(t, blobBody, store.blobs["docker-local/"+blob])
+	require.Equal(t, manifestBody, store.manifests["docker-local/locked/"+digest])
+	for _, admin := range []bool{false, true} {
+		req := httptest.NewRequest(http.MethodGet, "/v2/docker-local/locked/tags/list?n=1", nil)
+		if admin {
+			req.SetBasicAuth("admin", "admin-secret-token")
+		}
+		response, err := app.Test(req)
+		require.NoError(t, err)
+		var tags TagList
+		require.NoError(t, json.NewDecoder(response.Body).Decode(&tags))
+		require.NoError(t, response.Body.Close())
+		if admin {
+			require.Equal(t, []string{"latest"}, tags.Tags)
+		} else {
+			require.Empty(t, tags.Tags)
+		}
+	}
+}
+
 func TestDockerRegistryFullLifecycle(t *testing.T) {
 	app, state, _ := setupTestDockerApp(t)
 	createTestDockerImage(t, state, "docker-local", "my-app", false)

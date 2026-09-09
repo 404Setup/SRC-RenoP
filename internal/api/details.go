@@ -424,7 +424,7 @@ func GetRepoDetails(c fiber.Ctx, state *core.AppState) error {
 
 	if repo.NormalizedFormat() == config.RepositoryFormatDocker {
 		if db := state.GetDB(); db != nil {
-			if user.IsManager() || user.CheckUpdatePermission(repoName) {
+			if user.CheckModeratePermission(repoName) {
 				totalImages, totalTags, blobSize, err := db.GetDockerRepositoryStats(repoName)
 				if err == nil {
 					totalFiles = totalImages + totalTags

@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "resourceLock.inheritedNotice": "Унаследованные блокировки действуют, пока их не снимут с родительского ресурса.",
     "resourceLock.manage": "Управление блокировкой",
     "resourceLock.mode": "Тип блокировки",
     "resourceLock.reason": "Публичная причина",

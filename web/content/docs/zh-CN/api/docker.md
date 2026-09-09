@@ -74,3 +74,17 @@ Manifest JSON 上限为 4 MiB。本地上传、镜像源响应以及已持久化
 - **开始上传**：`POST /v2/:name/blobs/uploads/`（支持 `?mount=<digest>&from=<other_repo>`）
 - **追加分块**：`PATCH /v2/:name/blobs/uploads/:uuid`
 - **完成上传**：`PUT /v2/:name/blobs/uploads/:uuid?digest=sha256:...`
+
+## 资源锁定
+
+管理员和仓库版主通过 `PUT /api/docker/repositories/{repo}/locks?image={name}` 设置手动锁定，通过 `DELETE /api/docker/repositories/{repo}/locks?image={name}` 解除。两种操作都需要有效的浏览器会话 Cookie，API Token 不能管理锁定。请求使用已存在的不可变清单摘要；`version` 为空时锁定整个镜像。
+
+```json
+{"version":"sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","mode":"read","reason":"trojan"}
+```
+
+类型为 `write` 和 `read`。公开原因为 `hold`、`prohibited`、`expired`、`trojan`、`abuse`、`dmca`、`reup`、`squatting` 和 `quality`。读取锁定也会禁止写入：只有管理员、仓库版主、所有者和协作者（包括 L0）可以查看元数据，任何人都不能从该镜像下载或挂载层与配置内容。目录、搜索、标签分页、个人主页和团队资源遵守相同的可见性规则。
+
+摘要锁定覆盖所有标签别名，以及多架构索引引用的子清单和 blob。记录的引用在重启后保留，直到解除来源锁定。检查响应通过 `locks`、`inherited`、`moderator`、`member` 和 `version_locked` 字段显示公开状态，不公开操作人员身份。解除手动锁定不会移除系统锁定或继承的限制。每次锁定最多处理 8,192 个摘要和 64 MiB 清单元数据；无效或超限的引用图返回 `400`，保留原有锁定。
+
+锁定后的修改返回 `423` 和 `X-Renop-Error-Code: resource_locked`，包括标签改指向、发布审核通过、镜像锁定后的团队修改，以及存在版本锁定时的整镜像删除或废弃。删除或替换共享 blob 时，还会检查同仓库其他镜像的锁定。已冻结的镜像内容不会被刷新或替换。

@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "resourceLock.inheritedNotice": "Les verrouillages hérités restent actifs jusqu’à leur suppression sur la ressource parente.",
     "resourceLock.manage": "Gérer le verrouillage",
     "resourceLock.mode": "Type de verrouillage",
     "resourceLock.reason": "Motif public",

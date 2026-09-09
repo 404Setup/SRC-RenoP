@@ -223,6 +223,11 @@ func (b *dockerStagedBlob) Digest() (string, error) {
 }
 
 func (s *dockerStore) CommitBlob(state *core.AppState, repository, uploadUUID, digest string) (int64, error) {
+	if state != nil && state.GetDB() != nil {
+		if err := state.GetDB().EnsureDockerBlobMutable(repository, digest); err != nil {
+			return 0, err
+		}
+	}
 	tempPath := s.stagingPath(repository, uploadUUID)
 	targetPath := s.blobPath(repository, digest)
 

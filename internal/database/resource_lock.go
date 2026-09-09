@@ -27,13 +27,35 @@ func initResourceLockTable(db *sql.DB) error {
 		reason VARCHAR(32) NOT NULL, locked_at BIGINT NOT NULL,
 		PRIMARY KEY (id, source)
 	);`)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS resource_lock_versions (
+		lock_id VARCHAR(64) NOT NULL, source VARCHAR(16) NOT NULL,
+		version VARCHAR(255) NOT NULL, PRIMARY KEY (lock_id, source, version)
+	);`)
 	return err
+}
+
+// Docker index locks retain their content references until their exact source is removed.
+func resourceLocksQuery(format string) string {
+	const columns = `id, source, package_id, format, repository, resource_name, version, mode, reason, locked_at`
+	if format != "docker" {
+		return `(SELECT ` + columns + `, 0 AS inherited FROM resource_locks)`
+	}
+	return `(SELECT ` + columns + `, 0 AS inherited FROM resource_locks UNION ALL
+		SELECT l.id, l.source, l.package_id, l.format, l.repository, l.resource_name,
+		v.version, l.mode, l.reason, l.locked_at, 1 AS inherited
+		FROM resource_locks l JOIN resource_lock_versions v ON v.lock_id = l.id AND v.source = l.source)`
 }
 
 func normalizeResourceLockTarget(target core.ResourceLockTarget) (core.ResourceLockTarget, error) {
 	var valid bool
 	target.Format, target.Repository, target.Name, valid = normalizePackageDeprecation(
 		target.Format, target.Repository, target.Name)
+	if target.Format == "docker" {
+		target.Version = strings.ToLower(target.Version)
+	}
 	if !valid || len(target.Version) > 255 || strings.IndexFunc(target.Version, unicode.IsControl) >= 0 ||
 		strings.TrimSpace(target.Version) != target.Version {
 		return core.ResourceLockTarget{}, core.ErrResourceLockInvalid
@@ -73,6 +95,9 @@ func (db *DB) SetResourceLock(lock *core.ResourceLock, actor, session string) er
 	if err := authorizeResourceLockTx(tx, target, lock.Source, actor, session); err != nil {
 		return err
 	}
+	if err := setDockerLockVersionsTx(tx, target, lock.Source); err != nil {
+		return err
+	}
 	if _, err := tx.Exec(`DELETE FROM resource_locks WHERE id = ? AND source = ?`, id, lock.Source); err != nil {
 		return err
 	}
@@ -98,6 +123,9 @@ func (db *DB) DeleteResourceLock(target core.ResourceLockTarget, source, actor, 
 	}
 	defer tx.Rollback()
 	if err := authorizeResourceLockTx(tx, target, source, actor, session); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM resource_lock_versions WHERE lock_id = ? AND source = ?`, resourceLockID(target), source); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(`DELETE FROM resource_locks WHERE id = ? AND source = ?`, resourceLockID(target), source); err != nil {
@@ -140,8 +168,8 @@ func (db *DB) GetResourceLocks(target core.ResourceLockTarget, allVersions bool)
 	if err != nil {
 		return nil, err
 	}
-	query := `SELECT format, repository, resource_name, version, source, mode, reason, locked_at
-		FROM resource_locks WHERE package_id = ?`
+	query := `SELECT format, repository, resource_name, version, source, mode, reason, locked_at, inherited
+		FROM ` + resourceLocksQuery(target.Format) + ` l WHERE package_id = ?`
 	args := []any{packageDeprecationID(target.Format, target.Repository, target.Name)}
 	if !allVersions {
 		query += ` AND (version = '' OR ` + resourceLockVersionColumn(target.Format, "version") + ` = ?)`
@@ -155,10 +183,12 @@ func (db *DB) GetResourceLocks(target core.ResourceLockTarget, allVersions bool)
 	locks := make([]*core.ResourceLock, 0)
 	for rows.Next() {
 		lock := &core.ResourceLock{}
+		var inherited int
 		if err := rows.Scan(&lock.Format, &lock.Repository, &lock.Name, &lock.Version,
-			&lock.Source, &lock.Mode, &lock.Reason, &lock.LockedAt); err != nil {
+			&lock.Source, &lock.Mode, &lock.Reason, &lock.LockedAt, &inherited); err != nil {
 			return nil, err
 		}
+		lock.Inherited = inherited != 0
 		locks = append(locks, lock)
 	}
 	return locks, rows.Err()
@@ -174,7 +204,7 @@ func ensureResourceMutableQuery(queryRow func(string, ...any) row, target core.R
 	if err != nil {
 		return err
 	}
-	query := `SELECT 1 FROM resource_locks WHERE package_id = ?`
+	query := `SELECT 1 FROM ` + resourceLocksQuery(target.Format) + ` l WHERE package_id = ?`
 	args := []any{packageDeprecationID(target.Format, target.Repository, target.Name)}
 	if !allVersions {
 		query += ` AND (version = '' OR ` + resourceLockVersionColumn(target.Format, "version") + ` = ?)`
@@ -198,6 +228,8 @@ func (db *DB) ResourceMetadataVisibility(format, repository, username string, mo
 	case "cargo":
 	case "npm":
 		table, members, nameColumn = "npm_packages", "npm_members", "package_name"
+	case "docker":
+		table, members, nameColumn = "docker_images", "docker_members", "image_name"
 	default:
 		return nil, core.ErrResourceLockInvalid
 	}
@@ -233,7 +265,7 @@ func (db *DB) ResourceMetadataVisibility(format, repository, username string, mo
 		conditions[i] = `(l.resource_name = ? AND (l.version = '' OR ` + resourceLockVersionColumn(format, "l.version") + ` = ?))`
 		args = append(args, normalized[i].Name, normalized[i].Version)
 	}
-	rows, err := db.Query(`SELECT l.resource_name, l.version FROM resource_locks l
+	rows, err := db.Query(`SELECT l.resource_name, l.version FROM `+resourceLocksQuery(format)+` l
 		LEFT JOIN `+table+` p ON p.repository = l.repository AND p.`+nameColumn+` = l.resource_name
 		LEFT JOIN `+members+` m ON m.repository = p.repository AND m.`+nameColumn+` = p.`+nameColumn+` AND m.user_id = ?
 		LEFT JOIN super_team_members stm ON stm.team_prefix = p.super_team_prefix AND stm.user_id = ?

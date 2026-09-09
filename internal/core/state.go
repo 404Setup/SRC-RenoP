@@ -339,8 +339,10 @@ type StateDB interface {
 	ListDockerImages(repository, last string, limit int) ([]*DockerRepositoryImage, error)
 	SearchDockerImages(repository, query string, limit, offset int) ([]*DockerRepositoryImage, int, error)
 	GetDockerImageDetails(repository, imageName string, username ...string) (*DockerImageDetails, error)
+	GetDockerImageDetailsForViewer(repository, imageName, username string, moderator bool) (*DockerImageDetails, error)
 	GetDockerTag(repository, imageName, tag string) (*DockerTag, error)
 	ListDockerTags(repository, imageName, last string, limit int) ([]*DockerTag, error)
+	ListDockerTagsForViewer(repository, imageName, last string, limit int, username string, moderator bool) ([]*DockerTag, error)
 	GetDockerManifest(repository, imageName, digest string) (*DockerManifest, error)
 	PutDockerManifest(manifest *DockerManifest, tag string, username string) error
 	ApproveDockerPublicationReview(id, reviewer string, manifest *DockerManifest, tag string,
@@ -359,6 +361,9 @@ type StateDB interface {
 	HasDockerBlob(repository, digest string) (bool, int64, error)
 	DockerImageReferencesBlob(repository, imageName, digest string) (bool, error)
 	DeleteDockerBlob(repository, digest string) error
+	EnsureDockerBlobMutable(repository, digest string) error
+	EnsureDockerManifestMutable(repository, image, digest, tag string) error
+	FilterDockerImageVersions(images []*DockerRepositoryImage, username string, moderator bool) error
 	GetDockerRepositoryStats(repository string) (totalImages int64, totalTags int64, totalSize int64, err error)
 	IncrementDockerPullCount(repository, imageName string) error
 	BatchIncrementDockerPullCount(repository, imageName string, delta int64) error

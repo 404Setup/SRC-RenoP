@@ -78,3 +78,5 @@ l’image : connaître un digest d’une autre image ne donne aucun droit.
 - **Mount inter-dépôts** : lecture de la source et écriture sur une destination précréée.
 - **Suppression** : capacité du Token et autorisation image/dépôt sont toutes deux requises.
 - **Miroirs** : réponses diffusées et cataloguées avec leur origine ; une image miroir ne peut pas être poussée.
+
+Les pages d’image affichent des motifs de verrouillage publics et traduits. Les modérateurs peuvent verrouiller une image entière ou un condensat immuable, avec ses alias de tags et son contenu multi-architecture référencé. Les verrouillages d’écriture figent les modifications ; ceux de lecture réservent les métadonnées aux collaborateurs et au personnel tout en interdisant les téléchargements et montages à tous. Les restrictions système et héritées doivent être retirées à leur source. Une actualisation après modification est ignorée si vous avez quitté la page.

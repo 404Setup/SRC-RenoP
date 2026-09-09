@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "resourceLock.inheritedNotice": "Geerbte Sperren bleiben aktiv, bis sie an der übergeordneten Ressource entfernt werden.",
     "resourceLock.manage": "Sperre verwalten",
     "resourceLock.mode": "Sperrtyp",
     "resourceLock.reason": "Öffentlicher Grund",

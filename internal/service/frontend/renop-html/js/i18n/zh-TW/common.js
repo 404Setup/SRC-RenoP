@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "resourceLock.inheritedNotice": "繼承的鎖定會持續生效，直到在上層資源上解除。",
     "resourceLock.manage": "管理鎖定",
     "resourceLock.mode": "鎖定類型",
     "resourceLock.reason": "公開原因",

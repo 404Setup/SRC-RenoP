@@ -31,7 +31,7 @@ test('lock controls submit only a manual restriction and retain the dialog on fa
     assert.equal(context.resourceWriteLocked({locks: [system]}, {}), true);
     assert.equal(context.resourceReadLocked({locks: [system]}, {locks: [{mode: 'read'}]}), true);
     const button = context.createResourceLockButton({
-        locks: [system], name: 'demo', request: async (mode, reason) => {
+        locks: [system, {mode: 'read', source: 'manual', inherited: true}], name: 'demo', request: async (mode, reason) => {
             requests.push([mode, reason]); return {ok: accepted};
         }, onSuccess: () => { refreshed++; },
     });
@@ -48,4 +48,32 @@ test('lock controls submit only a manual restriction and retain the dialog on fa
     assert.equal(closed, false);
     assert.equal(refreshed, 1);
     assert.equal(alerts.at(-1), 'safe');
+});
+
+test('Docker lock refreshes discard responses after navigation or view dismissal', async () => {
+    const requests = [], payloads = [];
+    const view = {hidden: false, querySelector: () => null};
+    let renders = 0;
+    const context = vm.createContext({
+        view, apiRequest: () => new Promise(resolve => requests.push(resolve)),
+        dockerUserSuggestions: {detach() {}}, setRepositoryViewBusy() {},
+        replaceRepositoryView: () => { renders++; },
+        hideRepositoryView: container => { container.hidden = true; },
+    });
+    const source = readFileSync(new URL('../js/browser/docker.js', import.meta.url), 'utf8');
+    vm.runInContext(`let dockerLoadSequence = 1, dockerViewContainer = view;
+        ${['renderImageDetailsView', 'hideDockerRepositoryView'].map(name =>
+            source.match(new RegExp(`(?:export )?(?:async )?function ${name}\\([^]*?\\n}`))[0].replace('export ', '')
+        ).join('\n')}`, context);
+    const first = context.renderImageDetailsView(view, 'docker', 'demo', 1);
+    let started;
+    const jsonStarted = new Promise(resolve => { started = resolve; });
+    requests[0]({ok: true, json: () => new Promise(resolve => { payloads.push(resolve); started(); })});
+    await jsonStarted;
+    context.hideDockerRepositoryView();
+    payloads[0]({image: {image_name: 'demo'}});
+    await first;
+    await context.renderImageDetailsView(view, 'docker', 'demo', 2);
+    assert.equal(renders, 0);
+    assert.equal(requests.length, 1);
 });

@@ -130,6 +130,9 @@ func createDockerImageTx(tx *Tx, repository, imageName, owner, ownerID, superTea
 	if tx == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
+	if err := ensureResourceMutableQuery(tx.QueryRow, dockerLockTarget(repository, imageName, ""), false); err != nil {
+		return nil, err
+	}
 	if err := lockAccountLoginMethodsTx(tx, ownerID); err != nil {
 		return nil, err
 	}
@@ -456,8 +459,15 @@ func (db *DB) UpdateDockerImageDescription(repository, imageName, description st
 	repository, imageName = sanitizeDockerKey(repository, imageName)
 	description = sanitizePackageReadme(description)
 	now := time.Now().UnixMilli()
-
-	res, err := db.Exec(
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := lockDockerImageTeam(tx, repository, imageName); err != nil {
+		return err
+	}
+	res, err := tx.Exec(
 		`UPDATE docker_images SET description = ?, updated_at = ? WHERE repository = ? AND image_name = ?`,
 		description, now, repository, imageName,
 	)
@@ -471,7 +481,7 @@ func (db *DB) UpdateDockerImageDescription(repository, imageName, description st
 	if rows == 0 {
 		return core.ErrDockerImageNotFound
 	}
-	return nil
+	return tx.Commit()
 }
 
 func (db *DB) ListDockerImages(repository, last string, limit int) ([]*core.DockerRepositoryImage, error) {
@@ -577,51 +587,70 @@ func (db *DB) SearchDockerImages(repository, query string, limit, offset int) ([
 }
 
 func (db *DB) GetDockerImageDetails(repository, imageName string, username ...string) (*core.DockerImageDetails, error) {
+	viewer := ""
+	if len(username) > 0 {
+		viewer = username[0]
+	}
+	return db.GetDockerImageDetailsForViewer(repository, imageName, viewer, true)
+}
+
+// GetDockerImageDetailsForViewer filters version metadata before limiting the inspection page.
+func (db *DB) GetDockerImageDetailsForViewer(repository, imageName, username string, moderator bool) (*core.DockerImageDetails, error) {
 	img, err := db.GetDockerImage(repository, imageName)
 	if err != nil || img == nil {
 		return nil, err
 	}
 
-	tags, err := db.ListDockerTags(repository, imageName, "", 100)
+	_, _, _, member, permissionLevel, err := db.GetDockerImageAccess(repository, imageName, username)
+	if err != nil {
+		return nil, err
+	}
+	tags, err := db.ListDockerTagsForViewer(repository, imageName, "", 100, username, moderator)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(tags) == 0 {
+		visibility := ""
+		if !member && !moderator {
+			visibility = ` AND NOT EXISTS (SELECT 1 FROM ` + resourceLocksQuery("docker") + ` l
+				WHERE l.format = 'docker' AND l.mode = 'read' AND l.repository = m.repository
+				AND l.resource_name = m.image_name AND (l.version = '' OR l.version = m.digest))`
+		}
 		mRows, mErr := db.Query(
 			`SELECT repository, image_name, digest, media_type, size, config_digest, publisher, created_at
-			 FROM docker_manifests WHERE repository = ? AND image_name = ? ORDER BY created_at DESC LIMIT 50`,
+			 FROM docker_manifests m WHERE repository = ? AND image_name = ?`+visibility+` ORDER BY created_at DESC LIMIT 50`,
 			repository, imageName,
 		)
-		if mErr == nil {
-			defer mRows.Close()
-			for mRows.Next() {
-				m := &core.DockerTag{}
-				if scanErr := mRows.Scan(&m.Repository, &m.ImageName, &m.Digest, &m.MediaType, &m.Size, &m.ConfigDigest, &m.Publisher, &m.CreatedAt); scanErr == nil {
-					m.Tag = m.Digest
-					if len(m.Digest) > 19 {
-						m.Tag = m.Digest[:19]
-					}
-					m.UpdatedAt = m.CreatedAt
-					tags = append(tags, m)
-				}
+		if mErr != nil {
+			return nil, mErr
+		}
+		defer mRows.Close()
+		for mRows.Next() {
+			m := &core.DockerTag{}
+			if scanErr := mRows.Scan(&m.Repository, &m.ImageName, &m.Digest, &m.MediaType, &m.Size, &m.ConfigDigest, &m.Publisher, &m.CreatedAt); scanErr != nil {
+				return nil, scanErr
 			}
+			m.Tag = m.Digest
+			if len(m.Digest) > 19 {
+				m.Tag = m.Digest[:19]
+			}
+			m.UpdatedAt = m.CreatedAt
+			tags = append(tags, m)
+		}
+		if err := mRows.Err(); err != nil {
+			return nil, err
 		}
 	}
 
-	members, _ := db.ListDockerMembers(repository, imageName)
+	members, err := db.ListDockerMembers(repository, imageName)
+	if err != nil {
+		return nil, err
+	}
 	for _, m := range members {
 		if m.Level == core.DockerPermissionOwner {
 			img.Publisher = m.Username
 			break
-		}
-	}
-
-	var permissionLevel int
-	if len(username) > 0 && username[0] != "" {
-		u := sanitizeDockerUsername(username[0])
-		if u != "" && u != "guest" {
-			permissionLevel, _ = db.GetDockerMemberLevel(repository, imageName, u)
 		}
 	}
 
@@ -630,6 +659,7 @@ func (db *DB) GetDockerImageDetails(repository, imageName string, username ...st
 		Tags:            tags,
 		Members:         members,
 		PermissionLevel: permissionLevel,
+		Member:          member,
 	}
 
 	if len(tags) > 0 {
@@ -641,7 +671,10 @@ func (db *DB) GetDockerImageDetails(repository, imageName string, username ...st
 		}
 		details.TotalSize = totalSize
 
-		latestManifest, _ := db.GetDockerManifest(repository, imageName, tags[0].Digest)
+		latestManifest, err := db.GetDockerManifest(repository, imageName, tags[0].Digest)
+		if err != nil {
+			return nil, err
+		}
 		if latestManifest != nil {
 			details.Manifest = latestManifest
 		}
@@ -672,6 +705,11 @@ func (db *DB) GetDockerTag(repository, imageName, tag string) (*core.DockerTag, 
 }
 
 func (db *DB) ListDockerTags(repository, imageName, last string, limit int) ([]*core.DockerTag, error) {
+	return db.ListDockerTagsForViewer(repository, imageName, last, limit, "", true)
+}
+
+// ListDockerTagsForViewer filters read locks before applying the tag cursor and page size.
+func (db *DB) ListDockerTagsForViewer(repository, imageName, last string, limit int, username string, moderator bool) ([]*core.DockerTag, error) {
 	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
@@ -681,14 +719,36 @@ func (db *DB) ListDockerTags(repository, imageName, last string, limit int) ([]*
 		limit = 50
 	}
 
-	query := `SELECT repository, image_name, tag, digest, media_type, size, config_digest, publisher, created_at, updated_at
-	          FROM docker_tags WHERE repository = ? AND image_name = ?`
-	args := []any{repository, imageName}
+	query := `SELECT t.repository, t.image_name, t.tag, t.digest, t.media_type, t.size, t.config_digest,
+		COALESCE(NULLIF(t.publisher, ''), man.publisher, ''), t.created_at, t.updated_at
+		FROM docker_tags t LEFT JOIN docker_manifests man ON man.repository = t.repository
+		AND man.image_name = t.image_name AND man.digest = t.digest`
+	args := []any{}
+	visibility := ""
+	if !moderator {
+		userID := ""
+		if username != "" && !strings.EqualFold(username, "guest") {
+			var err error
+			userID, err = db.userIDForUsername(username)
+			if err != nil && !errors.Is(err, core.ErrUserProfileNotFound) {
+				return nil, err
+			}
+		}
+		query += ` JOIN docker_images p ON p.repository = t.repository AND p.image_name = t.image_name
+			LEFT JOIN docker_members m ON m.repository = p.repository AND m.image_name = p.image_name AND m.user_id = ?
+			LEFT JOIN super_team_members stm ON stm.team_prefix = p.super_team_prefix AND stm.user_id = ?`
+		args = append(args, userID, userID)
+		visibility = ` AND (m.user_id IS NOT NULL OR stm.user_id IS NOT NULL OR NOT EXISTS (
+			SELECT 1 FROM ` + resourceLocksQuery("docker") + ` l WHERE l.format = 'docker' AND l.mode = 'read'
+			AND l.repository = t.repository AND l.resource_name = t.image_name AND (l.version = '' OR l.version = t.digest)))`
+	}
+	query += ` WHERE t.repository = ? AND t.image_name = ?` + visibility
+	args = append(args, repository, imageName)
 	if last != "" {
-		query += ` AND tag > ?`
+		query += ` AND t.tag > ?`
 		args = append(args, last)
 	}
-	query += ` ORDER BY tag LIMIT ?`
+	query += ` ORDER BY t.tag LIMIT ?`
 	args = append(args, limit)
 
 	rows, err := db.Query(query, args...)
@@ -707,14 +767,6 @@ func (db *DB) ListDockerTags(repository, imageName, last string, limit int) ([]*
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate Docker tags: %w", err)
-	}
-
-	for _, t := range tags {
-		if t.Publisher == "" {
-			var manPub string
-			_ = db.QueryRow(`SELECT publisher FROM docker_manifests WHERE repository = ? AND image_name = ? AND digest = ? AND publisher != '' LIMIT 1`, t.Repository, t.ImageName, t.Digest).Scan(&manPub)
-			t.Publisher = manPub
-		}
 	}
 
 	return tags, nil
@@ -853,6 +905,14 @@ func putDockerManifestTx(tx *Tx, write *dockerManifestWrite) error {
 		}
 	}
 
+	if err := ensureResourceMutableQuery(tx.QueryRow, dockerLockTarget(repository, imageName, digest), false); err != nil {
+		return err
+	}
+	if tag != "" {
+		if err := ensureDockerTagMutableQuery(tx.QueryRow, repository, imageName, tag); err != nil {
+			return err
+		}
+	}
 	// Upsert docker_manifests record
 	var existingManifest int
 	err = tx.QueryRow(`SELECT 1 FROM docker_manifests WHERE repository = ? AND image_name = ? AND digest = ?`, repository, imageName, digest).Scan(&existingManifest)
@@ -955,7 +1015,18 @@ func (db *DB) DeleteDockerTag(repository, imageName, tag string) error {
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
 	tag = SanitizeInputString(strings.TrimSpace(tag), 128)
-	res, err := db.Exec(`DELETE FROM docker_tags WHERE repository = ? AND image_name = ? AND tag = ?`, repository, imageName, tag)
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := lockDockerImageTeam(tx, repository, imageName); err != nil {
+		return err
+	}
+	if err := ensureDockerTagMutableQuery(tx.QueryRow, repository, imageName, tag); err != nil {
+		return err
+	}
+	res, err := tx.Exec(`DELETE FROM docker_tags WHERE repository = ? AND image_name = ? AND tag = ?`, repository, imageName, tag)
 	if err != nil {
 		return fmt.Errorf("delete Docker tag: %w", err)
 	}
@@ -966,7 +1037,7 @@ func (db *DB) DeleteDockerTag(repository, imageName, tag string) error {
 	if rows == 0 {
 		return core.ErrDockerTagNotFound
 	}
-	return nil
+	return tx.Commit()
 }
 
 func (db *DB) DeleteDockerManifest(repository, imageName, digest string) error {
@@ -980,6 +1051,12 @@ func (db *DB) DeleteDockerManifest(repository, imageName, digest string) error {
 		return fmt.Errorf("begin delete Docker manifest: %w", err)
 	}
 	defer tx.Rollback()
+	if err := lockDockerImageRow(tx, repository, imageName); err != nil {
+		return err
+	}
+	if err := ensureResourceMutableQuery(tx.QueryRow, dockerLockTarget(repository, imageName, digest), false); err != nil {
+		return err
+	}
 
 	if _, err := tx.Exec(`DELETE FROM docker_tags WHERE repository = ? AND image_name = ? AND digest = ?`, repository, imageName, digest); err != nil {
 		return fmt.Errorf("delete Docker tags for manifest: %w", err)
@@ -1018,6 +1095,12 @@ func (db *DB) DeleteDockerImage(repository, imageName string) error {
 		return fmt.Errorf("begin delete Docker image: %w", err)
 	}
 	defer tx.Rollback()
+	if err := lockDockerImageRow(tx, repository, imageName); err != nil {
+		return err
+	}
+	if err := ensureResourceMutableQuery(tx.QueryRow, dockerLockTarget(repository, imageName, ""), true); err != nil {
+		return err
+	}
 
 	_ = cancelDockerInvitations(tx, `repository = ? AND image_name = ?`, []any{repository, imageName}, now)
 
@@ -1056,6 +1139,9 @@ func (db *DB) DeleteDockerRepository(repository string) error {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, _ = sanitizeDockerKey(repository, "")
+	if err := db.EnsureRepositoryResourcesMutable(repository); err != nil {
+		return err
+	}
 	now := time.Now().UnixMilli()
 	tx, err := db.Begin()
 	if err != nil {
@@ -1107,6 +1193,9 @@ func (db *DB) RecordDockerImageBlob(repository, imageName, digest string) error 
 	digest = strings.ToLower(SanitizeInputString(strings.TrimSpace(digest), 128))
 	if repository == "" || imageName == "" || digest == "" {
 		return core.ErrDockerInvalidDigest
+	}
+	if err := db.EnsureResourceMutable(dockerLockTarget(repository, imageName, digest), false); err != nil {
+		return err
 	}
 	var exists int
 	err := db.QueryRow(`SELECT 1 FROM docker_image_blobs
@@ -1174,6 +1263,9 @@ func (db *DB) DeleteDockerBlob(repository, digest string) error {
 		return fmt.Errorf("begin delete Docker blob: %w", err)
 	}
 	defer tx.Rollback()
+	if err := ensureDockerBlobMutableQuery(tx.QueryRow, repository, digest); err != nil {
+		return err
+	}
 	if _, err := tx.Exec(`DELETE FROM docker_image_blobs WHERE repository = ? AND blob_digest = ?`, repository, digest); err != nil {
 		return fmt.Errorf("delete Docker blob references: %w", err)
 	}
@@ -1848,6 +1940,13 @@ func requireDockerMemberPermission(tx *Tx, repository, imageName, userID string,
 }
 
 func lockDockerImageTeam(tx *Tx, repository, imageName string) error {
+	if err := lockDockerImageRow(tx, repository, imageName); err != nil {
+		return err
+	}
+	return ensureResourceMutableQuery(tx.QueryRow, dockerLockTarget(repository, imageName, ""), false)
+}
+
+func lockDockerImageRow(tx *Tx, repository, imageName string) error {
 	if _, err := tx.Exec(`UPDATE docker_images SET updated_at = updated_at
 		WHERE repository = ? AND image_name = ?`, repository, imageName); err != nil {
 		return fmt.Errorf("lock Docker image team: %w", err)

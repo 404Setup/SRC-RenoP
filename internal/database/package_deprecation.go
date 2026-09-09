@@ -121,7 +121,7 @@ func (db *DB) EnsurePackageMutable(format, repository, packageKey string) error 
 	if deprecated {
 		return core.ErrPackageDeprecated
 	}
-	if format == config.RepositoryFormatCargo || format == config.RepositoryFormatNPM {
+	if format == config.RepositoryFormatCargo || format == config.RepositoryFormatNPM || format == config.RepositoryFormatDocker {
 		return db.EnsureResourceMutable(core.ResourceLockTarget{Format: format, Repository: repository, Name: packageKey}, false)
 	}
 	return nil
@@ -139,6 +139,9 @@ func (db *DB) DeprecatePackage(format, repository, packageKey string, deprecated
 		return fmt.Errorf("begin package deprecation: %w", err)
 	}
 	defer tx.Rollback()
+	if err := ensureResourceMutableQuery(tx.QueryRow, core.ResourceLockTarget{Format: format, Repository: repository, Name: packageKey}, true); err != nil {
+		return err
+	}
 	var storedFormat, storedRepository, storedKey string
 	err = tx.QueryRow(`SELECT format, repository, package_key FROM package_deprecations WHERE id = ?`, id).
 		Scan(&storedFormat, &storedRepository, &storedKey)

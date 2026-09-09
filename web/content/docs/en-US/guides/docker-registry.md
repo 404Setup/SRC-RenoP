@@ -77,3 +77,5 @@ is image-scoped: possessing a digest from another image does not grant access.
 - **Cross-repository mounts**: Mounts require read access to the source and write access to a pre-created destination.
 - **Deletion**: Tag, manifest, and image deletion require both Token capability and image/repository authorization.
 - **Mirrors**: Upstream responses are streamed and cataloged with origin metadata; mirrored images cannot be pushed.
+
+Image pages show public, localized lock reasons. Staff can lock an entire image or an immutable manifest digest. Digest locks include tag aliases and referenced multi-architecture content. Write locks freeze changes; read locks retain metadata for staff and collaborators while blocking downloads and mounts for everyone. System and inherited locks remain until their source is released. A page refresh after a lock change is discarded if you have navigated away.

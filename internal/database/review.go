@@ -641,6 +641,9 @@ func applySuperTeamTransferTx(tx *Tx, task *core.ReviewTask) error {
 	var result result
 	switch task.ResourceType {
 	case core.ReviewResourceDockerImage:
+		if err := ensureResourceMutableQuery(tx.QueryRow, dockerLockTarget(task.Repository, task.ResourceKey, ""), false); err != nil {
+			return err
+		}
 		result, err = tx.Exec(`UPDATE docker_images SET super_team_prefix = ?, updated_at = ?
 			WHERE repository = ? AND image_name = ? AND super_team_prefix = ?`, task.TargetTeamPrefix,
 			task.DecidedAt, task.Repository, task.ResourceKey, task.SourceTeamPrefix)

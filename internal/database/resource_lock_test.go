@@ -8,6 +8,8 @@
 package database_test
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -18,6 +20,82 @@ import (
 	"renop/internal/database"
 	"renop/internal/testutil"
 )
+
+func TestDockerLocksProtectAliasesIndexChildrenAndSharedBlobs(t *testing.T) {
+	db := newMavenDB(t)
+	now := time.Now().UnixMilli()
+	for _, name := range []string{"alice", "reader"} {
+		require.NoError(t, db.SaveToken(&core.AccessToken{Name: name}))
+	}
+	for _, name := range []string{"demo", "other"} {
+		_, err := db.CreateDockerImage("docker", name, "alice", false, now)
+		require.NoError(t, err)
+	}
+	require.NoError(t, db.ForceAddDockerMembers("docker", "demo", "alice", []string{"reader"}, 0))
+	digestOf := func(raw string) string { return fmt.Sprintf("sha256:%x", sha256.Sum256([]byte(raw))) }
+	blob := digestOf("layer")
+	childRaw := fmt.Sprintf(`{"schemaVersion":2,"layers":[{"digest":%q}]}`, blob)
+	child := digestOf(childRaw)
+	indexRaw := fmt.Sprintf(`{"schemaVersion":2,"manifests":[{"digest":%q}]}`, child)
+	index := digestOf(indexRaw)
+	put := func(image, digest, raw, tag string, blobs ...string) error {
+		return db.PutDockerManifest(&core.DockerManifest{Repository: "docker", ImageName: image,
+			Digest: digest, MediaType: "application/vnd.oci.image.manifest.v1+json", RawJSON: []byte(raw), BlobDigests: blobs}, tag, "alice")
+	}
+	require.NoError(t, put("demo", child, childRaw, "amd64", blob))
+	require.NoError(t, put("demo", index, indexRaw, "latest"))
+	require.NoError(t, put("demo", index, indexRaw, "stable"))
+	require.NoError(t, put("other", child, childRaw, "latest", blob))
+	lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "docker", Repository: "docker", Name: "demo", Version: index},
+		Source: core.ResourceLockSystem, Mode: core.ResourceLockRead, Reason: "trojan", LockedAt: now}
+	require.NoError(t, db.SetResourceLock(lock, "", ""))
+	_, err := db.Exec(`UPDATE docker_manifests SET raw_json = ? WHERE repository = ? AND image_name = ? AND digest = ?`, "invalid", "docker", "demo", index)
+	require.NoError(t, err)
+	replacement := *lock
+	replacement.Mode = core.ResourceLockWrite
+	require.ErrorIs(t, db.SetResourceLock(&replacement, "", ""), core.ErrDockerManifestInvalid)
+	retained, err := db.GetResourceLocks(core.ResourceLockTarget{Format: "docker", Repository: "docker", Name: "demo", Version: blob}, false)
+	require.NoError(t, err)
+	require.Len(t, retained, 1)
+	require.Equal(t, core.ResourceLockRead, retained[0].Mode)
+	_, err = db.Exec(`UPDATE docker_manifests SET raw_json = ? WHERE repository = ? AND image_name = ? AND digest = ?`, indexRaw, "docker", "demo", index)
+	require.NoError(t, err)
+	for _, digest := range []string{index, child, blob} {
+		target := lock.ResourceLockTarget
+		target.Version = digest
+		require.ErrorIs(t, db.EnsureResourceMutable(target, false), core.ErrResourceLocked)
+		locks, err := db.GetResourceLocks(target, false)
+		require.NoError(t, err)
+		require.Len(t, locks, 1)
+		require.Equal(t, digest != index, locks[0].Inherited)
+		visible, err := db.ResourceMetadataVisibility("docker", "docker", "guest", false, []core.ResourceLockTarget{target})
+		require.NoError(t, err)
+		require.Equal(t, []bool{false}, visible)
+		visible, err = db.ResourceMetadataVisibility("docker", "docker", "reader", false, []core.ResourceLockTarget{target})
+		require.NoError(t, err)
+		require.Equal(t, []bool{true}, visible)
+	}
+	for _, tag := range []string{"latest", "stable", "amd64"} {
+		require.ErrorIs(t, db.DeleteDockerTag("docker", "demo", tag), core.ErrResourceLocked)
+		require.ErrorIs(t, put("demo", digestOf(`{}`), `{}`, tag), core.ErrResourceLocked)
+	}
+	require.ErrorIs(t, db.DeleteDockerManifest("docker", "demo", child), core.ErrResourceLocked)
+	require.ErrorIs(t, db.DeleteDockerImage("docker", "demo"), core.ErrResourceLocked)
+	require.ErrorIs(t, db.DeleteDockerBlob("docker", blob), core.ErrResourceLocked)
+	require.ErrorIs(t, db.EnsureDockerBlobMutable("docker", blob), core.ErrResourceLocked)
+	require.ErrorIs(t, db.RecordDockerImageBlob("docker", "demo", blob), core.ErrResourceLocked)
+	require.ErrorIs(t, db.DeprecatePackage("docker", "docker", "demo", now), core.ErrResourceLocked)
+	require.NoError(t, db.UpdateDockerImageDescription("docker", "demo", "Allowed outside the version"))
+	require.NoError(t, put("demo", digestOf(`{}`), `{}`, "unlocked"))
+	require.NoError(t, db.DeleteResourceLock(lock.ResourceLockTarget, lock.Source, "", ""))
+	require.NoError(t, db.EnsureDockerBlobMutable("docker", blob))
+	lock.Version = ""
+	require.NoError(t, db.SetResourceLock(lock, "", ""))
+	require.ErrorIs(t, db.UpdateDockerImageDescription("docker", "demo", "blocked"), core.ErrResourceLocked)
+	require.ErrorIs(t, db.ForceAddDockerMembers("docker", "demo", "alice", []string{"new"}, 0), core.ErrResourceLocked)
+	require.ErrorIs(t, db.RemoveDockerMember("docker", "demo", "reader", "reader"), core.ErrResourceLocked)
+	require.ErrorIs(t, db.EnsureDockerBlobMutable("docker", blob), core.ErrResourceLocked)
+}
 
 func TestResourceLocksPreserveSourcesAndFilterCargoMetadata(t *testing.T) {
 	cfg := config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "locks.db")}

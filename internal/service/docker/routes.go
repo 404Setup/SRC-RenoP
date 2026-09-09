@@ -30,13 +30,21 @@ func SetupDockerRoutes(app fiber.Router, state *core.AppState, store Store) {
 		if repository == "" || image == "" {
 			return handler()
 		}
-		release := repositorygate.AcquireMutation(repository)
+		repositories := []string{repository}
+		if c.Query("mount") != "" && c.Query("from") != "" {
+			source, _ := ParseRepositoryAndImage(c.Query("from"))
+			repositories = append(repositories, source)
+		}
+		release := repositorygate.AcquireMutations(repositories...)
 		defer release()
 		if state == nil || state.GetDB() == nil {
 			return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported,
 				"package state is unavailable", nil)
 		}
 		if err := state.GetDB().EnsurePackageMutable(config.RepositoryFormatDocker, repository, image); err != nil {
+			if errors.Is(err, core.ErrResourceLocked) {
+				return respondLockError(c, err)
+			}
 			if errors.Is(err, core.ErrPackageDeprecated) {
 				return RespondError(c, fiber.StatusConflict, ErrCodeDenied,
 					"image is permanently deprecated and pull-only", nil)

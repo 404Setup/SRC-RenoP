@@ -600,6 +600,10 @@
     min-width: 0;
 }
 
+.docker-tag-left > .resource-lock-notices {
+    flex-basis: 100%;
+}
+
 .docker-tag-badge {
     font-weight: 650;
     font-family: var(--font-mono, monospace);
@@ -697,6 +701,7 @@
 }
 
 .docker-tag-actions {
+    flex-wrap: wrap;
     display: flex;
     align-items: center;
     gap: 0.45rem;
