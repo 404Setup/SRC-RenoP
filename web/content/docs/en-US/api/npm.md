@@ -81,3 +81,31 @@ npm clients may use Basic authentication with an account password or API Token, 
 Bearer API Token scopes are intersected with the account's current permissions and optional exact repository, package,
 or team targets. Publication still requires an existing package and L1 or higher; package metadata and unpublish need
 L2, team changes need L3, and ownership or package deletion needs L4.
+
+## Resource locks
+
+Administrators and moderators for the repository manage locks with a current browser session cookie:
+
+- `PUT /api/npm/repositories/{repo}/locks?package={package}`
+- `DELETE /api/npm/repositories/{repo}/locks?package={package}`
+
+```json
+{"version":"1.2.3","mode":"read","reason":"trojan"}
+```
+
+Omit `version` or use `""` to target the package. Modes are `write` and `read`. Public, localized reasons are
+`hold`, `prohibited`, `expired`, `trojan`, `abuse`, `dmca`, `reup`, `squatting`, and `quality`.
+DELETE accepts `{"version":"1.2.3"}` and removes only that manual lock. System locks remain independent.
+API tokens cannot manage locks. Package and version details expose public `locks` records.
+
+Both modes freeze changes. Read locks additionally restrict metadata to administrators, repository moderators,
+owners, and collaborators, including L0 and bound global-team members. File downloads are denied to everyone.
+Other viewers cannot see restricted versions or their tags in full or abbreviated packuments, search results,
+profiles, or team resources. Filtered metadata disables caching and never returns a stale `304`.
+
+Version locks also freeze associated dist-tag changes and prevent whole-package archive, permanent deprecation,
+and deletion. Complete packuments may repeat unchanged locked metadata. Other versions can be published with tags
+that do not move a locked version's tag. Any lock freezes upstream packument replacement; affected cached tarballs
+neither expire nor refill. Locked repositories cannot be reconfigured or deleted.
+
+Denied mutations return `423` with `X-Renop-Error-Code: resource_locked`; denied reads return `404`.

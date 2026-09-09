@@ -159,6 +159,10 @@ func ensureMutableNPMPackage(state *core.AppState, repo *config.Repository, pack
 }
 
 func npmPackageMutationError(c fiber.Ctx, err error) error {
+	if errors.Is(err, core.ErrResourceLocked) {
+		c.Set(npmAPIErrorCodeHeader, "resource_locked")
+		return npmError(c, fiber.StatusLocked, "resource_locked", "npm resource is locked")
+	}
 	if errors.Is(err, core.ErrPackageDeprecated) {
 		return npmError(c, fiber.StatusConflict, "package_deprecated",
 			"npm package is permanently deprecated and read-only")
@@ -192,7 +196,8 @@ func handleSearch(c fiber.Ctx, state *core.AppState, repo *config.Repository) er
 	if user != nil {
 		username = user.Username
 	}
-	packages, total, err := state.GetDB().SearchNPMPackages(repo.Name, query, username, administrator, limit, offset)
+	packages, total, err := state.GetDB().SearchNPMPackages(repo.Name, query, username, administrator,
+		user != nil && user.CheckModeratePermission(repo.Name), limit, offset)
 	if err != nil {
 		return npmError(c, fiber.StatusInternalServerError, "search failure", "failed to search npm packages")
 	}
@@ -292,6 +297,9 @@ func (handler Handler) Handle(c fiber.Ctx, state *core.AppState, repo *config.Re
 	if packageName, ok := packageFromTarballPath(requestPath); ok {
 		if c.Method() != fiber.MethodGet && c.Method() != fiber.MethodHead {
 			return true, npmError(c, fiber.StatusMethodNotAllowed, "method not allowed", "npm tarballs are read-only")
+		}
+		if handled, err := HandleReadLocks(c, state, repo, decoded); handled {
+			return true, err
 		}
 		allowed, err := handler.tarballAllowed(c, state, repo, requestPath, packageName)
 		if err != nil {

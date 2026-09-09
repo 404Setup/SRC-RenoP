@@ -284,7 +284,7 @@ type StateDB interface {
 	ListCargoPackages(repository, username string, administrator bool) ([]*CargoPackage, error)
 	SearchCargoPackages(repository, query, username string, moderator bool, limit, offset int) ([]*CargoPackage, int, error)
 	HasCargoPackageMembership(repository, normalizedName, username string) (bool, error)
-	CargoMetadataVisibility(repository, username string, moderator bool, targets []ResourceLockTarget) ([]bool, error)
+	ResourceMetadataVisibility(format, repository, username string, moderator bool, targets []ResourceLockTarget) ([]bool, error)
 	HasCargoMembership(repository, username string) (bool, error)
 	RecordCargoPublication(pkg *CargoPackage, version *CargoVersion, username string) error
 	RollbackCargoPublicationReview(repository, normalizedName, version string, previous *CargoPackage) error
@@ -305,8 +305,8 @@ type StateDB interface {
 	GetNPMPackage(repository, packageName string) (*NPMPackage, error)
 	GetNPMPackageAccess(repository, packageName, username string) (exists, private, publishEnabled, member bool, level int, err error)
 	GetNPMPackageDetails(repository, packageName, username string) (*NPMPackageDetails, error)
-	ListNPMPackages(repository, username string, administrator bool, limit, offset int) ([]*NPMPackage, int, error)
-	SearchNPMPackages(repository, query, username string, administrator bool, limit, offset int) ([]*NPMPackage, int, error)
+	ListNPMPackages(repository, username string, administrator, moderator bool, limit, offset int) ([]*NPMPackage, int, error)
+	SearchNPMPackages(repository, query, username string, administrator, moderator bool, limit, offset int) ([]*NPMPackage, int, error)
 	HasNPMMembership(repository, username string) (bool, error)
 	RecordNPMPublication(pkg *NPMPackage, version *NPMVersion, tags map[string]string, username string) error
 	RollbackNPMPublicationReview(repository, packageName, version string, previous *NPMPackage,

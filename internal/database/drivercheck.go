@@ -560,7 +560,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		return results, err
 	}
 	if err := run("resource locks", func() error {
-		return checkResourceLocks(db, cargoRepository, globalTeamPrefix, username, suffix, now)
+		return checkResourceLocks(db, cargoRepository, npmRepository, globalTeamPrefix, username, suffix, now)
 	}); err != nil {
 		return results, err
 	}

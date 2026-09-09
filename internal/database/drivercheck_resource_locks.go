@@ -14,9 +14,9 @@ import (
 	"renop/internal/core"
 )
 
-func checkResourceLocks(db *DB, repository, prefix, owner, suffix string, now int64) error {
+func checkResourceLocks(db *DB, repository, npmRepository, prefix, owner, suffix string, now int64) error {
 	moderator := "lockmod-" + suffix
-	if err := db.SaveToken(&core.AccessToken{Name: moderator, Permissions: []string{"canmoderate:" + repository}}); err != nil {
+	if err := db.SaveToken(&core.AccessToken{Name: moderator, Permissions: []string{"canmoderate:" + repository, "canmoderate:" + npmRepository}}); err != nil {
 		return err
 	}
 	sessionToken := "lock-session-" + suffix
@@ -50,7 +50,7 @@ func checkResourceLocks(db *DB, repository, prefix, owner, suffix string, now in
 	if err != nil || total != 1 || len(packages) != 1 || packages[0].MaxVersion != "1.0.0" {
 		return errorsOrMissing(err, "visible latest Cargo version")
 	}
-	visible, err := db.CargoMetadataVisibility(repository, "", false, []core.ResourceLockTarget{target})
+	visible, err := db.ResourceMetadataVisibility("cargo", repository, "", false, []core.ResourceLockTarget{target})
 	if err != nil || len(visible) != 1 || visible[0] {
 		return errorsOrMissing(err, "locked Cargo path filtering")
 	}
@@ -103,5 +103,83 @@ func checkResourceLocks(db *DB, repository, prefix, owner, suffix string, now in
 	if err := db.EnsureRepositoryResourcesMutable(repository); !errors.Is(err, core.ErrResourceLocked) {
 		return errorsOrMissing(err, "locked repository reconfiguration denial")
 	}
-	return db.DeleteResourceLock(target, core.ResourceLockManual, moderator, sessionToken)
+	if err := db.DeleteResourceLock(target, core.ResourceLockManual, moderator, sessionToken); err != nil {
+		return err
+	}
+	return checkNPMLocks(db, npmRepository, prefix, owner, moderator, sessionToken, now)
+}
+
+func checkNPMLocks(db *DB, repository, prefix, owner, moderator, session string, now int64) error {
+	pkg, err := db.CreateNPMPackageForTeam(repository, "npm-lock-demo", owner, prefix, false, now)
+	if err != nil {
+		return err
+	}
+	for _, version := range []string{"1.0.0", "2.0.0"} {
+		if err := db.RecordNPMPublication(pkg, &core.NPMVersion{Repository: repository, Package: pkg.Name, Version: version,
+			ManifestJSON: `{"name":"npm-lock-demo","version":"` + version + `"}`, CreatedAt: now}, map[string]string{"latest": version}, owner); err != nil {
+			return err
+		}
+	}
+	target := npmLockTarget(repository, pkg.Name, "2.0.0")
+	lock := &core.ResourceLock{ResourceLockTarget: target, Source: core.ResourceLockManual,
+		Mode: core.ResourceLockRead, Reason: "abuse", LockedAt: now}
+	if err := db.SetResourceLock(lock, moderator, session); err != nil {
+		return err
+	}
+	packages, total, err := db.SearchNPMPackages(repository, pkg.Name, "", true, false, 10, 0)
+	if err != nil || total != 1 || len(packages) != 1 || packages[0].LatestVersion != "1.0.0" || packages[0].VersionCount != 1 {
+		return errorsOrMissing(err, "npm locked-version search metadata")
+	}
+	if err := db.DeleteNPMDistTag(repository, pkg.Name, "latest", owner, 0); !errors.Is(err, core.ErrResourceLocked) {
+		return errorsOrMissing(err, "npm locked-version tag deletion")
+	}
+	if err := db.UpdateNPMPackument(repository, pkg.Name, owner, 0,
+		map[string]string{"1.0.0": "old", "2.0.0": ""}, map[string]string{"latest": "2.0.0"}); err != nil {
+		return err
+	}
+	if err := db.UpdateNPMPackument(repository, pkg.Name, owner, 0,
+		map[string]string{"2.0.0": "changed"}, map[string]string{"latest": "2.0.0"}); !errors.Is(err, core.ErrResourceLocked) {
+		return errorsOrMissing(err, "npm locked-version bulk metadata mutation")
+	}
+	visible, err := db.ResourceMetadataVisibility("npm", repository, "", false, []core.ResourceLockTarget{target})
+	if err != nil || len(visible) != 1 || visible[0] {
+		return errorsOrMissing(err, "npm locked path visibility")
+	}
+	visible, err = db.ResourceMetadataVisibility("npm", repository, owner, false, []core.ResourceLockTarget{target})
+	if err != nil || len(visible) != 1 || !visible[0] {
+		return errorsOrMissing(err, "npm locked path member visibility")
+	}
+	options := core.SuperTeamResourceListOptions{Prefix: prefix, Format: "npm", VisibleRepositories: []string{repository}, Limit: 10}
+	_, before, err := db.ListSuperTeamResources(options)
+	if err != nil {
+		return err
+	}
+	lock.Version = ""
+	if err := db.SetResourceLock(lock, moderator, session); err != nil {
+		return err
+	}
+	if err := db.UpdateNPMPackageDescription(repository, pkg.Name, "changed", owner); !errors.Is(err, core.ErrResourceLocked) {
+		return errorsOrMissing(err, "npm package mutation under lock")
+	}
+	_, total, err = db.ListSuperTeamResources(options)
+	if err != nil || total != before-1 {
+		return errorsOrMissing(err, "npm locked team-resource totals")
+	}
+	profile, err := db.GetUserProfile(owner)
+	if err != nil {
+		return err
+	}
+	memberships, err := db.ListUserPackageMemberships(profile.UserID, "npm", "", nil)
+	if err != nil {
+		return err
+	}
+	for _, membership := range memberships {
+		if membership.Repository == repository && membership.Name == pkg.Name {
+			return errors.New("npm locked package exposed on public profile")
+		}
+	}
+	if err := db.DeleteResourceLock(target, core.ResourceLockManual, moderator, session); err != nil {
+		return err
+	}
+	return db.DeleteResourceLock(lock.ResourceLockTarget, core.ResourceLockManual, moderator, session)
 }

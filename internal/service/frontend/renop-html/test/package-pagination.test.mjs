@@ -59,7 +59,7 @@ test('pagination summaries remain complete in every locale', async () => {
 test('npm catalog repairs an empty latest tag when published versions exist', () => {
     const database = readFileSync(join(repositoryRoot, 'internal/database/npm.go'), 'utf8');
     const tests = readFileSync(join(repositoryRoot, 'internal/database/npm_test.go'), 'utf8');
-    assert.match(database, /fillMissingNPMLatestVersions/);
+    assert.match(database, /fillNPMPackageVersions/);
     assert.match(database, /ROW_NUMBER\(\) OVER \(/);
     assert.match(database, /if result\.VersionCount > 0 && result\.LatestVersion == ""/);
     assert.match(database, /latest, err = latestNPMVersionTx\(tx, repository, packageName\)/);

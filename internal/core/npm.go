@@ -40,41 +40,43 @@ var (
 
 // NPMPackage is durable metadata for a reserved local or mirrored npm package.
 type NPMPackage struct {
-	Repository      string `json:"repository"`
-	Name            string `json:"name"`
-	Description     string `json:"description"`
-	Publisher       string `json:"publisher"`
-	LatestVersion   string `json:"latest_version"`
-	VersionCount    int    `json:"version_count"`
-	Private         bool   `json:"private"`
-	Archived        bool   `json:"archived"`
-	Deprecated      bool   `json:"deprecated,omitempty"`
-	Mirrored        bool   `json:"mirrored"`
-	PublishEnabled  bool   `json:"publish_enabled"`
-	SuperTeamPrefix string `json:"super_team_prefix,omitempty"`
-	PermissionLevel int    `json:"permission_level,omitempty"`
-	Revision        int64  `json:"-"`
-	CreatedAt       int64  `json:"created_at"`
-	UpdatedAt       int64  `json:"updated_at"`
+	Repository      string          `json:"repository"`
+	Name            string          `json:"name"`
+	Description     string          `json:"description"`
+	Publisher       string          `json:"publisher"`
+	LatestVersion   string          `json:"latest_version"`
+	VersionCount    int             `json:"version_count"`
+	Private         bool            `json:"private"`
+	Archived        bool            `json:"archived"`
+	Deprecated      bool            `json:"deprecated,omitempty"`
+	Locks           []*ResourceLock `json:"locks,omitempty"`
+	Mirrored        bool            `json:"mirrored"`
+	PublishEnabled  bool            `json:"publish_enabled"`
+	SuperTeamPrefix string          `json:"super_team_prefix,omitempty"`
+	PermissionLevel int             `json:"permission_level,omitempty"`
+	Revision        int64           `json:"-"`
+	CreatedAt       int64           `json:"created_at"`
+	UpdatedAt       int64           `json:"updated_at"`
 }
 
 // NPMVersion stores one immutable npm version and its canonical tarball metadata.
 type NPMVersion struct {
-	Repository   string `json:"-"`
-	Package      string `json:"-"`
-	Version      string `json:"version"`
-	ManifestJSON string `json:"-"`
-	Publisher    string `json:"publisher"`
-	TarballPath  string `json:"-"`
-	Shasum       string `json:"shasum"`
-	Integrity    string `json:"integrity"`
-	Size         int64  `json:"size"`
-	Deprecated   string `json:"deprecated,omitempty"`
-	Unpublished  bool   `json:"unpublished"`
-	Mirrored     bool   `json:"mirrored"`
-	ReviewStatus string `json:"review_status,omitempty"`
-	ReviewID     string `json:"review_id,omitempty"`
-	CreatedAt    int64  `json:"created_at"`
+	Repository   string          `json:"-"`
+	Package      string          `json:"-"`
+	Version      string          `json:"version"`
+	Locks        []*ResourceLock `json:"locks,omitempty"`
+	ManifestJSON string          `json:"-"`
+	Publisher    string          `json:"publisher"`
+	TarballPath  string          `json:"-"`
+	Shasum       string          `json:"shasum"`
+	Integrity    string          `json:"integrity"`
+	Size         int64           `json:"size"`
+	Deprecated   string          `json:"deprecated,omitempty"`
+	Unpublished  bool            `json:"unpublished"`
+	Mirrored     bool            `json:"mirrored"`
+	ReviewStatus string          `json:"review_status,omitempty"`
+	ReviewID     string          `json:"review_id,omitempty"`
+	CreatedAt    int64           `json:"created_at"`
 }
 
 // NPMMember is one npm package-team membership.
@@ -130,4 +132,5 @@ type NPMPackageDetails struct {
 	MemberCount   int                 `json:"member_count"`
 	Member        bool                `json:"member"`
 	Administrator bool                `json:"administrator"`
+	Moderator     bool                `json:"moderator"`
 }

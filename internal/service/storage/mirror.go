@@ -25,6 +25,7 @@ import (
 
 func init() {
 	proxy.OnMirrorArtifactStored = recordMirroredArtifact
+	proxy.AuthorizeMirrorWrite = npm.EnsureMirrorPathMutable
 }
 
 func recordMirroredArtifact(state *core.AppState, repo *config.Repository, localPath string, size, modTime int64) {

@@ -305,7 +305,7 @@ func GetDetailsRoot(c fiber.Ctx, state *core.AppState) error {
 	if err := annotateGPGSignatures(state, repoName, "", details); err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load signature status")
 	}
-	if err := filterCargoDetails(state, user, repoName, "", details); err != nil {
+	if err := filterLockedPackageDetails(state, user, repoName, "", details); err != nil {
 		return err
 	}
 
@@ -341,7 +341,7 @@ func GetDetails(c fiber.Ctx, state *core.AppState) error {
 	if err := annotateGPGSignatures(state, repoName, pathParam, details); err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load signature status")
 	}
-	if err := filterCargoDetails(state, user, repoName, pathParam, details); err != nil {
+	if err := filterLockedPackageDetails(state, user, repoName, pathParam, details); err != nil {
 		return err
 	}
 
@@ -359,9 +359,18 @@ func isChecksumOrMetadata(filename string) bool {
 	return false
 }
 
-func filterCargoDetails(state *core.AppState, user *config.User, repository, parent string, details *FileDetails) error {
+func filterLockedPackageDetails(state *core.AppState, user *config.User, repository, parent string, details *FileDetails) error {
 	repo := state.Inner.Config.Load().Maven.Repositories[repository]
-	if repo == nil || repo.NormalizedFormat() != config.RepositoryFormatCargo {
+	if repo == nil {
+		return nil
+	}
+	var filter func(*core.AppState, *config.User, string, []string) ([]bool, error)
+	switch repo.NormalizedFormat() {
+	case config.RepositoryFormatCargo:
+		filter = cargo.VisibleMetadataPaths
+	case config.RepositoryFormatNPM:
+		filter = npm.VisibleMetadataPaths
+	default:
 		return nil
 	}
 	paths := make([]string, 1, len(details.Files)+1)
@@ -369,7 +378,7 @@ func filterCargoDetails(state *core.AppState, user *config.User, repository, par
 	for _, file := range details.Files {
 		paths = append(paths, path.Join(parent, file.Name))
 	}
-	visible, err := cargo.VisibleMetadataPaths(state, user, repository, paths)
+	visible, err := filter(state, user, repository, paths)
 	if err != nil {
 		return fiber.ErrServiceUnavailable
 	}

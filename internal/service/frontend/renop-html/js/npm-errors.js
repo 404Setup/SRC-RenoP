@@ -30,6 +30,7 @@ const npmErrorKeys = Object.freeze({
     publication_count_quota: 'publicationQuota.countExceeded',
     private_requires_scope: 'npm.privateRequiresScope',
     repository_not_found: 'npm.repositoryNotFound',
+    resource_locked: 'resourceLock.blocked',
     review_pending: 'review.alreadyPending',
     review_unavailable: 'review.serviceUnavailable',
     super_team_mismatch: 'superTeam.bindingMismatch',

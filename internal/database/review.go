@@ -645,6 +645,9 @@ func applySuperTeamTransferTx(tx *Tx, task *core.ReviewTask) error {
 			WHERE repository = ? AND image_name = ? AND super_team_prefix = ?`, task.TargetTeamPrefix,
 			task.DecidedAt, task.Repository, task.ResourceKey, task.SourceTeamPrefix)
 	case core.ReviewResourceNPMPackage:
+		if err := ensureResourceMutableQuery(tx.QueryRow, npmLockTarget(task.Repository, task.ResourceKey, ""), false); err != nil {
+			return err
+		}
 		result, err = tx.Exec(`UPDATE npm_packages SET super_team_prefix = ?, updated_at = ?, revision = revision + 1
 			WHERE repository = ? AND package_name = ? AND super_team_prefix = ?`, task.TargetTeamPrefix,
 			task.DecidedAt, task.Repository, task.ResourceKey, task.SourceTeamPrefix)

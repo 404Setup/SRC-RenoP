@@ -22,9 +22,6 @@ import (
 	"renop/internal/service/repositorygate"
 )
 
-// LockedArtifactPathLocal prevents cache expiry and mirror fills for frozen Cargo artifacts.
-const LockedArtifactPathLocal = "cargo_locked_artifact_path"
-
 func cargoLockTarget(repository, name, version string) core.ResourceLockTarget {
 	return core.ResourceLockTarget{Format: config.RepositoryFormatCargo,
 		Repository: repository, Name: normalizeCrateName(name), Version: version}
@@ -93,7 +90,7 @@ func VisibleMetadataPaths(state *core.AppState, user *config.User, repository st
 		if state == nil || state.GetDB() == nil {
 			return core.ErrDatabaseUnavailable
 		}
-		result, err := state.GetDB().CargoMetadataVisibility(repository, user.Username,
+		result, err := state.GetDB().ResourceMetadataVisibility("cargo", repository, user.Username,
 			user.CheckModeratePermission(repository), targets)
 		if err != nil {
 			return err
@@ -238,7 +235,7 @@ func (h Handler) HandleReadLocks(c fiber.Ctx, state *core.AppState, repo *config
 		}
 	}
 	if !metadata || isIndex {
-		c.Locals(LockedArtifactPathLocal, requestPath)
+		c.Locals(core.LockedArtifactPathLocal, requestPath)
 	}
 	if !isIndex || !core.ReadLocked(locks) || canInspect {
 		return false, nil

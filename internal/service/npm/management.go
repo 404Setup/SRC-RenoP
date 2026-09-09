@@ -93,7 +93,7 @@ func listPackagesAPI(c fiber.Ctx, state *core.AppState) error {
 	query := strings.TrimSpace(c.Query("query"))
 	administrator := user.IsManager() || user.CheckUpdatePermission(repo.Name)
 	packages, total, err := state.GetDB().SearchNPMPackages(repo.Name, query, user.Username,
-		administrator, limit, offset)
+		administrator, user.CheckModeratePermission(repo.Name), limit, offset)
 	if err != nil {
 		return npmAPIError(c, fiber.StatusInternalServerError, "internal_error", "Failed to list npm packages")
 	}
@@ -142,10 +142,14 @@ func packageDetailsAPI(c fiber.Ctx, state *core.AppState, repo *config.Repositor
 		return npmAPIError(c, fiber.StatusInternalServerError, "internal_error", "Failed to inspect package state")
 	}
 	details.Package.Deprecated = deprecated
+	details.Moderator = user.CheckModeratePermission(repo.Name)
 	if details.Member || user.CheckModeratePermission(repo.Name) {
 		if err := AddPendingPublicationVersions(state, details); err != nil {
 			return npmAPIError(c, fiber.StatusInternalServerError, "review_unavailable", "Publication review is unavailable")
 		}
+	}
+	if _, err := applyPackageLocks(state, user, details); err != nil {
+		return npmManagementError(c, err)
 	}
 	enrichNPMProjectMetadata(details)
 	details.Administrator = user.IsManager() || user.CheckUpdatePermission(repo.Name)
@@ -310,6 +314,9 @@ func deprecatePackageAPI(c fiber.Ctx, state *core.AppState) error {
 	}
 	release := repositorygate.AcquireMutation(repo.Name)
 	defer release()
+	if err := state.GetDB().EnsureResourceMutable(npmLockTarget(repo.Name, packageName, ""), true); err != nil {
+		return npmManagementError(c, err)
+	}
 	user := auth.GetUser(c)
 	administrator, _, level, err := teamAccess(state, repo, packageName, user)
 	if err != nil || !administrator && level < core.NPMPermissionTeam {
@@ -442,6 +449,12 @@ func deleteVersionAPI(c fiber.Ctx, state *core.AppState, store Store) error {
 
 func npmManagementError(c fiber.Ctx, err error) error {
 	switch {
+	case errors.Is(err, core.ErrResourceLocked):
+		return npmAPIError(c, fiber.StatusLocked, "resource_locked", "npm resource is locked")
+	case errors.Is(err, core.ErrResourceLockInvalid):
+		return npmAPIError(c, fiber.StatusBadRequest, "invalid_request", "Invalid npm resource lock")
+	case errors.Is(err, core.ErrResourceLockPermission):
+		return npmAPIError(c, fiber.StatusForbidden, "permission_denied", "npm moderation permission is required")
 	case errors.Is(err, core.ErrNPMPackageNotFound), errors.Is(err, core.ErrNPMVersionNotFound):
 		return npmAPIError(c, fiber.StatusNotFound, "package_not_found", "npm package or version not found")
 	case errors.Is(err, core.ErrNPMPermissionDenied):
@@ -473,6 +486,13 @@ func teamAccess(state *core.AppState, repo *config.Repository, packageName strin
 		username = user.Username
 	}
 	_, _, _, member, level, err = state.GetDB().GetNPMPackageAccess(repo.Name, packageName, username)
+	if err == nil && !member && (user == nil || !user.CheckModeratePermission(repo.Name)) {
+		var locks []*core.ResourceLock
+		locks, err = state.GetDB().GetResourceLocks(npmLockTarget(repo.Name, packageName, ""), false)
+		if core.ReadLocked(locks) {
+			err = core.ErrNPMPermissionDenied
+		}
+	}
 	return administrator, member, level, err
 }
 
@@ -685,6 +705,8 @@ func respondInvitationAPI(c fiber.Ctx, state *core.AppState) error {
 	if user == nil || user.Username == "" || strings.EqualFold(user.Username, "guest") {
 		return npmAPIError(c, fiber.StatusUnauthorized, "authentication_required", "Authentication required")
 	}
+	release := repositorygate.AcquireMutation(repo.Name)
+	defer release()
 	if err := state.GetDB().RespondNPMInvitation(id, user.Username, repo.Name,
 		decision == "accept", time.Now().UnixMilli()); err != nil {
 		if errors.Is(err, core.ErrNPMInvitationInvalid) {
@@ -714,6 +736,8 @@ func SetupRoutes(router fiber.Router, state *core.AppState, store Store) {
 	}
 	base := router.Group("/npm/repositories/:repo_name")
 	base.Get("/packages", wrap(func(c fiber.Ctx) error { return listPackagesAPI(c, state) }))
+	base.Put("/locks", wrap(func(c fiber.Ctx) error { return setResourceLockAPI(c, state) }))
+	base.Delete("/locks", wrap(func(c fiber.Ctx) error { return setResourceLockAPI(c, state) }))
 	base.Post("/packages", wrap(func(c fiber.Ctx) error { return createPackageAPI(c, state) }))
 	base.Put("/packages", wrap(func(c fiber.Ctx) error { return updatePackageAPI(c, state) }))
 	base.Put("/packages/deprecate", wrap(func(c fiber.Ctx) error { return deprecatePackageAPI(c, state) }))

@@ -47,7 +47,7 @@ func resourceLockID(target core.ResourceLockTarget) string {
 }
 
 func resourceLockVersionColumn(format, column string) string {
-	if runtime.GOOS == "windows" && format == "cargo" {
+	if runtime.GOOS == "windows" && (format == "cargo" || format == "npm") {
 		return "LOWER(" + column + ")"
 	}
 	return column
@@ -191,8 +191,16 @@ func ensureResourceMutableQuery(queryRow func(string, ...any) row, target core.R
 	return core.ErrResourceLocked
 }
 
-// CargoMetadataVisibility checks a bounded page without one membership or lock query per entry.
-func (db *DB) CargoMetadataVisibility(repository, username string, moderator bool, targets []core.ResourceLockTarget) ([]bool, error) {
+// ResourceMetadataVisibility checks a bounded package page without per-entry membership or lock queries.
+func (db *DB) ResourceMetadataVisibility(format, repository, username string, moderator bool, targets []core.ResourceLockTarget) ([]bool, error) {
+	table, members, nameColumn := "cargo_packages", "cargo_members", "normalized_name"
+	switch format {
+	case "cargo":
+	case "npm":
+		table, members, nameColumn = "npm_packages", "npm_members", "package_name"
+	default:
+		return nil, core.ErrResourceLockInvalid
+	}
 	if len(targets) > 128 {
 		return nil, core.ErrResourceLockInvalid
 	}
@@ -211,25 +219,25 @@ func (db *DB) CargoMetadataVisibility(repository, username string, moderator boo
 			return nil, err
 		}
 	}
-	args := []any{userID, userID, strings.ToLower(repository)}
+	args := []any{userID, userID, format, strings.ToLower(repository)}
 	conditions := make([]string, len(targets))
 	normalized := make([]core.ResourceLockTarget, len(targets))
 	for i, target := range targets {
-		target.Repository, target.Format = repository, "cargo"
+		target.Repository, target.Format = repository, format
 		var err error
 		normalized[i], err = normalizeResourceLockTarget(target)
 		if err != nil {
 			return nil, err
 		}
-		normalized[i].Version = core.ResourceLockVersionKey("cargo", normalized[i].Version)
-		conditions[i] = `(l.resource_name = ? AND (l.version = '' OR ` + resourceLockVersionColumn("cargo", "l.version") + ` = ?))`
+		normalized[i].Version = core.ResourceLockVersionKey(format, normalized[i].Version)
+		conditions[i] = `(l.resource_name = ? AND (l.version = '' OR ` + resourceLockVersionColumn(format, "l.version") + ` = ?))`
 		args = append(args, normalized[i].Name, normalized[i].Version)
 	}
 	rows, err := db.Query(`SELECT l.resource_name, l.version FROM resource_locks l
-		LEFT JOIN cargo_packages p ON p.repository = l.repository AND p.normalized_name = l.resource_name
-		LEFT JOIN cargo_members m ON m.repository = p.repository AND m.normalized_name = p.normalized_name AND m.user_id = ?
+		LEFT JOIN `+table+` p ON p.repository = l.repository AND p.`+nameColumn+` = l.resource_name
+		LEFT JOIN `+members+` m ON m.repository = p.repository AND m.`+nameColumn+` = p.`+nameColumn+` AND m.user_id = ?
 		LEFT JOIN super_team_members stm ON stm.team_prefix = p.super_team_prefix AND stm.user_id = ?
-		WHERE l.format = 'cargo' AND l.repository = ? AND l.mode = 'read'
+		WHERE l.format = ? AND l.repository = ? AND l.mode = 'read'
 		AND m.user_id IS NULL AND stm.user_id IS NULL AND (`+strings.Join(conditions, " OR ")+`)`, args...)
 	if err != nil {
 		return nil, err
@@ -238,11 +246,11 @@ func (db *DB) CargoMetadataVisibility(repository, username string, moderator boo
 	hidden := make(map[core.ResourceLockTarget]bool)
 	for rows.Next() {
 		var target core.ResourceLockTarget
-		target.Format, target.Repository = "cargo", strings.ToLower(repository)
+		target.Format, target.Repository = format, strings.ToLower(repository)
 		if err := rows.Scan(&target.Name, &target.Version); err != nil {
 			return nil, err
 		}
-		target.Version = core.ResourceLockVersionKey("cargo", target.Version)
+		target.Version = core.ResourceLockVersionKey(format, target.Version)
 		hidden[target] = true
 	}
 	for i, target := range normalized {

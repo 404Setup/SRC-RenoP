@@ -100,7 +100,8 @@ func searchNPMRepository(state *core.AppState, repo *config.Repository, user *co
 	if user != nil {
 		username = user.Username
 	}
-	packages, total, err := db.SearchNPMPackages(repo.Name, query, username, administrator, limit, 0)
+	packages, total, err := db.SearchNPMPackages(repo.Name, query, username, administrator,
+		user != nil && user.CheckModeratePermission(repo.Name), limit, 0)
 	if err != nil {
 		return nil, err
 	}

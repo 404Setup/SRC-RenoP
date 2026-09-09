@@ -24,8 +24,8 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
-	"renop/internal/service/cargo"
 	"renop/internal/service/index"
+	"renop/internal/service/npm"
 	"renop/internal/service/proxy"
 	"renop/internal/utils"
 )
@@ -109,6 +109,9 @@ func HandleGet(c fiber.Ctx, state *core.AppState, repo *config.Repository, stora
 	if handled, err := cargoHandler.HandleReadLocks(c, state, repo, storagePath, path); handled {
 		return err
 	}
+	if handled, err := npm.HandleReadLocks(c, state, repo, path); handled {
+		return err
+	}
 
 	localFilePath := filepath.Join(storagePath, repoName, path)
 	if !utils.IsSubPath(storagePath, localFilePath) {
@@ -126,7 +129,7 @@ func HandleGet(c fiber.Ctx, state *core.AppState, repo *config.Repository, stora
 
 	isIndexed := exists
 	anyPersist, baseMaxTTL := CheckIndexAndCacheConfig(repoName, path, repo)
-	locked := c.Locals(cargo.LockedArtifactPathLocal) == path
+	locked := c.Locals(core.LockedArtifactPathLocal) == path
 	if locked {
 		anyPersist, baseMaxTTL = true, 0
 	}
@@ -216,6 +219,9 @@ func HandleHead(c fiber.Ctx, state *core.AppState, repo *config.Repository, stor
 	if handled, err := cargoHandler.HandleReadLocks(c, state, repo, storagePath, path); handled {
 		return err
 	}
+	if handled, err := npm.HandleReadLocks(c, state, repo, path); handled {
+		return err
+	}
 
 	localFilePath := filepath.Join(storagePath, repoName, path)
 	if !utils.IsSubPath(storagePath, localFilePath) {
@@ -233,7 +239,7 @@ func HandleHead(c fiber.Ctx, state *core.AppState, repo *config.Repository, stor
 
 	isIndexed := exists
 	anyPersist, baseMaxTTL := CheckIndexAndCacheConfig(repoName, path, repo)
-	locked := c.Locals(cargo.LockedArtifactPathLocal) == path
+	locked := c.Locals(core.LockedArtifactPathLocal) == path
 	if locked {
 		anyPersist, baseMaxTTL = true, 0
 	}

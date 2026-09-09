@@ -113,8 +113,9 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   visibility filters. Scoped npm and namespaced Docker require the matching global-team prefix. Reserve npm/Docker
   resources explicitly, check upstream conflicts, and keep mirrored packages pull-only. Permanent package deprecation
   blocks every mutation while retaining downloads; pending transfers/reviews prevent deprecation.
-- **Resource locks:** Shared records live in `internal/database/resource_lock.go`; Cargo enforcement lives in
-  `internal/service/cargo/locks.go`.
+- **Resource locks:** Shared records live in `internal/database/resource_lock.go`; protocol enforcement lives in
+  `internal/service/cargo/locks.go` and `internal/service/npm/locks.go`. Shared mirror authorization is wired in
+  `internal/service/storage/mirror.go`.
   Keep manual and system locks independent. Read locks freeze writes, restrict metadata to live staff/members, and deny
   files to everyone. Include index/search/profile visibility, cached files, mirror refreshes, and repository changes.
 - **Maven lifecycle:** Domains are global across repositories. Closure blocks mutations, preserves downloads, and holds

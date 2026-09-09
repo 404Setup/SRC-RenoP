@@ -319,6 +319,9 @@ func publish(c fiber.Ctx, state *core.AppState, repo *config.Repository, store S
 	if err != nil {
 		return npmError(c, fiber.StatusBadRequest, "invalid package version", err.Error())
 	}
+	if err := state.GetDB().EnsureResourceMutable(npmLockTarget(repo.Name, packageName, version), false); err != nil {
+		return npmPackageMutationError(c, err)
+	}
 	for tag, taggedVersion := range document.DistTags {
 		if !validNPMTag(tag) || taggedVersion != version {
 			return npmError(c, fiber.StatusBadRequest, "invalid dist-tag", "npm publish dist-tags must target the published version")
@@ -448,6 +451,8 @@ func publish(c fiber.Ctx, state *core.AppState, repo *config.Repository, store S
 			state.Inner.FailuresCount.Add(1)
 		}
 		switch {
+		case errors.Is(err, core.ErrResourceLocked):
+			return npmPackageMutationError(c, err)
 		case errors.Is(err, core.ErrNPMVersionExists):
 			return npmError(c, fiber.StatusConflict, "version already exists", "npm package versions are immutable")
 		case errors.Is(err, core.ErrNPMPermissionDenied):

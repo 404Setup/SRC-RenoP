@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import test from 'node:test';
+import vm from 'node:vm';
 import {fileURLToPath} from 'node:url';
 
 const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -20,6 +21,39 @@ const npmCSS = readFileSync(join(frontendRoot, 'css/browser/npm.css'), 'utf8');
 const markdownCSS = readFileSync(join(frontendRoot, 'css/components/markdown.css'), 'utf8');
 const formats = readFileSync(join(frontendRoot, 'js/repository-formats.js'), 'utf8');
 const repositorySettings = readFileSync(join(frontendRoot, 'js/repositories.js'), 'utf8');
+
+test('npm navigation and lock refreshes ignore stale package responses', async () => {
+    const requests = [];
+    let renders = 0;
+    const context = vm.createContext({
+        npmRequest: () => new Promise(resolve => requests.push(resolve)),
+        npmAPI: () => '/package', t: key => key,
+        setRepositoryViewBusy: () => {}, renderPackage: () => [],
+        replaceRepositoryView: async () => { renders++; },
+        hideRepositoryView: view => { view.hidden = true; }, npmUserSuggestions: {detach() {}},
+    });
+    vm.runInContext(`let loadSequence = 1, versionPackage = '', versionPage = 0, npmPackageView = '';
+        let packageDetails = null, view = {hidden: false, firstElementChild: {}};
+        function currentName() { return packageDetails?.package?.name; }
+        ${['loadPackage', 'refreshPackage', 'hideNPMRepositoryView'].map(name =>
+            npmView.match(new RegExp(`(?:export )?(?:async )?function ${name}\\([^]*?\\n}`))[0].replace('export ', '')
+        ).join('\n')}`, context);
+    const first = context.loadPackage('first', 1);
+    vm.runInContext('loadSequence = 2', context);
+    const second = context.loadPackage('second', 2);
+    requests[1]({package: {name: 'second'}});
+    await second;
+    requests[0]({package: {name: 'first'}});
+    await first;
+    assert.equal(context.currentName(), 'second');
+    assert.equal(renders, 1);
+    const refresh = context.refreshPackage();
+    context.hideNPMRepositoryView();
+    requests[2]({package: {name: 'second'}});
+    await refresh;
+    assert.equal(context.currentName(), undefined);
+    assert.equal(renders, 1);
+});
 
 test('npm repository UI uses shared routing, errors, clipboard, and team controls', () => {
     for (const required of [

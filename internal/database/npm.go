@@ -264,16 +264,16 @@ func (db *DB) HasNPMMembership(repository, username string) (bool, error) {
 }
 
 // ListNPMPackages returns one bounded package catalog with private-package filtering.
-func (db *DB) ListNPMPackages(repository, username string, administrator bool, limit, offset int) ([]*core.NPMPackage, int, error) {
-	return db.queryNPMPackages(repository, username, "", administrator, limit, offset)
+func (db *DB) ListNPMPackages(repository, username string, administrator, moderator bool, limit, offset int) ([]*core.NPMPackage, int, error) {
+	return db.queryNPMPackages(repository, username, "", administrator, moderator, limit, offset)
 }
 
 // SearchNPMPackages searches one bounded npm package catalog.
-func (db *DB) SearchNPMPackages(repository, query, username string, administrator bool, limit, offset int) ([]*core.NPMPackage, int, error) {
-	return db.queryNPMPackages(repository, username, query, administrator, limit, offset)
+func (db *DB) SearchNPMPackages(repository, query, username string, administrator, moderator bool, limit, offset int) ([]*core.NPMPackage, int, error) {
+	return db.queryNPMPackages(repository, username, query, administrator, moderator, limit, offset)
 }
 
-func (db *DB) queryNPMPackages(repository, username, search string, administrator bool, limit, offset int) ([]*core.NPMPackage, int, error) {
+func (db *DB) queryNPMPackages(repository, username, search string, administrator, moderator bool, limit, offset int) ([]*core.NPMPackage, int, error) {
 	if db == nil || db.SQLDB == nil {
 		return nil, 0, core.ErrDatabaseUnavailable
 	}
@@ -302,13 +302,20 @@ func (db *DB) queryNPMPackages(repository, username, search string, administrato
 		pattern := "%" + search + "%"
 		args = append(args, pattern, pattern)
 	}
-	if !administrator {
+	if !administrator && !moderator {
 		where += ` AND (p.private = 0 OR EXISTS (SELECT 1 FROM npm_members visible
 			WHERE visible.repository = p.repository AND visible.package_name = p.package_name AND visible.user_id = ?)
 			OR EXISTS (SELECT 1 FROM super_team_members visible_team
 			WHERE visible_team.team_prefix = p.super_team_prefix AND visible_team.user_id = ?))`
 		args = append(args, userID)
 		args = append(args, userID)
+	}
+	if !moderator {
+		where += ` AND (NOT EXISTS (SELECT 1 FROM resource_locks l WHERE l.format = 'npm'
+			AND l.repository = p.repository AND l.resource_name = p.package_name AND l.version = '' AND l.mode = 'read')
+			OR EXISTS (SELECT 1 FROM npm_members m WHERE m.repository = p.repository AND m.package_name = p.package_name AND m.user_id = ?)
+			OR EXISTS (SELECT 1 FROM super_team_members m WHERE m.team_prefix = p.super_team_prefix AND m.user_id = ?))`
+		args = append(args, userID, userID)
 	}
 	var total int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM npm_packages p WHERE `+where, args...).Scan(&total); err != nil {
@@ -318,9 +325,11 @@ func (db *DB) queryNPMPackages(repository, username, search string, administrato
 	queryArgs = append(queryArgs, userID, userID)
 	queryArgs = append(queryArgs, args...)
 	queryArgs = append(queryArgs, search, limit, offset)
-	rows, err := db.Query(`SELECT `+npmPackageColumnsQualified+`,
-		(SELECT COUNT(*) FROM npm_versions v WHERE v.repository = p.repository
-			AND v.package_name = p.package_name AND v.unpublished = 0),
+	columns := npmPackageColumnsQualified
+	if !moderator {
+		columns = strings.Replace(columns, "p.latest_version", "CASE WHEN "+npmVersionVisibilitySQL("p", "p.latest_version")+" THEN p.latest_version ELSE '' END", 1)
+	}
+	rows, err := db.Query(`SELECT `+columns+`,
 		COALESCE(own.permission_level, 0), CASE WHEN own.user_id IS NULL THEN 0 ELSE 1 END,
 		COALESCE(stm.role_level, 0)
 		FROM npm_packages p LEFT JOIN npm_members own ON own.repository = p.repository
@@ -338,7 +347,7 @@ func (db *DB) queryNPMPackages(repository, username, search string, administrato
 		if err := rows.Scan(
 			&pkg.Repository, &pkg.Name, &pkg.Description, &pkg.Publisher, &pkg.LatestVersion,
 			&pkg.SuperTeamPrefix, &privateValue, &archived, &mirrored, &publishEnabled, &pkg.Revision,
-			&pkg.CreatedAt, &pkg.UpdatedAt, &pkg.VersionCount, &explicitLevel, &explicitMember, &superRole,
+			&pkg.CreatedAt, &pkg.UpdatedAt, &explicitLevel, &explicitMember, &superRole,
 		); err != nil {
 			_ = rows.Close()
 			return nil, 0, fmt.Errorf("scan npm package: %w", err)
@@ -357,49 +366,62 @@ func (db *DB) queryNPMPackages(repository, username, search string, administrato
 	if err := rows.Close(); err != nil {
 		return nil, 0, fmt.Errorf("close npm packages: %w", err)
 	}
-	if err := db.fillMissingNPMLatestVersions(repository, packages); err != nil {
+	if err := db.fillNPMPackageVersions(repository, userID, moderator, packages); err != nil {
 		return nil, 0, err
 	}
 	return packages, total, nil
 }
 
-func (db *DB) fillMissingNPMLatestVersions(repository string, packages []*core.NPMPackage) error {
-	missing := make(map[string][]*core.NPMPackage)
+// A bounded page query avoids nested correlated counts, which are not portable across drivers.
+func (db *DB) fillNPMPackageVersions(repository, userID string, moderator bool, packages []*core.NPMPackage) error {
+	byName := make(map[string]*core.NPMPackage, len(packages))
 	for _, pkg := range packages {
-		if pkg != nil && pkg.VersionCount > 0 && pkg.LatestVersion == "" {
-			missing[pkg.Name] = append(missing[pkg.Name], pkg)
+		if pkg != nil {
+			byName[pkg.Name] = pkg
 		}
 	}
-	if len(missing) == 0 {
+	if len(byName) == 0 {
 		return nil
 	}
-	names := make([]string, 0, len(missing))
-	for name := range missing {
+	names := make([]string, 0, len(byName))
+	for name := range byName {
 		names = append(names, name)
 	}
 	slices.Sort(names)
 	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(names)), ",")
-	args := make([]any, 0, len(names)+1)
-	args = append(args, repository)
+	args := make([]any, 0, len(names)+3)
+	args = append(args, userID, userID, repository)
 	for _, name := range names {
 		args = append(args, name)
 	}
-	rows, err := db.Query(`SELECT package_name, version FROM (
-		SELECT package_name, version, ROW_NUMBER() OVER (
-			PARTITION BY package_name ORDER BY created_at DESC, version DESC) AS version_rank
-		FROM npm_versions WHERE repository = ? AND unpublished = 0 AND package_name IN (`+
-		placeholders+`)) ranked WHERE version_rank = 1`, args...)
+	visible := "1 = 1"
+	if !moderator {
+		visible = npmVersionVisibilitySQL("v", "v.version")
+	}
+	rows, err := db.Query(`SELECT package_name, version, version_count FROM (
+		SELECT v.package_name AS package_name, v.version AS version, COUNT(*) OVER (PARTITION BY v.package_name) AS version_count,
+		ROW_NUMBER() OVER (
+			PARTITION BY v.package_name ORDER BY v.created_at DESC, v.version DESC) AS version_rank
+		FROM npm_versions v JOIN npm_packages p ON p.repository = v.repository AND p.package_name = v.package_name
+		LEFT JOIN npm_members own ON own.repository = p.repository AND own.package_name = p.package_name AND own.user_id = ?
+		LEFT JOIN super_team_members stm ON stm.team_prefix = p.super_team_prefix AND stm.user_id = ?
+		WHERE v.repository = ? AND v.unpublished = 0 AND v.package_name IN (`+
+		placeholders+`) AND `+visible+`) ranked WHERE version_rank = 1`, args...)
 	if err != nil {
 		return fmt.Errorf("list npm latest-version fallbacks: %w", err)
 	}
 	for rows.Next() {
 		var packageName, version string
-		if err := rows.Scan(&packageName, &version); err != nil {
+		var count int
+		if err := rows.Scan(&packageName, &version, &count); err != nil {
 			_ = rows.Close()
 			return fmt.Errorf("scan npm latest-version fallback: %w", err)
 		}
-		for _, pkg := range missing[packageName] {
-			pkg.LatestVersion = version
+		if pkg := byName[packageName]; pkg != nil {
+			pkg.VersionCount = count
+			if pkg.LatestVersion == "" {
+				pkg.LatestVersion = version
+			}
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -501,6 +523,13 @@ func (db *DB) GetNPMPackageDetails(repository, packageName, username string) (*c
 }
 
 func lockNPMPackage(tx *Tx, repository, packageName string) error {
+	if err := lockNPMPackageRow(tx, repository, packageName); err != nil {
+		return err
+	}
+	return ensureResourceMutableQuery(tx.QueryRow, npmLockTarget(repository, packageName, ""), false)
+}
+
+func lockNPMPackageRow(tx *Tx, repository, packageName string) error {
 	if _, err := tx.Exec(`UPDATE npm_packages SET updated_at = updated_at
 		WHERE repository = ? AND package_name = ?`, repository, packageName); err != nil {
 		return fmt.Errorf("lock npm package: %w", err)
@@ -581,6 +610,9 @@ func (db *DB) RecordNPMPublication(pkg *core.NPMPackage, version *core.NPMVersio
 	if err := lockNPMPackage(tx, repository, packageName); err != nil {
 		return err
 	}
+	if err := ensureResourceMutableQuery(tx.QueryRow, npmLockTarget(repository, packageName, versionName), false); err != nil {
+		return err
+	}
 	var archived, mirrored, publishEnabled int
 	if err := tx.QueryRow(`SELECT archived, mirrored, publish_enabled FROM npm_packages
 		WHERE repository = ? AND package_name = ?`, repository, packageName).Scan(
@@ -633,6 +665,9 @@ func (db *DB) RecordNPMPublication(pkg *core.NPMPackage, version *core.NPMVersio
 		if tagVersion != versionName {
 			continue
 		}
+		if err := ensureNPMTagChangeTx(tx, repository, packageName, tag, tagVersion); err != nil {
+			return err
+		}
 		if err := upsertNPMTag(tx, repository, packageName, tag, tagVersion, pkg.UpdatedAt); err != nil {
 			return fmt.Errorf("set npm publication dist-tag: %w", err)
 		}
@@ -677,7 +712,7 @@ func (db *DB) RollbackNPMPublicationReview(repository, packageName, version stri
 		return fmt.Errorf("begin npm review rollback: %w", err)
 	}
 	defer tx.Rollback()
-	if err := lockNPMPackage(tx, repository, packageName); err != nil {
+	if err := lockNPMPackageRow(tx, repository, packageName); err != nil {
 		return err
 	}
 	result, err := tx.Exec(`DELETE FROM npm_versions WHERE repository = ? AND package_name = ? AND version = ?`,
@@ -731,6 +766,9 @@ func (db *DB) RecordNPMMirrorPublication(pkg *core.NPMPackage, versions []*core.
 		return fmt.Errorf("begin npm mirror publication: %w", err)
 	}
 	defer tx.Rollback()
+	if err := ensureResourceMutableQuery(tx.QueryRow, npmLockTarget(repository, packageName, ""), true); err != nil {
+		return err
+	}
 	var mirrored int
 	err = tx.QueryRow(`SELECT mirrored FROM npm_packages WHERE repository = ? AND package_name = ?`,
 		repository, packageName).Scan(&mirrored)
@@ -964,6 +1002,9 @@ func (db *DB) SetNPMDistTag(repository, packageName, tag, version, actor string,
 		return fmt.Errorf("inspect npm dist-tag version: %w", err)
 	}
 	now := time.Now().UnixMilli()
+	if err := ensureNPMTagChangeTx(tx, repository, packageName, tag, version); err != nil {
+		return err
+	}
 	if err := upsertNPMTag(tx, repository, packageName, tag, version, now); err != nil {
 		return fmt.Errorf("update npm dist-tag: %w", err)
 	}
@@ -1006,6 +1047,9 @@ func (db *DB) DeleteNPMDistTag(repository, packageName, tag, actor string, expec
 		return err
 	}
 	if err := requireNPMRevisionTx(tx, repository, packageName, expectedRevision); err != nil {
+		return err
+	}
+	if err := ensureNPMTagChangeTx(tx, repository, packageName, tag, ""); err != nil {
 		return err
 	}
 	result, err := tx.Exec(`DELETE FROM npm_dist_tags WHERE repository = ? AND package_name = ? AND tag = ?`,
@@ -1064,6 +1108,9 @@ func (db *DB) SetNPMVersionDeprecated(repository, packageName, version, deprecat
 	if err := requireNPMRevisionTx(tx, repository, packageName, expectedRevision); err != nil {
 		return err
 	}
+	if err := ensureResourceMutableQuery(tx.QueryRow, npmLockTarget(repository, packageName, version), false); err != nil {
+		return err
+	}
 	result, err := tx.Exec(`UPDATE npm_versions SET deprecated = ? WHERE repository = ?
 		AND package_name = ? AND version = ? AND unpublished = 0`, deprecated, repository, packageName, version)
 	if err != nil {
@@ -1106,6 +1153,9 @@ func (db *DB) UpdateNPMPackument(repository, packageName, actor string, expected
 		return err
 	}
 	if err := requireNPMRevisionTx(tx, repository, packageName, expectedRevision); err != nil {
+		return err
+	}
+	if err := ensureNPMPackumentLocksTx(tx, repository, packageName, deprecations, tags); err != nil {
 		return err
 	}
 	for version, deprecated := range deprecations {
@@ -1174,6 +1224,9 @@ func (db *DB) UnpublishNPMVersion(repository, packageName, version, actor string
 	if err := requireNPMRevisionTx(tx, repository, packageName, expectedRevision); err != nil {
 		return "", err
 	}
+	if err := ensureResourceMutableQuery(tx.QueryRow, npmLockTarget(repository, packageName, version), false); err != nil {
+		return "", err
+	}
 	var path string
 	var unpublished int
 	if err := tx.QueryRow(`SELECT tarball_path, unpublished FROM npm_versions WHERE repository = ?
@@ -1199,6 +1252,9 @@ func (db *DB) UnpublishNPMVersion(repository, packageName, version, actor string
 	}
 	now := time.Now().UnixMilli()
 	if latest != "" {
+		if err := ensureNPMTagChangeTx(tx, repository, packageName, "latest", latest); err != nil {
+			return "", err
+		}
 		if err := upsertNPMTag(tx, repository, packageName, "latest", latest, now); err != nil {
 			return "", fmt.Errorf("restore npm latest tag: %w", err)
 		}
@@ -1285,6 +1341,9 @@ func (db *DB) SetNPMPackageArchived(repository, packageName, actor string, archi
 	if err := requireNPMPermissionTx(tx, repository, packageName, actor, core.NPMPermissionOwner); err != nil {
 		return err
 	}
+	if err := ensureResourceMutableQuery(tx.QueryRow, npmLockTarget(repository, packageName, ""), true); err != nil {
+		return err
+	}
 	if _, err := tx.Exec(`UPDATE npm_packages SET archived = ?, revision = revision + 1, updated_at = ?
 		WHERE repository = ? AND package_name = ?`, boolInt(archived), time.Now().UnixMilli(), repository, packageName); err != nil {
 		return fmt.Errorf("update npm package archive state: %w", err)
@@ -1313,6 +1372,9 @@ func (db *DB) DeleteNPMPackage(repository, packageName, actor string, expectedRe
 		return nil, err
 	}
 	if err := requireNPMRevisionTx(tx, repository, packageName, expectedRevision); err != nil {
+		return nil, err
+	}
+	if err := ensureResourceMutableQuery(tx.QueryRow, npmLockTarget(repository, packageName, ""), true); err != nil {
 		return nil, err
 	}
 	rows, err := tx.Query(`SELECT tarball_path FROM npm_versions WHERE repository = ? AND package_name = ?

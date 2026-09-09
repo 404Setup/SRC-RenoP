@@ -137,7 +137,11 @@ func (db *DB) ListUserPackageMemberships(userID, format, viewer string, moderate
 		query = `SELECT '', d.domain, '', m.permission_level, 0
 			FROM maven_domain_members m JOIN maven_domains d ON d.repository = m.repository
 			AND d.domain = m.domain WHERE m.user_id = ? AND d.repository = '' AND d.verified = 1 ORDER BY d.domain`
-	case "cargo":
+	case "cargo", "npm":
+		table, members, nameColumn := "cargo_packages", "cargo_members", "normalized_name"
+		if format == "npm" {
+			table, members, nameColumn = "npm_packages", "npm_members", "package_name"
+		}
 		viewerID := ""
 		if viewer != "" && !strings.EqualFold(viewer, "guest") {
 			var err error
@@ -146,26 +150,21 @@ func (db *DB) ListUserPackageMemberships(userID, format, viewer string, moderate
 				return nil, err
 			}
 		}
-		args = append(args, viewerID, viewerID)
+		args = append(args, format, viewerID, viewerID)
 		query = `SELECT p.repository, p.package_name, p.description, m.permission_level, p.archived
-			FROM cargo_members m JOIN cargo_packages p ON p.repository = m.repository
-			AND p.normalized_name = m.normalized_name WHERE m.user_id = ?
-			AND (NOT EXISTS (SELECT 1 FROM resource_locks l WHERE l.format = 'cargo' AND l.mode = 'read'
-			AND l.repository = p.repository AND l.resource_name = p.normalized_name AND l.version = '')
-			OR EXISTS (SELECT 1 FROM cargo_members v WHERE v.repository = p.repository AND v.normalized_name = p.normalized_name AND v.user_id = ?)
+			FROM ` + members + ` m JOIN ` + table + ` p ON p.repository = m.repository
+			AND p.` + nameColumn + ` = m.` + nameColumn + ` WHERE m.user_id = ?
+			AND (NOT EXISTS (SELECT 1 FROM resource_locks l WHERE l.format = ? AND l.mode = 'read'
+			AND l.repository = p.repository AND l.resource_name = p.` + nameColumn + ` AND l.version = '')
+			OR EXISTS (SELECT 1 FROM ` + members + ` v WHERE v.repository = p.repository AND v.` + nameColumn + ` = p.` + nameColumn + ` AND v.user_id = ?)
 			OR EXISTS (SELECT 1 FROM super_team_members v WHERE v.team_prefix = p.super_team_prefix AND v.user_id = ?)
 			OR ` + resourceRepositoryCondition("p.repository", normalizeResourceRepositories(moderatedRepositories), &args) +
-			`) ORDER BY p.repository, p.normalized_name`
+			`) ORDER BY p.repository, p.` + nameColumn
 	case "docker":
 		query = `SELECT i.repository, i.image_name, i.description, m.permission_level, 0
 			FROM docker_members m JOIN docker_images i ON i.repository = m.repository
 			AND i.image_name = m.image_name WHERE m.user_id = ?
 			ORDER BY i.repository, i.image_name`
-	case "npm":
-		query = `SELECT p.repository, p.package_name, p.description, m.permission_level, p.archived
-			FROM npm_members m JOIN npm_packages p ON p.repository = m.repository
-			AND p.package_name = m.package_name WHERE m.user_id = ?
-			ORDER BY p.repository, p.package_name`
 	default:
 		return nil, errors.New("package membership format must be maven, cargo, docker, or npm")
 	}

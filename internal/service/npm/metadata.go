@@ -28,6 +28,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/auth"
 	"renop/internal/service/proxy"
+	"renop/internal/service/repositorygate"
 	"renop/internal/utils"
 )
 
@@ -209,6 +210,13 @@ func servePackument(c fiber.Ctx, state *core.AppState, repo *config.Repository, 
 	if err != nil || details == nil {
 		return npmError(c, fiber.StatusInternalServerError, "metadata failure", "failed to build npm package metadata")
 	}
+	locked, err := applyPackageLocks(state, auth.GetUser(c), details)
+	if errors.Is(err, core.ErrNPMPackageNotFound) {
+		return npmError(c, fiber.StatusNotFound, "not_found", "npm package was not found")
+	}
+	if err != nil {
+		return npmError(c, fiber.StatusServiceUnavailable, "metadata failure", "npm package access is unavailable")
+	}
 	abbreviated := strings.Contains(strings.ToLower(c.Get(fiber.HeaderAccept)), abbreviatedMetadataType)
 	document, err := packument(details, c.BaseURL(), abbreviated)
 	if err != nil {
@@ -218,13 +226,13 @@ func servePackument(c fiber.Ctx, state *core.AppState, repo *config.Repository, 
 	modified := time.UnixMilli(pkg.UpdatedAt).UTC().Format(http.TimeFormat)
 	c.Set(fiber.HeaderETag, etag)
 	c.Set(fiber.HeaderLastModified, modified)
-	c.Set(fiber.HeaderVary, "Accept, Authorization")
-	if pkg.Private {
+	c.Set(fiber.HeaderVary, "Accept, Authorization, Cookie")
+	if pkg.Private || locked {
 		c.Set(fiber.HeaderCacheControl, "private, no-store")
 	} else {
 		c.Set(fiber.HeaderCacheControl, "public, max-age=0, must-revalidate")
 	}
-	if packumentNotModified(c, etag, pkg.UpdatedAt) {
+	if !locked && packumentNotModified(c, etag, pkg.UpdatedAt) {
 		return c.SendStatus(fiber.StatusNotModified)
 	}
 	contentType := fiber.MIMEApplicationJSON
@@ -244,6 +252,11 @@ func servePackument(c fiber.Ctx, state *core.AppState, repo *config.Repository, 
 
 func refreshMirroredPackument(ctx context.Context, state *core.AppState, repo *config.Repository,
 	packageName string) error {
+	release := repositorygate.AcquireMutation(repo.Name)
+	defer release()
+	if err := state.GetDB().EnsureResourceMutable(npmLockTarget(repo.Name, packageName, ""), true); err != nil {
+		return err
+	}
 	var lastErr error
 	for index := range repo.Mirrors {
 		mirror := repo.Mirrors[index]

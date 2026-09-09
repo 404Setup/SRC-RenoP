@@ -62,10 +62,10 @@ func TestResourceLocksPreserveSourcesAndFilterCargoMetadata(t *testing.T) {
 	packages, _, err = db.SearchCargoPackages("cargo", "demo", "reader", false, 10, 0)
 	require.NoError(t, err)
 	require.Equal(t, "2.0.0", packages[0].MaxVersion)
-	visible, err := db.CargoMetadataVisibility("cargo", "", false, []core.ResourceLockTarget{target, sibling})
+	visible, err := db.ResourceMetadataVisibility("cargo", "cargo", "", false, []core.ResourceLockTarget{target, sibling})
 	require.NoError(t, err)
 	require.Equal(t, []bool{false, true}, visible)
-	visible, err = db.CargoMetadataVisibility("cargo", "reader", false, []core.ResourceLockTarget{target})
+	visible, err = db.ResourceMetadataVisibility("cargo", "cargo", "reader", false, []core.ResourceLockTarget{target})
 	require.NoError(t, err)
 	require.Equal(t, []bool{true}, visible)
 	member, err := db.HasCargoPackageMembership("cargo", "demo", "reader")
@@ -98,4 +98,76 @@ func TestResourceLocksPreserveSourcesAndFilterCargoMetadata(t *testing.T) {
 	require.Len(t, packages, 1)
 	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "moderator", Permissions: []string{"base"}}))
 	require.ErrorIs(t, db.DeleteResourceLock(target, core.ResourceLockManual, "moderator", "moderator-session"), core.ErrResourceLockPermission)
+}
+
+func TestNPMLocksFreezeVersionsAndPreserveMetadataVisibility(t *testing.T) {
+	db := newMavenDB(t)
+	now := time.Now().UnixMilli()
+	for _, name := range []string{"alice", "reader", "outsider"} {
+		require.NoError(t, db.SaveToken(&core.AccessToken{Name: name}))
+	}
+	pkg, err := db.CreateNPMPackage("npm", "demo", "alice", false, now)
+	require.NoError(t, err)
+	require.NoError(t, db.ForceAddNPMMembers("npm", "demo", "alice", []string{"reader"}, 0))
+	publish := func(version, tag string) error {
+		return db.RecordNPMPublication(pkg, &core.NPMVersion{Repository: "npm", Package: "demo", Version: version,
+			ManifestJSON: `{"name":"demo","version":"` + version + `"}`, TarballPath: "demo/-/demo-" + version + ".tgz", CreatedAt: now},
+			map[string]string{tag: version}, "alice")
+	}
+	require.NoError(t, publish("1.0.0", "latest"))
+	require.NoError(t, publish("2.0.0", "latest"))
+	lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "npm", Repository: "npm", Name: "demo", Version: "2.0.0"},
+		Source: core.ResourceLockSystem, Mode: core.ResourceLockRead, Reason: "trojan", LockedAt: now}
+	require.NoError(t, db.SetResourceLock(lock, "", ""))
+	for _, viewer := range []struct {
+		name                     string
+		administrator, moderator bool
+		latest                   string
+		count                    int
+	}{
+		{"guest", false, false, "1.0.0", 1}, {"outsider", true, false, "1.0.0", 1},
+		{"reader", false, false, "2.0.0", 2}, {"outsider", false, true, "2.0.0", 2},
+	} {
+		packages, total, err := db.ListNPMPackages("npm", viewer.name, viewer.administrator, viewer.moderator, 10, 0)
+		require.NoError(t, err)
+		require.Equal(t, 1, total)
+		require.Equal(t, viewer.latest, packages[0].LatestVersion)
+		require.Equal(t, viewer.count, packages[0].VersionCount)
+	}
+	visible, err := db.ResourceMetadataVisibility("npm", "npm", "guest", false, []core.ResourceLockTarget{lock.ResourceLockTarget})
+	require.NoError(t, err)
+	require.Equal(t, []bool{false}, visible)
+	visible, err = db.ResourceMetadataVisibility("npm", "npm", "reader", false, []core.ResourceLockTarget{lock.ResourceLockTarget})
+	require.NoError(t, err)
+	require.Equal(t, []bool{true}, visible)
+	require.ErrorIs(t, db.SetNPMVersionDeprecated("npm", "demo", "2.0.0", "changed", "alice", 0), core.ErrResourceLocked)
+	_, err = db.UnpublishNPMVersion("npm", "demo", "2.0.0", "alice", 0)
+	require.ErrorIs(t, err, core.ErrResourceLocked)
+	require.ErrorIs(t, db.SetNPMDistTag("npm", "demo", "latest", "1.0.0", "alice", 0), core.ErrResourceLocked)
+	require.ErrorIs(t, db.DeleteNPMDistTag("npm", "demo", "latest", "alice", 0), core.ErrResourceLocked)
+	require.NoError(t, db.UpdateNPMPackument("npm", "demo", "alice", 0,
+		map[string]string{"1.0.0": "old", "2.0.0": ""}, map[string]string{"latest": "2.0.0"}))
+	require.ErrorIs(t, db.UpdateNPMPackument("npm", "demo", "alice", 0,
+		map[string]string{"1.0.0": "rollback", "2.0.0": "changed"}, map[string]string{"latest": "2.0.0"}), core.ErrResourceLocked)
+	require.ErrorIs(t, db.UpdateNPMPackument("npm", "demo", "alice", 0,
+		nil, map[string]string{"latest": "1.0.0"}), core.ErrResourceLocked)
+	previous, err := db.GetNPMPackage("npm", "demo")
+	require.NoError(t, err)
+	require.NoError(t, publish("3.0.0", "canary"))
+	require.NoError(t, db.UpdateNPMPackageDescription("npm", "demo", "updated", "alice"))
+	_, err = db.DeleteNPMPackage("npm", "demo", "alice", 0)
+	require.ErrorIs(t, err, core.ErrResourceLocked)
+	require.ErrorIs(t, db.SetNPMPackageArchived("npm", "demo", "alice", true), core.ErrResourceLocked)
+	lock.Version, lock.Mode = "", core.ResourceLockWrite
+	require.NoError(t, db.SetResourceLock(lock, "", ""))
+	require.ErrorIs(t, publish("4.0.0", "next"), core.ErrResourceLocked)
+	require.ErrorIs(t, db.ForceAddNPMMembers("npm", "demo", "alice", []string{"outsider"}, 0), core.ErrResourceLocked)
+	require.ErrorIs(t, db.RemoveNPMMember("npm", "demo", "reader", "reader"), core.ErrResourceLocked)
+	require.NoError(t, db.RollbackNPMPublicationReview("npm", "demo", "3.0.0", previous, map[string]string{"latest": "2.0.0"}))
+	lock.Mode = core.ResourceLockRead
+	require.NoError(t, db.SetResourceLock(lock, "", ""))
+	packages, total, err := db.ListNPMPackages("npm", "outsider", true, false, 10, 0)
+	require.NoError(t, err)
+	require.Zero(t, total)
+	require.Empty(t, packages)
 }

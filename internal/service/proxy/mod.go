@@ -43,6 +43,8 @@ var (
 	OnArtifactStored          func(localPath string)
 	OnArtifactStoredWithState func(state *core.AppState, repo *config.Repository, localPath string)
 	OnMirrorArtifactStored    func(state *core.AppState, repo *config.Repository, localPath string, size, modTime int64)
+	// AuthorizeMirrorWrite checks additional protocol restrictions while holding the repository mutation gate.
+	AuthorizeMirrorWrite func(state *core.AppState, repo *config.Repository, path string) error
 )
 
 // ErrUpstreamProbeUnavailable indicates that at least one applicable mirror
@@ -230,6 +232,12 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 	if err := cargo.EnsureMirrorPathMutable(state, repo, path); err != nil {
 		state.Inner.InFlightDownloads.UnlockPath(pathStr, dl, false)
 		return nil, err
+	}
+	if AuthorizeMirrorWrite != nil {
+		if err := AuthorizeMirrorWrite(state, repo, path); err != nil {
+			state.Inner.InFlightDownloads.UnlockPath(pathStr, dl, false)
+			return nil, err
+		}
 	}
 	var lastBlockedReason string
 	var globalProxyConfig config.ProxyConfig

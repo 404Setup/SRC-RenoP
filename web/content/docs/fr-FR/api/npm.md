@@ -82,3 +82,33 @@ Les clients npm acceptent Basic avec un mot de passe ou API Token, ou un API Tok
 Bearer sont intersectés avec les droits actuels du compte et les cibles exactes de dépôt, paquet ou équipe. La
 publication exige un paquet existant et L1 ; métadonnées et retrait exigent L2, l'équipe L3, propriété et suppression
 L4.
+
+## Verrouillage des ressources
+
+Les administrateurs et modérateurs du dépôt gèrent les verrous avec un cookie de session navigateur valide :
+
+- `PUT /api/npm/repositories/{repo}/locks?package={package}`
+- `DELETE /api/npm/repositories/{repo}/locks?package={package}`
+
+```json
+{"version":"1.2.3","mode":"read","reason":"trojan"}
+```
+
+Omettez `version` ou utilisez `""` pour viser le paquet. Les modes sont `write` et `read`. Les motifs publics traduits sont
+`hold`, `prohibited`, `expired`, `trojan`, `abuse`, `dmca`, `reup`, `squatting` et `quality`.
+DELETE accepte `{"version":"1.2.3"}` et supprime uniquement ce verrou manuel. Les verrous système restent indépendants.
+Les jetons API ne peuvent pas gérer les verrous. Les détails des paquets et versions exposent les enregistrements publics `locks`.
+
+Les deux modes figent les modifications. Le verrou de lecture réserve aussi les métadonnées aux administrateurs,
+modérateurs du dépôt, propriétaires et collaborateurs, y compris L0 et les membres de l'équipe globale liée.
+Les téléchargements de fichiers sont interdits à tous. Les autres visiteurs ne voient ni les versions restreintes ni
+leurs tags dans les packuments complets ou abrégés, les recherches, les profils et les ressources d'équipe.
+Les métadonnées filtrées désactivent le cache et ne renvoient jamais un `304` périmé.
+
+Un verrou de version fige aussi les changements de dist-tags associés et empêche l'archivage, la dépréciation permanente
+et la suppression du paquet entier. Un packument complet peut répéter les métadonnées verrouillées inchangées.
+Les autres versions restent publiables avec des tags qui ne déplacent pas celui d'une version verrouillée.
+Tout verrou bloque le remplacement du packument amont ; les tarballs concernés en cache n'expirent pas et ne sont pas
+récupérés à nouveau. Un dépôt verrouillé ne peut pas être reconfiguré ni supprimé.
+
+Les mutations refusées renvoient `423` et `X-Renop-Error-Code: resource_locked` ; les lectures refusées renvoient `404`.

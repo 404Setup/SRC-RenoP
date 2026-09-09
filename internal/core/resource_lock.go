@@ -20,6 +20,9 @@ const (
 	ResourceLockSystem = "system"
 )
 
+// LockedArtifactPathLocal marks a request path whose stored bytes must not expire or refresh.
+const LockedArtifactPathLocal = "locked_artifact_path"
+
 var (
 	ErrResourceLocked         = errors.New("resource is locked")
 	ErrResourceLockInvalid    = errors.New("invalid resource lock")
@@ -63,9 +66,9 @@ func ReadLocked(locks []*ResourceLock) bool {
 	return false
 }
 
-// ResourceLockVersionKey includes case aliases that address the same Cargo file on Windows.
+// ResourceLockVersionKey includes case aliases that address the same package file on Windows.
 func ResourceLockVersionKey(format, version string) string {
-	if runtime.GOOS == "windows" && format == "cargo" {
+	if runtime.GOOS == "windows" && (format == "cargo" || format == "npm") {
 		return strings.ToLower(version)
 	}
 	return version

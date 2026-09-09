@@ -95,3 +95,15 @@ An npm repository can proxy an ordered upstream registry. Exact package names an
 access. Refreshed packuments are bounded, concurrent refreshes are coalesced, local tarball URLs replace upstream URLs,
 and upstream versions that disappear are removed from the local catalog. Mirror-discovered packages cannot receive local
 pushes.
+
+## Resource locks
+
+The package and version pages show localized public lock reasons. Administrators and repository moderators can manage
+manual locks from these pages. Write locks freeze changes; read locks additionally limit metadata to staff and current
+collaborators and block every file download. Removing a manual lock leaves system restrictions active.
+
+Locked versions keep their associated tags and block whole-package lifecycle changes. Publish other versions with
+a separate tag when the existing tag targets a locked version. Mirror refreshes preserve locked stored content.
+See the [npm API](/docs/api/npm) for endpoints and response codes.
+
+Navigation discards stale package responses and lock refreshes so they cannot overwrite a different package page.

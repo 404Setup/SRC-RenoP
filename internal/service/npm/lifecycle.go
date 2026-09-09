@@ -44,7 +44,7 @@ func handleDistTags(c fiber.Ctx, state *core.AppState, repo *config.Repository, 
 	if state.GetDB() == nil {
 		return npmError(c, fiber.StatusServiceUnavailable, "database unavailable", "npm dist-tags are unavailable")
 	}
-	if c.Method() == fiber.MethodGet {
+	if c.Method() == fiber.MethodGet || c.Method() == fiber.MethodHead {
 		allowed, err := CanReadPackage(state, auth.GetUser(c), repo, packageName)
 		if err != nil || !allowed {
 			return npmError(c, fiber.StatusNotFound, "not_found", "npm package was not found")
@@ -52,6 +52,13 @@ func handleDistTags(c fiber.Ctx, state *core.AppState, repo *config.Repository, 
 		details, err := state.GetDB().GetNPMPackageDetails(repo.Name, packageName, auth.GetUser(c).Username)
 		if err != nil || details == nil {
 			return npmError(c, fiber.StatusNotFound, "not_found", "npm package was not found")
+		}
+		locked, err := applyPackageLocks(state, auth.GetUser(c), details)
+		if err != nil {
+			return lifecycleError(c, err)
+		}
+		if locked {
+			c.Set(fiber.HeaderCacheControl, "private, no-store")
 		}
 		return c.JSON(details.DistTags)
 	}
@@ -96,6 +103,8 @@ func handleDistTags(c fiber.Ctx, state *core.AppState, repo *config.Repository, 
 
 func lifecycleError(c fiber.Ctx, err error) error {
 	switch {
+	case errors.Is(err, core.ErrResourceLocked):
+		return npmPackageMutationError(c, err)
 	case errors.Is(err, core.ErrNPMPackageNotFound), errors.Is(err, core.ErrNPMVersionNotFound):
 		return npmError(c, fiber.StatusNotFound, "not_found", "npm package or version was not found")
 	case errors.Is(err, core.ErrNPMPermissionDenied):

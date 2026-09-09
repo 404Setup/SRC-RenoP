@@ -178,7 +178,7 @@ func TestClickHouseNativePackageAndStatisticsMatrix(t *testing.T) {
 	_, err = db.Exec(`UPDATE npm_packages SET latest_version = '' WHERE repository = ? AND package_name = ?`,
 		"npm", "@team/demo")
 	require.NoError(t, err)
-	npmPackages, npmTotal, err := db.ListNPMPackages("npm", "alice", false, 20, 0)
+	npmPackages, npmTotal, err := db.ListNPMPackages("npm", "alice", false, false, 20, 0)
 	require.NoError(t, err)
 	require.Equal(t, 1, npmTotal)
 	require.Len(t, npmPackages, 1)

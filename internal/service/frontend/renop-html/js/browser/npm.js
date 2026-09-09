@@ -49,6 +49,7 @@ import {
 } from './repository-view.js';
 import {RepositoryUserSuggestions} from './user-suggestions.js';
 import {formatBytes} from './utils.js';
+import {createResourceLockButton, createResourceLockNotices, resourceReadLocked, resourceWriteLocked} from '../resource-locks.js';
 
 const npmIcon = getRepositoryFormat('npm').icon;
 const pageSize = 24;
@@ -65,6 +66,23 @@ let inviteLevel = 0;
 let versionPage = 0;
 let versionPackage = '';
 let npmPackageView = 'overview';
+
+/** Bind moderation changes to the package shown when the dialog opens. */
+function npmResourceLockButton(pkg, version = null) {
+    const endpoint = npmAPI('locks', pkg.name);
+    const repository = activeRepository;
+    return createResourceLockButton({
+        locks: version?.locks || pkg.locks || [],
+        name: version ? `${pkg.name} ${version.version}` : pkg.name,
+        request: (mode, reason) => apiRequest(endpoint, {
+            method: mode ? 'PUT' : 'DELETE', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({version: version?.version || '', mode, reason})
+        }),
+        onSuccess: () => {
+            if (activeRepository === repository && packageDetails?.package?.name === pkg.name) return refreshPackage();
+        }
+    });
+}
 
 /** Localized failure returned by the stable npm management error boundary. */
 class NPMRequestError extends Error {
@@ -117,6 +135,9 @@ function ensureNPMView() {
 
 /** Hide and clear the npm view. */
 export function hideNPMRepositoryView() {
+    loadSequence++;
+    versionPackage = '';
+    packageDetails = null;
     hideRepositoryView(view);
     npmUserSuggestions.detach();
 }
@@ -480,13 +501,16 @@ function packageHero(pkg) {
     const canLifecycle = packageDetails.administrator || Number(pkg.permission_level) >= 2;
     const canOwn = packageDetails.administrator || Number(pkg.permission_level) >= 4;
     const canDeprecate = packageDetails.administrator || Number(pkg.permission_level) >= 3;
-    if (canDeprecate && !pkg.mirrored && !pkg.deprecated) {
+    const canChange = !pkg.deprecated && !resourceWriteLocked(pkg);
+    const canRewrite = canChange && !packageDetails.versions?.some(version => resourceWriteLocked(version));
+    if (packageDetails.moderator) actions.appendChild(npmResourceLockButton(pkg));
+    if (canDeprecate && !pkg.mirrored && canRewrite) {
         actions.appendChild(createDeprecatePackageButton(
             () => apiRequest(npmAPI('packages/deprecate', pkg.name), {method: 'PUT'}),
             refreshPackage
         ));
     }
-    if (canLifecycle && !pkg.mirrored && !pkg.deprecated) {
+    if (canLifecycle && !pkg.mirrored && canChange) {
         const edit = createButton(t('npm.editDescription'), {
             class: 'pill-btn pill-btn--soft pill-btn--sm',
             icon: 'edit'
@@ -494,7 +518,7 @@ function packageHero(pkg) {
         edit.addEventListener('click', showDescriptionDialog);
         actions.appendChild(edit);
     }
-    if (canOwn && !pkg.mirrored && !pkg.deprecated) {
+    if (canOwn && !pkg.mirrored && canChange) {
         const transfer = createButton(t('review.transferOwnership'), {
             class: 'pill-btn pill-btn--soft pill-btn--sm', icon: 'refresh'
         });
@@ -515,13 +539,13 @@ function packageHero(pkg) {
         });
         archive.addEventListener('click', () => mutatePackage({archived: !pkg.archived},
             pkg.archived ? 'npm.packageRestored' : 'npm.packageArchived'));
-        actions.appendChild(archive);
+        if (canRewrite) actions.appendChild(archive);
         const remove = createButton(t('npm.deletePackage'), {
             class: 'pill-btn pill-btn--danger pill-btn--sm',
             icon: 'delete'
         });
         remove.addEventListener('click', deletePackage);
-        actions.appendChild(remove);
+        if (canRewrite) actions.appendChild(remove);
     }
     return el('section', {class: 'npm-page-hero'},
         createRepositoryBackButton({
@@ -563,13 +587,14 @@ function npmVersionItem(version, tagsByVersion, canDelete) {
         )
     );
     const actions = el('div', {class: 'npm-version-actions'});
+    if (packageDetails.moderator && !pendingReview) actions.appendChild(npmResourceLockButton(packageDetails.package, version));
     if (!version.unpublished && !pendingReview) {
-        actions.appendChild(el('a', {
+        if (!resourceReadLocked(packageDetails.package, version)) actions.appendChild(el('a', {
             class: 'pill-btn pill-btn--soft pill-btn--sm',
             href: tarballURL(packageDetails.package.name, version.version),
             download: `${packageDetails.package.name.replace('/', '-')}-${version.version}.tgz`
         }, createIcon('download'), el('span', {}, t('npm.downloadTarball'))));
-        if (canDelete && !version.mirrored) {
+        if (canDelete && !version.mirrored && !resourceWriteLocked(version)) {
             const remove = createButton(t('npm.deleteVersion'), {
                 class: 'pill-btn pill-btn--danger pill-btn--sm', icon: 'delete'
             });
@@ -593,6 +618,7 @@ function npmVersionItem(version, tagsByVersion, canDelete) {
     bindAnimatedDetails(details, {content: detailsBody, marginTop: '0.7rem'});
     const row = el('article', {class: `npm-version${version.unpublished ? ' is-unpublished' : ''}`},
         header,
+        createResourceLockNotices(version.locks),
         version.deprecated ? el('p', {class: 'npm-deprecation-message'}, version.deprecated) : null,
         details
     );
@@ -610,7 +636,7 @@ function versionsSection() {
     );
     const list = el('div', {class: 'npm-version-list'});
     const pager = el('div', {class: 'npm-version-pagination'});
-    const canDelete = !packageDetails.package.deprecated &&
+    const canDelete = !packageDetails.package.deprecated && !resourceWriteLocked(packageDetails.package) &&
         (packageDetails.administrator || Number(packageDetails.package.permission_level) >= 2);
     const tagsByVersion = new Map();
     for (const [tag, target] of Object.entries(packageDetails.dist_tags || {})) {
@@ -652,6 +678,7 @@ function distTagsSection() {
 function teamSection() {
     const canManage = packageDetails.administrator || Number(packageDetails.package.permission_level) >= 3;
     const canOwn = packageDetails.administrator || Number(packageDetails.package.permission_level) >= 4;
+    const canEdit = canManage && !resourceWriteLocked(packageDetails.package);
     const members = Array.isArray(packageDetails.members) ? packageDetails.members : [];
     const section = el('section', {class: 'npm-page-section npm-team-section'},
         el('div', {class: 'npm-section-heading'},
@@ -672,7 +699,7 @@ function teamSection() {
     for (const member of members) {
         const numericLevel = Math.max(0, Math.min(4, Number(member.level) || 0));
         const controls = el('div', {class: 'npm-member-controls'});
-        if (numericLevel === 4 && !canOwn) {
+        if (!canEdit || numericLevel === 4 && !canOwn) {
             controls.appendChild(statusBadge(permissionLabel(numericLevel), 'is-permission'));
         } else {
             const allowedLevels = [0, 1, 2, 3];
@@ -696,7 +723,7 @@ function teamSection() {
             memberLevel.classList.add('npm-permission-select');
             controls.appendChild(memberLevel);
         }
-        if (numericLevel < 4) {
+        if (numericLevel < 4 && canEdit) {
             const remove = createButton(t('common.remove'), {
                 class: 'npm-member-remove', icon: 'delete', title: t('npm.removeMember'),
                 'aria-label': t('npm.removeMember')
@@ -713,7 +740,7 @@ function teamSection() {
                 }
             }));
             controls.appendChild(remove);
-        } else {
+        } else if (numericLevel === 4) {
             controls.appendChild(el('span', {class: 'npm-owner-lock', title: t('npm.ownerProtected')},
                 createIcon('fileLock'), el('span', {}, t('npm.owner'))));
         }
@@ -728,6 +755,7 @@ function teamSection() {
         ));
     }
     section.appendChild(memberList);
+    if (!canEdit) return section;
 
     const input = el('input', {
         id: 'npm-invite-username', class: 'npm-invite-input', type: 'text', maxlength: '255',
@@ -904,14 +932,17 @@ function renderPackage() {
         },
     });
     return [
-        packageHero(pkg), pkg.deprecated ? createPackageDeprecationNotice() : null, detail
+        packageHero(pkg), pkg.deprecated ? createPackageDeprecationNotice() : null,
+        createResourceLockNotices(pkg.locks), detail
     ].filter(Boolean);
 }
 
 /** @returns {Promise<void>} Completion of a selected-package refresh. */
 async function refreshPackage() {
-    if (!packageDetails?.package?.name) return;
+    if (!packageDetails?.package?.name || view?.hidden || versionPackage !== packageDetails.package.name) return;
+    const sequence = ++loadSequence;
     const payload = await npmRequest(npmAPI('packages', packageDetails.package.name), {}, 'npm.loadFailed');
+    if (sequence !== loadSequence) return;
     packageDetails = payload;
     await replaceRepositoryView(view, renderPackage(), {duration: 280});
 }
@@ -1025,8 +1056,10 @@ async function loadPackage(packageName, sequence) {
             versionPage = 0;
             npmPackageView = 'overview';
         }
-        packageDetails = await npmRequest(npmAPI('packages', packageName), {}, 'npm.loadFailed');
-        if (sequence === loadSequence) await replaceRepositoryView(view, renderPackage(), {duration: 300});
+        const payload = await npmRequest(npmAPI('packages', packageName), {}, 'npm.loadFailed');
+        if (sequence !== loadSequence) return;
+        packageDetails = payload;
+        await replaceRepositoryView(view, renderPackage(), {duration: 300});
     } catch (error) {
         if (sequence === loadSequence) view.replaceChildren(el('section', {class: 'npm-page-section npm-error'},
             createIcon('alertCircle'), el('h2', {}, t('npm.pageUnavailable')),

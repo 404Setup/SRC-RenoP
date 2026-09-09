@@ -62,6 +62,12 @@ func CanReadPackage(state *core.AppState, user *config.User, repo *config.Reposi
 	if err != nil {
 		return false, err
 	}
+	if !member && (user == nil || !user.CheckModeratePermission(repo.Name)) {
+		locks, err := state.GetDB().GetResourceLocks(npmLockTarget(repo.Name, packageName, ""), false)
+		if err != nil || core.ReadLocked(locks) {
+			return false, err
+		}
+	}
 	if !exists {
 		return CanReadRepository(state, user, repo, packageName, false)
 	}
