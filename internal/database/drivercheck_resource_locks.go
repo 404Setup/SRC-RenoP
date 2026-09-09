@@ -184,7 +184,10 @@ func checkResourceLocks(db *DB, repository, npmRepository, dockerRepository, mav
 	if err := checkMavenLocks(db, mavenRepository, mavenDomain, owner, moderator, sessionToken, now); err != nil {
 		return err
 	}
-	return checkSuperTeamLocks(db, repository, npmRepository, dockerRepository, mavenRepository, mavenDomain, prefix, owner, now)
+	if err := checkSuperTeamLocks(db, repository, npmRepository, dockerRepository, mavenRepository, mavenDomain, prefix, owner, now); err != nil {
+		return err
+	}
+	return checkMavenDomainLocks(db, mavenRepository, mavenDomain, owner, now)
 }
 
 func checkDockerLocks(db *DB, repository, prefix, owner, moderator, session string, now int64) error {
@@ -426,4 +429,41 @@ func checkSuperTeamLocks(db *DB, cargo, npm, docker, maven, domain, prefix, owne
 		return err
 	}
 	return db.EnsureResourceMutable(core.ResourceLockTarget{Format: "maven", Repository: maven, Name: domain + ":lock-demo"}, false)
+}
+
+func checkMavenDomainLocks(db *DB, repository, domain, owner string, now int64) error {
+	target := core.ResourceLockTarget{Format: "maven-domain", Name: domain}
+	if err := db.SetResourceLock(&core.ResourceLock{ResourceLockTarget: target, Source: core.ResourceLockSystem,
+		Mode: core.ResourceLockRead, Reason: "prohibited", LockedAt: now}, "", ""); err != nil {
+		return err
+	}
+	artifact := mavenLockTarget(repository, domain, "lock-demo", "1.0")
+	locks, err := db.GetResourceLocks(artifact, false)
+	if err != nil || len(locks) != 1 || !locks[0].Inherited {
+		return errorsOrMissing(err, "Maven domain lock inheritance")
+	}
+	if err := db.EnsureResourceMutable(artifact, false); !errors.Is(err, core.ErrResourceLocked) {
+		return errorsOrMissing(err, "Maven domain publication freeze")
+	}
+	if err := db.EnsureRepositoryResourcesMutable(repository); !errors.Is(err, core.ErrResourceLocked) {
+		return errorsOrMissing(err, "Maven domain repository freeze")
+	}
+	for _, viewer := range []string{"", owner} {
+		visible, err := db.ResourceMetadataVisibility("maven", repository, viewer, false, []core.ResourceLockTarget{artifact})
+		if err != nil || len(visible) != 1 || visible[0] != (viewer == owner) {
+			return errorsOrMissing(err, "Maven domain artifact metadata visibility")
+		}
+		path := strings.ReplaceAll(domain, ".", "/") + "/uncatalogued/file.bin"
+		visible, err = db.MavenDomainPathVisibility(repository, viewer, false, []string{path})
+		if err != nil || len(visible) != 1 || visible[0] != (viewer == owner) {
+			return errorsOrMissing(err, "Maven domain uncatalogued metadata visibility")
+		}
+	}
+	if err := db.ForceAddMavenMembers(domain, owner, []string{owner}, core.MavenPermissionOwner); !errors.Is(err, core.ErrResourceLocked) {
+		return errorsOrMissing(err, "Maven locked domain membership preservation")
+	}
+	if err := db.DeleteResourceLock(target, core.ResourceLockSystem, "", ""); err != nil {
+		return err
+	}
+	return db.EnsureResourceMutable(artifact, false)
 }

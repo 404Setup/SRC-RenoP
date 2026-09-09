@@ -530,7 +530,11 @@ func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
 }
 
 func requireUnlockedRepository(c fiber.Ctx, state *core.AppState, repository string) error {
-	if err := state.GetDB().EnsureRepositoryResourcesMutable(repository); err != nil {
+	err := state.GetDB().EnsureRepositoryResourcesMutable(repository)
+	if err == nil {
+		err = mavenservice.EnsureRepositoryMutable(state, state.Inner.Config.Load().Maven.Repositories[repository])
+	}
+	if err != nil {
 		if errors.Is(err, core.ErrResourceLocked) {
 			c.Set("X-Renop-Error-Code", "resource_locked")
 			return fiber.NewError(fiber.StatusLocked, "Repository contains locked resources")

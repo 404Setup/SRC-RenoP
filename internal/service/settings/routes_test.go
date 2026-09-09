@@ -1949,3 +1949,60 @@ func TestRegistrationSettingsPersistAndRejectDisabledLimits(t *testing.T) {
 	require.Equal(t, 403, response.StatusCode)
 	require.NoError(t, response.Body.Close())
 }
+
+func TestRepositoryMutationsRespectUncataloguedDomainLocks(t *testing.T) {
+	for _, operation := range []string{"migration", "deletion", "update", "index-only"} {
+		t.Run(operation, func(t *testing.T) {
+			cfg := config.DefaultConfig()
+			cfg.StoragePath = testutil.TempDir(t)
+			cfg.Maven.Repositories = map[string]*config.Repository{"releases": {Name: "releases", Format: "maven", Visibility: "PUBLIC"}}
+			app, state := setupSettingsTestApp(t, cfg)
+			db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "domain-lock.db"), MaxOpenConns: 1})
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, db.Close()) })
+			state.Inner.DB = db
+			now := time.Now().UnixMilli()
+			require.NoError(t, db.SaveToken(&core.AccessToken{Name: "alice"}))
+			require.NoError(t, db.CreateMavenDomain(&core.MavenDomain{Domain: "com.example", VerificationType: "dns",
+				VerificationHost: "example.com", VerificationCode: "proof", CreatedAt: now}, "alice"))
+			target := core.ResourceLockTarget{Format: "maven-domain", Name: "com.example"}
+			require.NoError(t, db.SetResourceLock(&core.ResourceLock{ResourceLockTarget: target, Source: core.ResourceLockSystem,
+				Mode: core.ResourceLockRead, Reason: "hold", LockedAt: now}, "", ""))
+			file := filepath.Join(cfg.StoragePath, "releases", "com", "example", "uncatalogued", "file.bin")
+			relative, err := filepath.Rel(cfg.StoragePath, file)
+			require.NoError(t, err)
+			require.False(t, strings.HasPrefix(relative, ".."))
+			if operation == "index-only" {
+				file = filepath.Join(cfg.StoragePath, "releases", "COM", "EXAMPLE", "uncatalogued", "file.bin")
+			} else {
+				require.NoError(t, os.MkdirAll(filepath.Dir(file), 0700))
+				require.NoError(t, os.WriteFile(file, []byte("preserve"), 0600))
+			}
+			if operation != "update" {
+				state.Inner.FileIndex.EnsureParentDirs(file)
+				state.Inner.FileIndex.InsertFile(file, index.FileInfo{Size: 8, ModTime: now})
+			}
+			var response *http.Response
+			switch operation {
+			case "migration":
+				response = protoPOST(t, app, "/repositories/releases/migrate/files", &pb.StatusOk{})
+			case "update", "index-only":
+				response = protoPUT(t, app, "/repositories/releases", &pb.Repository{Name: "releases", Format: "maven", Visibility: "HIDDEN"})
+			case "deletion":
+				response, err = app.Test(httptest.NewRequest(http.MethodDelete, "/maven/repositories/releases", nil))
+				require.NoError(t, err)
+			}
+			defer response.Body.Close()
+			require.Equal(t, http.StatusLocked, response.StatusCode)
+			require.Equal(t, "resource_locked", response.Header.Get("X-Renop-Error-Code"))
+			if operation != "index-only" {
+				contents, err := os.ReadFile(file)
+				require.NoError(t, err)
+				require.Equal(t, "preserve", string(contents))
+			} else {
+				require.True(t, state.Inner.FileIndex.HasFile(file))
+			}
+			require.Equal(t, "maven", state.Inner.Config.Load().Maven.Repositories["releases"].NormalizedFormat())
+		})
+	}
+}

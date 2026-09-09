@@ -148,3 +148,29 @@ test('team and domain locks retain members and staff actions while hiding mutati
     assert.equal(nodes.filter(node => ['button', 'select', 'form'].includes(node.tag)).length, 0);
     assert.equal(nodes.filter(node => node.class === 'maven-team-row').length, 2);
 });
+
+test('domain moderation controls target the global domain and require an authenticated moderator', async () => {
+    const requests = [];
+    const context = vm.createContext({
+        cachedIsLoggedIn: true, encodeURIComponent, JSON,
+        createResourceLockButton: options => options,
+        apiRequest: async (url, options) => { requests.push({url, ...options}); return {ok: true}; },
+    });
+    const source = readFileSync(new URL('../js/browser/maven.js', import.meta.url), 'utf8');
+    vm.runInContext(source.match(/function domainLockButton\([^]*?\n}/)[0], context);
+    const details = {domain: {domain: 'io.github.demo', locks: [{source: 'system', mode: 'write'}]}};
+    assert.equal(context.domainLockButton(details, () => {}), null);
+    details.moderator = true;
+    let refreshed = false;
+    const control = context.domainLockButton(details, () => { refreshed = true; });
+    assert.equal(control.locks, details.domain.locks);
+    await control.request('read', 'abuse');
+    await control.request('', '');
+    assert.deepEqual(requests.map(request => request.method), ['PUT', 'DELETE']);
+    assert.equal(requests[0].url, '/api/maven/domains/io.github.demo/locks');
+    assert.deepEqual(JSON.parse(requests[0].body), {mode: 'read', reason: 'abuse'});
+    control.onSuccess();
+    assert.equal(refreshed, true);
+    context.cachedIsLoggedIn = false;
+    assert.equal(context.domainLockButton(details, () => {}), null);
+});

@@ -1939,7 +1939,7 @@ components:
 
     MavenDomainDetails:
       type: object
-      required: [ domain, administrator ]
+      required: [ domain, administrator, moderator ]
       properties:
         domain:
           $ref: "#/components/schemas/MavenDomain"
@@ -1949,6 +1949,9 @@ components:
             $ref: "#/components/schemas/MavenMember"
         administrator:
           type: boolean
+        moderator:
+          type: boolean
+          description: Current request has global authority to manage this publishing domain's manual lock.
 
     ResourceLock:
       type: object
@@ -5064,6 +5067,53 @@ paths:
           description: Domain deleted.
         "409":
           description: Domain still contains artifacts or cannot lose its owner.
+
+  /api/maven/domains/{domain}/locks:
+    parameters:
+      - name: domain
+        in: path
+        required: true
+        schema: { type: string }
+    put:
+      tags: [ maven ]
+      summary: Set a manual publishing-domain lock
+      description: Requires an active browser session and system-administrator or global-moderator authority. Freezes the domain and its artifacts across repositories, including uncatalogued paths. Read locks deny all file bytes. Memberships are retained; system and inherited team locks remain independent.
+      operationId: putMavenDomainLock
+      security:
+        - sessionCookie: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ mode, reason ]
+              properties:
+                mode: { type: string, enum: [ write, read ] }
+                reason: { type: string, enum: [ hold, prohibited, expired, trojan, abuse, dmca, reup, squatting, quality ] }
+      responses:
+        "204": { description: Manual domain lock saved. }
+        "400": { $ref: "#/components/responses/PlainBadRequest" }
+        "403": { $ref: "#/components/responses/PlainForbidden" }
+        "404": { $ref: "#/components/responses/PlainNotFound" }
+    delete:
+      tags: [ maven ]
+      summary: Remove a manual publishing-domain lock
+      description: Requires an active browser session and system-administrator or global-moderator authority. Removes only this domain's manual restriction; other effective restrictions remain active.
+      operationId: deleteMavenDomainLock
+      security:
+        - sessionCookie: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+            example: { }
+      responses:
+        "204": { description: Manual domain lock removed. }
+        "400": { $ref: "#/components/responses/PlainBadRequest" }
+        "403": { $ref: "#/components/responses/PlainForbidden" }
+        "404": { $ref: "#/components/responses/PlainNotFound" }
 
   /api/maven/domains/{domain}/verify:
     post:

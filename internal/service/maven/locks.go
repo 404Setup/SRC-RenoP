@@ -8,6 +8,8 @@
 package maven
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,6 +19,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
+	"renop/internal/service/index"
 	"renop/internal/service/repositorygate"
 	"renop/internal/utils"
 )
@@ -44,6 +47,45 @@ func EnsurePathMutable(state *core.AppState, repo *config.Repository, path strin
 		return state.GetDB().EnsurePackageMutable(config.RepositoryFormatMaven, repo.Name, group+":"+artifact)
 	}
 	return nil
+}
+
+// EnsureRepositoryMutable includes domain namespaces without catalogued artifacts.
+func EnsureRepositoryMutable(state *core.AppState, repo *config.Repository) error {
+	if repo == nil || repo.NormalizedFormat() != config.RepositoryFormatMaven {
+		return nil
+	}
+	locks, err := state.GetDB().GetMavenPathLocks(repo.Name, "", true)
+	if err != nil {
+		return err
+	}
+	root := filepath.Join(state.Inner.Config.Load().StoragePath, repo.Name)
+	paths := make(map[string]bool)
+	for _, lock := range locks {
+		if lock.Format != "maven-domain" {
+			continue
+		}
+		path := filepath.Join(root, strings.ReplaceAll(lock.Name, ".", "/"))
+		key := strings.ToLower(filepath.ToSlash(path))
+		if paths[key] {
+			continue
+		}
+		paths[key] = true
+		if _, err := os.Stat(path); err == nil {
+			return core.ErrResourceLocked
+		} else if !os.IsNotExist(err) {
+			return err
+		}
+	}
+	if len(paths) > 0 && state.Inner.FileIndex != nil {
+		// Indexed namespaces also cover S3 objects and case aliases on case-sensitive disks.
+		state.Inner.FileIndex.Walk(root, func(path string, _ index.FileInfo, _ bool) bool {
+			if paths[strings.ToLower(filepath.ToSlash(path))] {
+				err = core.ErrResourceLocked
+			}
+			return err == nil
+		})
+	}
+	return err
 }
 
 func mavenPathTargets(repository, path string) ([]core.ResourceLockTarget, error) {
@@ -296,4 +338,41 @@ func setResourceLockAPI(c fiber.Ctx, state *core.AppState) error {
 	logAudit(c, state, action, "Repository: "+repo.Name+", package: "+target.Name+", version: "+request.Version+", reason: "+request.Reason)
 	c.Set(fiber.HeaderCacheControl, "no-store")
 	return c.JSON(fiber.Map{"ok": true})
+}
+
+func setDomainLock(c fiber.Ctx, state *core.AppState) error {
+	user, session := auth.GetUser(c), auth.CurrentSessionToken(c)
+	if user == nil || !user.CheckModeratePermission("") || auth.CurrentCredentialKind(c) != "session" ||
+		session == "" || c.Cookies("renop_session") != session {
+		return apiError(c, core.ErrResourceLockPermission)
+	}
+	domain, err := NormalizeDomain(c.Params("domain"))
+	if err != nil {
+		return apiError(c, core.ErrResourceLockInvalid)
+	}
+	var request struct {
+		Mode   string `json:"mode"`
+		Reason string `json:"reason"`
+	}
+	if utils.ReadJSONLimited(c, &request, 4096) != nil {
+		return apiError(c, core.ErrResourceLockInvalid)
+	}
+	release := repositorygate.AcquireAllMigrations()
+	defer release()
+	target := core.ResourceLockTarget{Format: "maven-domain", Name: domain}
+	action := audit.ActionResourceLock
+	if c.Method() == fiber.MethodDelete {
+		action = audit.ActionResourceUnlock
+		err = state.GetDB().DeleteResourceLock(target, core.ResourceLockManual, user.Username, session)
+	} else {
+		err = state.GetDB().SetResourceLock(&core.ResourceLock{ResourceLockTarget: target,
+			Source: core.ResourceLockManual, Mode: request.Mode, Reason: request.Reason,
+			LockedAt: time.Now().UnixMilli()}, user.Username, session)
+	}
+	if err != nil {
+		return apiError(c, err)
+	}
+	logAudit(c, state, action, "Publishing domain: "+domain+", reason: "+request.Reason)
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return c.SendStatus(fiber.StatusNoContent)
 }

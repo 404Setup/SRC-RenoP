@@ -534,6 +534,13 @@ func requireMavenMemberPermission(tx *Tx, domain, userID string, required int) e
 }
 
 func lockMavenDomain(tx *Tx, domain string) error {
+	if err := lockMavenDomainRow(tx, domain); err != nil {
+		return err
+	}
+	return ensureMavenDomainMutableQuery(tx.QueryRow, domain)
+}
+
+func lockMavenDomainRow(tx *Tx, domain string) error {
 	if _, err := tx.Exec(`UPDATE maven_domains SET last_check_at = last_check_at WHERE repository = ? AND domain = ?`,
 		globalMavenRepository, domain); err != nil {
 		return fmt.Errorf("lock Maven domain team: %w", err)
@@ -544,7 +551,7 @@ func lockMavenDomain(tx *Tx, domain string) error {
 	} else if err != nil {
 		return fmt.Errorf("inspect Maven domain team lock: %w", err)
 	}
-	return ensureMavenDomainMutableQuery(tx.QueryRow, domain)
+	return nil
 }
 
 func requireAnotherMavenOwner(tx *Tx, domain, excludedUserID string) error {

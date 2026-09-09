@@ -29,7 +29,7 @@ var (
 	ErrResourceLockPermission = errors.New("resource lock permission denied")
 )
 
-// ResourceLockTarget identifies a global team, package, or package version.
+// ResourceLockTarget identifies a global team, publishing domain, package, or package version.
 type ResourceLockTarget struct {
 	Format     string `json:"format"`
 	Repository string `json:"repository"`

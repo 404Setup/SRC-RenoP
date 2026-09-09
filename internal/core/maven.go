@@ -117,6 +117,7 @@ type MavenMember struct {
 
 // MavenDomainDetails combines a publishing domain with its team.
 type MavenDomainDetails struct {
+	Moderator     bool           `json:"moderator"`
 	Domain        *MavenDomain   `json:"domain"`
 	Members       []*MavenMember `json:"members,omitempty"`
 	Administrator bool           `json:"administrator"`

@@ -96,3 +96,14 @@ Les verrous couvrent les fichiers associés arbitraires et les SNAPSHOT horodat�
 La suppression d’une version valide chaque segment de coordonnées avant toute modification du stockage ; les séparateurs de chemin et les alias de répertoires à points sont refusés.
 
 Les verrous d’équipe globale sont hérités par les paquets et domaines de publication liés. Les réponses des domaines incluent les `locks` publics. Un domaine verrouillé fige la vérification, les membres, les transferts de propriété, la fermeture et les nouvelles publications, y compris les fichiers et métadonnées non catalogués. Le verrou de lecture conserve les métadonnées pour les collaborateurs existants et les modérateurs autorisés tout en bloquant tous les fichiers. Un sous-domaine vérifié indépendamment conserve sa propre autorité. Les appartenances et droits du domaine sont conservés et rétablis après la levée de toutes les restrictions applicables.
+
+Les administrateurs système et les modérateurs globaux gèrent le verrouillage d’un domaine dans tous les dépôts avec une session de navigateur active :
+
+- `PUT /api/maven/domains/{domain}/locks`
+- `DELETE /api/maven/domains/{domain}/locks`
+
+```json
+{"mode":"write","reason":"hold"}
+```
+
+PUT accepte le corps ci-dessous ; DELETE accepte `{}`. Les deux renvoient `204`. Les jetons API et les modérateurs limités à un dépôt ne peuvent pas gérer un domaine global. La suppression du verrouillage manuel conserve les restrictions système et celles héritées des équipes. Le champ `moderator` des détails reflète les droits de la requête actuelle ; les pages publiques, du compte et du dépôt partagent la même commande. Les modifications, migrations et suppressions de dépôts vérifient aussi les espaces de noms verrouillés présents uniquement sur disque ou dans l’index des fichiers.

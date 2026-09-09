@@ -87,6 +87,8 @@ func SetupRoutes(router fiber.Router, state *core.AppState) {
 	wireStorageHooks()
 	global := router.Group("/maven")
 	registerDomainRoutes(global, state)
+	global.Put("/domains/:domain/locks", func(c fiber.Ctx) error { return setDomainLock(c, state) })
+	global.Delete("/domains/:domain/locks", func(c fiber.Ctx) error { return setDomainLock(c, state) })
 	global.Get("/domains/:domain/packages", func(c fiber.Ctx) error { return listDomainArtifacts(c, state) })
 	base := router.Group("/maven/repositories/:repo_name")
 	base.Use(func(c fiber.Ctx) error {
@@ -502,6 +504,7 @@ func visibleDomain(c fiber.Ctx, state *core.AppState) (*core.MavenDomainDetails,
 	if administrator {
 		details.Administrator = true
 	}
+	details.Moderator = user != nil && user.CheckModeratePermission("")
 	redactMavenDomainForViewer(details.Domain, administrator, true)
 	if !administrator && details.Domain.PermissionLevel < core.MavenPermissionManage {
 		details.Members = nil

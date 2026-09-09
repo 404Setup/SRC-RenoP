@@ -66,9 +66,11 @@ func TestMavenLocksSeparateMetadataFromBytesAndRejectFrozenWrites(t *testing.T) 
 		"admin":  {Username: "admin", Roles: []string{"admin"}},
 		"staff":  {Username: "staff", Roles: []string{"canmoderate:releases"}},
 		"writer": {Username: "writer", Roles: []string{"canupdate:releases"}},
+		"global": {Username: "global", Roles: []string{"canmoderate:*"}},
+		"scoped": {Username: "global", Roles: []string{"canview:releases"}},
 	}
 	for name, user := range users {
-		if name == "guest" {
+		if name == "guest" || name == "scoped" {
 			continue
 		}
 		require.NoError(t, db.SaveToken(&core.AccessToken{Name: name, Permissions: user.Roles}))
@@ -235,5 +237,62 @@ func TestMavenLocksSeparateMetadataFromBytesAndRejectFrozenWrites(t *testing.T) 
 		status, _ = request(http.MethodGet, "/releases/com/example/uncatalogued/file.bin", "guest", "", false)
 		require.Equal(t, http.StatusOK, status)
 	})
-
+	t.Run("manual domain locks require live global authority and preserve system restrictions", func(t *testing.T) {
+		const url = "/api/maven/domains/com.example/locks"
+		const body = `{"mode":"read","reason":"quality"}`
+		for _, viewer := range []string{"guest", "alice", "bob", "writer", "staff", "scoped"} {
+			status, _ := request(http.MethodPut, url, viewer, body, true)
+			require.Equal(t, http.StatusForbidden, status, viewer)
+		}
+		status, _ := request(http.MethodPut, url, "global", body, false)
+		require.Equal(t, http.StatusForbidden, status)
+		status, data := request(http.MethodPut, url, "global", body, true)
+		require.Equal(t, http.StatusNoContent, status, string(data))
+		for _, viewer := range []string{"alice", "bob", "global", "admin", "guest", "scoped"} {
+			status, data := request(http.MethodGet, "/api/maven/domains/com.example", viewer, "", true)
+			if viewer == "guest" || viewer == "scoped" {
+				require.Equal(t, http.StatusNotFound, status, viewer)
+				continue
+			}
+			require.Equal(t, http.StatusOK, status, string(data))
+			var details core.MavenDomainDetails
+			require.NoError(t, json.Unmarshal(data, &details))
+			require.Len(t, details.Domain.Locks, 1)
+			require.Equal(t, viewer == "global" || viewer == "admin", details.Moderator)
+			if viewer == "alice" {
+				require.Equal(t, core.MavenPermissionOwner, details.Domain.PermissionLevel)
+				require.Len(t, details.Members, 2)
+			}
+			status, _ = request(http.MethodGet, "/releases/com/example/uncatalogued/file.bin", viewer, "", true)
+			require.Equal(t, http.StatusNotFound, status, viewer)
+		}
+		locks, err := db.GetResourceLocks(mavenLockTarget("releases", "com.example", "demo", "2.0"), false)
+		require.NoError(t, err)
+		require.Len(t, locks, 1)
+		require.True(t, locks[0].Inherited)
+		status, _ = request(http.MethodPut, "/releases/com/example/new/1.0/new-1.0.jar", "alice", "blocked", true)
+		require.Equal(t, http.StatusLocked, status)
+		target := core.ResourceLockTarget{Format: "maven-domain", Name: domain.Domain}
+		require.NoError(t, db.SetResourceLock(&core.ResourceLock{ResourceLockTarget: target, Source: core.ResourceLockSystem,
+			Mode: core.ResourceLockWrite, Reason: "hold", LockedAt: now}, "", ""))
+		status, _ = request(http.MethodDelete, url, "global", `{}`, true)
+		require.Equal(t, http.StatusNoContent, status)
+		locks, err = db.GetResourceLocks(target, false)
+		require.NoError(t, err)
+		require.Len(t, locks, 1)
+		require.Equal(t, core.ResourceLockSystem, locks[0].Source)
+		require.ErrorIs(t, db.EnsureResourceMutable(target, false), core.ErrResourceLocked)
+		status, _ = request(http.MethodGet, "/releases/com/example/uncatalogued/file.bin", "guest", "", false)
+		require.Equal(t, http.StatusOK, status)
+		status, _ = request(http.MethodPut, url, "global", body, true)
+		require.Equal(t, http.StatusNoContent, status)
+		require.NoError(t, db.DeleteResourceLock(target, core.ResourceLockSystem, "", ""))
+		require.ErrorIs(t, db.EnsureResourceMutable(target, false), core.ErrResourceLocked)
+		require.NoError(t, db.DeleteSession("global-session"))
+		status, _ = request(http.MethodDelete, url, "global", `{}`, true)
+		require.Equal(t, http.StatusForbidden, status)
+		status, _ = request(http.MethodDelete, url, "admin", `{}`, true)
+		require.Equal(t, http.StatusNoContent, status)
+		require.NoError(t, db.EnsureResourceMutable(target, false))
+	})
 }

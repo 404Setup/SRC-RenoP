@@ -69,6 +69,11 @@ func resourceLocksQuery(format string) string {
 			'', l.mode, l.reason, l.locked_at, 1 FROM ` + table + ` p` + join + `
 			JOIN resource_locks l ON l.format = 'superteam' AND l.repository = '' AND ` + binding
 	}
+	if format == "maven" {
+		query += ` UNION ALL SELECT l.id, l.source, '', 'maven', p.repository, ` + name + `,
+			'', l.mode, l.reason, l.locked_at, 1 FROM maven_artifacts p JOIN resource_locks l
+			ON l.format = 'maven-domain' AND l.repository = '' AND l.resource_name = p.domain`
+	}
 	return `(` + query + `)`
 }
 
@@ -156,6 +161,11 @@ func (db *DB) SetResourceLock(lock *core.ResourceLock, actor, session string) er
 			return err
 		}
 	}
+	if target.Format == "maven-domain" {
+		if err := lockMavenDomainRow(tx, target.Name); err != nil {
+			return err
+		}
+	}
 	if err := setDockerLockVersionsTx(tx, target, lock.Source); err != nil {
 		return err
 	}
@@ -197,6 +207,11 @@ func (db *DB) DeleteResourceLock(target core.ResourceLockTarget, source, actor, 
 	}
 	if target.Format == "maven" {
 		if err := lockMavenArtifactTargetTx(tx, target); err != nil {
+			return err
+		}
+	}
+	if target.Format == "maven-domain" {
+		if err := lockMavenDomainRow(tx, target.Name); err != nil {
 			return err
 		}
 	}

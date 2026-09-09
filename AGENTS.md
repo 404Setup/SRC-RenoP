@@ -122,6 +122,8 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   Shared mirror authorization is wired in `internal/service/storage/mirror.go`.
   Global-team lock routes live in `internal/service/superteam/locks.go`; bindings inherit restrictions through
   `internal/database/resource_lock.go`. Maven domain/path inheritance lives in `internal/database/maven_domain_locks.go`.
+  Global publishing-domain lock routes live in `internal/service/maven/locks.go`; repository changes also inspect
+  uncatalogued domain namespaces through `EnsureRepositoryMutable`.
   Preserve retained memberships, independent verified child domains, and current-request moderator scopes.
   Keep manual and system locks independent. Read locks freeze writes, restrict metadata to live staff/members, and deny
   files to everyone. Include index/search/profile visibility, cached files, mirror refreshes, and repository changes.

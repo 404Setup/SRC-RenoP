@@ -251,13 +251,20 @@ function openCreateDomainDialog(onCreated) {
     requestAnimationFrame(() => input.focus());
 }
 
-/**
- * Build one domain catalog card.
- * @param {string} repository
- * @param {object} domain
- * @param {Function} [onSelect]
- * @returns {HTMLElement}
- */
+/** Build a browser-session action for this domain's independent manual lock. */
+function domainLockButton(details, refresh) {
+    if (!cachedIsLoggedIn || !details.moderator) return null;
+    const domain = details.domain;
+    return createResourceLockButton({
+        locks: domain.locks, name: domain.domain,
+        request: (mode, reason) => apiRequest(`/api/maven/domains/${encodeURIComponent(domain.domain)}/locks`, {
+            method: mode ? 'PUT' : 'DELETE', body: JSON.stringify({mode, reason})
+        }),
+        onSuccess: refresh,
+    });
+}
+
+/** Describe the domain's current publication state. */
 function mavenDomainStatus(domain) {
     if (resourceWriteLocked(domain)) {
         const lock = domain.locks.find(lock => lock.mode === 'read') || domain.locks[0];
@@ -286,6 +293,7 @@ function mavenDomainStatus(domain) {
         : {tone: 'pending', icon: 'clock', label: t('maven.pending'), description: t('maven.pendingVerification')};
 }
 
+/** Build one domain catalog card. */
 function domainCard(repository, domain, onSelect) {
     const status = mavenDomainStatus(domain);
     const card = el('button', {
@@ -1097,13 +1105,16 @@ async function renderManagedDomain(container, domainName) {
         if (exitProtectedRouteOnDenial(response)) return;
         if (!response.ok) throw await localizedResponseError(response, 'maven.domainLoadFailed');
         const details = await response.json();
+        if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
         const domain = details.domain;
         const locked = resourceWriteLocked(domain);
         const canOwn = !locked && (details.administrator || Number(domain.permission_level) === 4);
         const closed = Number(domain.closed_at) > 0;
         const claimPending = domain.claim_status === 'pending';
         const status = mavenDomainStatus(domain);
-        const actions = el('div', {class: 'maven-domain-actions'});
+        const actions = el('div', {class: 'maven-domain-actions'}, domainLockButton(details, () => {
+            if (sequence === domainCenterSequence && container === domainCenterBody) return refresh();
+        }));
         if (canOwn && !closed) {
             actions.appendChild(el('button', {
                 type: 'button', class: 'pill-btn pill-btn--soft',
@@ -1269,6 +1280,7 @@ async function renderPublicMavenDomain(container, domainName) {
         if (!domainResponse.ok) throw await localizedResponseError(domainResponse, 'maven.domainLoadFailed');
         const details = await domainResponse.json();
         const artifactData = await readArtifactPage(artifactsResponse);
+        if (sequence !== publicDomainSequence || container !== publicDomainBody) return;
         const domain = details.domain;
         const status = mavenDomainStatus(domain);
         const artifacts = artifactData.artifacts;
@@ -1277,7 +1289,10 @@ async function renderPublicMavenDomain(container, domainName) {
                 createIcon('chevronLeft'), el('span', {}, t('nav.backHome'))),
             el('div', {class: 'maven-hero-heading'},
                 el('div', {}, el('span', {class: 'maven-kicker'}, t('maven.domainKicker')),
-                    el('h2', {}, createIcon('network'), el('span', {}, domain.domain)))),
+                    el('h2', {}, createIcon('network'), el('span', {}, domain.domain))),
+                domainLockButton(details, () => {
+                    if (sequence === publicDomainSequence && container === publicDomainBody) return renderPublicMavenDomain(container, domainName);
+                })),
             el('div', {class: 'maven-stats'},
                 el('span', {class: `maven-status-badge is-${status.tone}`}, status.label),
                 el('span', {}, t('maven.artifactCount', {count: artifactData.total})))
@@ -1369,13 +1384,17 @@ async function renderDomain(container, repository, domainName, sequence) {
         if (!domainResponse.ok) throw await localizedResponseError(domainResponse, 'maven.domainLoadFailed');
         const details = await domainResponse.json();
         const artifactData = await readArtifactPage(artifactsResponse);
+        if (sequence !== mavenLoadSequence) return;
         const domain = details.domain;
         const status = mavenDomainStatus(domain);
         const hero = el('section', {class: 'maven-hero'},
             backButton(`/${encodePathSegment(repository)}`, t('maven.backToRepository')),
             el('div', {class: 'maven-hero-heading'},
                 el('div', {}, el('span', {class: 'maven-kicker'}, t('maven.domainKicker')),
-                    el('h2', {}, createIcon('network'), el('span', {}, domain.domain)))
+                    el('h2', {}, createIcon('network'), el('span', {}, domain.domain))),
+                domainLockButton(details, () => {
+                    if (sequence === mavenLoadSequence) return renderDomain(container, repository, domainName, sequence);
+                })
             ),
             el('div', {class: 'maven-stats'},
                 el('span', {class: `maven-status-badge is-${status.tone}`}, status.label),

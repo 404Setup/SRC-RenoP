@@ -101,3 +101,14 @@ Locks cover arbitrary companions and timestamped SNAPSHOT files. Frozen bytes ne
 Version deletion validates every coordinate segment before changing storage; path separators and dot-directory aliases are rejected.
 
 Global-team locks are inherited by bound artifacts and publishing domains. Domain responses include public `locks`. A locked domain freezes verification, membership, ownership transfers, closure, and new publication, including uncatalogued files and metadata. Read locks preserve metadata for existing collaborators and authorized moderators while blocking all file bytes. An independently verified child domain retains its own authority. Team membership and domain permissions are retained when locked and restored after all applicable restrictions are removed.
+
+System administrators and global moderators manage a publishing domain across every repository with an active browser session:
+
+- `PUT /api/maven/domains/{domain}/locks`
+- `DELETE /api/maven/domains/{domain}/locks`
+
+```json
+{"mode":"write","reason":"hold"}
+```
+
+PUT accepts the body below; DELETE accepts `{}`. Both return `204`. API tokens and repository-scoped moderators cannot manage a global domain. Removing a manual domain lock leaves system and inherited team locks intact. Domain details expose `moderator` for the current request; public, account, and repository domain pages share the same control. Repository changes, migration, and deletion also check locked namespaces present only on disk or in the file index.
