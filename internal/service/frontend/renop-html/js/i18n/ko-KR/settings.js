@@ -247,4 +247,14 @@ export default Object.freeze({
     "settings.githubOAuthConfigured": "시크릿은 안전하게 저장되며 브라우저로 반환되지 않습니다.",
     "settings.githubOAuthNotConfigured": "저장된 클라이언트 시크릿이 없습니다.",
     "settings.githubOAuthSaveFailed": "GitHub 로그인 설정을 저장하지 못했습니다. 모든 필드를 확인하세요.",
+
+    "settings.sections": "설정 분류",
+    "settings.saving": "변경 사항 저장 중…",
+    "settings.unsaved": "이 페이지에 저장하지 않은 변경 사항이 있습니다",
+    "settings.upToDate": "저장하지 않은 변경 사항 없음",
+    "settings.sectionPage": "섹션 {page} / {pages}",
+    "settings.loadFailed": "설정을 불러오지 못했습니다. 다시 시도하세요.",
+    "settings.noSections": "사용 가능한 설정 분류가 없습니다.",
+    "settings.discardConfirm": "이 페이지에서 저장하지 않은 변경 사항을 삭제할까요?",
+    "settings.discard": "변경 사항 삭제",
 });

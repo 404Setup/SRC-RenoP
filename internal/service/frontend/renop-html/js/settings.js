@@ -9,11 +9,9 @@
  */
 
 import {t} from './i18n.js';
-import {showAlert} from './alert.js';
+import {showAlert, showConfirm} from './alert.js';
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
-import {smoothScrollToTop} from '@renop/ui/scroll';
-import {registerTabContainer, updateTabIndicator} from '@renop/ui/tabs';
 import {apiRequest, fetchProto, postProto, putProto} from './api.js';
 import {buildInput, createSection, makeTagListInput} from './cfg-ui.js';
 import {
@@ -22,11 +20,10 @@ import {
     createIcon,
     createIndexCard,
     createSkeleton,
-    createTab,
     createToggleRow
 } from './components.js';
-import {logout} from './auth.js';
 import {exitProtectedRouteOnDenial} from './protected-route.js';
+import {logout} from './auth.js';
 import {restartApp} from './dashboard.js';
 import {renderCacheSettings} from './settings/cache.js';
 import {renderRegistrationSettings} from './settings/registration.js';
@@ -62,309 +59,190 @@ const DOMAIN_MESSAGE_TYPES = {
     index: IndexDomainSettings,
 };
 
-const SERVICE_DOMAINS = Object.freeze(['server', 'github_oauth', 'oauth_providers', 'super_teams', 'publication_quota', 'maven_domains', 'cache', 'mail', 'registration', 'proxy', 'storage']);
-const MERGED_SERVICE_DOMAINS = new Set(SERVICE_DOMAINS.filter(domain => domain !== 'server'));
+const SETTINGS_PAGES = Object.freeze({
+    frontend: {label: 'settings.domainFrontend', render: renderFrontendSettings},
+    server: {label: 'settings.domainServer', render: renderServerSettings},
+    proxy: {label: 'settings.domainProxy', render: renderProxySettings},
+    storage: {label: 'settings.domainStorage', render: renderStorageSettings},
+    github_oauth: {label: 'settings.githubOAuthTitle', render: renderGitHubOAuthSettings},
+    oauth_providers: {label: 'oauth.settingsTitle', render: renderOAuthSettings},
+    super_teams: {label: 'superTeam.settingsTitle', render: renderSuperTeamSettings},
+    publication_quota: {label: 'publicationQuota.settingsTitle', render: renderPublicationQuotaSettings},
+    maven_domains: {label: 'maven.healthSettings', render: renderMavenDomainSettings},
+    cache: {label: 'cache.title', render: renderCacheSettings},
+    mail: {label: 'mail.title', render: renderMailSettings},
+    registration: {label: 'registration.settingsTitle', render: renderRegistrationSettings},
+    updater: {label: 'settings.domainUpdater', render: renderUpdaterSettings},
+    index: {label: 'settings.domainIndex', render: renderIndexSettings},
+});
 
+const drafts = new Map();
 let currentDomain = null;
 let currentConfig = null;
-let initialConfig = null;
 let domainsList = [];
-let availableDomains = [];
-let skeletonTimer = null;
 let activeFetchId = 0;
+let discoveryId = 0;
+let accountGeneration = 0;
+let settingsOwner = '';
+let saving = false;
 
-/**
- * Renders a form skeleton in the settings form container, with optional enter animation.
- * @param {'next'|'prev'|'none'} [direction='next'] - Slide direction for the skeleton animation.
- * @returns {void}
- */
-function renderSettingsSkeleton(direction = 'next') {
-    const container = document.getElementById('settings-form-container');
-    if (!container) return;
-    container.classList.remove('is-content-entering', 'settings-form--enter-next', 'settings-form--enter-prev', 'settings-form--exiting-next', 'settings-form--exiting-prev');
-    container.innerHTML = '';
+/** @param {string} domain - Domain key. @returns {string} Localized page name. */
+function domainLabel(domain) {
+    return t(SETTINGS_PAGES[domain].label);
+}
 
-    const skeleton = createSkeleton('form', 2);
-    container.appendChild(skeleton);
+/** @param {object|undefined} draft - Page draft. @returns {boolean} Whether it differs from saved state. */
+function dirtyDraft(draft) {
+    return Boolean(draft && JSON.stringify(draft.config) !== JSON.stringify(draft.initial));
+}
 
-    if (direction !== 'none') {
-        const animClass = direction === 'prev' ? 'settings-form--enter-prev' : 'settings-form--enter-next';
-        requestAnimationFrame(() => {
-            container.classList.add(animClass);
-        });
+/** @returns {void} Refresh save state, current-page metadata, and draft markers. */
+function enableSave() {
+    const dirty = dirtyDraft(drafts.get(currentDomain));
+    const save = document.getElementById('settings-save-btn');
+    if (save) {
+        save.disabled = saving || !currentConfig || !dirty || currentDomain === 'index';
+        save.classList.toggle('is-saving', saving);
+    }
+    const reset = document.getElementById('settings-reset-btn');
+    if (reset) reset.disabled = saving || !currentConfig || !dirty;
+    const status = document.getElementById('settings-draft-status');
+    if (status) status.textContent = t(saving ? 'settings.saving' : dirty ? 'settings.unsaved' : 'settings.upToDate');
+    for (const button of document.querySelectorAll('#settings-nav [data-settings-domain]')) {
+        const hasDraft = dirtyDraft(drafts.get(button.dataset.settingsDomain));
+        button.classList.toggle('has-draft', hasDraft);
+        button.setAttribute('aria-label', domainLabel(button.dataset.settingsDomain) + (hasDraft ? ` · ${t('settings.unsaved')}` : ''));
+        button.disabled = saving;
+    }
+    const form = document.getElementById('settings-form-container');
+    if (form) form.inert = saving;
+    const picker = document.querySelector('#settings-page-picker button');
+    if (picker) picker.disabled = saving;
+    for (const button of document.querySelectorAll('#settings-pagination button')) {
+        const index = domainsList.indexOf(currentDomain) + Number(button.dataset.step);
+        button.disabled = saving || index < 0 || index >= domainsList.length;
     }
 }
 
-/**
- * Initializes the settings page: loads available domains, renders tabs, and loads the active domain.
- * @returns {Promise<void>}
- */
-export async function initSettings() {
-    const container = document.getElementById('settings-form-container');
-    if (container && !container.innerHTML.trim()) {
-        renderSettingsSkeleton('none');
+/** @returns {void} Render independent settings pages and bounded previous/next navigation. */
+function renderDomainNavigation() {
+    const nav = document.getElementById('settings-nav');
+    if (!nav) return;
+    nav.replaceChildren(...domainsList.map(domain => el('button', {
+        type: 'button', class: 'settings-nav-item', 'data-settings-domain': domain,
+        'aria-current': domain === currentDomain ? 'page' : null,
+        onclick: () => { if (domain !== currentDomain) void loadDomainSettings(domain, true); }
+    }, el('span', {}, domainLabel(domain)), el('span', {class: 'settings-draft-dot', 'aria-hidden': 'true'}))));
+    const picker = document.getElementById('settings-page-picker');
+    if (picker) {
+        const select = makeCustomSelect(domainsList.map(domain => ({value: domain, label: domainLabel(domain)})),
+            currentDomain || '', domain => { if (domain !== currentDomain) void loadDomainSettings(domain, true); });
+        select.querySelector('button')?.setAttribute('aria-label', t('settings.sections'));
+        picker.replaceChildren(select);
     }
+    const heading = document.getElementById('settings-page-title');
+    if (heading) heading.textContent = currentDomain ? domainLabel(currentDomain) : t('settings.title');
+    const pager = document.getElementById('settings-pagination');
+    if (pager) pager.replaceChildren(...(currentDomain ? [
+        el('button', {type: 'button', class: 'renop-pagination-btn', 'data-step': '-1',
+            onclick: () => void loadDomainSettings(domainsList[domainsList.indexOf(currentDomain) - 1], true)}, t('common.prev')),
+        el('span', {class: 'renop-pagination-summary'}, t('settings.sectionPage', {
+            page: domainsList.indexOf(currentDomain) + 1, pages: domainsList.length
+        })),
+        el('button', {type: 'button', class: 'renop-pagination-btn', 'data-step': '1',
+            onclick: () => void loadDomainSettings(domainsList[domainsList.indexOf(currentDomain) + 1], true)}, t('common.next'))
+    ] : []));
+    enableSave();
+}
+
+/** @param {string} message - Localized error or empty state. @param {Function} retry - Retry action. @returns {void} */
+function settingsLoadState(message, retry) {
+    document.getElementById('settings-form-container')?.replaceChildren(el('div', {class: 'settings-load-state', role: 'status'},
+        createIcon('warning'), el('p', {}, message),
+        el('button', {type: 'button', class: 'pill-btn pill-btn--soft', onclick: retry}, t('offline.retryBtn'))));
+}
+
+/** Discover permitted pages; each page loads only its own configuration. */
+export async function initSettings() {
+    if (saving) return;
+    const requestId = ++discoveryId;
     try {
         const {response, data} = await fetchProto('/api/settings/domains', SettingsDomainsResponse);
-        if (response.ok && data) {
-            availableDomains = Array.isArray(data.domains) ? data.domains : [];
-            domainsList = availableDomains.filter(domain => !MERGED_SERVICE_DOMAINS.has(domain));
-            const targetDomain = (currentDomain && domainsList.includes(currentDomain)) ? currentDomain : (domainsList[0] || null);
-            renderDomainTabs(domainsList, targetDomain);
-            if (targetDomain) {
-                await loadDomainSettings(targetDomain, 'none');
-            }
-        } else if (exitProtectedRouteOnDenial(response)) {
+        if (requestId !== discoveryId) return;
+        if (exitProtectedRouteOnDenial(response)) {
             if (response.status === 401) void logout('kicked');
+            return;
         }
-    } catch (e) {
-        console.error('Failed to load settings', e);
+        if (!response.ok || !data) throw new LocalizedResponseError(await responseErrorMessage(response, 'settings.loadFailed'), response.status);
+        domainsList = [...new Set(data.domains || [])].filter(domain => Object.hasOwn(SETTINGS_PAGES, domain));
+        for (const domain of drafts.keys()) if (!domainsList.includes(domain)) drafts.delete(domain);
+        currentDomain = domainsList.includes(currentDomain) ? currentDomain : domainsList[0] || null;
+        renderDomainNavigation();
+        if (currentDomain) await loadDomainSettings(currentDomain);
+        else settingsLoadState(t('settings.noSections'), () => void initSettings());
+    } catch (error) {
+        if (requestId === discoveryId) settingsLoadState(caughtErrorMessage(error, 'settings.loadFailed'), () => void initSettings());
     }
 }
 
-/**
- * Renders settings domain tabs and wires click handlers to load each domain with slide direction.
- * @param {string[]} domains - Domain keys returned by the settings API.
- * @param {string|null} activeDomain - Currently selected domain key.
- * @returns {void}
- */
-function renderDomainTabs(domains, activeDomain) {
-    domainsList = domains;
-    const tabsContainer = document.getElementById('settings-tabs');
-    if (!tabsContainer) return;
-    tabsContainer.innerHTML = '';
-
-    domains.forEach((domain, idx) => {
-        const a = createTab(domainLabel(domain), {
-            active: domain === activeDomain,
-            onClick: (e) => {
-                e.preventDefault();
-                if (a.classList.contains('active')) return;
-
-                const oldIndex = domainsList.indexOf(currentDomain);
-                const direction = (oldIndex !== -1 && idx < oldIndex) ? 'prev' : 'next';
-
-                Array.from(tabsContainer.querySelectorAll('.tab')).forEach(child => child.classList.remove('active'));
-                a.classList.add('active');
-
-                updateTabIndicator(tabsContainer);
-
-                if (window.scrollY > 0) {
-                    smoothScrollToTop();
-                }
-
-                loadDomainSettings(domain, direction);
-            }
-        });
-        tabsContainer.appendChild(a);
-    });
-
-    const activeTab = tabsContainer.querySelector('.tab.active') || tabsContainer.querySelector('.tab');
-    if (activeTab) {
-        activeTab.classList.add('active');
-        requestAnimationFrame(() => {
-            updateTabIndicator(tabsContainer);
-        });
-    }
-
-    registerTabContainer(tabsContainer);
-}
-
-/**
- * Returns a localized display label for a settings domain key.
- * @param {string} domain - Visible domain key (frontend, server, updater, index).
- * @returns {string} Localized or title-cased label.
- */
-function domainLabel(domain) {
-    const labels = {
-        frontend: t('settings.domainFrontend'),
-        server: t('settings.domainServer'),
-        proxy: t('settings.domainProxy'),
-        storage: t('settings.domainStorage'),
-        updater: t('settings.domainUpdater'),
-        index: t('settings.domainIndex'),
-    };
-    return labels[domain] || domain.charAt(0).toUpperCase() + domain.slice(1);
-}
-
-/**
- * Load the write-only GitHub OAuth settings JSON view.
- * @returns {Promise<{response: Response, data: object|null}>}
- */
-async function fetchGitHubOAuthSettings() {
-    const response = await apiRequest('/api/settings/github-oauth');
-    return {
-        response,
-        data: response.ok ? await response.json() : null,
-    };
-}
-
-/**
- * Load global team limits from their JSON settings endpoint.
- * @returns {Promise<{response: Response, data: object|null}>}
- */
-async function fetchSuperTeamSettings() {
-    const response = await apiRequest('/api/settings/super-teams');
+/** @param {string} domain - Known page key. @returns {Promise<{response: Response, data: object|null}>} Configuration response. */
+async function fetchDomainSettings(domain) {
+    const MessageType = DOMAIN_MESSAGE_TYPES[domain];
+    if (MessageType) return fetchProto(`/api/settings/domain/${domain}`, MessageType);
+    const response = await apiRequest(`/api/settings/${domain.replaceAll('_', '-')}`, {}, {logoutOnForbidden: false});
     return {response, data: response.ok ? await response.json() : null};
 }
 
-/**
- * Load global publication quota defaults from their JSON settings endpoint.
- * @returns {Promise<{response: Response, data: object|null}>}
- */
-async function fetchPublicationQuotaSettings() {
-    const response = await apiRequest('/api/settings/publication-quota');
-    return {response, data: response.ok ? await response.json() : null};
-}
-
-/** Load JSON settings with stored credentials omitted. */
-async function fetchJSONSettings(domain) {
-    const response = await apiRequest(`/api/settings/${domain.replaceAll('_', '-')}`);
-    return {response, data: response.ok ? await response.json() : null};
-}
-
-/**
- * Loads configuration for a settings domain and renders its form with transition animation.
- * Uses a fetch id so stale responses are ignored when the user switches tabs quickly.
- * @param {string} domain - Domain key to load.
- * @param {'next'|'prev'|'none'} [direction='next'] - Form transition direction.
- * @returns {Promise<void>}
- */
-async function loadDomainSettings(domain, direction = 'next') {
+/** @param {string} domain - Page to open. @param {boolean} [focus=false] - Focus the page heading after navigation. @returns {Promise<void>} */
+async function loadDomainSettings(domain, focus = false) {
+    if (saving || !domainsList.includes(domain)) return;
     const fetchId = ++activeFetchId;
     currentDomain = domain;
-    const tabsContainer = document.getElementById('settings-tabs');
-    if (tabsContainer) {
-        tabsContainer.querySelectorAll('.tab').forEach(tab => tab.classList.remove('is-loading'));
-        const activeTab = tabsContainer.querySelector('.tab.active');
-        if (activeTab) activeTab.classList.add('is-loading');
-    }
-
+    currentConfig = null;
+    renderDomainNavigation();
     const container = document.getElementById('settings-form-container');
-
-    if (container && container.firstElementChild && direction !== 'none') {
-        container.classList.remove('settings-form--enter-next', 'settings-form--enter-prev', 'is-content-entering');
-        container.classList.add(direction === 'prev' ? 'settings-form--exiting-prev' : 'settings-form--exiting-next');
-    }
-
-    if (skeletonTimer) clearTimeout(skeletonTimer);
-    skeletonTimer = setTimeout(() => {
-        if (activeFetchId === fetchId) {
-            renderSettingsSkeleton(direction);
-        }
-    }, 90);
-
+    if (!container) return;
+    container.setAttribute('aria-busy', 'true');
+    container.replaceChildren(createSkeleton('form', 2));
     try {
-        let response;
-        let data;
-        if (domain === 'server') {
-            const serviceDomains = SERVICE_DOMAINS.filter(name => availableDomains.includes(name));
-            const results = await Promise.all(serviceDomains.map(async name => ({
-                name,
-                result: ['cache', 'mail', 'registration', 'oauth_providers', 'maven_domains'].includes(name) ? await fetchJSONSettings(name) : name === 'github_oauth'
-                    ? await fetchGitHubOAuthSettings()
-                    : (name === 'publication_quota'
-                        ? await fetchPublicationQuotaSettings()
-                        : (name === 'super_teams'
-                            ? await fetchSuperTeamSettings()
-                            : await fetchProto(`/api/settings/domain/${name}`, DOMAIN_MESSAGE_TYPES[name])))
-            })));
-            const denied = results.find(({result}) => result.response.status === 401 || result.response.status === 403);
-            if (denied) {
-                exitProtectedRouteOnDenial(denied.result.response);
-                if (denied.result.response.status === 401) void logout('kicked');
+        let draft = drafts.get(domain);
+        const fresh = !dirtyDraft(draft);
+        if (fresh) {
+            const {response, data} = await fetchDomainSettings(domain);
+            if (fetchId !== activeFetchId) return;
+            if (exitProtectedRouteOnDenial(response)) {
+                if (response.status === 401) void logout('kicked');
                 return;
             }
-            const failed = results.find(({result}) => !result.response.ok || !result.data);
-            if (failed) {
-                throw new Error(`Failed to load ${failed.name} settings`);
-            }
-            response = {ok: true};
-            data = Object.fromEntries(results.map(({name, result}) => [name, result.data]));
-        } else {
-            const MessageType = DOMAIN_MESSAGE_TYPES[domain];
-            if (!MessageType) {
-                console.error('Unknown settings domain', domain);
-                return;
-            }
-            ({response, data} = await fetchProto(`/api/settings/domain/${domain}`, MessageType));
+            if (!response.ok || !data) throw new LocalizedResponseError(await responseErrorMessage(response, 'settings.loadFailed'), response.status);
+            draft = {config: data, initial: structuredClone(data)};
+            drafts.set(domain, draft);
         }
-
-        if (activeFetchId !== fetchId) return;
-
-        if (skeletonTimer) clearTimeout(skeletonTimer);
-
-        if (response.ok && data) {
-            currentConfig = data;
-            initialConfig = JSON.parse(JSON.stringify(data));
-
-            if (activeFetchId !== fetchId) return;
-
-            renderSettingsForm(domain, data);
-
-            if (container) {
-                requestAnimationFrame(() => {
-                    if (activeFetchId !== fetchId) return;
-                    container.classList.remove('settings-form--exiting-next', 'settings-form--exiting-prev', 'settings-form--enter-next', 'settings-form--enter-prev', 'is-content-entering');
-                    // Force browser reflow to restart CSS keyframe animation
-                    void container.offsetWidth;
-
-                    if (direction === 'none') {
-                        container.classList.add('is-content-entering');
-                    } else {
-                        const animClass = direction === 'prev' ? 'settings-form--enter-prev' : 'settings-form--enter-next';
-                        container.classList.add(animClass);
-                    }
-                });
-            }
-            const saveBtn = document.getElementById('settings-save-btn');
-            if (saveBtn) saveBtn.disabled = true;
-        } else if (exitProtectedRouteOnDenial(response)) {
-            if (response.status === 401) void logout('kicked');
-        }
-    } catch (e) {
-        console.error('Failed to load domain settings', e);
+        if (fetchId !== activeFetchId) return;
+        currentConfig = draft.config;
+        renderSettingsForm(domain, currentConfig);
+        if (fresh) draft.initial = structuredClone(draft.config);
+        enableSave();
+    } catch (error) {
+        if (fetchId === activeFetchId) settingsLoadState(caughtErrorMessage(error, 'settings.loadFailed'), () => void loadDomainSettings(domain));
     } finally {
-        if (activeFetchId === fetchId && tabsContainer) {
-            tabsContainer.querySelectorAll('.tab').forEach(tab => tab.classList.remove('is-loading'));
+        if (fetchId === activeFetchId) {
+            container.setAttribute('aria-busy', 'false');
+            if (focus) document.getElementById('settings-page-title')?.focus();
         }
     }
 }
 
-/**
- * Enables the settings save button after a configuration field changes.
- * @returns {void}
- */
-function enableSave() {
-    const btn = document.getElementById('settings-save-btn');
-    if (btn) btn.disabled = false;
-}
-
-/**
- * Dispatches rendering of the settings form for the given domain.
- * @param {string} domain - Visible domain key (frontend, server, updater, index).
- * @param {object} data - Domain configuration object from the API.
- * @returns {void}
- */
+/** @param {string} domain - Known page key. @param {object} data - Mutable page configuration. @returns {void} */
 function renderSettingsForm(domain, data) {
     const container = document.getElementById('settings-form-container');
     if (!container) return;
-    container.innerHTML = '';
-
-    if (domain === 'frontend') {
-        renderFrontendSettings(container, data);
-    } else if (domain === 'server') {
-        renderServiceSettings(container, data);
-    } else if (domain === 'proxy') {
-        renderProxySettings(container, data);
-    } else if (domain === 'storage') {
-        renderStorageSettings(container, data);
-    } else if (domain === 'updater') {
-        renderUpdaterSettings(container, data);
-    } else if (domain === 'index') {
-        renderIndexSettings(container);
-    }
+    container.replaceChildren();
+    SETTINGS_PAGES[domain].render(container, data, enableSave);
+    const firstSection = container.querySelector('.cfg-section');
+    if (firstSection?.classList.contains('is-collapsed')) firstSection.querySelector('.cfg-section-header')?.click();
 }
+
 
 const MAX_GLOBAL_PROXIES = 16;
 
@@ -576,28 +454,6 @@ function renderProxySettings(container, data) {
 }
 
 /**
- * Render server, outbound proxy, and storage configuration as one service domain.
- * @param {HTMLElement} container - Settings form container.
- * @param {{server?: object, proxy?: object, storage?: object}} data - Service configuration groups.
- * @returns {void}
- */
-function renderServiceSettings(container, data) {
-    const stack = el('div', {class: 'cfg-service-stack'});
-    if (data.server) renderServerSettings(stack, data.server);
-    if (data.github_oauth) renderGitHubOAuthSettings(stack, data.github_oauth);
-    if (data.oauth_providers) renderOAuthSettings(stack, data.oauth_providers, enableSave);
-    if (data.super_teams) renderSuperTeamSettings(stack, data.super_teams);
-    if (data.publication_quota) renderPublicationQuotaSettings(stack, data.publication_quota);
-    if (data.registration) renderRegistrationSettings(stack, data.registration, enableSave);
-    if (data.maven_domains) renderMavenDomainSettings(stack, data.maven_domains, enableSave);
-    if (data.cache) renderCacheSettings(stack, data.cache, enableSave);
-    if (data.mail) renderMailSettings(stack, data.mail, enableSave);
-    if (data.proxy) renderProxySettings(stack, data.proxy);
-    if (data.storage) renderStorageSettings(stack, data.storage);
-    container.appendChild(stack);
-}
-
-/**
  * Render global per-account team creation and membership limits.
  * @param {HTMLElement} container - Service settings stack.
  * @param {{create_limit?: number, join_limit?: number}} data - Mutable global team limits.
@@ -768,6 +624,7 @@ function renderGitHubOAuthSettings(container, data) {
  * @returns {void}
  */
 function renderUpdaterSettings(container, data) {
+    const currentConfig = data;
     const wrap = el('div', {class: 'cfg-layout'});
 
     const updaterSection = createSection(
@@ -810,6 +667,7 @@ function renderUpdaterSettings(container, data) {
  * @returns {void}
  */
 function renderFrontendSettings(container, data) {
+    const currentConfig = data;
     const wrap = el('div', {class: 'cfg-layout'});
 
     const identitySection = createSection(
@@ -1591,141 +1449,82 @@ async function triggerIndexRebuild(mode) {
     }
 }
 
-/**
- * Persists the current domain configuration via PUT, or no-ops if unchanged / index domain.
- * @returns {Promise<void>}
- */
+/** Persist only the active page; lock editing until its response has settled. */
 export async function saveDomainSettings() {
-    const invalidMailInput = document.querySelector('#settings-mail .cfg-fields input:invalid:not([data-mail-test]), #settings-registration input:invalid, #settings-oauth input:invalid, #settings-maven-domains input:invalid');
-    if (invalidMailInput) {
-        invalidMailInput.reportValidity();
+    const domain = currentDomain, draft = drafts.get(domain), generation = accountGeneration;
+    if (saving || !currentConfig || !dirtyDraft(draft) || domain === 'index') return;
+    const invalid = document.querySelector('#settings-form-container input:invalid:not([data-mail-test]), #settings-form-container textarea:invalid');
+    if (invalid) {
+        for (const section of document.querySelectorAll('#settings-form-container .cfg-section.is-collapsed')) {
+            if (section.contains(invalid)) section.querySelector('.cfg-section-header')?.click();
+        }
+        invalid.reportValidity();
         return;
     }
-    if (!currentDomain || !currentConfig) return;
-
-    if (initialConfig && JSON.stringify(currentConfig) === JSON.stringify(initialConfig)) {
-        showAlert(t('settings.savedSuccess'), 'success');
-        const saveBtn = document.getElementById('settings-save-btn');
-        if (saveBtn) saveBtn.disabled = true;
-        return;
-    }
-
-    if (currentDomain === 'index') {
-        return;
-    }
-
+    const submitted = structuredClone(draft.config);
+    saving = true;
+    enableSave();
     try {
-        if (currentDomain === 'server') {
-            const serviceDomains = SERVICE_DOMAINS.filter(domain => currentConfig[domain] && initialConfig?.[domain]);
-            for (const domain of serviceDomains) {
-                if (JSON.stringify(currentConfig[domain]) === JSON.stringify(initialConfig[domain])) continue;
-                let response;
-                let savedData = null;
-                if (['cache', 'mail', 'registration', 'oauth_providers', 'maven_domains'].includes(domain)) {
-                    response = await apiRequest(`/api/settings/${domain.replaceAll('_', '-')}`, {
-                        method: 'PUT', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(domain === 'oauth_providers' ? {providers: currentConfig[domain].providers} : currentConfig[domain]),
-                    });
-                    if (response.ok) savedData = await response.json();
-                } else if (domain === 'github_oauth') {
-                    response = await apiRequest('/api/settings/github-oauth', {
-                        method: 'PUT',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(currentConfig[domain]),
-                    });
-                    if (response.ok) savedData = await response.json();
-                } else if (domain === 'super_teams') {
-                    response = await apiRequest('/api/settings/super-teams', {
-                        method: 'PUT',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(currentConfig[domain]),
-                    });
-                    if (response.ok) savedData = await response.json();
-                } else if (domain === 'publication_quota') {
-                    response = await apiRequest('/api/settings/publication-quota', {
-                        method: 'PUT',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(currentConfig[domain]),
-                    });
-                    if (response.ok) savedData = await response.json();
-                } else {
-                    ({response} = await putProto(
-                        `/api/settings/domain/${domain}`,
-                        DOMAIN_MESSAGE_TYPES[domain],
-                        currentConfig[domain]
-                    ));
-                }
-                if (!response.ok) {
-                    const fallbackKey = domain === 'github_oauth'
-                        ? 'settings.githubOAuthSaveFailed'
-                        : (domain === 'super_teams'
-                            ? 'superTeam.settingsSaveFailed'
-                            : (domain === 'publication_quota' ? 'publicationQuota.saveFailed' : 'settings.saveFailed'));
-                    throw new LocalizedResponseError(
-                        await responseErrorMessage(response, fallbackKey),
-                        response.status
-                    );
-                }
-                if (domain === 'cache' && savedData) {
-                    Object.assign(currentConfig[domain], savedData, {password: '', clear_password: false});
-                    const secretInput = document.getElementById('settings-cache-password');
-                    if (secretInput) secretInput.value = '';
-                    const clearPassword = document.querySelector('#settings-cache-clear-password renop-toggle');
-                    if (clearPassword) clearPassword.checked = false;
-                } else if (domain === 'oauth_providers' && savedData) {
-                    Object.assign(currentConfig[domain], savedData);
-                    document.getElementById('settings-oauth')?.dispatchEvent(new Event('oauth-saved'));
-                    window.dispatchEvent(new Event('oauthProvidersChanged'));
-                } else if (domain === 'mail' && savedData) {
-                    Object.assign(currentConfig.mail, savedData, {clear_secrets: {}});
-                    document.getElementById('settings-mail')?.dispatchEvent(new Event('mail-saved'));
-                } else if (domain === 'github_oauth' && savedData) {
-                    currentConfig[domain] = {
-                        ...savedData,
-                        client_secret: '',
-                        clear_client_secret: false,
-                    };
-                    const secretInput = document.getElementById('settings-github-oauth-secret');
-                    if (secretInput) secretInput.value = '';
-                } else if (domain === 'super_teams' && savedData) {
-                    currentConfig[domain] = savedData;
-                } else if (domain === 'publication_quota' && savedData) {
-                    currentConfig[domain] = savedData;
-                }
-                initialConfig[domain] = JSON.parse(JSON.stringify(currentConfig[domain]));
-            }
-            showAlert(t('settings.savedSuccess'), 'success');
-            const saveBtn = document.getElementById('settings-save-btn');
-            if (saveBtn) saveBtn.disabled = true;
-            return;
-        }
-
-        const MessageType = DOMAIN_MESSAGE_TYPES[currentDomain];
-        if (!MessageType) return;
-        const {response} = await putProto(
-            `/api/settings/domain/${currentDomain}`,
-            MessageType,
-            currentConfig
-        );
-
-        if (response.ok) {
-            initialConfig = JSON.parse(JSON.stringify(currentConfig));
-            showAlert(t('settings.savedSuccess'), 'success');
-            const saveBtn = document.getElementById('settings-save-btn');
-            if (saveBtn) saveBtn.disabled = true;
+        let response, savedData;
+        if (DOMAIN_MESSAGE_TYPES[domain]) {
+            ({response} = await putProto(`/api/settings/domain/${domain}`, DOMAIN_MESSAGE_TYPES[domain], submitted));
         } else {
-            showAlert(await responseErrorMessage(response, 'settings.saveFailed'), 'error');
+            response = await apiRequest(`/api/settings/${domain.replaceAll('_', '-')}`, {
+                method: 'PUT', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(domain === 'oauth_providers' ? {providers: submitted.providers} : submitted),
+            }, {logoutOnForbidden: false});
+            if (response.ok) savedData = await response.json();
         }
-    } catch (e) {
-        console.error('Failed to save settings', e);
-        showAlert(caughtErrorMessage(e, 'settings.saveFailed'), 'error');
+        if (generation !== accountGeneration) return;
+        if (!response.ok) throw new LocalizedResponseError(await responseErrorMessage(response, 'settings.saveFailed'), response.status);
+        draft.config = savedData || submitted;
+        if (domain === 'cache') Object.assign(draft.config, {password: '', clear_password: false});
+        if (domain === 'github_oauth') Object.assign(draft.config, {client_secret: '', clear_client_secret: false});
+        if (domain === 'mail') draft.config.clear_secrets = {};
+        currentConfig = draft.config;
+        renderSettingsForm(domain, currentConfig);
+        draft.initial = structuredClone(draft.config);
+        if (domain === 'oauth_providers') window.dispatchEvent(new Event('oauthProvidersChanged'));
+        showAlert(t('settings.savedSuccess'), 'success');
+    } catch (error) {
+        if (generation === accountGeneration) showAlert(caughtErrorMessage(error, 'settings.saveFailed'), 'error');
+    } finally {
+        if (generation === accountGeneration) {
+            saving = false;
+            enableSave();
+        }
     }
 }
 
 document.getElementById('settings-save-btn')?.addEventListener('click', saveDomainSettings);
-
+document.getElementById('settings-reset-btn')?.addEventListener('click', async () => {
+    const domain = currentDomain;
+    if (saving || !dirtyDraft(drafts.get(domain)) || !await showConfirm(t('settings.discardConfirm'))) return;
+    if (domain !== currentDomain || saving) return;
+    drafts.delete(domain);
+    await loadDomainSettings(domain);
+});
 document.getElementById('settings-restart-btn')?.addEventListener('click', async () => {
-    if (await window.showConfirm(t('settings.confirmRestart'))) {
-        await restartApp();
+    if (!saving && await showConfirm(t('settings.confirmRestart'))) await restartApp();
+});
+window.addEventListener('beforeunload', event => {
+    if ([...drafts.values()].some(dirtyDraft)) {
+        event.preventDefault();
+        event.returnValue = '';
     }
+});
+window.addEventListener('authChanged', event => {
+    const user = event.detail;
+    if (user?.isLoggedIn && user.isManager && user.username === settingsOwner) return;
+    settingsOwner = user?.isLoggedIn && user.isManager ? user.username : '';
+    accountGeneration++;
+    activeFetchId++;
+    discoveryId++;
+    drafts.clear();
+    currentDomain = null;
+    currentConfig = null;
+    saving = false;
+    domainsList = [];
+    document.getElementById('settings-form-container')?.replaceChildren();
+    renderDomainNavigation();
 });

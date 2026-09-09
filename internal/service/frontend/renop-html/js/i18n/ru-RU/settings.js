@@ -247,4 +247,14 @@ export default Object.freeze({
     "settings.githubOAuthConfigured": "Секрет хранится безопасно и никогда не возвращается браузеру.",
     "settings.githubOAuthNotConfigured": "Секрет клиента ещё не сохранён.",
     "settings.githubOAuthSaveFailed": "Не удалось сохранить настройки GitHub. Проверьте все поля.",
+
+    "settings.sections": "Разделы настроек",
+    "settings.saving": "Сохранение изменений…",
+    "settings.unsaved": "На этой странице есть несохранённые изменения",
+    "settings.upToDate": "Нет несохранённых изменений",
+    "settings.sectionPage": "Раздел {page} из {pages}",
+    "settings.loadFailed": "Не удалось загрузить настройки. Повторите попытку.",
+    "settings.noSections": "Нет доступных разделов настроек.",
+    "settings.discardConfirm": "Отменить несохранённые изменения на этой странице?",
+    "settings.discard": "Отменить изменения",
 });

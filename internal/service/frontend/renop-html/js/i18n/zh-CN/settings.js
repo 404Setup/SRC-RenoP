@@ -247,4 +247,14 @@ export default Object.freeze({
     "settings.githubOAuthConfigured": "客户端密钥已安全储存，且绝不会返回给浏览器。",
     "settings.githubOAuthNotConfigured": "尚未储存客户端密钥。",
     "settings.githubOAuthSaveFailed": "无法保存 GitHub 登录设置，请检查全部字段。",
+
+    "settings.sections": "设置分类",
+    "settings.saving": "正在保存更改…",
+    "settings.unsaved": "当前页有未保存的更改",
+    "settings.upToDate": "没有未保存的更改",
+    "settings.sectionPage": "第 {page} / {pages} 页",
+    "settings.loadFailed": "无法加载此设置，请重试。",
+    "settings.noSections": "没有可用的设置分类。",
+    "settings.discardConfirm": "放弃当前页尚未保存的更改？",
+    "settings.discard": "放弃更改",
 });

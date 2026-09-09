@@ -15,6 +15,23 @@ l’opération. Les réponses utilisent protobuf lorsque `proto/api/v1/api.proto
 - **Chemin** : `GET /api/settings/domains`
 - **Réponse** : noms stables pris en charge, notamment `server`, `proxy`, `storage`, `updater` et `index`.
 
+## Pages de paramètres dans le navigateur
+
+Chaque domaine parmi les 14 annoncés dispose de sa propre page. Sur ordinateur, les catégories figurent à côté
+du formulaire ; sur petit écran, un sélecteur les remplace. Précédent et suivant suivent le même ordre. Ouvrir une
+page charge uniquement sa configuration, sans charger tous les paramètres du service.
+
+Chaque page conserve son brouillon lors du changement de catégorie ou de langue. L’enregistrement met à jour
+uniquement la page active et bloque temporairement la saisie et la navigation. Un échec conserve le brouillon ;
+l’abandon recharge cette page après confirmation. La navigation signale les changements non enregistrés. Le
+rechargement ou la fermeture du navigateur avertit des modifications, mais les brouillons restent seulement en
+mémoire et sont effacés à la déconnexion ou au changement de compte. Les secrets déjà stockés restent masqués et
+les secrets saisis sont retirés du brouillon après un enregistrement réussi.
+
+GPG reste dans la configuration du service. Limites d’équipe, quotas, inscription, cache, courriel, fournisseurs
+OAuth et sécurité des domaines ont leurs propres pages et conservent leurs API JSON. Les libellés et indications
+sont associés aux commandes ; la navigation place le focus clavier sur le titre de la nouvelle page.
+
 ## Lire et modifier un domaine
 
 - **Lire** : `GET /api/settings/domain/:name`

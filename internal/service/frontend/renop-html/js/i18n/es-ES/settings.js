@@ -247,4 +247,14 @@ export default Object.freeze({
     "settings.githubOAuthConfigured": "El secreto está almacenado de forma segura y nunca se devuelve al navegador.",
     "settings.githubOAuthNotConfigured": "Todavía no hay ningún secreto almacenado.",
     "settings.githubOAuthSaveFailed": "No se pudo guardar la configuración de GitHub. Comprueba todos los campos.",
+
+    "settings.sections": "Categorías de ajustes",
+    "settings.saving": "Guardando cambios…",
+    "settings.unsaved": "Cambios sin guardar en esta página",
+    "settings.upToDate": "No hay cambios sin guardar",
+    "settings.sectionPage": "Sección {page} de {pages}",
+    "settings.loadFailed": "No se pudieron cargar estos ajustes. Inténtalo de nuevo.",
+    "settings.noSections": "No hay categorías de ajustes disponibles.",
+    "settings.discardConfirm": "¿Descartar los cambios sin guardar de esta página?",
+    "settings.discard": "Descartar cambios",
 });

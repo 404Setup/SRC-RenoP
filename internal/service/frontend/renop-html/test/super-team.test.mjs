@@ -159,12 +159,10 @@ test('package creation includes T2 approval while domain binding remains T3', ()
     }
 });
 
-test('global team settings remain inside the merged service domain', () => {
+test('global team settings use their own JSON page', () => {
     const settings = source('js', 'settings.js');
-    assert.match(settings, /SERVICE_DOMAINS[\s\S]*?'super_teams'/);
-    assert.match(settings, /MERGED_SERVICE_DOMAINS/);
-    assert.match(settings, /!MERGED_SERVICE_DOMAINS\.has\(domain\)/);
-    assert.match(settings, /fetchSuperTeamSettings/);
-    assert.match(settings, /renderSuperTeamSettings/);
-    assert.doesNotMatch(settings, /DOMAIN_MESSAGE_TYPES[\s\S]*?super_teams:/);
+    assert.match(settings, /super_teams: \{label: 'superTeam.settingsTitle', render: renderSuperTeamSettings}/);
+    assert.match(settings, /fetchDomainSettings/);
+    assert.doesNotMatch(settings, /MERGED_SERVICE_DOMAINS/);
+    assert.doesNotMatch(settings.match(/const DOMAIN_MESSAGE_TYPES = \{[\s\S]*?};/)[0], /super_teams:/);
 });

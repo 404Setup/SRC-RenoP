@@ -247,4 +247,14 @@ export default Object.freeze({
     "settings.githubOAuthConfigured": "シークレットは安全に保存され、ブラウザーへ返されることはありません。",
     "settings.githubOAuthNotConfigured": "クライアントシークレットはまだ保存されていません。",
     "settings.githubOAuthSaveFailed": "GitHub ログイン設定を保存できませんでした。すべての項目を確認してください。",
+
+    "settings.sections": "設定カテゴリ",
+    "settings.saving": "変更を保存中…",
+    "settings.unsaved": "このページに未保存の変更があります",
+    "settings.upToDate": "未保存の変更はありません",
+    "settings.sectionPage": "セクション {page} / {pages}",
+    "settings.loadFailed": "設定を読み込めませんでした。もう一度お試しください。",
+    "settings.noSections": "利用可能な設定カテゴリがありません。",
+    "settings.discardConfirm": "このページの未保存の変更を破棄しますか？",
+    "settings.discard": "変更を破棄",
 });

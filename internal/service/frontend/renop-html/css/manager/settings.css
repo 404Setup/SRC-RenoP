@@ -8,55 +8,179 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-.settings-subtabs-container {
-    padding: 4px;
-    border-radius: 9999px;
-    background-color: var(--card-bg);
+.settings-workspace {
+    display: grid;
+    grid-template-columns: minmax(180px, 230px) minmax(0, 1fr);
+    align-items: start;
+    gap: 1.5rem;
+}
+
+.settings-sidebar {
+    position: sticky;
+    top: 1rem;
+    padding: 0.7rem;
     border: 1px solid var(--border-color);
-    display: inline-flex;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+    border-radius: 1rem;
+    background: var(--card-bg);
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
 }
 
-html.dark .settings-subtabs-container {
-    background-color: rgba(31, 41, 55, 0.45);
+.settings-sidebar h3 {
+    margin: 0.3rem 0.55rem 0.7rem;
+    color: var(--muted-text);
+    font-size: 0.76rem;
+    font-weight: 600;
 }
 
-.settings-subtabs-container .tabs {
+#settings-nav {
+    display: grid;
     gap: 0.2rem;
 }
 
-.settings-subtabs-container .tab {
-    padding: 0.45rem 1.4rem;
-    font-size: 0.85rem;
-    border-radius: 9999px;
-    opacity: 0.65;
-    font-weight: 600;
+.settings-nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border: 1px solid transparent;
+    border-radius: 0.7rem;
+    background: transparent;
+    color: var(--text-color);
+    font: inherit;
+    font-size: 0.84rem;
+    text-align: left;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+}
+
+.settings-nav-item:hover,
+.settings-nav-item[aria-current="page"] {
+    color: var(--link-hover-color);
+    background: color-mix(in srgb, var(--accent-color) 10%, var(--card-bg));
+}
+
+.settings-nav-item[aria-current="page"] {
+    font-weight: 650;
+    border-color: color-mix(in srgb, var(--accent-color) 24%, transparent);
+}
+
+.settings-nav-item:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: -2px;
+}
+
+.settings-draft-dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--accent-color);
+    visibility: hidden;
+}
+
+.settings-nav-item.has-draft .settings-draft-dot {
+    visibility: visible;
+}
+
+.settings-main {
+    min-width: 0;
+}
+
+#settings-page-picker {
+    display: none;
+}
+
+.settings-page-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    background: var(--card-bg);
+}
+
+.settings-page-heading h3 {
+    margin: 0 0 0.3rem;
+    font-size: 1rem;
+}
+
+#settings-page-title:focus {
     outline: none;
 }
 
-.settings-subtabs-container .tab:hover {
-    opacity: 1;
+#settings-draft-status,
+.settings-header .settings-propagation {
+    font-size: 0.76rem;
+    color: var(--muted-text);
 }
 
-.settings-subtabs-container .tab.active {
-    background-color: transparent;
-    box-shadow: none;
-    color: var(--link-hover-color);
+.settings-load-state {
+    display: grid;
+    justify-items: center;
+    gap: 0.8rem;
+    padding: 3rem 1rem;
+    border: 1px dashed var(--border-color);
+    border-radius: 1rem;
+    text-align: center;
+    color: var(--muted-text);
 }
 
-html.dark .settings-subtabs-container .tab.active {
-    color: #ffffff;
+#settings-pagination {
+    margin-top: 1.25rem;
 }
 
-.settings-subtabs-container .tab-indicator {
-    border-radius: 9999px;
+.settings-save-btn.is-saving svg {
+    animation: spin 1s linear infinite;
 }
 
-.settings-subtabs-container::-webkit-scrollbar {
-    display: none !important;
+@media (max-width: 850px) {
+    .settings-workspace {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .settings-sidebar {
+        display: none;
+    }
+
+    #settings-page-picker {
+        display: block;
+        margin-bottom: 1rem;
+    }
+
+    #settings-page-picker .custom-select-wrapper {
+        width: 100%;
+    }
+
+    .settings-page-header .settings-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+    }
+
+    .settings-page-header .settings-save-btn {
+        grid-column: 1 / -1;
+    }
+
+    .settings-page-header .settings-actions > button {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding: 0.55rem 0.65rem;
+        font-size: 0.8rem;
+        white-space: normal;
+        overflow-wrap: normal;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .settings-save-btn.is-saving svg {
+        animation: none;
+    }
 }
 
 .settings-header {
@@ -96,19 +220,6 @@ html.dark .settings-subtabs-container .tab.active {
 
 .repos-header-text h2 {
     margin-bottom: 0.3rem;
-}
-
-.settings-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin-bottom: 1.5rem;
-}
-
-.settings-toolbar .settings-subtabs-container {
-    margin-bottom: 0;
 }
 
 .pill-btn,
@@ -1314,8 +1425,7 @@ html.dark .cfg-badge--warning {
         align-items: stretch;
     }
 
-    .repos-header .settings-save-btn,
-    .settings-toolbar .settings-actions {
+    .repos-header .settings-save-btn {
         width: 100%;
     }
 
@@ -1333,28 +1443,7 @@ html.dark .cfg-badge--warning {
         justify-content: space-between;
     }
 
-    .settings-toolbar .settings-actions {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .settings-toolbar .settings-actions .settings-save-btn,
-    .settings-toolbar .settings-actions .pill-btn {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .settings-toolbar {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .settings-toolbar .settings-subtabs-container {
-        width: 100%;
-        overflow-x: auto;
-    }
-
-    .cfg-field-row {
+            .cfg-field-row {
         flex-direction: column;
         align-items: flex-start;
         gap: 0.6rem;
@@ -1843,64 +1932,6 @@ html:not(.light) #language-modal .modal-header {
     100% {
         transform: translateX(100%);
         opacity: 0.2;
-    }
-}
-
-#settings-form-container {
-    contain: layout style;
-    will-change: transform, opacity;
-    backface-visibility: hidden;
-}
-
-.settings-form--exiting-next {
-    opacity: 0;
-    transform: translate3d(-24px, 0, 0) scale(0.982);
-    filter: blur(2px);
-    transition: opacity 0.18s cubic-bezier(0.2, 0, 0, 1), transform 0.18s cubic-bezier(0.2, 0, 0, 1), filter 0.18s ease;
-    pointer-events: none;
-}
-
-.settings-form--exiting-prev {
-    opacity: 0;
-    transform: translate3d(24px, 0, 0) scale(0.982);
-    filter: blur(2px);
-    transition: opacity 0.18s cubic-bezier(0.2, 0, 0, 1), transform 0.18s cubic-bezier(0.2, 0, 0, 1), filter 0.18s ease;
-    pointer-events: none;
-}
-
-.settings-form--enter-next {
-    animation: settingsSlideInNext 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    will-change: transform, opacity, filter;
-}
-
-.settings-form--enter-prev {
-    animation: settingsSlideInPrev 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    will-change: transform, opacity, filter;
-}
-
-@keyframes settingsSlideInNext {
-    0% {
-        opacity: 0;
-        transform: translate3d(28px, 0, 0) scale(0.982);
-        filter: blur(2px);
-    }
-    100% {
-        opacity: 1;
-        transform: translate3d(0, 0, 0) scale(1);
-        filter: blur(0);
-    }
-}
-
-@keyframes settingsSlideInPrev {
-    0% {
-        opacity: 0;
-        transform: translate3d(-28px, 0, 0) scale(0.982);
-        filter: blur(2px);
-    }
-    100% {
-        opacity: 1;
-        transform: translate3d(0, 0, 0) scale(1);
-        filter: blur(0);
     }
 }
 

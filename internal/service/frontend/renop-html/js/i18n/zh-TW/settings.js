@@ -247,4 +247,14 @@ export default Object.freeze({
     "settings.githubOAuthConfigured": "用戶端密鑰已安全儲存，而且絕不會傳回瀏覽器。",
     "settings.githubOAuthNotConfigured": "尚未儲存用戶端密鑰。",
     "settings.githubOAuthSaveFailed": "無法儲存 GitHub 登入設定，請檢查全部欄位。",
+
+    "settings.sections": "設定分類",
+    "settings.saving": "正在儲存變更…",
+    "settings.unsaved": "目前頁面有未儲存的變更",
+    "settings.upToDate": "沒有未儲存的變更",
+    "settings.sectionPage": "第 {page} / {pages} 頁",
+    "settings.loadFailed": "無法載入此設定，請重試。",
+    "settings.noSections": "沒有可用的設定分類。",
+    "settings.discardConfirm": "放棄目前頁面尚未儲存的變更？",
+    "settings.discard": "放棄變更",
 });

@@ -11,6 +11,8 @@
 import {el} from '@renop/ui/dom';
 import {createToggle} from './toggle.js';
 
+let fieldLabelSequence = 0;
+
 /**
  * Settings form field row with label, hint, and control slot.
  */
@@ -28,6 +30,7 @@ export class RenopFieldRow extends HTMLElement {
      */
     connectedCallback() {
         this.render();
+        queueMicrotask(() => { if (this.isConnected) this.render(); });
     }
 
     /**
@@ -46,6 +49,7 @@ export class RenopFieldRow extends HTMLElement {
         const labelText = this.getAttribute('label') || '';
         const hintText = this.getAttribute('hint') || '';
         const modifier = this.getAttribute('modifier') || '';
+        const labelID = this._labelID ||= `cfg-field-label-${++fieldLabelSequence}`;
 
         this.className = `cfg-field-row ${modifier}`.trim();
         let labelWrap = this.querySelector('.cfg-field-label');
@@ -56,12 +60,20 @@ export class RenopFieldRow extends HTMLElement {
             this.prepend(labelWrap);
         }
         labelWrap.innerHTML = '';
-        labelWrap.appendChild(el('span', {class: 'cfg-label-text'}, labelText));
-        if (hintText) labelWrap.appendChild(el('span', {class: 'cfg-label-hint'}, hintText));
+        labelWrap.appendChild(el('span', {class: 'cfg-label-text', id: labelID}, labelText));
+        if (hintText) labelWrap.appendChild(el('span', {class: 'cfg-label-hint', id: `${labelID}-hint`}, hintText));
 
         if (!controlWrap) {
             controlWrap = el('div', {class: 'cfg-field-control'});
             this.appendChild(controlWrap);
+        }
+        for (const control of controlWrap.querySelectorAll('input, textarea, select, button[aria-haspopup="listbox"]')) {
+            if (control.closest('renop-field-row') !== this) continue;
+            if (labelText && !control.hasAttribute('aria-label') && !control.hasAttribute('aria-labelledby') &&
+                ![...(control.labels || [])].some(label => label.textContent.trim())) {
+                control.setAttribute('aria-labelledby', labelID);
+            }
+            if (hintText && !control.hasAttribute('aria-describedby')) control.setAttribute('aria-describedby', `${labelID}-hint`);
         }
     }
 }

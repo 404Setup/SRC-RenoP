@@ -49,7 +49,7 @@ test('publication quotas share one responsive account and global-team component'
     assert.match(profile, /createPublicationQuotaPanel\(profile\.publication_quota/);
     assert.match(users, /ownerType: 'user'/);
     assert.match(teams, /ownerType: 'super_team'/);
-    assert.match(settings, /'publication_quota'/);
+    assert.match(settings, /publication_quota: \{label: 'publicationQuota.settingsTitle', render: renderPublicationQuotaSettings}/);
     assert.match(settings, /renderPublicationQuotaSettings/);
     assert.match(quota, /value: 'lifetime', label: periodLabel\('lifetime'\)/);
     assert.match(settings, /value: 'lifetime', label: t\('publicationQuota.period.lifetime'\)/);

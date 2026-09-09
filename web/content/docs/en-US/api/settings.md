@@ -16,6 +16,22 @@ to the operation. Responses use protobuf where defined in `proto/api/v1/api.prot
 - **Response**: Stable domain names currently supported by the server, including `server`, `proxy`, `storage`,
   `updater`, and `index`.
 
+## Settings pages in the browser
+
+The settings interface provides a separate page for each of the 14 advertised domains. Desktop navigation lists
+the sections beside the form; smaller screens use a section selector. Previous and next controls follow the same
+ordered pages. Opening a page fetches its configuration only, rather than fetching every service configuration.
+
+Each page keeps its unsaved draft while moving between sections or changing language. Saving updates only the active
+page and temporarily prevents editing or switching pages. Failed saves retain the draft; discard reloads that page
+after confirmation. Pending changes are marked in the navigation. Browser reload/close warns about unsaved changes,
+but drafts are held only in memory and are cleared at logout or account change. Stored write-only credentials stay
+hidden, and entered secrets are cleared from a draft after a successful save.
+
+GPG remains part of the service configuration. Global-team limits, publication quotas, registration, cache, email,
+OAuth providers, and publishing-domain security have their own pages and retain their existing JSON APIs. Form labels
+and hints are associated with controls, and page navigation moves keyboard focus to the new heading.
+
 ## Read and update one domain
 
 - **Read**: `GET /api/settings/domain/:name`

@@ -247,4 +247,14 @@ export default Object.freeze({
     "settings.githubOAuthConfigured": "O segredo está guardado em segurança e nunca é devolvido ao browser.",
     "settings.githubOAuthNotConfigured": "Ainda não existe um segredo de cliente guardado.",
     "settings.githubOAuthSaveFailed": "Não foi possível guardar as definições do GitHub. Verifique todos os campos.",
+
+    "settings.sections": "Categorias de definições",
+    "settings.saving": "A guardar alterações…",
+    "settings.unsaved": "Alterações por guardar nesta página",
+    "settings.upToDate": "Sem alterações por guardar",
+    "settings.sectionPage": "Secção {page} de {pages}",
+    "settings.loadFailed": "Não foi possível carregar estas definições. Tente novamente.",
+    "settings.noSections": "Não existem categorias de definições disponíveis.",
+    "settings.discardConfirm": "Descartar as alterações por guardar nesta página?",
+    "settings.discard": "Descartar alterações",
 });

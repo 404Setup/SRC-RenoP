@@ -247,4 +247,14 @@ export default Object.freeze({
     "settings.githubOAuthConfigured": "A client secret is securely stored and is never returned to the browser.",
     "settings.githubOAuthNotConfigured": "No client secret is stored yet.",
     "settings.githubOAuthSaveFailed": "Could not save the GitHub login settings. Check every field.",
+
+    "settings.sections": "Settings sections",
+    "settings.saving": "Saving changes…",
+    "settings.unsaved": "Unsaved changes on this page",
+    "settings.upToDate": "No unsaved changes",
+    "settings.sectionPage": "Section {page} of {pages}",
+    "settings.loadFailed": "Could not load these settings. Please try again.",
+    "settings.noSections": "No settings sections are available.",
+    "settings.discardConfirm": "Discard the unsaved changes on this page?",
+    "settings.discard": "Discard changes",
 });
