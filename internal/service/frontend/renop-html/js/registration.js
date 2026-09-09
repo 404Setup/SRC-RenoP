@@ -1,7 +1,10 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
- * If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -31,10 +34,12 @@ let active = false, epoch = 0, availabilityEpoch = 0, pending, receipt, timer, e
 
 /** Read public auth results without treating a rejected confirmation as an expired login. */
 async function requestJSON(path, body) {
-    const response = await fetch('/api/auth/' + path, {credentials: 'include', cache: 'no-store',
+    const response = await fetch('/api/auth/' + path, {
+        credentials: 'include', cache: 'no-store',
         signal: AbortSignal.timeout(15000), ...(body ? {
             method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body),
-        } : {})});
+        } : {})
+    });
     if (!response.ok) throw new LocalizedResponseError(await responseErrorMessage(response, 'registration.unavailable'), response.status);
     return response.json();
 }
@@ -45,7 +50,9 @@ export async function refreshRegistrationAvailability() {
     try {
         const status = await requestJSON('registration/status');
         if (revision !== availabilityEpoch) return;
-        document.querySelectorAll('[data-registration-link]').forEach(link => { link.hidden = status.enabled !== true; });
+        document.querySelectorAll('[data-registration-link]').forEach(link => {
+            link.hidden = status.enabled !== true;
+        });
         if (!active) return;
         fields.disabled = status.enabled !== true;
         availability.textContent = fields.disabled ? t('registration.disabled') : '';
@@ -65,8 +72,13 @@ export async function refreshRegistrationAvailability() {
         }
     } catch {
         if (revision !== availabilityEpoch) return;
-        document.querySelectorAll('[data-registration-link]').forEach(link => { link.hidden = true; });
-        if (active) { fields.disabled = true; availability.textContent = t('registration.unavailable'); }
+        document.querySelectorAll('[data-registration-link]').forEach(link => {
+            link.hidden = true;
+        });
+        if (active) {
+            fields.disabled = true;
+            availability.textContent = t('registration.unavailable');
+        }
     }
 }
 
@@ -130,7 +142,10 @@ export function updateRegistrationPage(isActive, entering = false) {
         return;
     }
     strength = attachPasswordStrength(password);
-    if (entering) { epoch++; void loadRegistration(); }
+    if (entering) {
+        epoch++;
+        void loadRegistration();
+    }
 }
 
 /** Poll this page's current delivery receipt only during its ten-minute lifetime. */
@@ -139,14 +154,18 @@ async function pollDelivery() {
     const current = receipt;
     if (!active || !current) return;
     try {
-        const response = await fetch('/api/auth/mail/' + encodeURIComponent(current.id), {credentials: 'include', cache: 'no-store',
-            headers: {'X-Renop-Mail-Ticket': current.ticket}, signal: AbortSignal.timeout(15000)});
+        const response = await fetch('/api/auth/mail/' + encodeURIComponent(current.id), {
+            credentials: 'include', cache: 'no-store',
+            headers: {'X-Renop-Mail-Ticket': current.ticket}, signal: AbortSignal.timeout(15000)
+        });
         if (!response.ok) throw new Error('mail status unavailable');
         const result = await response.json();
         if (!active || receipt !== current) return;
         delivery.textContent = mailStatusLabel(result.status);
         if (['queued', 'paused', 'sending', 'checking', 'queued_provider'].includes(result.status) && Date.now() < current.deadline) {
-            timer = setTimeout(() => { void pollDelivery(); }, 3000);
+            timer = setTimeout(() => {
+                void pollDelivery();
+            }, 3000);
         }
     } catch {
         if (active && receipt === current) delivery.textContent = t('mail.requestFailed');
@@ -175,7 +194,9 @@ send.addEventListener('click', () => runButtonAction(send, async () => {
         receipt = {...result, deadline: Date.now() + 600000};
         delivery.textContent = mailStatusLabel(result.status);
         code.focus();
-        timer = setTimeout(() => { void pollDelivery(); }, 3000);
+        timer = setTimeout(() => {
+            void pollDelivery();
+        }, 3000);
     } catch (failure) {
         if (active && revision === epoch) error.textContent = failure instanceof LocalizedResponseError ? failure.message : t('registration.unavailable');
     }
@@ -186,12 +207,22 @@ form.addEventListener('submit', event => {
         if (!active || fields.disabled) return;
         error.textContent = '';
         const passwordError = getPasswordLengthError(password.value);
-        if (passwordError) { error.textContent = passwordError; password.focus(); return; }
-        if (password.value !== confirmation.value) { error.textContent = t('login.passwordsDoNotMatch'); confirmation.focus(); return; }
+        if (passwordError) {
+            error.textContent = passwordError;
+            password.focus();
+            return;
+        }
+        if (password.value !== confirmation.value) {
+            error.textContent = t('login.passwordsDoNotMatch');
+            confirmation.focus();
+            return;
+        }
         const revision = epoch, returnTo = loginReturnTo();
-        const body = {username: username.value.trim(), nickname: nickname.value.trim(), email: email.value.trim(),
+        const body = {
+            username: username.value.trim(), nickname: nickname.value.trim(), email: email.value.trim(),
             password: password.value, code: code.value.trim(), provider: pending?.provider || '',
-            import_avatar: importProfile.checked && pending?.avatar_available !== false};
+            import_avatar: importProfile.checked && pending?.avatar_available !== false
+        };
         if (!(await confirmWeakPasswordIfNeeded(body.password)) || !active || revision !== epoch) return;
         try {
             const result = await requestJSON('registration', body);

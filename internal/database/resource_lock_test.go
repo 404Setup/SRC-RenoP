@@ -1,7 +1,10 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
- * If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -15,11 +18,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/testutil"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestMavenLocksCoverMetadataCompanionsAndCatalogMutations(t *testing.T) {
@@ -36,8 +40,8 @@ func TestMavenLocksCoverMetadataCompanionsAndCatalogMutations(t *testing.T) {
 	}
 	require.NoError(t, publish("1.0-SNAPSHOT"))
 	require.NoError(t, publish("2.0"))
-	lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "maven", Repository: "maven",
-		Name: "com.example:demo", Version: "1.0-SNAPSHOT"}, Source: core.ResourceLockSystem,
+	lock := &core.ResourceLock{Format: "maven", Repository: "maven",
+		Name: "com.example:demo", Version: "1.0-SNAPSHOT", Source: core.ResourceLockSystem,
 		Mode: core.ResourceLockRead, Reason: "trojan", LockedAt: now}
 	require.NoError(t, db.SetResourceLock(lock, "", ""))
 	for _, path := range []string{"com/example/demo/1.0-SNAPSHOT/demo-1.0-20260909.1.jar",
@@ -119,7 +123,7 @@ func TestSuperTeamLocksFollowBindingsAndPreserveMembership(t *testing.T) {
 			GroupID: "com.example", ArtifactID: name, CreatedAt: now}, &core.MavenVersion{Version: "1.0", Publisher: "alice", CreatedAt: now})
 	}
 	require.NoError(t, publish("demo"))
-	lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "superteam", Name: team.Prefix},
+	lock := &core.ResourceLock{Format: "superteam", Name: team.Prefix,
 		Mode: core.ResourceLockRead, Source: core.ResourceLockSystem, Reason: "abuse", LockedAt: now}
 	require.NoError(t, db.SetResourceLock(lock, "", ""))
 	for _, target := range []core.ResourceLockTarget{
@@ -204,7 +208,7 @@ func TestDockerLocksProtectAliasesIndexChildrenAndSharedBlobs(t *testing.T) {
 	require.NoError(t, put("demo", index, indexRaw, "latest"))
 	require.NoError(t, put("demo", index, indexRaw, "stable"))
 	require.NoError(t, put("other", child, childRaw, "latest", blob))
-	lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "docker", Repository: "docker", Name: "demo", Version: index},
+	lock := &core.ResourceLock{Format: "docker", Repository: "docker", Name: "demo", Version: index,
 		Source: core.ResourceLockSystem, Mode: core.ResourceLockRead, Reason: "trojan", LockedAt: now}
 	require.NoError(t, db.SetResourceLock(lock, "", ""))
 	_, err := db.Exec(`UPDATE docker_manifests SET raw_json = ? WHERE repository = ? AND image_name = ? AND digest = ?`, "invalid", "docker", "demo", index)
@@ -352,7 +356,7 @@ func TestNPMLocksFreezeVersionsAndPreserveMetadataVisibility(t *testing.T) {
 	}
 	require.NoError(t, publish("1.0.0", "latest"))
 	require.NoError(t, publish("2.0.0", "latest"))
-	lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "npm", Repository: "npm", Name: "demo", Version: "2.0.0"},
+	lock := &core.ResourceLock{Format: "npm", Repository: "npm", Name: "demo", Version: "2.0.0",
 		Source: core.ResourceLockSystem, Mode: core.ResourceLockRead, Reason: "trojan", LockedAt: now}
 	require.NoError(t, db.SetResourceLock(lock, "", ""))
 	for _, viewer := range []struct {

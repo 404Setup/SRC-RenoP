@@ -10,7 +10,9 @@ description: 細粒度 machine credential、recovery material、OpenPGP publicat
 RenoP は browser session、API Token、password、recovery material、artifact signing key を分離し、それぞれ異なる
 storage、transport、revocation rule を適用します。
 
-[2段階認証](../security/two-step-verification.md)では、認証アプリの設定、追加認証用 Passkey、保留中のログイン応答、復旧について説明します。追加認証用 Passkey は最初のログイン方法にはなりません。オフライン復旧は認証アプリを削除し、Passkey の追加認証を無効にします。メールによるパスワード再設定は両方を維持します。
+[2段階認証](../security/two-step-verification.md)では、認証アプリの設定、追加認証用 Passkey、保留中のログイン応答、復旧について説明します。追加認証用
+Passkey は最初のログイン方法にはなりません。オフライン復旧は認証アプリを削除し、Passkey
+の追加認証を無効にします。メールによるパスワード再設定は両方を維持します。
 
 ## API Token と recovery material
 

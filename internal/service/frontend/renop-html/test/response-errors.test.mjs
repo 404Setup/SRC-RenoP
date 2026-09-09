@@ -77,7 +77,11 @@ test('session restoration preserves credentials on forbidden responses and expir
     const storage = new Map([['username', 'alice']]), logouts = [], updates = [];
     let status = 403;
     const context = vm.createContext({
-        localStorage: {getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key)},
+        localStorage: {
+            getItem: key => storage.get(key),
+            setItem: (key, value) => storage.set(key, value),
+            removeItem: key => storage.delete(key)
+        },
         fetchProto: async () => ({response: {ok: false, status}, data: null}), SessionDetails: {},
         logout: reason => logouts.push(reason), updateAuthUI: (...args) => updates.push(args),
     });

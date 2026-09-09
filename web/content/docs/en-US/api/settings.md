@@ -44,7 +44,10 @@ Selected sections, unsaved markers, and muted text use the shared theme colors i
   the
   client ID and write-only secret.
 
-**Other OAuth providers**: `GET /api/settings/oauth-providers` returns redacted clients and presets; `PUT /api/settings/oauth-providers` replaces the list. A `providers` array is required, and an explicit empty array removes all configured clients. Up to 32 clients and a 128 KiB request are supported. See [Third-party Login](../security/oauth-login.md) for credentials, provider presets, and account binding.
+**Other OAuth providers**: `GET /api/settings/oauth-providers` returns redacted clients and presets;
+`PUT /api/settings/oauth-providers` replaces the list. A `providers` array is required, and an explicit empty array
+removes all configured clients. Up to 32 clients and a 128 KiB request are supported.
+See [Third-party Login](../security/oauth-login.md) for credentials, provider presets, and account binding.
 
 ## Repository settings
 

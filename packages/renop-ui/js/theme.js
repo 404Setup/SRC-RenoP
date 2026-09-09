@@ -27,9 +27,9 @@ export function applyTheme(mode) {
  * @returns {void}
  */
 export function initTheme({
-    bindToggle = true,
-    toggleSelector = '#theme-toggle',
-} = {}) {
+                              bindToggle = true,
+                              toggleSelector = '#theme-toggle',
+                          } = {}) {
     let initialMode = localStorage.getItem('theme-mode') || 'auto';
     if (initialMode === 'auto') {
         initialMode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';

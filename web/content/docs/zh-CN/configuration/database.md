@@ -7,7 +7,8 @@ description: SQLite、MySQL、PostgreSQL 与 ClickHouse 数据库连接与连接
 
 # 数据库配置
 
-RenoP 支持使用内嵌 SQLite、外部 MySQL、PostgreSQL 或 ClickHouse 作为元数据与凭据的持久化数据库。数据库用于存储用户账户、角色权限、个人访问令牌（PAT）、会话状态、审计日志与消息中心数据。
+RenoP 支持使用内嵌 SQLite、外部 MySQL、PostgreSQL 或 ClickHouse
+作为元数据与凭据的持久化数据库。数据库用于存储用户账户、角色权限、个人访问令牌（PAT）、会话状态、审计日志与消息中心数据。
 
 相关配置位于 `config.yaml` 中的 `database` 节点。
 

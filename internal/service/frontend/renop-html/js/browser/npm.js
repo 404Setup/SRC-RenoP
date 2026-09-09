@@ -28,14 +28,10 @@ import {t} from '../i18n.js';
 import {createSuperTeamBindingField} from '../super-team-selector.js';
 import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
 import {npmResponseError} from '../npm-errors.js';
-import {openTicketCenter, openSuperTeamTransferDialog} from '../tickets.js';
+import {openSuperTeamTransferDialog, openTicketCenter} from '../tickets.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {createSuperTeamPublicLink} from '../profile-links.js';
-import {
-    createDeprecatePackageButton,
-    createPackageDeprecationBadge,
-    createPackageDeprecationNotice
-} from '../package-deprecation.js';
+import {createDeprecatePackageButton, createPackageDeprecationNotice} from '../package-deprecation.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {createPackageDetailTabs} from './package-detail-tabs.js';
 import {
@@ -50,7 +46,12 @@ import {
 } from './repository-view.js';
 import {RepositoryUserSuggestions} from './user-suggestions.js';
 import {formatBytes} from './utils.js';
-import {createResourceLockButton, createResourceLockNotices, resourceReadLocked, resourceWriteLocked} from '../resource-locks.js';
+import {
+    createResourceLockButton,
+    createResourceLockNotices,
+    resourceReadLocked,
+    resourceWriteLocked
+} from '../resource-locks.js';
 
 const npmIcon = getRepositoryFormat('npm').icon;
 const pageSize = 24;
@@ -590,8 +591,10 @@ function npmVersionItem(version, tagsByVersion, canDelete) {
         )
     );
     const actions = el('div', {class: 'npm-version-actions'});
-    actions.appendChild(createTicketReportButton({format: 'npm', repository: activeRepository,
-        name: packageDetails.package.name, version: version.version}, pendingReview || version.unpublished || version.mirrored ||
+    actions.appendChild(createTicketReportButton({
+        format: 'npm', repository: activeRepository,
+        name: packageDetails.package.name, version: version.version
+    }, pendingReview || version.unpublished || version.mirrored ||
         packageDetails.package.mirrored || Number(packageDetails.package.permission_level) >= 4 || resourceReadLocked(packageDetails.package, version)));
     if (packageDetails.moderator && !pendingReview) actions.appendChild(npmResourceLockButton(packageDetails.package, version));
     if (!version.unpublished && !pendingReview) {

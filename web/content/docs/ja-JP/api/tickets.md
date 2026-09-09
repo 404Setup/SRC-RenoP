@@ -7,27 +7,39 @@ description: チケットはフィードバック、提案、通報、所有権�
 
 # チケット API
 
-チケットはフィードバック、提案、通報、所有権移管、公開承認を一つの永続的な処理に統合します。従来の審査センターを置き換え、既存のタスク ID と保留中の公開内容を維持します。
+チケットはフィードバック、提案、通報、所有権移管、公開承認を一つの永続的な処理に統合します。従来の審査センターを置き換え、既存のタスク
+ID と保留中の公開内容を維持します。
 
 ## 対象と認証情報
 
-すべての経路で有効なブラウザーの `renop_session` Cookie が必要です。Basic 認証、Bearer API Token、この Cookie のないセッショントークンは拒否されます。入口は `/account/tickets` です。旧 `/account/reviews` リンクもここへ移動します。
+すべての経路で有効なブラウザーの `renop_session` Cookie が必要です。Basic 認証、Bearer API Token、この Cookie
+のないセッショントークンは拒否されます。入口は `/account/tickets` です。旧 `/account/reviews` リンクもここへ移動します。
 
-リポジトリのモデレーターはチーム段階を含め、担当範囲の全状態を確認できます。システム管理者は全範囲を確認できます。T3/T4 メンバーは担当チームの移管と作成だけを処理し、チーム承認は引き続きリポジトリ承認より先です。申請履歴は不変のアカウント ID に結び付きます。
+リポジトリのモデレーターはチーム段階を含め、担当範囲の全状態を確認できます。システム管理者は全範囲を確認できます。T3/T4
+メンバーは担当チームの移管と作成だけを処理し、チーム承認は引き続きリポジトリ承認より先です。申請履歴は不変のアカウント ID
+に結び付きます。
 
-権限を持つ担当者はチケット内で同僚の身元を確認できます。申請者には `assignee`、`escalated_by`、`decided_by` を返しません。通報対象のアカウントは管理者でも自身への通報を閲覧・処理できません。対象者には通報者の身元やチケットへのアクセスを提供しません。
+権限を持つ担当者はチケット内で同僚の身元を確認できます。申請者には `assignee`、`escalated_by`、`decided_by`
+を返しません。通報対象のアカウントは管理者でも自身への通報を閲覧・処理できません。対象者には通報者の身元やチケットへのアクセスを提供しません。
 
-保留通知は現在の承認段階に従います。最終結果は申請者の言語でメッセージと、有効ならメールで送信します。通報が `upheld` で完了した場合のみ対象者へ別の通知を送り、リソースと結果だけを含めます。チケット ID、通報者、担当者、非公開本文は含めません。棄却と撤回では対象者へ通知しません。既存メールシーン ID は互換性を維持します。
+保留通知は現在の承認段階に従います。最終結果は申請者の言語でメッセージと、有効ならメールで送信します。通報が `upheld`
+で完了した場合のみ対象者へ別の通知を送り、リソースと結果だけを含めます。チケット
+ID、通報者、担当者、非公開本文は含めません。棄却と撤回では対象者へ通知しません。既存メールシーン ID は互換性を維持します。
 
 通報の監査イベントにはアカウント、担当者、セッション、IP の身元情報を記録せず、担当者の帰属は閲覧権限のあるチケット内に保持します。
 
 ## フィードバック・提案・通報を送信
 
-POST /api/tickets は `kind`（`feedback`、`suggestion`、`report`）、`title`（1–160 文字）、`body`（1–8000 文字）、任意の `repository` を受け付けます。JSON 本文は最大 48 KiB。サポート申請はアカウントごとに保留 16 件、24 時間で新規 24 件までで、すべての処理に共通する全体の保留上限は 4096 件です。
+POST /api/tickets は `kind`（`feedback`、`suggestion`、`report`）、`title`（1–160 文字）、`body`（1–8000 文字）、任意の
+`repository` を受け付けます。JSON 本文は最大 48 KiB。サポート申請はアカウントごとに保留 16 件、24 時間で新規 24
+件までで、すべての処理に共通する全体の保留上限は 4096 件です。
 
-通報には `target` の `format`、`repository`、`name`、任意の `version` も必要です。形式は `user`、`superteam`、`maven-domain`、`maven`、`cargo`、`npm`、`docker`。全体リソースではリポジトリを省略します。パッケージはリポジトリ形式と一致し、現在の読み取り権限が必要です。他のユーザー、閲覧可能なパッケージやバージョン、公開ドメイン、チームを通報できます。自身のリソース、非公開の対象、同じ保留中の通報は拒否されます。
+通報には `target` の `format`、`repository`、`name`、任意の `version` も必要です。形式は `user`、`superteam`、`maven-domain`、
+`maven`、`cargo`、`npm`、`docker`
+。全体リソースではリポジトリを省略します。パッケージはリポジトリ形式と一致し、現在の読み取り権限が必要です。他のユーザー、閲覧可能なパッケージやバージョン、公開ドメイン、チームを通報できます。自身のリソース、非公開の対象、同じ保留中の通報は拒否されます。
 
-作成は `201`、チケット、`Location` を返し、対象所有者を不変のアカウント ID で保存します。`upheld` の記録だけではアカウント停止やパッケージロックを実行しません。処分成立を記録する前に、既存の管理操作で必要な処置を行ってください。
+作成は `201`、チケット、`Location` を返し、対象所有者を不変のアカウント ID で保存します。`upheld`
+の記録だけではアカウント停止やパッケージロックを実行しません。処分成立を記録する前に、既存の管理操作で必要な処置を行ってください。
 
 ```json
 {"kind":"report","title":"Package report","body":"Please investigate this version.","target":{"format":"npm","repository":"npm","name":"@platform/tool","version":"1.0.0"}}
@@ -35,15 +47,21 @@ POST /api/tickets は `kind`（`feedback`、`suggestion`、`report`）、`title`
 
 ## 担当・エスカレーション・解決
 
-POST /api/tickets/{id}/action は `action` として `claim`、`release`、`escalate`、`process`、`complete`、`close` を受け付けます。処理や決定の前に担当を取得します。取得は原子的で、他の担当者は閲覧だけが可能です。システム管理者は `force: true` でモデレーターの担当を引き継げますが、解放していない別のシステム管理者からは奪えません。
+POST /api/tickets/{id}/action は `action` として `claim`、`release`、`escalate`、`process`、`complete`、`close`
+を受け付けます。処理や決定の前に担当を取得します。取得は原子的で、他の担当者は閲覧だけが可能です。システム管理者は
+`force: true` でモデレーターの担当を引き継げますが、解放していない別のシステム管理者からは奪えません。
 
-エスカレーションは担当を解放し、次の取得をシステム管理者に限定します。管理者から別の管理者へも送れます。各チケットは最大 3 回までで、3 回目の後の担当者は完了する必要があり、解放、追加エスカレーション、強制引き継ぎは無効です。チーム承認後は次のリポジトリ段階のため担当を解放します。
+エスカレーションは担当を解放し、次の取得をシステム管理者に限定します。管理者から別の管理者へも送れます。各チケットは最大 3
+回までで、3 回目の後の担当者は完了する必要があり、解放、追加エスカレーション、強制引き継ぎは無効です。チーム承認後は次のリポジトリ段階のため担当を解放します。
 
-サポートの `process` は最終通知なしで処理済みにし、`complete` は完了、`close` は終了にします。これらは 1–4096 文字の `response` が必要です。フィードバックと提案は `outcome: resolved`、通報は `upheld` または `dismissed`、終了は `closed` を記録します。操作 JSON は最大 24 KiB。公開と移管は担当取得後に下記の決定経路を使います。
+サポートの `process` は最終通知なしで処理済みにし、`complete` は完了、`close` は終了にします。これらは 1–4096 文字の
+`response` が必要です。フィードバックと提案は `outcome: resolved`、通報は `upheld` または `dismissed`、終了は `closed`
+を記録します。操作 JSON は最大 24 KiB。公開と移管は担当取得後に下記の決定経路を使います。
 
 引き継ぎの可否は担当者の現在の役割で判断します。管理者への昇格は直ちに保護され、管理者権限を失った場合はエスカレーション上限に達する前なら引き継げます。
 
-GET /api/tickets/{id} は閲覧可能な詳細と、現在の権限・担当から計算した `actions` 配列を返します。操作ボタンにこの配列を使用してください。担当の競合は `409` と `ticket_claim_required`、`ticket_occupied`、`ticket_escalation_limit` のいずれかを返します。
+GET /api/tickets/{id} は閲覧可能な詳細と、現在の権限・担当から計算した `actions` 配列を返します。操作ボタンにこの配列を使用してください。担当の競合は
+`409` と `ticket_claim_required`、`ticket_occupied`、`ticket_escalation_limit` のいずれかを返します。
 
 ## 移管規則
 
@@ -86,9 +104,12 @@ catalog に書き込みません。同じ digest の既存 tag は影響を受�
 
 ## タスク一覧
 
-GET /api/tickets は上限付きページを返します。`view` は `reviewer` または `requested`、`status` は `unprocessed`（既定）、`in_progress`、`processed`、`closed`、`completed`、`all` です。`limit` は 1–100、`offset` は 0 以上です。カンマ区切りの `types` は既存処理の形式と `support`、`user`、`superteam`、`maven-domain`、`maven`、`cargo`、`npm`、`docker` に対応します。
+GET /api/tickets は上限付きページを返します。`view` は `reviewer` または `requested`、`status` は `unprocessed`（既定）、
+`in_progress`、`processed`、`closed`、`completed`、`all` です。`limit` は 1–100、`offset` は 0 以上です。カンマ区切りの `types`
+は既存処理の形式と `support`、`user`、`superteam`、`maven-domain`、`maven`、`cargo`、`npm`、`docker` に対応します。
 
-`ticket_status` は共通の進行状態です。既存の `status` は処理結果の `pending`、`approved`、`rejected`、`cancelled` を維持します。過去の記録は最初の担当取得時にチケット状態を保存します。
+`ticket_status` は共通の進行状態です。既存の `status` は処理結果の `pending`、`approved`、`rejected`、`cancelled`
+を維持します。過去の記録は最初の担当取得時にチケット状態を保存します。
 
 応答には `tasks`、`total`、`limit`、`offset`、確定した `view` が含まれます。各タスクは移管元、移管先、現在の
 審査チームのプレフィックス、申請者名、時刻、状態、決定情報を保持します。`review_team_prefix` が空でなければ
@@ -119,14 +140,16 @@ Web のレビューセンターは最大 4 ワーカーで適応的にダウン�
 
 ## 決定または取消
 
-現在の担当者がこの段階のチケットを取得済みである必要があります。POST /api/tickets/{id}/decision は `approved` または `rejected` を受け付けます。T2 package 作成の承認は作成を
+現在の担当者がこの段階のチケットを取得済みである必要があります。POST /api/tickets/{id}/decision は `approved` または
+`rejected` を受け付けます。T2 package 作成の承認は作成を
 完了するか、repository 審査が必要な場合に同じ task を空の `review_team_prefix` と `pending` 状態で返します。
 移管の拒否には 512 文字以内の
 理由が必要です。公開の拒否には `reason_code` として `invalid_metadata`、`quality`、`policy_violation`、
 `copyright`、`malware`、`custom` のいずれかが必要です。独自理由は 505 文字までです。承認は対象エンジンの
 バージョンメタデータを登録してからファイルを公開し、拒否は非公開ファイルを削除します。
 
-DELETE /api/tickets/{id} は申請者による保留中のサポート、所有権移管、Maven 復元申請の撤回を認めます。チケットを終了し、以後の決定を阻止します。公開タスクはこの経路では取消できません。競合する最終決定はリソースを二重変更できません。
+DELETE /api/tickets/{id} は申請者による保留中のサポート、所有権移管、Maven
+復元申請の撤回を認めます。チケットを終了し、以後の決定を阻止します。公開タスクはこの経路では取消できません。競合する最終決定はリソースを二重変更できません。
 
 ## エラー処理
 

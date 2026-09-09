@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -46,12 +48,16 @@ export async function refreshPasswordRecoveryAvailability() {
         fields.disabled = result.enabled !== true;
         if (active && wasDisabled && !fields.disabled) email.focus({preventScroll: true});
         availability.textContent = fields.disabled ? t('mail.disabled') : '';
-        document.querySelectorAll('[data-password-reset-link]').forEach(link => { link.hidden = fields.disabled; });
+        document.querySelectorAll('[data-password-reset-link]').forEach(link => {
+            link.hidden = fields.disabled;
+        });
     } catch {
         if (revision !== availabilityEpoch) return;
         fields.disabled = true;
         availability.textContent = t('login.recoveryFailed');
-        document.querySelectorAll('[data-password-reset-link]').forEach(link => { link.hidden = true; });
+        document.querySelectorAll('[data-password-reset-link]').forEach(link => {
+            link.hidden = true;
+        });
     }
 }
 
@@ -89,7 +95,9 @@ async function updateDelivery() {
         if (!active || receipt !== current) return;
         delivery.textContent = mailStatusLabel(job.status);
         if (['queued', 'paused', 'sending', 'checking', 'queued_provider'].includes(job.status) && Date.now() < current.deadline) {
-            timer = setTimeout(() => { void updateDelivery(); }, 3000);
+            timer = setTimeout(() => {
+                void updateDelivery();
+            }, 3000);
         }
     } catch {
         if (!active || receipt !== current) return;
@@ -100,7 +108,9 @@ async function updateDelivery() {
 
 email.addEventListener('input', clearDelivery);
 window.addEventListener('pagehide', () => updatePasswordRecoveryPage(false));
-refresh.addEventListener('click', () => { void runButtonAction(refresh, updateDelivery); });
+refresh.addEventListener('click', () => {
+    void runButtonAction(refresh, updateDelivery);
+});
 const send = document.getElementById('password-reset-send');
 send.addEventListener('click', () => {
     void runButtonAction(send, async () => {
@@ -116,7 +126,9 @@ send.addEventListener('click', () => {
             receipt = {...result, deadline: Date.now() + 10 * 60 * 1000};
             delivery.textContent = mailStatusLabel(result.status);
             code.focus();
-            timer = setTimeout(() => { void updateDelivery(); }, 3000);
+            timer = setTimeout(() => {
+                void updateDelivery();
+            }, 3000);
         } catch (failure) {
             if (active && revision === epoch) error.textContent = failure instanceof LocalizedResponseError ? failure.message : t('login.recoveryFailed');
         }

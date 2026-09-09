@@ -1,7 +1,10 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
- * If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -12,9 +15,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"renop/internal/core"
 	"renop/internal/database"
+
+	"github.com/stretchr/testify/require"
 )
 
 func ticketSession(t *testing.T, db *database.DB, name string) string {
@@ -54,12 +58,10 @@ func TestTicketClaimsEscalationAndIdentityPrivacy(t *testing.T) {
 	var wg sync.WaitGroup
 	results := make(chan error, 2)
 	for _, actor := range []string{"mod1", "mod2"} {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, err := act(actor, "claim", false)
 			results <- err
-		}()
+		})
 	}
 	wg.Wait()
 	close(results)

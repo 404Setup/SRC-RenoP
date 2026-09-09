@@ -8,16 +8,6 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-/**
- * Frontend production build:
- * 0. Validate and collect modular locale fragments
- * 1. Generate protobuf static modules from proto/api/v1/api.proto
- * 2. Bundle JS with Rolldown into dist/js/ (+ code-split chunks)
- * 3. Bundle CSS with lightningcss into dist/css/style.css
- *
- * Note: Rolldown 1.x removed experimental native CSS bundling
- * (https://github.com/rolldown/rolldown/issues/4271), so CSS is handled by lightningcss.
- */
 import {existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync,} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';

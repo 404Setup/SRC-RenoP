@@ -61,56 +61,70 @@ mail:
 `account_rate` は送信アカウントごとの自動・手動の試行を含み、期間には秒も指定できます。
 上限と期間の値は正数です。既定値は IP ごとに 2 分間で手動要求 1 回、アカウントごとに 1 分間で送信試行 50 回です。
 
-`list_mode` は `blacklist` または `whitelist` です。キュー追加前と送信直前に確認します。国際化ドメインの Unicode 表記と Punycode 表記は同じように一致し、末尾のドットは無視します。
+`list_mode` は `blacklist` または `whitelist` です。キュー追加前と送信直前に確認します。国際化ドメインの Unicode 表記と
+Punycode 表記は同じように一致し、末尾のドットは無視します。
 
-| ルール | 一致する範囲 |
-|---|---|
-| `person@example.com` | 完全なメールアドレス |
-| `@example.com` | 完全一致のプロバイダードメイン。サブドメインは除外 |
-| `.com` または `.example.com` | 基本ドメインとサブドメインを含む DNS 接尾辞 |
+| ルール                       | 一致する範囲                                       |
+|------------------------------|----------------------------------------------------|
+| `person@example.com`         | 完全なメールアドレス                               |
+| `@example.com`               | 完全一致のプロバイダードメイン。サブドメインは除外 |
+| `.com` または `.example.com` | 基本ドメインとサブドメインを含む DNS 接尾辞        |
 
-`use_disposable_blacklist: true` で、拒否ルールに内蔵の一時メールリストを追加できます。既定では無効で、許可リストモードでは無視します。現在のスナップショットは [disposable/disposable-email-domains](https://github.com/disposable/disposable-email-domains) と [disposable-email-domains/disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains) の75,627ドメインを統合し、国や所有者で絞り込みません。登録ドメインとそのサブドメインを、外部サービスに接続せず拒否します。
+`use_disposable_blacklist: true`
+で、拒否ルールに内蔵の一時メールリストを追加できます。既定では無効で、許可リストモードでは無視します。現在のスナップショットは [disposable/disposable-email-domains](https://github.com/disposable/disposable-email-domains)
+と [disposable-email-domains/disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains)
+の75,627ドメインを統合し、国や所有者で絞り込みません。登録ドメインとそのサブドメインを、外部サービスに接続せず拒否します。
 
-リストはリリース時点のスナップショットで、新しいプロバイダーをすべて網羅するものではありません。カスタムルールで補完できます。ビルド時に `scripts/update-disposable-domains.ps1` で固定したリビジョンとチェックサムから、Git 管理対象外の `internal/mail/data/` を自動生成します。検証済みのローカルデータはオフラインで再利用できます。ライセンスは `THIRD_PARTY_NOTICES.md` を参照してください。
+リストはリリース時点のスナップショットで、新しいプロバイダーをすべて網羅するものではありません。カスタムルールで補完できます。ビルド時に
+`scripts/update-disposable-domains.ps1` で固定したリビジョンとチェックサムから、Git 管理対象外の `internal/mail/data/`
+を自動生成します。検証済みのローカルデータはオフラインで再利用できます。ライセンスは `THIRD_PARTY_NOTICES.md` を参照してください。
 
 ## プロバイダーと接続先
 
-| プロバイダー | プリセットと認証情報 | リモート機能 |
-| --- | --- | --- |
-| SMTP | 平文 SMTP、暗黙 SSL/TLS、必須 STARTTLS。パスワードまたは対応 OAuth | ローカル推定、SMTP 受付応答 |
-| Cloudflare Email | アカウント ID、API トークン、グローバル REST 接続先 | 初回応答の配信、拒否、待機結果 |
-| Microsoft Graph | Outlook.com、Microsoft 365/Entra。グローバル、米国政府 L4/L5、中国 | 送信済みフォルダーの状態 |
-| Amazon SES | リージョン別 IPv4、デュアルスタック、利用可能な FIPS。アクセスキー、シークレット、任意の一時トークン | 送信クォータ、メッセージの詳細 |
-| Twilio SendGrid | グローバルと EU の接続先、API キー | クレジット、Email Activity の状態 |
-| Google Gmail | Gmail と Workspace、委任 OAuth | 送信済みラベルの状態 |
-| Alibaba Cloud Direct Mail | 杭州、シンガポール、バージニア、フランクフルトの公開・VPC 接続先。アクセスキーとシークレット | 無料枠、残高、正確に関連付けできない配信統計 |
-| Tencent Cloud SES | 中国版と国際版の送信・請求 API。アクセスキーとシークレット | 残高、受信者別の配信状態 |
-| Feishu / Lark Mail | Feishu と Lark の接続先、委任ユーザー OAuth | 受信者への配信状態 |
+| プロバイダー              | プリセットと認証情報                                                                                 | リモート機能                                 |
+|---------------------------|------------------------------------------------------------------------------------------------------|----------------------------------------------|
+| SMTP                      | 平文 SMTP、暗黙 SSL/TLS、必須 STARTTLS。パスワードまたは対応 OAuth                                   | ローカル推定、SMTP 受付応答                  |
+| Cloudflare Email          | アカウント ID、API トークン、グローバル REST 接続先                                                  | 初回応答の配信、拒否、待機結果               |
+| Microsoft Graph           | Outlook.com、Microsoft 365/Entra。グローバル、米国政府 L4/L5、中国                                   | 送信済みフォルダーの状態                     |
+| Amazon SES                | リージョン別 IPv4、デュアルスタック、利用可能な FIPS。アクセスキー、シークレット、任意の一時トークン | 送信クォータ、メッセージの詳細               |
+| Twilio SendGrid           | グローバルと EU の接続先、API キー                                                                   | クレジット、Email Activity の状態            |
+| Google Gmail              | Gmail と Workspace、委任 OAuth                                                                       | 送信済みラベルの状態                         |
+| Alibaba Cloud Direct Mail | 杭州、シンガポール、バージニア、フランクフルトの公開・VPC 接続先。アクセスキーとシークレット         | 無料枠、残高、正確に関連付けできない配信統計 |
+| Tencent Cloud SES         | 中国版と国際版の送信・請求 API。アクセスキーとシークレット                                           | 残高、受信者別の配信状態                     |
+| Feishu / Lark Mail        | Feishu と Lark の接続先、委任ユーザー OAuth                                                          | 受信者への配信状態                           |
 
-リージョンの対応範囲は [SES 接続先一覧](https://docs.aws.amazon.com/general/latest/gr/ses.html)と [Direct Mail 接続先一覧](https://www.alibabacloud.com/help/en/direct-mail/api-dm-2015-11-23-endpoint)を参照してください。
+リージョンの対応範囲は [SES 接続先一覧](https://docs.aws.amazon.com/general/latest/gr/ses.html)
+と [Direct Mail 接続先一覧](https://www.alibabacloud.com/help/en/direct-mail/api-dm-2015-11-23-endpoint)を参照してください。
 Direct Mail の VPC 接続先は同一リージョン内の接続が必要です。廃止されたシドニーの接続先は含みません。
-SMTP プリセットは Gmail、Outlook.com、Microsoft 365、QQ、NetEase 163/126、Cloudflare、SendGrid、SES、Direct Mail、Tencent、Feishu を含みます。
+SMTP プリセットは Gmail、Outlook.com、Microsoft 365、QQ、NetEase 163/126、Cloudflare、SendGrid、SES、Direct Mail、Tencent、Feishu
+を含みます。
 接続先と料金は編集可能です。プリセット変更で既定値を読み込み、プロバイダー変更では以前の認証情報を流用しません。
 
 手動クォータと追加枠の上限は保持します。プリセットの通貨が変わる場合、残高を別通貨として扱わず、手動残高を空欄にします。
 
 ## 認証情報と権限
 
-正確なスコープ、IAM/CAM/RAM 操作、トークン取得、利用条件、確認済みの仕様は[メール API の権限](mail-api-permissions.md)を参照してください。
-Tencent API の通常アカウントには `tencent_template_id` による承認済みテンプレートの指定が必要です。`Simple` のカスタム本文は従来の制限付き機能です。
+正確なスコープ、IAM/CAM/RAM 操作、トークン取得、利用条件、確認済みの仕様は[メール API の権限](mail-api-permissions.md)
+を参照してください。
+Tencent API の通常アカウントには `tencent_template_id` による承認済みテンプレートの指定が必要です。`Simple`
+のカスタム本文は従来の制限付き機能です。
 
 `smtp_security` は `plain`、`tls`、`starttls` です。既定ポートは暗黙 TLS が 465、それ以外が 587 です。
 TLS は証明書とサーバー名を検証します。STARTTLS を選ぶと暗号化への移行が必須になり、平文 SMTP は明示的に選択する必要があります。
 必要に応じてアプリパスワードを使用してください。OAuth SMTP は Gmail と Microsoft の更新トークンに対応します。アクセストークンのみの場合は管理者が更新します。
 
-Graph の委任アカウントは `client_id`、任意の `client_secret`、`refresh_token` を使用します。個人アカウントのテナントは `common` を指定できます。
-アプリケーション権限は Entra テナント ID とクライアント認証情報を使用し、`mailbox` にユーザー ID かメールアドレスを指定します。委任権限では `me` を使用できます。
+Graph の委任アカウントは `client_id`、任意の `client_secret`、`refresh_token` を使用します。個人アカウントのテナントは
+`common` を指定できます。
+アプリケーション権限は Entra テナント ID とクライアント認証情報を使用し、`mailbox` にユーザー ID かメールアドレスを指定します。委任権限では
+`me` を使用できます。
 送信には `Mail.Send`、送信済み照会には適切な `Mail.Read` 権限が必要です。アプリケーション権限には管理者の同意が必要です。
-[Graph sendMail](https://learn.microsoft.com/en-us/graph/api/user-sendmail)と[各国クラウドへの展開](https://learn.microsoft.com/en-us/graph/deployments)を参照してください。
+[Graph sendMail](https://learn.microsoft.com/en-us/graph/api/user-sendmail)
+と[各国クラウドへの展開](https://learn.microsoft.com/en-us/graph/deployments)を参照してください。
 
 Gmail は委任送信とメッセージのメタデータ権限が必要です。Feishu/Lark はユーザートークンと送信・読み取り権限が必要です。
 RenoP は OAuth 更新を逐次実行し、更新トークンが変更された場合は送信前に永続化します。
-API フィールドは `api_key`、`api_secret`、任意の `session_token`、`account_id`、`region`、`endpoint`、任意の `billing_endpoint` です。
+API フィールドは `api_key`、`api_secret`、任意の `session_token`、`account_id`、`region`、`endpoint`、任意の
+`billing_endpoint` です。
 送信元アドレスはプロバイダーの許可が必要です。アカウント ID、メールボックス ID、API キーは別の値です。
 
 ## クォータと料金
@@ -129,9 +143,13 @@ API フィールドは `api_key`、`api_secret`、任意の `session_token`、`a
 `rounding: proportional` はバッチ料金を比例配分し、`batch` はバッチの最初の 1 通で全額を課金します。
 金額は 3 文字の `currency` 通貨の百万分の一で表し、1000000 が通貨 1 単位です。画面では通常の金額で表示します。
 
-料金プリセットの確認日は 2026-09-08 です。[Cloudflare](https://developers.cloudflare.com/email-service/platform/pricing/) の追加送信は 1000 通あたり 0.35 USD、[SES](https://aws.amazon.com/ses/pricing/) の送信は 1000 通あたり 0.10 USD です。
-[SendGrid の公開料金](https://sendgrid.com/content/dam/sendgrid/global/en/other/sendgrid-pricing/twi121--sendgrid-pricing-pdf-st1.pdf)から Essentials 50K と Pro 100K の編集可能な既定値を提供します。EU 送信には対応プランが必要です。
-[Direct Mail](https://www.alibabacloud.com/help/en/direct-mail/billing-methods) は 1000 通あたり 0.29 USD、[Tencent 中国版](https://cloud.tencent.com/document/product/1288/47930)は 1 通 0.0019 CNY、[国際版](https://www-sg.tencentcloud.com/document/product/1084/39335)は 1 通 0.00028 USD です。
+料金プリセットの確認日は 2026-09-08 です。[Cloudflare](https://developers.cloudflare.com/email-service/platform/pricing/)
+の追加送信は 1000 通あたり 0.35 USD、[SES](https://aws.amazon.com/ses/pricing/) の送信は 1000 通あたり 0.10 USD です。
+[SendGrid の公開料金](https://sendgrid.com/content/dam/sendgrid/global/en/other/sendgrid-pricing/twi121--sendgrid-pricing-pdf-st1.pdf)
+から Essentials 50K と Pro 100K の編集可能な既定値を提供します。EU 送信には対応プランが必要です。
+[Direct Mail](https://www.alibabacloud.com/help/en/direct-mail/billing-methods) は 1000 通あたり 0.29
+USD、[Tencent 中国版](https://cloud.tencent.com/document/product/1288/47930)は 1 通 0.0019
+CNY、[国際版](https://www-sg.tencentcloud.com/document/product/1084/39335)は 1 通 0.00028 USD です。
 Graph、Gmail、Feishu/Lark の限界費用の推定は 0 ですが、契約の上限は有効です。
 契約基本料、税、添付データ、オプション料金は含みません。実際の契約に合わせて編集してください。
 
@@ -163,7 +181,10 @@ Cloudflare は初回応答をそのまま使用し、未提供の個別照会 AP
 
 ## テンプレートと通知
 
-`template_style` は `card`、`compact`、`notice` です。テンプレートはサービス画面と共通の落ち着いた背景色、角丸カード、カプセル型ボタン、明暗の配色を使用します。メールには受信者のアカウントに保存された言語を使用します。新規登録や言語未設定の場合は操作元ページの `Accept-Language` を使用し、既定は `en-US` です。画面と同じ 12 言語に対応し、キューへの追加時に言語を確定します。旧グローバル設定 `locale` は無視され、設定画面からの手動選択はありません。
+`template_style` は `card`、`compact`、`notice`
+です。テンプレートはサービス画面と共通の落ち着いた背景色、角丸カード、カプセル型ボタン、明暗の配色を使用します。メールには受信者のアカウントに保存された言語を使用します。新規登録や言語未設定の場合は操作元ページの
+`Accept-Language` を使用し、既定は `en-US` です。画面と同じ 12 言語に対応し、キューへの追加時に言語を確定します。旧グローバル設定
+`locale` は無視され、設定画面からの手動選択はありません。
 各スタイルにプレーンテキスト、エスケープ済み変数、設定インスタンスに限定した HTTPS リンクが含まれます。
 
 ```text
@@ -195,19 +216,20 @@ GET /api/auth/mail/:id
 設定 API は管理者権限が必要です。JSON はメール設定全体を置き換え、本文の上限は 1 MiB です。
 GET と成功した PUT は秘密値を返さず、アカウント ID と設定済みフィールド名の対応を `secrets_configured` で返します。
 同じプロバイダーの空の認証文字列は既存値を保持します。`clear_secrets: {"primary":["password"]}` で明示的に削除できます。
-書き込み専用フィールドは `password`、`api_key`、`api_secret`、`session_token`、`client_secret`、`access_token`、`refresh_token` の 7 つです。
+書き込み専用フィールドは `password`、`api_key`、`api_secret`、`session_token`、`client_secret`、`access_token`、
+`refresh_token` の 7 つです。
 永続暗号化キーはこの API では設定も取得もできません。
 
 テスト送信は保存済み設定を使用し、次の JSON を受け取ります。
 
 ```json
-{"account_id":"primary","to":"receiver@example.com"}
+{"account_id": "primary", "to": "receiver@example.com"}
 ```
 
 追加成功は HTTP 202 で返り、配信完了を意味しません。
 
 ```json
-{"id":"opaque-job-id","status":"queued","ticket":"private-status-capability"}
+{"id": "opaque-job-id", "status": "queued", "ticket": "private-status-capability"}
 ```
 
 返された `X-Renop-Mail-Ticket` ヘッダーか、所有者のログインセッションで状態 API を照会します。

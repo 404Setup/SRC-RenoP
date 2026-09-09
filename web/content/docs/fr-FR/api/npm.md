@@ -94,10 +94,12 @@ Les administrateurs et modérateurs du dépôt gèrent les verrous avec un cooki
 {"version":"1.2.3","mode":"read","reason":"trojan"}
 ```
 
-Omettez `version` ou utilisez `""` pour viser le paquet. Les modes sont `write` et `read`. Les motifs publics traduits sont
+Omettez `version` ou utilisez `""` pour viser le paquet. Les modes sont `write` et `read`. Les motifs publics traduits
+sont
 `hold`, `prohibited`, `expired`, `trojan`, `abuse`, `dmca`, `reup`, `squatting` et `quality`.
 DELETE accepte `{"version":"1.2.3"}` et supprime uniquement ce verrou manuel. Les verrous système restent indépendants.
-Les jetons API ne peuvent pas gérer les verrous. Les détails des paquets et versions exposent les enregistrements publics `locks`.
+Les jetons API ne peuvent pas gérer les verrous. Les détails des paquets et versions exposent les enregistrements
+publics `locks`.
 
 Les deux modes figent les modifications. Le verrou de lecture réserve aussi les métadonnées aux administrateurs,
 modérateurs du dépôt, propriétaires et collaborateurs, y compris L0 et les membres de l'équipe globale liée.

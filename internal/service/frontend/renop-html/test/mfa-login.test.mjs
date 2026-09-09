@@ -17,17 +17,37 @@ test('second-factor login keeps rejected and stale challenges out of authenticat
     const elements = new Map(), requests = [], events = [], timers = new Map();
     let timerID = 0, accept = false, available = true, delayed = false, release, passkeyError;
     const field = id => {
-        if (!elements.has(id)) elements.set(id, {value: '', hidden: true, disabled: false, textContent: '', style: {}, handlers: {},
-            focus() {}, checkValidity() { return /^\d{6}$/.test(this.value); },
-            reset() { field('mfa-login-code').value = ''; }, addEventListener(name, fn) { this.handlers[name] = fn; }});
+        if (!elements.has(id)) elements.set(id, {
+            value: '', hidden: true, disabled: false, textContent: '', style: {}, handlers: {},
+            focus() {
+            }, checkValidity() {
+                return /^\d{6}$/.test(this.value);
+            },
+            reset() {
+                field('mfa-login-code').value = '';
+            }, addEventListener(name, fn) {
+                this.handlers[name] = fn;
+            }
+        });
         return elements.get(id);
     };
     field('login-form').hidden = false;
     const context = vm.createContext({
         document: {getElementById: field},
-        window: {addEventListener() {}, dispatchEvent: event => events.push(event)},
-        AbortController, Date, CustomEvent: class { constructor(type, {detail}) { this.type = type; this.detail = detail; } },
-        setTimeout: fn => { timers.set(++timerID, fn); return timerID; }, clearTimeout: id => timers.delete(id),
+        window: {
+            addEventListener() {
+            }, dispatchEvent: event => events.push(event)
+        },
+        AbortController, Date, CustomEvent: class {
+            constructor(type, {detail}) {
+                this.type = type;
+                this.detail = detail;
+            }
+        },
+        setTimeout: fn => {
+            timers.set(++timerID, fn);
+            return timerID;
+        }, clearTimeout: id => timers.delete(id),
         t: key => key, responseErrorMessage: async () => 'mfa.invalid',
         passkeyErrorMessage: error => error.name === 'TimeoutError' ? 'fido.timeout' : 'login.fidoFailed',
         requestPasskeyAssertion: async options => {
@@ -39,10 +59,18 @@ test('second-factor login keeps rejected and stale challenges out of authenticat
             assert.equal(options.credentials, 'include');
             assert.equal(options.cache, 'no-store');
             requests.push({url, options});
-            if (options.method === 'GET') return {ok: available, json: async () => ({totp: true, passkey: true, expires_at: Date.now() + 300000})};
+            if (options.method === 'GET') return {
+                ok: available,
+                json: async () => ({totp: true, passkey: true, expires_at: Date.now() + 300000})
+            };
             if (options.method === 'DELETE') return {ok: true};
-            if (url.endsWith('/begin')) return {ok: true, json: async () => ({options: {publicKey: {userVerification: 'required'}}})};
-            if (delayed) await new Promise(resolve => { release = resolve; });
+            if (url.endsWith('/begin')) return {
+                ok: true,
+                json: async () => ({options: {publicKey: {userVerification: 'required'}}})
+            };
+            if (delayed) await new Promise(resolve => {
+                release = resolve;
+            });
             return {ok: accept, json: async () => ({access_token: {name: 'alice'}})};
         },
     });
@@ -50,7 +78,9 @@ test('second-factor login keeps rejected and stale challenges out of authenticat
     context.runButtonAction = vm.runInContext(button.slice(button.indexOf('export async function runButtonAction')).replace('export ', '') + '; runButtonAction', context);
     const source = readFileSync(new URL('../js/mfa-login.js', import.meta.url), 'utf8').replace(/^import .*;\r?\n/gm, '').replaceAll('export ', '');
     vm.runInContext(source, context);
-    const settle = async () => { for (let i = 0; i < 8; i++) await new Promise(resolve => setImmediate(resolve)); };
+    const settle = async () => {
+        for (let i = 0; i < 8; i++) await new Promise(resolve => setImmediate(resolve));
+    };
     available = false;
     await context.showMFALogin();
     assert.equal(field('login-error').textContent, 'mfa.invalid');
@@ -101,15 +131,40 @@ test('second-factor login keeps rejected and stale challenges out of authenticat
 test('Passkey assertion conversion preserves required user verification', async () => {
     let request;
     const buffer = new Uint8Array([1, 2, 3]).buffer;
-    const context = vm.createContext({Uint8Array, atob, btoa, AbortController, DOMException, setTimeout, clearTimeout, setInterval, clearInterval,
-        window: {PublicKeyCredential: true, addEventListener() {}, removeEventListener() {}},
-        navigator: {credentials: {get: async options => {
-            request = options;
-            return {id: 'key', rawId: buffer, type: 'public-key', response: {authenticatorData: buffer, clientDataJSON: buffer, signature: buffer, userHandle: null}};
-        }}},
+    const context = vm.createContext({
+        Uint8Array, atob, btoa, AbortController, DOMException, setTimeout, clearTimeout, setInterval, clearInterval,
+        window: {
+            PublicKeyCredential: true, addEventListener() {
+            }, removeEventListener() {
+            }
+        },
+        navigator: {
+            credentials: {
+                get: async options => {
+                    request = options;
+                    return {
+                        id: 'key',
+                        rawId: buffer,
+                        type: 'public-key',
+                        response: {
+                            authenticatorData: buffer,
+                            clientDataJSON: buffer,
+                            signature: buffer,
+                            userHandle: null
+                        }
+                    };
+                }
+            }
+        },
     });
     vm.runInContext(readFileSync(new URL('../js/fido-utils.js', import.meta.url), 'utf8').replace(/^import .*;\r?\n/gm, '').replaceAll('export ', ''), context);
-    const result = await context.requestPasskeyAssertion({publicKey: {challenge: 'AQID', allowCredentials: [{type: 'public-key', id: 'AQID'}], userVerification: 'required'}});
+    const result = await context.requestPasskeyAssertion({
+        publicKey: {
+            challenge: 'AQID',
+            allowCredentials: [{type: 'public-key', id: 'AQID'}],
+            userVerification: 'required'
+        }
+    });
     assert.equal(request.publicKey.userVerification, 'required');
     assert.deepEqual([...new Uint8Array(request.publicKey.challenge)], [1, 2, 3]);
     assert.deepEqual([...new Uint8Array(request.publicKey.allowCredentials[0].id)], [1, 2, 3]);

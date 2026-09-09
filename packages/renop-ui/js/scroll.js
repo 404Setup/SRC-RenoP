@@ -128,7 +128,8 @@ export function enableDragToScroll(container) {
                 if (!container.hasPointerCapture || container.hasPointerCapture(activePointerId)) {
                     container.releasePointerCapture(activePointerId);
                 }
-            } catch {}
+            } catch {
+            }
         }
         activePointerId = null;
         activeScrollTarget = null;
@@ -184,7 +185,8 @@ export function enableDragToScroll(container) {
             if (container.setPointerCapture) {
                 try {
                     container.setPointerCapture(e.pointerId);
-                } catch {}
+                } catch {
+                }
             }
             if (window.getSelection) {
                 window.getSelection().removeAllRanges();

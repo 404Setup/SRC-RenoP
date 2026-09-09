@@ -21,11 +21,12 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"golang.org/x/time/rate"
 
-	"github.com/stretchr/testify/require"
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/testutil"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestAccountIPBanRejectsEveryRequestAndHonorsTrustedProxies(t *testing.T) {

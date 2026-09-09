@@ -11,23 +11,31 @@ description: 工单将反馈、建议、举报、所有权转让与发布审批�
 
 ## 适用范围与凭据
 
-所有接口都要求有效的浏览器 `renop_session` Cookie。Basic 凭据、Bearer API Token 和不带该 Cookie 的会话令牌均被拒绝。入口为 `/account/tickets`，旧 `/account/reviews` 链接会跳转至此。
+所有接口都要求有效的浏览器 `renop_session` Cookie。Basic 凭据、Bearer API Token 和不带该 Cookie 的会话令牌均被拒绝。入口为
+`/account/tickets`，旧 `/account/reviews` 链接会跳转至此。
 
-仓库版主可查看其范围内所有状态的工单，包括团队审批阶段；系统管理员可查看所有范围。T3/T4 团队成员只处理分配给本团队的转让和创建流程，团队审批仍先于仓库审批。申请记录关联不可变账号身份。
+仓库版主可查看其范围内所有状态的工单，包括团队审批阶段；系统管理员可查看所有范围。T3/T4
+团队成员只处理分配给本团队的转让和创建流程，团队审批仍先于仓库审批。申请记录关联不可变账号身份。
 
-有权查看工单的处理人员可以互相看到身份。申请人不会收到 `assignee`、`escalated_by` 或 `decided_by`。被举报账号即使是管理员，也不能读取或处理针对自己的举报；被举报对象不会获得举报者身份或工单访问权限。
+有权查看工单的处理人员可以互相看到身份。申请人不会收到 `assignee`、`escalated_by` 或 `decided_by`
+。被举报账号即使是管理员，也不能读取或处理针对自己的举报；被举报对象不会获得举报者身份或工单访问权限。
 
-待处理提醒跟随当前审批阶段。最终结果通过消息，以及启用时的邮件，按申请人账号语言通知申请人。只有举报以 `upheld` 完成时才另行通知被举报对象；通知只含资源与结果，不含工单 ID、举报者、处理人员或私密正文。驳回与撤回不通知被举报对象，原有邮件场景标识保持兼容。
+待处理提醒跟随当前审批阶段。最终结果通过消息，以及启用时的邮件，按申请人账号语言通知申请人。只有举报以 `upheld`
+完成时才另行通知被举报对象；通知只含资源与结果，不含工单 ID、举报者、处理人员或私密正文。驳回与撤回不通知被举报对象，原有邮件场景标识保持兼容。
 
 举报审计事件不记录账号、处理人、会话与 IP 身份；处理人员的身份归属保留在有权访问的工单内。
 
 ## 提交反馈、建议或举报
 
-POST /api/tickets 接受 `kind`（`feedback`、`suggestion` 或 `report`）、`title`（1–160 字符）、`body`（1–8000 字符）及可选的 `repository`。JSON 正文上限 48 KiB。每个账号最多有 16 个待处理支持工单，每 24 小时最多新建 24 个；全部流程共享 4096 个待处理任务上限。
+POST /api/tickets 接受 `kind`（`feedback`、`suggestion` 或 `report`）、`title`（1–160 字符）、`body`（1–8000 字符）及可选的
+`repository`。JSON 正文上限 48 KiB。每个账号最多有 16 个待处理支持工单，每 24 小时最多新建 24 个；全部流程共享 4096
+个待处理任务上限。
 
-举报还需 `target`：`format`、`repository`、`name` 及可选的 `version`。类型支持 `user`、`superteam`、`maven-domain`、`maven`、`cargo`、`npm`、`docker`。全局资源不填仓库。包举报必须匹配仓库格式并满足当前读取权限，可举报其他用户、可见的包或版本、发布域及团队；不能举报自己的资源、隐藏资源，也不能重复提交相同的待处理举报。
+举报还需 `target`：`format`、`repository`、`name` 及可选的 `version`。类型支持 `user`、`superteam`、`maven-domain`、`maven`、
+`cargo`、`npm`、`docker`。全局资源不填仓库。包举报必须匹配仓库格式并满足当前读取权限，可举报其他用户、可见的包或版本、发布域及团队；不能举报自己的资源、隐藏资源，也不能重复提交相同的待处理举报。
 
-创建返回 `201`、工单及 `Location`，举报对象的所有者按不可变账号 ID 记录。记录 `upheld` 不会自动封禁账号或锁定包；记录处罚成立前，应先使用现有管理功能执行相应处理。
+创建返回 `201`、工单及 `Location`，举报对象的所有者按不可变账号 ID 记录。记录 `upheld`
+不会自动封禁账号或锁定包；记录处罚成立前，应先使用现有管理功能执行相应处理。
 
 ```json
 {"kind":"report","title":"Package report","body":"Please investigate this version.","target":{"format":"npm","repository":"npm","name":"@platform/tool","version":"1.0.0"}}
@@ -35,15 +43,20 @@ POST /api/tickets 接受 `kind`（`feedback`、`suggestion` 或 `report`）、`t
 
 ## 接管、升级与处理
 
-POST /api/tickets/{id}/action 接受 `action`：`claim`、`release`、`escalate`、`process`、`complete` 或 `close`。处理和审批前必须接管工单，原子接管后其他人员仍可查看但不能处理。系统管理员可以用 `force: true` 接管版主占用的工单，但不能抢占尚未释放工单的另一位系统管理员。
+POST /api/tickets/{id}/action 接受 `action`：`claim`、`release`、`escalate`、`process`、`complete` 或 `close`
+。处理和审批前必须接管工单，原子接管后其他人员仍可查看但不能处理。系统管理员可以用 `force: true`
+接管版主占用的工单，但不能抢占尚未释放工单的另一位系统管理员。
 
 升级会释放工单并限定下一位接管人为系统管理员；管理员也可升级给另一位管理员。每个工单最多升级三次，第三次升级后的接管人必须完成处理，不能再释放、升级或被强制接管。团队批准后会释放接管状态，等待仓库阶段的处理人接管。
 
-支持工单的 `process` 记录已处理状态但不发送最终通知，`complete` 完成工单，`close` 关闭工单。这些操作都需要 1–4096 字符的 `response`。反馈和建议的 `outcome` 为 `resolved`，举报为 `upheld` 或 `dismissed`，关闭记录为 `closed`。操作 JSON 上限 24 KiB。发布与转让需接管后使用下方决策接口。
+支持工单的 `process` 记录已处理状态但不发送最终通知，`complete` 完成工单，`close` 关闭工单。这些操作都需要 1–4096 字符的
+`response`。反馈和建议的 `outcome` 为 `resolved`，举报为 `upheld` 或 `dismissed`，关闭记录为 `closed`。操作 JSON 上限 24
+KiB。发布与转让需接管后使用下方决策接口。
 
 强制接管资格依据当前处理人的现有角色：晋升为管理员后立即受到保护，撤销管理员权限后可在未达到升级上限时被接管。
 
-GET /api/tickets/{id} 返回有权查看的详情，以及根据当前权限和接管状态计算的 `actions` 数组，界面据此显示操作。接管冲突返回 `409`，错误码为 `ticket_claim_required`、`ticket_occupied` 或 `ticket_escalation_limit`。
+GET /api/tickets/{id} 返回有权查看的详情，以及根据当前权限和接管状态计算的 `actions` 数组，界面据此显示操作。接管冲突返回
+`409`，错误码为 `ticket_claim_required`、`ticket_occupied` 或 `ticket_escalation_limit`。
 
 ## 转让规则
 
@@ -82,9 +95,12 @@ Blob 关联、标签和审核结果在同一事务中写入。镜像源导入不
 
 ## 查询任务
 
-GET /api/tickets 返回有界分页。`view` 为 `reviewer` 或 `requested`；`status` 为 `unprocessed`（默认）、`in_progress`、`processed`、`closed`、`completed` 或 `all`。`limit` 为 1–100，`offset` 不得为负。逗号分隔的 `types` 支持原流程资源类型以及 `support`、`user`、`superteam`、`maven-domain`、`maven`、`cargo`、`npm`、`docker`。
+GET /api/tickets 返回有界分页。`view` 为 `reviewer` 或 `requested`；`status` 为 `unprocessed`（默认）、`in_progress`、
+`processed`、`closed`、`completed` 或 `all`。`limit` 为 1–100，`offset` 不得为负。逗号分隔的 `types` 支持原流程资源类型以及
+`support`、`user`、`superteam`、`maven-domain`、`maven`、`cargo`、`npm`、`docker`。
 
-`ticket_status` 表示统一工单状态，原 `status` 保留流程结果：`pending`、`approved`、`rejected` 或 `cancelled`。历史任务首次接管时写入工单状态。
+`ticket_status` 表示统一工单状态，原 `status` 保留流程结果：`pending`、`approved`、`rejected` 或 `cancelled`
+。历史任务首次接管时写入工单状态。
 
 响应包含 `tasks`、`total`、`limit`、`offset` 和最终使用的 `view`。每个任务保留来源、目标与当前审核团队前缀、
 申请人显示名称、时间、当前状态及已完成的决策信息。非空 `review_team_prefix` 表示任务由该团队 T3/T4 处理；
@@ -104,14 +120,16 @@ POST /api/tickets/super-team-transfers 接受 `resource_type`、`repository`、`
 ## 审核文件
 
 GET /api/tickets/{id}/files 最多返回 256 个仓库相对路径，并包含稳定文件标识、大小、上传时间和关键文件
-标记。GET /api/tickets/{id}/files/{file_id} 流式返回一个被隐藏的文件。只有申请人、当前审核团队 T3/T4、对应仓库版主或系统管理员使用浏览器会话时可以访问。
+标记。GET /api/tickets/{id}/files/{file_id} 流式返回一个被隐藏的文件。只有申请人、当前审核团队
+T3/T4、对应仓库版主或系统管理员使用浏览器会话时可以访问。
 
 网页审核中心最多使用四个自适应下载任务，每次失败会重试两次。全部成功后，浏览器会按照标准仓库路径
 生成 ZIP。仍有文件失败时，系统会分别打开关键文件，不会提供内容不完整的压缩包。
 
 ## 处理或取消
 
-当前处理人必须已接管此阶段的工单。POST /api/tickets/{id}/decision 接受 `approved` 或 `rejected`。批准 T2 创建申请时，若仍需仓库审核，会返回同一
+当前处理人必须已接管此阶段的工单。POST /api/tickets/{id}/decision 接受 `approved` 或 `rejected`。批准 T2
+创建申请时，若仍需仓库审核，会返回同一
 `pending` 任务并清空 `review_team_prefix`；否则直接完成创建。拒绝转让时必须提供不超过 512 个字符的理由。
 拒绝发布时必须提供 `reason_code`，可选值为 `invalid_metadata`、`quality`、`policy_violation`、`copyright`、
 `malware` 或 `custom`；自定义理由最多 505 个字符。批准时会先写入对应引擎的版本元数据再开放文件，拒绝时会删除隐藏文件。

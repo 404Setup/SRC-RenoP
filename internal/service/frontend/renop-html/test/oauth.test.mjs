@@ -1,7 +1,10 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
- * If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -12,28 +15,62 @@ import vm from 'node:vm';
 
 test('OAuth controls preserve intent, enforce last-login state, and discard private results after logout', async () => {
     const elements = new Map(), events = {}, destinations = [], alerts = [];
-    const node = (tag, attributes = {}, ...children) => ({tag, ...attributes, children, handlers: {},
-        appendChild(child) { this.children.push(child); }, replaceChildren(...next) { this.children = next; },
-        addEventListener(name, fn) { this.handlers[name] = fn; }});
-    const element = id => { if (!elements.has(id)) elements.set(id, node('div')); return elements.get(id); };
+    const node = (tag, attributes = {}, ...children) => ({
+        tag, ...attributes, children, handlers: {},
+        appendChild(child) {
+            this.children.push(child);
+        }, replaceChildren(...next) {
+            this.children = next;
+        },
+        addEventListener(name, fn) {
+            this.handlers[name] = fn;
+        }
+    });
+    const element = id => {
+        if (!elements.has(id)) elements.set(id, node('div'));
+        return elements.get(id);
+    };
     const text = value => typeof value === 'string' ? value : value.children.map(text).join('');
     const buttons = value => [value, ...value.children.flatMap(child => typeof child === 'string' ? [] : buttons(child))].filter(child => child.tag === 'button');
     const translate = (key, args = {}) => key + Object.values(args).join('');
     let release, delay = false;
     const publicChoices = [{id: 'demo', name: '<Example>'}];
-    const context = vm.createContext({el: node, t: translate, URL, URLSearchParams, AbortSignal,
+    const context = vm.createContext({
+        el: node, t: translate, URL, URLSearchParams, AbortSignal,
         document: {getElementById: element}, createIcon: () => node('icon'),
-        window: {location: {href: 'https://renop.example/account/login?oauth=success&provider=demo', pathname: '/user/alice'},
+        window: {
+            location: {
+                href: 'https://renop.example/account/login?oauth=success&provider=demo',
+                pathname: '/user/alice'
+            },
             history: {replaceState: (_state, _title, path) => destinations.push(path)},
-            addEventListener: (name, fn) => { events[name] = fn; }, showConfirm: async () => true},
+            addEventListener: (name, fn) => {
+                events[name] = fn;
+            }, showConfirm: async () => true
+        },
         loginReturnTo: () => '/packages', showAlert: (...args) => alerts.push(args),
-        refreshAccountSecurity: async () => {}, runButtonAction: (_button, fn) => fn(),
+        refreshAccountSecurity: async () => {
+        }, runButtonAction: (_button, fn) => fn(),
         LocalizedResponseError: Error, responseErrorMessage: async () => 'oauth.failed',
         fetch: async () => ({ok: true, json: async () => ({providers: publicChoices})}),
         apiRequest: async () => {
-            if (delay) await new Promise(resolve => { release = resolve; });
-            return {ok: true, json: async () => ({providers: [{id: 'demo', name: '<Example>', login: '<Alice>',
-                configured: true, linked: true, can_disconnect: false, can_verify_email: true, can_import_avatar: true}]})};
+            if (delay) await new Promise(resolve => {
+                release = resolve;
+            });
+            return {
+                ok: true, json: async () => ({
+                    providers: [{
+                        id: 'demo',
+                        name: '<Example>',
+                        login: '<Alice>',
+                        configured: true,
+                        linked: true,
+                        can_disconnect: false,
+                        can_verify_email: true,
+                        can_import_avatar: true
+                    }]
+                })
+            };
         },
     });
     context.window.location.assign = value => destinations.push(value);
@@ -66,7 +103,8 @@ test('OAuth controls preserve intent, enforce last-login state, and discard priv
     delay = true;
     const loading = context.refreshOAuthProfile('alice');
     events.authChanged({detail: {isLoggedIn: false}});
-    release(); await loading;
+    release();
+    await loading;
     assert.equal(element('profile-oauth-providers').hidden, true);
     assert.equal(element('profile-oauth-providers').children.length, 0);
 });

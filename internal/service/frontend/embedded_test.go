@@ -22,7 +22,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/klauspost/compress/zstd"
-	brrr "github.com/molecule-man/go-brrr"
+	"github.com/molecule-man/go-brrr"
 )
 
 func decodeAssetResponse(t *testing.T, encoding string, body []byte) []byte {

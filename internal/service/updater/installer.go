@@ -37,7 +37,7 @@ import (
 	"time"
 
 	"github.com/klauspost/compress/zip"
-	brrr "github.com/molecule-man/go-brrr"
+	"github.com/molecule-man/go-brrr"
 
 	"renop/internal/utils"
 )

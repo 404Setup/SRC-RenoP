@@ -84,4 +84,5 @@ Les métadonnées de paquet et de version exposent `locks`, avec `mode`, `reason
 Les verrouillages système et manuels sont indépendants. Supprimer le manuel conserve les restrictions système.
 Les mutations refusées renvoient `423` et `X-Renop-Error-Code: resource_locked`, les lectures refusées `404`.
 Une version verrouillée empêche l'archivage, l'abandon définitif et la suppression du paquet entier, mais permet
-la publication d'autres versions. La reconfiguration et la suppression du dépôt sont bloquées tant qu'il contient des verrous.
+la publication d'autres versions. La reconfiguration et la suppression du dépôt sont bloquées tant qu'il contient des
+verrous.

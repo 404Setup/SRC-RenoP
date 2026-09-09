@@ -27,7 +27,9 @@ seconds for each domain. A system administrator can use `/verify/force`; this by
 A verified domain and its team are global to the RenoP instance. The same domain can publish to every Maven repository
 without another verification, domain reservation, or invitation cycle.
 
-A recent GitLab.com connection can also verify a new namespace automatically: the account must own the personal namespace or a top-level group, and its proof must be less than one hour old. Public membership, subgroup ownership, and self-hosted instances are insufficient. See [Third-party Login](../security/oauth-login.md).
+A recent GitLab.com connection can also verify a new namespace automatically: the account must own the personal
+namespace or a top-level group, and its proof must be less than one hour old. Public membership, subgroup ownership, and
+self-hosted instances are insufficient. See [Third-party Login](../security/oauth-login.md).
 
 ## Domain permissions
 
@@ -83,7 +85,8 @@ schema list is available in `web/assets/openapi.yaml`.
 
 ## Resource locks
 
-Administrators and moderators for this repository manage artifact or version locks using an active browser session cookie:
+Administrators and moderators for this repository manage artifact or version locks using an active browser session
+cookie:
 
 - `PUT /api/maven/repositories/{repo_name}/package/locks?group={group}&artifact={artifact}`
 - `DELETE /api/maven/repositories/{repo_name}/package/locks?group={group}&artifact={artifact}`
@@ -92,17 +95,33 @@ Administrators and moderators for this repository manage artifact or version loc
 {"version":"1.2.3","mode":"read","reason":"trojan"}
 ```
 
-Omit `version` or use an empty string to target the artifact. DELETE accepts `{"version":"1.2.3"}` and removes only that manual lock; system locks remain independent. API tokens cannot manage locks. The UI localizes public reasons: `hold`, `prohibited`, `expired`, `trojan`, `abuse`, `dmca`, `reup`, `squatting`, and `quality`.
+Omit `version` or use an empty string to target the artifact. DELETE accepts `{"version":"1.2.3"}` and removes only that
+manual lock; system locks remain independent. API tokens cannot manage locks. The UI localizes public reasons: `hold`,
+`prohibited`, `expired`, `trojan`, `abuse`, `dmca`, `reup`, `squatting`, and `quality`.
 
-Both modes freeze writes. `write` preserves stored downloads; `read` also restricts metadata to administrators, repository moderators, domain owners/collaborators (including L0), and members of either bound global team. File bytes, POM downloads, signatures, and checksums are unavailable to every viewer. Permitted viewers can inspect catalog details and parsed `maven-metadata.xml`; other viewers cannot discover the restricted artifact or version through catalogs, search, directory listings, version APIs, or statistics. Shared XML metadata omits hidden versions and adjusts latest/release values without changing the stored file.
+Both modes freeze writes. `write` preserves stored downloads; `read` also restricts metadata to administrators,
+repository moderators, domain owners/collaborators (including L0), and members of either bound global team. File bytes,
+POM downloads, signatures, and checksums are unavailable to every viewer. Permitted viewers can inspect catalog details
+and parsed `maven-metadata.xml`; other viewers cannot discover the restricted artifact or version through catalogs,
+search, directory listings, version APIs, or statistics. Shared XML metadata omits hidden versions and adjusts
+latest/release values without changing the stored file.
 
-Locks cover arbitrary companions and timestamped SNAPSHOT files. Frozen bytes neither expire nor refill from mirrors. Shared metadata cannot be overwritten while a version is locked; whole-artifact deprecation and repository reconfiguration/deletion are also blocked. Details expose public `locks`, `moderator`, `member`, and `version_locked` state. Denied mutations return `423` with `X-Renop-Error-Code: resource_locked`; denied reads return `404`.
+Locks cover arbitrary companions and timestamped SNAPSHOT files. Frozen bytes neither expire nor refill from mirrors.
+Shared metadata cannot be overwritten while a version is locked; whole-artifact deprecation and repository
+reconfiguration/deletion are also blocked. Details expose public `locks`, `moderator`, `member`, and `version_locked`
+state. Denied mutations return `423` with `X-Renop-Error-Code: resource_locked`; denied reads return `404`.
 
-Version deletion validates every coordinate segment before changing storage; path separators and dot-directory aliases are rejected.
+Version deletion validates every coordinate segment before changing storage; path separators and dot-directory aliases
+are rejected.
 
-Global-team locks are inherited by bound artifacts and publishing domains. Domain responses include public `locks`. A locked domain freezes verification, membership, ownership transfers, closure, and new publication, including uncatalogued files and metadata. Read locks preserve metadata for existing collaborators and authorized moderators while blocking all file bytes. An independently verified child domain retains its own authority. Team membership and domain permissions are retained when locked and restored after all applicable restrictions are removed.
+Global-team locks are inherited by bound artifacts and publishing domains. Domain responses include public `locks`. A
+locked domain freezes verification, membership, ownership transfers, closure, and new publication, including
+uncatalogued files and metadata. Read locks preserve metadata for existing collaborators and authorized moderators while
+blocking all file bytes. An independently verified child domain retains its own authority. Team membership and domain
+permissions are retained when locked and restored after all applicable restrictions are removed.
 
-System administrators and global moderators manage a publishing domain across every repository with an active browser session:
+System administrators and global moderators manage a publishing domain across every repository with an active browser
+session:
 
 - `PUT /api/maven/domains/{domain}/locks`
 - `DELETE /api/maven/domains/{domain}/locks`
@@ -111,21 +130,27 @@ System administrators and global moderators manage a publishing domain across ev
 {"mode":"write","reason":"hold"}
 ```
 
-PUT accepts the body below; DELETE accepts `{}`. Both return `204`. API tokens and repository-scoped moderators cannot manage a global domain. Removing a manual domain lock leaves system and inherited team locks intact. Domain details expose `moderator` for the current request; public, account, and repository domain pages share the same control. Repository changes, migration, and deletion also check locked namespaces present only on disk or in the file index.
+PUT accepts the body below; DELETE accepts `{}`. Both return `204`. API tokens and repository-scoped moderators cannot
+manage a global domain. Removing a manual domain lock leaves system and inherited team locks intact. Domain details
+expose `moderator` for the current request; public, account, and repository domain pages share the same control.
+Repository changes, migration, and deletion also check locked namespaces present only on disk or in the file index.
 
 ## Domain health and redemption
 
 RenoP checks registry domains through RDAP, using the [IANA bootstrap](https://data.iana.org/rdap/dns.json).
-It checks up to 16 due domains each minute; successful checks are scheduled six hours apart and unavailable checks retry after 15 minutes.
+It checks up to 16 due domains each minute; successful checks are scheduled six hours apart and unavailable checks retry
+after 15 minutes.
 
-| Registry state | Public lock reason |
-| --- | --- |
-| `serverHold`, `clientHold` | `hold` |
-| `pendingDelete`, `restorable`, `redemptionPeriod`, `pendingRestore`, or a passed expiration date | `expired` |
-| `clientRenewProhibited`, `serverRenewProhibited`, `renew prohibited` | `prohibited` |
+| Registry state                                                                                   | Public lock reason |
+|--------------------------------------------------------------------------------------------------|--------------------|
+| `serverHold`, `clientHold`                                                                       | `hold`             |
+| `pendingDelete`, `restorable`, `redemptionPeriod`, `pendingRestore`, or a passed expiration date | `expired`          |
+| `clientRenewProhibited`, `serverRenewProhibited`, `renew prohibited`                             | `prohibited`       |
 
-RDAP space-separated equivalents are accepted. A provider outage does not remove a restriction or extend a known expiration.
-An unavailable registry cannot complete a fresh health check. Proof verification and administrator claim approval require a healthy result.
+RDAP space-separated equivalents are accepted. A provider outage does not remove a restriction or extend a known
+expiration.
+An unavailable registry cannot complete a fresh health check. Proof verification and administrator claim approval
+require a healthy result.
 
 For `io.github.<account>` and `io.gitlab.<account>`, RenoP checks the public account instead of registry expiration.
 Verification records its immutable numeric ID and whether it is a user or organization/group.
@@ -133,11 +158,13 @@ A missing account freezes publication; a changed ID or account type is a dispute
 Legacy verified provider namespaces without an ID require fresh proof before their permissions can be restored.
 
 A health lock freezes the domain and its content while keeping downloads and membership records.
-The first lock rotates the verification code. After restoring the external account/domain, its current L4 owner must publish
+The first lock rotates the verification code. After restoring the external account/domain, its current L4 owner must
+publish
 the new proof and select **Request redemption**, which calls `POST /api/maven/domains/{domain}/redeem` with the active
 `renop_session` cookie. Checks are limited to one attempt every five seconds. A healthy background check alone never
 restores control. Redemption removes only the health lock; independent manual, system, and team restrictions remain.
-Domain responses expose `health`, including status, check/expiration times, provider identity, lock time, and release time.
+Domain responses expose `health`, including status, check/expiration times, provider identity, lock time, and release
+time.
 
 ## Released domain artifacts
 
@@ -152,5 +179,6 @@ The current domain owner requests publication access from the old artifact page 
 Approval rechecks the current claim and owner, restores only that artifact, and binds it to the domain's current team.
 Mirrored and permanently deprecated artifacts cannot be restored. See [Review API](reviews.md).
 
-Claim preparation streams disk or S3 metadata with a one-minute deadline. A storage error or timeout leaves the current claim unchanged.
+Claim preparation streams disk or S3 metadata with a one-minute deadline. A storage error or timeout leaves the current
+claim unchanged.
 Pending publications remain in their existing review workflow and are excluded from public catalog import.

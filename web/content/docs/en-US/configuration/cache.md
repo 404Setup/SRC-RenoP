@@ -32,7 +32,8 @@ The pool has at most eight connections. Startup requires a reachable external ca
 ## Cached Data
 
 The backend applies to artifact metadata content, parsed Maven metadata, authentication results, database account,
-session, profile and identity lookups, derived repository cache policies, upstream Docker tokens, and SPA asset payloads.
+session, profile and identity lookups, derived repository cache policies, upstream Docker tokens, and SPA asset
+payloads.
 The generated HTML shell also uses the selected backend. Database storage, live sessions, locks, sockets, and workers
 retain their existing ownership and persistence.
 

@@ -24,7 +24,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/klauspost/compress/zstd"
-	brrr "github.com/molecule-man/go-brrr"
+	"github.com/molecule-man/go-brrr"
 
 	"renop/internal/config"
 	"renop/internal/core"

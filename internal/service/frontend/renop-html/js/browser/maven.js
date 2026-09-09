@@ -20,7 +20,7 @@ import {createIcon, createSkeleton, createUserIdentity, RenopDialog, runButtonAc
 import {t} from '../i18n.js';
 import {createSuperTeamBindingField} from '../super-team-selector.js';
 import {SUPER_TEAM_ERROR_KEYS} from '../super-team-errors.js';
-import {openTicketCenter, openSuperTeamTransferDialog} from '../tickets.js';
+import {openSuperTeamTransferDialog, openTicketCenter} from '../tickets.js';
 import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {createSuperTeamPublicLink} from '../profile-links.js';
@@ -30,7 +30,12 @@ import {
     createPackageDeprecationNotice
 } from '../package-deprecation.js';
 import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '../response-errors.js';
-import {createResourceLockButton, createResourceLockNotices, resourceReadLocked, resourceWriteLocked} from '../resource-locks.js';
+import {
+    createResourceLockButton,
+    createResourceLockNotices,
+    resourceReadLocked,
+    resourceWriteLocked
+} from '../resource-locks.js';
 import {exitProtectedRouteOnDenial} from '../protected-route.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
 import {copyWithFeedback} from './copy-feedback.js';
@@ -282,13 +287,17 @@ function domainActions(details, refresh) {
 /** Describe the domain's current publication state. */
 function mavenDomainStatus(domain) {
     if (Number(domain?.health?.locked_at) > 0) {
-        return {tone: 'pending', icon: 'fileLock', label: t('maven.healthLocked'),
-            description: t(domain.released ? 'maven.domainReleasedHint' : 'maven.redemptionHint')};
+        return {
+            tone: 'pending', icon: 'fileLock', label: t('maven.healthLocked'),
+            description: t(domain.released ? 'maven.domainReleasedHint' : 'maven.redemptionHint')
+        };
     }
     if (resourceWriteLocked(domain)) {
         const lock = domain.locks.find(lock => lock.mode === 'read') || domain.locks[0];
-        return {tone: 'pending', icon: 'fileLock', label: t(`resourceLock.${lock.mode}`),
-            description: t(`resourceLock.reason.${lock.reason}`)};
+        return {
+            tone: 'pending', icon: 'fileLock', label: t(`resourceLock.${lock.mode}`),
+            description: t(`resourceLock.reason.${lock.reason}`)
+        };
     }
     if (Number(domain?.closed_at) > 0) {
         const released = domain.released === true;
@@ -420,12 +429,30 @@ function domainInformationSection(details, {repository = '', repositoryArtifactC
         {label: t('maven.lastChecked'), value: domain.last_check_at ? formatDate(domain.last_check_at) : null},
         {label: t('maven.closedAt'), value: domain.closed_at ? formatDate(domain.closed_at) : null},
         {label: t('maven.releaseAt'), value: domain.release_at ? formatDate(domain.release_at) : null},
-        {label: t('maven.healthCheckedAt'), value: domain.health?.checked_at ? formatDate(domain.health.checked_at) : null},
-        {label: t('maven.healthStatus'), value: domain.health?.status ? t(`maven.health.${domain.health.status}`) : null},
-        {label: t('maven.healthExpiresAt'), value: domain.health?.expires_at ? formatDate(domain.health.expires_at) : null},
-        {label: t('maven.healthReleaseAt'), value: domain.health?.release_at ? formatDate(domain.health.release_at) : null},
-        {label: t('maven.providerIdentity'), value: domain.health?.provider_id ? `${domain.health.provider_type} #${domain.health.provider_id}` : null},
-        {label: t('maven.claimVerifiedAt'), value: domain.claim_verified_at ? formatDate(domain.claim_verified_at) : null},
+        {
+            label: t('maven.healthCheckedAt'),
+            value: domain.health?.checked_at ? formatDate(domain.health.checked_at) : null
+        },
+        {
+            label: t('maven.healthStatus'),
+            value: domain.health?.status ? t(`maven.health.${domain.health.status}`) : null
+        },
+        {
+            label: t('maven.healthExpiresAt'),
+            value: domain.health?.expires_at ? formatDate(domain.health.expires_at) : null
+        },
+        {
+            label: t('maven.healthReleaseAt'),
+            value: domain.health?.release_at ? formatDate(domain.health.release_at) : null
+        },
+        {
+            label: t('maven.providerIdentity'),
+            value: domain.health?.provider_id ? `${domain.health.provider_type} #${domain.health.provider_id}` : null
+        },
+        {
+            label: t('maven.claimVerifiedAt'),
+            value: domain.claim_verified_at ? formatDate(domain.claim_verified_at) : null
+        },
         {label: t('maven.teamMembers'), value: Number(domain.member_count) || 0},
         {label: t('maven.repositoryCount'), value: canViewGlobalCounts ? Number(domain.repository_count) || 0 : null},
         {label: t('maven.globalArtifactCount'), value: canViewGlobalCounts ? Number(domain.artifact_count) || 0 : null},
@@ -1201,26 +1228,26 @@ async function renderManagedDomain(container, domainName) {
             for (const decision of ['approved', 'rejected']) {
                 const approve = decision === 'approved';
                 actions.appendChild(el('button', {
-                    type: 'button', class: approve ? 'pill-btn pill-btn--primary' : 'pill-btn pill-btn--ghost-danger',
-                    onclick: async event => {
-                        if (!approve && !(await showConfirm(t('maven.claimRejectConfirm', {domain: domain.domain}),
-                            {danger: true}))) return;
-                        await runButtonAction(event.currentTarget, async () => {
-                            const reviewResponse = await apiRequest(
-                                `/api/maven/domains/${encodeURIComponent(domain.domain)}/claim`, {
-                                    method: 'PUT', headers: {'Content-Type': 'application/json'},
-                                    body: JSON.stringify({decision})
-                                });
-                            if (!reviewResponse.ok) {
-                                showAlert(await responseErrorMessage(reviewResponse, 'maven.claimReviewFailed'), 'error');
-                                return;
-                            }
-                            showAlert(t(approve ? 'maven.claimApproved' : 'maven.claimRejected'), 'success');
-                            await refresh();
-                        });
-                    }
-                }, createIcon(approve ? 'check' : 'close'),
-                el('span', {}, t(approve ? 'review.approve' : 'review.reject'))));
+                        type: 'button', class: approve ? 'pill-btn pill-btn--primary' : 'pill-btn pill-btn--ghost-danger',
+                        onclick: async event => {
+                            if (!approve && !(await showConfirm(t('maven.claimRejectConfirm', {domain: domain.domain}),
+                                {danger: true}))) return;
+                            await runButtonAction(event.currentTarget, async () => {
+                                const reviewResponse = await apiRequest(
+                                    `/api/maven/domains/${encodeURIComponent(domain.domain)}/claim`, {
+                                        method: 'PUT', headers: {'Content-Type': 'application/json'},
+                                        body: JSON.stringify({decision})
+                                    });
+                                if (!reviewResponse.ok) {
+                                    showAlert(await responseErrorMessage(reviewResponse, 'maven.claimReviewFailed'), 'error');
+                                    return;
+                                }
+                                showAlert(t(approve ? 'maven.claimApproved' : 'maven.claimRejected'), 'success');
+                                await refresh();
+                            });
+                        }
+                    }, createIcon(approve ? 'check' : 'close'),
+                    el('span', {}, t(approve ? 'review.approve' : 'review.reject'))));
             }
         }
         if (canOwn && !closed && domain.verification_type !== 'mirror') {
@@ -1614,8 +1641,10 @@ function mavenVersionEntry(version, {
 }) {
     const actions = el('div', {class: 'maven-version-actions'});
     const pendingReview = version.review_status === 'pending';
-    actions.appendChild(createTicketReportButton({format: 'maven', repository,
-        name: `${groupID}:${artifactID}`, version: version.version}, pendingReview || artifact.mirrored || version.mirrored ||
+    actions.appendChild(createTicketReportButton({
+        format: 'maven', repository,
+        name: `${groupID}:${artifactID}`, version: version.version
+    }, pendingReview || artifact.mirrored || version.mirrored ||
         Number(artifact.permission_level) >= 4 || resourceReadLocked(artifact, version)));
     if (manageLock && !pendingReview) actions.appendChild(manageLock(version));
     if (canManageVersions && !resourceWriteLocked(version) && !pendingReview) {
@@ -1713,7 +1742,11 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
             onclick: event => runButtonAction(event.currentTarget, async () => {
                 const response = await apiRequest('/api/tickets/maven-restorations', {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({resource_type: 'maven_artifact', repository, resource_key: `${groupID}:${artifactID}`})
+                    body: JSON.stringify({
+                        resource_type: 'maven_artifact',
+                        repository,
+                        resource_key: `${groupID}:${artifactID}`
+                    })
                 });
                 if (!response.ok) {
                     showAlert(await responseErrorMessage(response, 'review.operationFailed'), 'error');
@@ -1724,7 +1757,11 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
             }).catch(error => showAlert(caughtErrorMessage(error, 'review.operationFailed'), 'error'))
         }, createIcon('refresh'), el('span', {}, t('maven.restorePublication'))));
         if (manageLock) artifactActions.appendChild(manageLock());
-        artifactActions.appendChild(createTicketReportButton({format: 'maven', repository, name: `${groupID}:${artifactID}`},
+        artifactActions.appendChild(createTicketReportButton({
+                format: 'maven',
+                repository,
+                name: `${groupID}:${artifactID}`
+            },
             artifact.mirrored || Number(artifact.permission_level) >= 4 || resourceReadLocked(artifact)));
         if (canDeprecate && !artifact.mirrored && !isDeprecated) {
             artifactActions.appendChild(createDeprecatePackageButton(

@@ -28,7 +28,7 @@ import {t} from '../i18n.js';
 import {createSuperTeamBindingField} from '../super-team-selector.js';
 import {setSafeMarkdown} from '../markdown.js';
 import {getRepositoryFormat} from '../repository-formats.js';
-import {openTicketCenter, openSuperTeamTransferDialog} from '../tickets.js';
+import {openSuperTeamTransferDialog, openTicketCenter} from '../tickets.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {createPackageDetailTabs} from './package-detail-tabs.js';
 import {decodePathSegment, encodePathSegment, encodeRelativePath, formatBytes} from './utils.js';
@@ -49,7 +49,12 @@ import {
     setRepositoryViewBusy
 } from './repository-view.js';
 import {RepositoryUserSuggestions} from './user-suggestions.js';
-import {createResourceLockButton, createResourceLockNotices, resourceReadLocked, resourceWriteLocked} from '../resource-locks.js';
+import {
+    createResourceLockButton,
+    createResourceLockNotices,
+    resourceReadLocked,
+    resourceWriteLocked
+} from '../resource-locks.js';
 
 const dockerRepositoryIcon = getRepositoryFormat('docker').icon;
 const dockerTagPageSize = 10;
@@ -915,11 +920,11 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                 const actionsWrap = el('div', {class: 'docker-tag-actions'});
                 if (!pendingReview) {
                     if (!resourceReadLocked(image, tObj)) actionsWrap.append(el('button', {
-                            class: 'docker-action-btn',
-                            type: 'button',
-                            title: t('docker.copyPull'),
-                            onclick: (e) => triggerDockerCopy(e.currentTarget, tagPullCmd)
-                        }, createIcon('copy', {class: 'icon-svg'})));
+                        class: 'docker-action-btn',
+                        type: 'button',
+                        title: t('docker.copyPull'),
+                        onclick: (e) => triggerDockerCopy(e.currentTarget, tagPullCmd)
+                    }, createIcon('copy', {class: 'icon-svg'})));
                     actionsWrap.append(el('button', {
                             class: 'docker-action-btn',
                             type: 'button',
@@ -928,8 +933,10 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                         }, createIcon('eye', {class: 'icon-svg'}))
                     );
                     const manageLock = lockButton(tObj.digest, tObj.locks);
-                    actionsWrap.appendChild(createTicketReportButton({format: 'docker', repository: repoName,
-                        name: imageName, version: tObj.digest}, image.mirrored || tObj.mirrored || permissionLevel >= 4 || resourceReadLocked(image, tObj)));
+                    actionsWrap.appendChild(createTicketReportButton({
+                        format: 'docker', repository: repoName,
+                        name: imageName, version: tObj.digest
+                    }, image.mirrored || tObj.mirrored || permissionLevel >= 4 || resourceReadLocked(image, tObj)));
                     if (manageLock) actionsWrap.append(manageLock);
                 }
 

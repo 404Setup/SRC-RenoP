@@ -31,14 +31,14 @@ let currentSecurity = null;
  */
 function renderAccountSecurity(security) {
     currentSecurity = security;
-	const passkeyMFA = document.getElementById('profile-mfa-passkey');
-	if (passkeyMFA) {
-		passkeyMFA.checked = security.passkey_second_factor === true;
-		passkeyMFA.disabled = !passkeyMFA.checked && (!(Number(security.fido_device_count) > 0) ||
-			!(security.github_linked || Number(security.oauth_identity_count) > 0 || (security.password_configured && security.password_login_enabled)));
-	}
-	$('#profile-mfa-totp-status').text(t(security.totp_enabled ? 'mfa.enabled' : 'mfa.disabled'));
-	$('#profile-mfa-totp').text(t(security.totp_enabled ? 'mfa.remove' : 'mfa.setup'));
+    const passkeyMFA = document.getElementById('profile-mfa-passkey');
+    if (passkeyMFA) {
+        passkeyMFA.checked = security.passkey_second_factor === true;
+        passkeyMFA.disabled = !passkeyMFA.checked && (!(Number(security.fido_device_count) > 0) ||
+            !(security.github_linked || Number(security.oauth_identity_count) > 0 || (security.password_configured && security.password_login_enabled)));
+    }
+    $('#profile-mfa-totp-status').text(t(security.totp_enabled ? 'mfa.enabled' : 'mfa.disabled'));
+    $('#profile-mfa-totp').text(t(security.totp_enabled ? 'mfa.remove' : 'mfa.setup'));
     const section = $('#profile-account-security-section').get(0);
     const emailInput = $('#profile-private-email').get(0);
     const toggle = $('#profile-password-login-toggle').get(0);
@@ -164,7 +164,10 @@ async function saveMFASettings(body) {
     const response = await apiRequest('/api/auth/profile/mfa', {
         method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body),
     });
-    if (!response.ok) { await showMFASettingsError(response); return; }
+    if (!response.ok) {
+        await showMFASettingsError(response);
+        return;
+    }
     renderAccountSecurity(await response.json());
     showAlert(t('mfa.saved'), 'success');
 }
@@ -172,15 +175,21 @@ async function saveMFASettings(body) {
 $('#profile-mfa-passkey').on('change', async event => {
     const toggle = event.currentTarget;
     toggle.disabled = true;
-    try { await saveMFASettings({passkey_second_factor: toggle.checked}); }
-    catch { showAlert(t('mfa.unavailable'), 'error'); }
-    finally { if (currentSecurity) renderAccountSecurity(currentSecurity); }
+    try {
+        await saveMFASettings({passkey_second_factor: toggle.checked});
+    } catch {
+        showAlert(t('mfa.unavailable'), 'error');
+    } finally {
+        if (currentSecurity) renderAccountSecurity(currentSecurity);
+    }
 });
 
 /** Show the setup key once, with a local QR image and a code confirmation form. */
 async function showTOTPSetup(setup) {
-    const code = el('input', {id: 'totp-setup-code', type: 'text', inputmode: 'numeric',
-        autocomplete: 'one-time-code', pattern: '[0-9]{6}', minlength: '6', maxlength: '6', required: true});
+    const code = el('input', {
+        id: 'totp-setup-code', type: 'text', inputmode: 'numeric',
+        autocomplete: 'one-time-code', pattern: '[0-9]{6}', minlength: '6', maxlength: '6', required: true
+    });
     const secret = el('code', {class: 'mfa-setup-secret'}, setup.secret);
     const image = el('img', {src: setup.qr, alt: t('mfa.qrAlt'), width: '320', height: '320'});
     const errorBox = el('p', {class: 'account-form-error', role: 'alert', hidden: true});
@@ -197,11 +206,18 @@ async function showTOTPSetup(setup) {
                     body: JSON.stringify({id: setup.id, code: code.value}),
                 });
                 code.value = '';
-                if (!response.ok) { errorBox.textContent = await responseErrorMessage(response, 'mfa.invalid'); errorBox.hidden = false; return; }
+                if (!response.ok) {
+                    errorBox.textContent = await responseErrorMessage(response, 'mfa.invalid');
+                    errorBox.hidden = false;
+                    return;
+                }
                 renderAccountSecurity(await response.json());
                 document.getElementById('totp-setup-dialog')?.close(true);
                 showAlert(t('mfa.saved'), 'success');
-            } catch { errorBox.textContent = t('mfa.unavailable'); errorBox.hidden = false; }
+            } catch {
+                errorBox.textContent = t('mfa.unavailable');
+                errorBox.hidden = false;
+            }
         });
     });
     await RenopDialog.show({
@@ -209,9 +225,19 @@ async function showTOTPSetup(setup) {
         icon: 'fileKey', maxWidth: '520px', body: form,
         footer: [
             {text: t('common.cancel'), className: 'action-btn', onClick: (event, dialog) => dialog.close(false)},
-            {id: 'totp-setup-verify', text: t('mfa.verify'), className: 'action-btn primary-btn', onClick: () => form.requestSubmit()},
+            {
+                id: 'totp-setup-verify',
+                text: t('mfa.verify'),
+                className: 'action-btn primary-btn',
+                onClick: () => form.requestSubmit()
+            },
         ],
-        onClose: () => { code.value = ''; secret.textContent = ''; image.removeAttribute('src'); setup.secret = setup.uri = setup.qr = ''; },
+        onClose: () => {
+            code.value = '';
+            secret.textContent = '';
+            image.removeAttribute('src');
+            setup.secret = setup.uri = setup.qr = '';
+        },
     });
 }
 
@@ -224,9 +250,14 @@ $('#profile-mfa-totp').on('click', event => void runButtonAction(event.currentTa
         const response = await apiRequest('/api/auth/profile/mfa/totp/begin', {
             method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}',
         });
-        if (!response.ok) { await showMFASettingsError(response); return; }
+        if (!response.ok) {
+            await showMFASettingsError(response);
+            return;
+        }
         await showTOTPSetup(await response.json());
-    } catch { showAlert(t('mfa.unavailable'), 'error'); }
+    } catch {
+        showAlert(t('mfa.unavailable'), 'error');
+    }
 }));
 
 $('#profile-private-email-form').on('submit', async event => {

@@ -119,18 +119,46 @@ export async function openAuditLogsDialog(options = {}) {
     });
 
     const fields = {};
-    const fieldset = el('fieldset', {style: {border: '0', padding: '0', margin: '0', minWidth: '0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '10px'}});
+    const fieldset = el('fieldset', {
+        style: {
+            border: '0',
+            padding: '0',
+            margin: '0',
+            minWidth: '0',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',
+            gap: '10px'
+        }
+    });
     const addFilter = (name, label, type = 'text', choices = null) => {
         const input = choices
             ? el('select', {class: 'cfg-input', name}, ...choices.map(([value, text]) => el('option', {value}, text)))
-            : el('input', {class: 'cfg-input', name, type, maxLength: name === 'operator' || name === 'username' || name === 'initiator' ? 255 : 64});
+            : el('input', {
+                class: 'cfg-input',
+                name,
+                type,
+                maxLength: name === 'operator' || name === 'username' || name === 'initiator' ? 255 : 64
+            });
         fields[name] = input;
         input.style.minWidth = '0';
-        fieldset.append(el('label', {class: type === 'datetime-local' ? 'audit-filter-date' : '', style: {display: 'grid', gap: '4px', minWidth: '0', fontSize: '.85rem'}}, el('span', {}, t(label)), input));
+        fieldset.append(el('label', {
+            class: type === 'datetime-local' ? 'audit-filter-date' : '',
+            style: {display: 'grid', gap: '4px', minWidth: '0', fontSize: '.85rem'}
+        }, el('span', {}, t(label)), input));
     };
     const all = ['', t('audit.all')];
-    const triggerLabels = {web: t('audit.trigger.web'), api: t('audit.trigger.api'), http: t('audit.trigger.http'), system: t('audit.trigger.system'), unknown: t('audit.trigger.unknown')};
-    const severityLabels = {info: t('audit.severity.info'), warning: t('audit.severity.warning'), error: t('audit.severity.error')};
+    const triggerLabels = {
+        web: t('audit.trigger.web'),
+        api: t('audit.trigger.api'),
+        http: t('audit.trigger.http'),
+        system: t('audit.trigger.system'),
+        unknown: t('audit.trigger.unknown')
+    };
+    const severityLabels = {
+        info: t('audit.severity.info'),
+        warning: t('audit.severity.warning'),
+        error: t('audit.severity.error')
+    };
     if (isGlobal) addFilter('kind', 'audit.kind', 'text', [all, ['audit', t('profile.auditLogsTitle')], ['system', t('audit.system')]]);
     addFilter('action', 'audit.action');
     fields.action.placeholder = 'LOGIN';
@@ -144,14 +172,16 @@ export async function openAuditLogsDialog(options = {}) {
     let filters = new URLSearchParams();
     const filterForm = el('form', {class: 'audit-filters'}, fieldset);
     const apply = el('button', {type: 'submit', class: 'pill-btn pill-btn--primary'}, t('audit.apply'));
-    const reset = el('button', {type: 'button', class: 'pill-btn', onClick: () => {
-        if (isFetching) return;
-        filterForm.reset();
-        fields.until.setCustomValidity('');
-        filters = new URLSearchParams();
-        page = 1;
-        void loadLogs();
-    }}, t('audit.reset'));
+    const reset = el('button', {
+        type: 'button', class: 'pill-btn', onClick: () => {
+            if (isFetching) return;
+            filterForm.reset();
+            fields.until.setCustomValidity('');
+            filters = new URLSearchParams();
+            page = 1;
+            void loadLogs();
+        }
+    }, t('audit.reset'));
     fieldset.append(el('div', {style: {display: 'flex', gap: '6px', alignItems: 'end'}}, apply, reset));
     filterForm.addEventListener('submit', event => {
         event.preventDefault();
@@ -289,7 +319,13 @@ export async function openAuditLogsDialog(options = {}) {
                         const actionBadge = renderActionBadge(log.action);
                         if (isGlobal && log.kind === 'system') actionBadge.title = severityLabels[log.severity] || log.severity;
                         const actionTd = el('td', {style: {padding: '8px 12px', whiteSpace: 'nowrap'}}, actionBadge);
-                        if (isGlobal) actionTd.append(el('div', {style: {fontSize: '.72rem', opacity: '.75', marginTop: '4px'}},
+                        if (isGlobal) actionTd.append(el('div', {
+                                style: {
+                                    fontSize: '.72rem',
+                                    opacity: '.75',
+                                    marginTop: '4px'
+                                }
+                            },
                             `${log.kind === 'system' ? t('audit.system') : t('profile.auditLogsTitle')} · ${severityLabels[log.severity] || log.severity}`));
 
                         const displayOp = renderLogIdentity(log.operator);

@@ -1,7 +1,10 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
- * If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -19,14 +22,20 @@ function languageRuntime(storage = new Map()) {
     const emit = (type, detail) => events.get(type)?.({detail});
     const context = vm.createContext({
         AbortController, AbortSignal,
-        localStorage: {getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key)},
+        localStorage: {
+            getItem: key => storage.get(key) ?? null,
+            setItem: (key, value) => storage.set(key, value),
+            removeItem: key => storage.delete(key)
+        },
         window: {addEventListener: (type, handler) => events.set(type, handler)},
         document: {visibilityState: 'visible', addEventListener: (type, handler) => events.set(type, handler)},
         getAvailableLanguages: () => ['en-US', 'fr-FR', 'ja-JP', 'de-DE'],
         getLanguage: () => ({current, revision}),
         setLanguage: async (language, source, signal) => {
             if (signal?.aborted) return current;
-            current = language; revision++; applied.push(language);
+            current = language;
+            revision++;
+            applied.push(language);
             emit('languageChanged', {lang: language, source});
             return current;
         },
@@ -34,17 +43,31 @@ function languageRuntime(storage = new Map()) {
         apiRequest: (path, options = {}) => {
             const userID = 'id-' + username;
             const account = username;
-            return new Promise(resolve => requests.push({path, ...options,
-                complete: (locale, ok = true, identity = userID, name = account) => resolve({ok, json: async () => ({locale, user_id: identity, username: name})})}));
+            return new Promise(resolve => requests.push({
+                path, ...options,
+                complete: (locale, ok = true, identity = userID, name = account) => resolve({
+                    ok,
+                    json: async () => ({locale, user_id: identity, username: name})
+                })
+            }));
         },
     });
     vm.runInContext(readFileSync(new URL('../js/account-language.js', import.meta.url), 'utf8')
         .replace(/^import .*;\r?\n/gm, '').replaceAll('export ', ''), context);
     context.installAccountLanguageSync();
-    return {requests, applied, errors, storage, emit,
-        auth: name => { username = name; emit('authChanged', {isLoggedIn: !!name, username: name}); },
-        choose: language => { current = language; revision++; emit('languageChanged', {lang: language, source: 'user-set'}); },
-        current: () => current};
+    return {
+        requests, applied, errors, storage, emit,
+        auth: name => {
+            username = name;
+            emit('authChanged', {isLoggedIn: !!name, username: name});
+        },
+        choose: language => {
+            current = language;
+            revision++;
+            emit('languageChanged', {lang: language, source: 'user-set'});
+        },
+        current: () => current
+    };
 }
 
 test('account language restores without an echo and serializes rapid selections', async () => {
@@ -124,9 +147,17 @@ test('cancelled catalog loading cannot apply the previous account language', asy
         DEFAULT_LANG: 'en-US', STORAGE_KEY: 'language',
         resolveLanguage: value => value,
         getAvailableLanguages: () => ['en-US', 'fr-FR'],
-        setLanguageLoading() {}, ensureLanguage: () => new Promise(resolve => { finish = resolve; }),
-        localStorage: {setItem() { assert.fail('cancelled language was persisted'); }},
-        document: {getElementById: () => null}, updatePageTranslations() {},
+        setLanguageLoading() {
+        }, ensureLanguage: () => new Promise(resolve => {
+            finish = resolve;
+        }),
+        localStorage: {
+            setItem() {
+                assert.fail('cancelled language was persisted');
+            }
+        },
+        document: {getElementById: () => null}, updatePageTranslations() {
+        },
         window: {dispatchEvent: event => events.push(event)}, console,
     });
     vm.runInContext(change.replace('export ', ''), context);

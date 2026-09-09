@@ -50,7 +50,7 @@ installation.
 | `github.com/cespare/xxhash/v2`           | v2.3.0                             | MIT                                        | Copyright (c) 2016 Caleb Spare                                                                                 |
 | `github.com/cloudflare/circl`            | v1.6.5                             | BSD-3-Clause                               | Copyright (c) 2020 Cloudflare, Inc.                                                                            |
 | `github.com/dustin/go-humanize`          | v1.0.1                             | MIT                                        | Copyright (c) 2005-2008 Dustin Sallings                                                                        |
-| `github.com/emmansun/base64` | v0.10.0 | BSD-3-Clause | Copyright (c) 2023 Sun Yimin; Copyright 2009 The Go Authors |
+| `github.com/emmansun/base64`             | v0.10.0                            | BSD-3-Clause                               | Copyright (c) 2023 Sun Yimin; Copyright 2009 The Go Authors                                                    |
 | `github.com/fsnotify/fsnotify`           | v1.10.1                            | BSD-3-Clause                               | Copyright © 2012 The Go Authors; Copyright © fsnotify Authors                                                  |
 | `github.com/fxamacker/cbor/v2`           | v2.9.3                             | MIT                                        | Copyright (c) 2019 Faye Amacker                                                                                |
 | `github.com/go-faster/city`              | v1.0.1                             | MIT                                        | Copyright (c) 2018 tenfy                                                                                       |
@@ -85,11 +85,11 @@ installation.
 | `github.com/paulmach/orb`                | v0.13.0                            | MIT                                        | Copyright (c) 2017 Paul Mach                                                                                   |
 | `github.com/philhofer/fwd`               | v1.2.0                             | MIT                                        | Copyright (c) 2014-2015 Philip Hofer                                                                           |
 | `github.com/pierrec/lz4/v4`              | v4.1.29                            | BSD-3-Clause                               | Copyright (c) 2015 Pierre Curto                                                                                |
-| `github.com/redis/go-redis/v9` | v9.22.0 | BSD-2-Clause | Copyright (c) 2013 The github.com/redis/go-redis Authors. |
+| `github.com/redis/go-redis/v9`           | v9.22.0                            | BSD-2-Clause                               | Copyright (c) 2013 The github.com/redis/go-redis Authors.                                                      |
 | `github.com/remyoudompheng/bigfft`       | v0.0.0-20230129092748-24d4a6f8daec | BSD-2-Clause                               | Copyright (c) 2012 Rémi Oudompheng                                                                             |
 | `github.com/rs/xid`                      | v1.6.0                             | MIT                                        | Copyright (c) 2015 Olivier Poitrey                                                                             |
 | `github.com/segmentio/asm`               | v1.2.1                             | MIT-0                                      | Copyright 2023 Segment                                                                                         |
-| `github.com/skip2/go-qrcode`             | v0.0.0-20200617195104-da1b6568686e   | MIT                                        | Copyright (c) 2014 Tom Harwood |
+| `github.com/skip2/go-qrcode`             | v0.0.0-20200617195104-da1b6568686e | MIT                                        | Copyright (c) 2014 Tom Harwood                                                                                 |
 | `github.com/shopspring/decimal`          | v1.4.0                             | MIT                                        | Copyright (c) 2015 Spring, Inc.                                                                                |
 | `github.com/shirou/gopsutil/v3`          | v3.24.5                            | BSD-3-Clause                               | Copyright (c) 2014 WAKAYAMA Shirou                                                                             |
 | `github.com/tinylib/msgp`                | v1.6.4                             | MIT                                        | Copyright (c) 2014 Philip Hofer; portions Copyright (c) 2009 The Go Authors                                    |
@@ -98,7 +98,7 @@ installation.
 | `github.com/x448/float16`                | v0.8.4                             | MIT                                        | Copyright (c) 2019 Faye Amacker                                                                                |
 | `github.com/yusufpapurcu/wmi`            | v1.2.4                             | MIT                                        | Copyright (c) 2013 Stack Exchange                                                                              |
 | `github.com/zeebo/xxh3`                  | v1.1.0                             | BSD-2-Clause                               | Copyright (c) 2012-2014 Yann Collet; Copyright (c) 2019 Jeff Wendling                                          |
-| `go.uber.org/atomic` | v1.11.0 | MIT | Copyright (c) 2016 Uber Technologies, Inc. |
+| `go.uber.org/atomic`                     | v1.11.0                            | MIT                                        | Copyright (c) 2016 Uber Technologies, Inc.                                                                     |
 | `go.yaml.in/yaml/v3`                     | v3.0.5                             | MIT AND Apache-2.0                         | Copyright (c) 2006-2011 Kirill Simonov (libyaml ports); Copyright (c) 2011-2019 Canonical Ltd                  |
 | `go.opentelemetry.io/otel`               | v1.46.0                            | Apache-2.0                                 | Copyright The OpenTelemetry Authors                                                                            |
 | `go.opentelemetry.io/otel/trace`         | v1.46.0                            | Apache-2.0                                 | Copyright The OpenTelemetry Authors                                                                            |
@@ -160,7 +160,8 @@ marketing site and documentation, not the server binary.
 ### D. Disposable email domain data
 
 RenoP embeds a normalized, sorted union of the following lists. Revisions and source checksums are pinned in
-`scripts/update-disposable-domains.ps1`. Builds automatically generate `internal/mail/data/`, which is excluded from Git.
+`scripts/update-disposable-domains.ps1`. Builds automatically generate `internal/mail/data/`, which is excluded from
+Git.
 
 | Dataset                                                                                                                   | Revision                                   | SPDX    | Copyright / notices                                                                     |
 |---------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|---------|-----------------------------------------------------------------------------------------|

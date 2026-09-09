@@ -12,7 +12,6 @@ package auth
 
 import (
 	"bytes"
-	"encoding/base64"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -22,16 +21,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/goccy/go-json"
-	"github.com/gofiber/fiber/v3"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/crypto/bcrypt"
-	"google.golang.org/protobuf/proto"
+	"github.com/emmansun/base64"
+
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/testutil"
 	"renop/internal/utils/protohttp"
 	"renop/pkg/pb"
+
+	"github.com/goccy/go-json"
+	"github.com/gofiber/fiber/v3"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestMFASetupLoginReplayAndPolicyBoundaries(t *testing.T) {

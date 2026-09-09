@@ -372,11 +372,15 @@ export async function switchTab(tabId) {
         const search = returnTo === '/' ? '' : '?return_to=' + encodeURIComponent(returnTo);
         document.getElementById('btn-recover-account').href = '/account/recovery' + search;
         document.getElementById('registration-back-login').href = '/account/login' + search;
-        document.querySelectorAll('[data-registration-link]').forEach(link => { link.href = '/account/register' + search; });
+        document.querySelectorAll('[data-registration-link]').forEach(link => {
+            link.href = '/account/register' + search;
+        });
         document.getElementById('recovery-back-login').href = '/account/login' + search;
         document.getElementById('password-reset-back-login').href = '/account/login' + search;
         document.getElementById('password-reset-recover-account').href = '/account/recovery' + search;
-        document.querySelectorAll('[data-password-reset-link]').forEach(link => { link.href = '/account/forgot-password' + search; });
+        document.querySelectorAll('[data-password-reset-link]').forEach(link => {
+            link.href = '/account/forgot-password' + search;
+        });
     }
     if (!accountPage && tabId !== 'profile' && tabId !== 'maven-domain' && tabId !== 'super-team' && !isAccountTab(tabId)) {
         localStorage.setItem('selectedTab', tabId);

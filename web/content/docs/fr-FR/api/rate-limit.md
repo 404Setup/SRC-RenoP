@@ -20,7 +20,8 @@ Les requêtes non authentifiées sont évaluées par adresse IP avec une fenêtr
 
 ## Échecs d’authentification et bannissement
 
-- Les identifiants invalides ou tentatives de connexion renvoyant `401 Unauthorized` ou `403 Forbidden` sont comptés par IP.
+- Les identifiants invalides ou tentatives de connexion renvoyant `401 Unauthorized` ou `403 Forbidden` sont comptés par
+  IP.
 - Après 10 échecs, les requêtes suivantes renvoient `403 Forbidden`. Le compteur expire cinq minutes après le dernier
   échec comptabilisé ; les requêtes bloquées ne prolongent pas ce délai.
 - Les demandes anonymes de permission et les refus pour une session valide ne sont pas comptés. Les pages et ressources

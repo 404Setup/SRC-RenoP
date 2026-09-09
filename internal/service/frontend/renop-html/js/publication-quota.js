@@ -150,6 +150,7 @@ export async function openPublicationQuotaDialog({ownerType, ownerKey, onSaved =
         el('label', {}, el('span', {}, t('publicationQuota.publicationLimit')), publicationInput),
         el('label', {}, el('span', {}, t('publicationQuota.period')), periodSelect)
     );
+
     /**
      * Switch from inherited defaults to an explicit owner override.
      * @returns {void}
@@ -159,6 +160,7 @@ export async function openPublicationQuotaDialog({ownerType, ownerKey, onSaved =
         inherited = false;
         if (inheritToggle) inheritToggle.checked = false;
     }
+
     /**
      * Synchronize unlimited state across mutable limit controls.
      * @returns {void}
@@ -171,6 +173,7 @@ export async function openPublicationQuotaDialog({ownerType, ownerKey, onSaved =
         const periodButton = periodSelect.querySelector('button');
         if (periodButton) periodButton.disabled = disabled;
     }
+
     const inheritToggle = createToggle(inherited, checked => {
         inherited = checked;
         if (checked) {

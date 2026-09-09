@@ -42,7 +42,10 @@ GPG は引き続きサービス設定に含まれます。チーム上限、公�
 - **GitHub OAuth**: `GET /api/settings/github-oauth` はマスク済み状態を返し、
   `PUT /api/settings/github-oauth` は Client ID と書き込み専用 Secret を更新します。
 
-**その他の OAuth プロバイダー**：`GET /api/settings/oauth-providers` はシークレットを伏せたクライアントとプリセットを返し、`PUT /api/settings/oauth-providers` は一覧を置き換えます。`providers` 配列は必須で、明示的な空配列は設定済みクライアントをすべて削除します。クライアントは最大 32 件、本文は最大 128 KiB です。認証情報、プリセット、アカウント連携は[外部サービスでログイン](../security/oauth-login.md)を参照してください。
+**その他の OAuth プロバイダー**：`GET /api/settings/oauth-providers` はシークレットを伏せたクライアントとプリセットを返し、
+`PUT /api/settings/oauth-providers` は一覧を置き換えます。`providers` 配列は必須で、明示的な空配列は設定済みクライアントをすべて削除します。クライアントは最大
+32 件、本文は最大 128 KiB です。認証情報、プリセット、アカウント連携は[外部サービスでログイン](../security/oauth-login.md)
+を参照してください。
 
 ## リポジトリ設定
 

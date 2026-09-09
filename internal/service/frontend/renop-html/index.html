@@ -39,22 +39,26 @@
     </div>
     <div class="top-nav-right">
         <div class="nav-controls-group" id="auth-container">
-            <button aria-label="Select language" class="lang-btn" data-i18n-aria-label="language.selectTitle" data-i18n-title="language.selectTitle"
+            <button aria-label="Select language" class="lang-btn" data-i18n-aria-label="language.selectTitle"
+                    data-i18n-title="language.selectTitle"
                     id="lang-btn" title="Select Language"
                     type="button">
-                <svg aria-hidden="true" class="lang-icon" fill="none" height="16" stroke="currentColor" stroke-linecap="round"
+                <svg aria-hidden="true" class="lang-icon" fill="none" height="16" stroke="currentColor"
+                     stroke-linecap="round"
                      stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="16">
                     <circle cx="12" cy="12" r="10"/>
                     <line x1="2" x2="22" y1="12" y2="12"/>
                     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
                 </svg>
                 <span class="current-lang-name" id="current-lang-name">English</span>
-                <svg aria-hidden="true" class="chevron-icon" fill="none" height="14" stroke="currentColor" stroke-linecap="round"
+                <svg aria-hidden="true" class="chevron-icon" fill="none" height="14" stroke="currentColor"
+                     stroke-linecap="round"
                      stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14">
                     <polyline points="6 9 12 15 18 9"></polyline>
                 </svg>
             </button>
-            <button aria-label="Toggle theme" class="theme-btn" data-i18n-aria-label="nav.toggleTheme" data-i18n-title="nav.toggleTheme"
+            <button aria-label="Toggle theme" class="theme-btn" data-i18n-aria-label="nav.toggleTheme"
+                    data-i18n-title="nav.toggleTheme"
                     id="theme-toggle" title="Toggle Theme" type="button">
                 <svg aria-hidden="true" class="theme-icon sun-icon" fill="none" height="16" stroke="currentColor"
                      stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24"
@@ -80,7 +84,8 @@
             <div class="nav-user-info" id="user-info" style="display: none;">
                 <div class="nav-profile-menu-wrap" id="profile-menu-wrap">
                     <button aria-controls="profile-menu" aria-expanded="false" aria-haspopup="menu"
-                            class="user-text nav-profile-trigger" data-i18n-title="profile.openOwnProfile" id="profile-trigger"
+                            class="user-text nav-profile-trigger" data-i18n-title="profile.openOwnProfile"
+                            id="profile-trigger"
                             title="Open account menu" type="button">
                         <span aria-hidden="true" class="user-avatar-wrap">
                             <span class="user-avatar-dot" id="user-avatar-dot"></span>
@@ -88,7 +93,8 @@
                                   hidden id="profile-message-unread-badge">0</span>
                         </span>
                         <span class="user-name" id="username-display"></span>
-                        <svg aria-hidden="true" class="nav-profile-chevron" fill="none" height="13" stroke="currentColor"
+                        <svg aria-hidden="true" class="nav-profile-chevron" fill="none" height="13"
+                             stroke="currentColor"
                              stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24"
                              width="13">
                             <polyline points="6 9 12 15 18 9"></polyline>
@@ -132,34 +138,40 @@
                         </button>
                         <div class="nav-profile-menu-separator manager-only" data-auth-display="block"
                              role="separator" style="display: none;"></div>
-                        <button class="nav-profile-menu-item manager-only" data-account-action="compose-notification" data-auth-display="flex"
+                        <button class="nav-profile-menu-item manager-only" data-account-action="compose-notification"
+                                data-auth-display="flex"
                                 id="message-compose-menu-btn" role="menuitem" style="display: none;"
                                 type="button">
                             <renop-icon aria-hidden="true" name="send"></renop-icon>
                             <span data-i18n="messages.compose">Send notification</span>
                         </button>
-                        <button class="nav-profile-menu-item manager-only" data-auth-display="flex" data-profile-tab="dashboard"
+                        <button class="nav-profile-menu-item manager-only" data-auth-display="flex"
+                                data-profile-tab="dashboard"
                                 role="menuitem" style="display: none;" type="button">
                             <renop-icon aria-hidden="true" name="performance"></renop-icon>
                             <span data-i18n="tabs.dashboard">Dashboard</span>
                         </button>
-                        <button class="nav-profile-menu-item manager-only" data-auth-display="flex" data-profile-tab="users"
+                        <button class="nav-profile-menu-item manager-only" data-auth-display="flex"
+                                data-profile-tab="users"
                                 role="menuitem" style="display: none;" type="button">
                             <renop-icon aria-hidden="true" name="identity"></renop-icon>
                             <span data-i18n="tabs.users">Users</span>
                         </button>
-                        <button class="nav-profile-menu-item manager-only" data-auth-display="flex" data-profile-tab="repositories"
+                        <button class="nav-profile-menu-item manager-only" data-auth-display="flex"
+                                data-profile-tab="repositories"
                                 role="menuitem" style="display: none;" type="button">
                             <renop-icon aria-hidden="true" name="box"></renop-icon>
                             <span data-i18n="tabs.repositories">Repositories</span>
                         </button>
-                        <button class="nav-profile-menu-item manager-only" data-auth-display="flex" data-profile-tab="settings"
+                        <button class="nav-profile-menu-item manager-only" data-auth-display="flex"
+                                data-profile-tab="settings"
                                 role="menuitem" style="display: none;" type="button">
                             <renop-icon aria-hidden="true" name="settings"></renop-icon>
                             <span data-i18n="tabs.settings">Settings</span>
                         </button>
                         <div class="nav-profile-menu-separator" role="separator"></div>
-                        <button class="nav-profile-menu-item is-danger" data-account-action="logout" id="logout-btn" role="menuitem"
+                        <button class="nav-profile-menu-item is-danger" data-account-action="logout" id="logout-btn"
+                                role="menuitem"
                                 type="button">
                             <renop-icon aria-hidden="true" name="logout"></renop-icon>
                             <span data-i18n="nav.logout">Log out</span>
@@ -178,7 +190,8 @@
                 <header class="account-page-heading">
                     <renop-icon aria-hidden="true" class="account-page-symbol" name="identity"></renop-icon>
                     <h1 data-i18n="nav.signIn" id="login-title">Sign in</h1>
-                    <p data-i18n="login.pageDescription">Sign in to manage your account and access your repositories.</p>
+                    <p data-i18n="login.pageDescription">Sign in to manage your account and access your
+                        repositories.</p>
                     <a class="account-page-back" href="/">
                         <renop-icon aria-hidden="true" name="chevronLeft"></renop-icon>
                         <span data-i18n="nav.backHome">Back to home</span>
@@ -187,14 +200,16 @@
                 <form class="account-page-form" id="login-form">
                     <div class="account-field">
                         <label data-i18n="login.usernameLabel" for="username">Username or email</label>
-                        <input autocomplete="username" data-i18n-placeholder="login.usernamePlaceholder" id="username" placeholder="Enter username or private email"
-                               maxlength="254" required
+                        <input autocomplete="username" data-i18n-placeholder="login.usernamePlaceholder" id="username"
+                               maxlength="254"
+                               placeholder="Enter username or private email" required
                                type="text">
                     </div>
                     <div class="account-field">
                         <label data-i18n="login.passwordLabel" for="password">Password</label>
-                        <input autocomplete="current-password" data-i18n-placeholder="login.passwordPlaceholder" id="password" placeholder="Enter password"
-                               maxlength="72" required type="password">
+                        <input autocomplete="current-password" data-i18n-placeholder="login.passwordPlaceholder"
+                               id="password" maxlength="72"
+                               placeholder="Enter password" required type="password">
                     </div>
                     <div class="account-form-error" id="login-error" role="alert" style="display: none;"></div>
                     <div class="account-form-links">
@@ -202,7 +217,8 @@
                            href="/account/forgot-password">Forgot password?</a>
                         <a class="account-form-link" data-i18n="login.recoveryTitle" href="/account/recovery"
                            id="btn-recover-account">Recover account</a>
-                        <a class="account-form-link" data-i18n="registration.title" data-registration-link hidden href="/account/register">Create account</a>
+                        <a class="account-form-link" data-i18n="registration.title" data-registration-link hidden
+                           href="/account/register">Create account</a>
                     </div>
                     <button class="account-submit" data-i18n="login.submitBtn" type="submit">
                         Login
@@ -228,20 +244,27 @@
                         <div class="account-providers" hidden id="oauth-login-providers"></div>
                     </div>
                 </form>
-                <form class="account-page-form" id="mfa-login-form" hidden aria-labelledby="mfa-login-title">
-                    <h2 id="mfa-login-title" data-i18n="mfa.title">Two-step verification</h2>
+                <form aria-labelledby="mfa-login-title" class="account-page-form" hidden id="mfa-login-form">
+                    <h2 data-i18n="mfa.title" id="mfa-login-title">Two-step verification</h2>
                     <p data-i18n="mfa.loginHint">Complete verification to finish signing in.</p>
                     <div class="account-field" id="mfa-login-totp">
-                        <label for="mfa-login-code" data-i18n="mfa.code">Six-digit code</label>
-                        <input id="mfa-login-code" type="text" inputmode="numeric" autocomplete="one-time-code"
-                               pattern="[0-9]{6}" minlength="6" maxlength="6" required aria-describedby="mfa-login-error">
+                        <label data-i18n="mfa.code" for="mfa-login-code">Six-digit code</label>
+                        <input aria-describedby="mfa-login-error" autocomplete="one-time-code" id="mfa-login-code" inputmode="numeric"
+                               maxlength="6" minlength="6" pattern="[0-9]{6}" required
+                               type="text">
                     </div>
-                    <p class="account-form-error" id="mfa-login-error" role="alert" hidden></p>
-                    <button class="account-submit" id="mfa-login-submit" type="submit" data-i18n="mfa.verify">Verify</button>
-                    <button class="account-provider" id="mfa-login-passkey" type="button" data-i18n="mfa.usePasskey">Verify with Passkey</button>
+                    <p class="account-form-error" hidden id="mfa-login-error" role="alert"></p>
+                    <button class="account-submit" data-i18n="mfa.verify" id="mfa-login-submit" type="submit">Verify
+                    </button>
+                    <button class="account-provider" data-i18n="mfa.usePasskey" id="mfa-login-passkey" type="button">
+                        Verify with Passkey
+                    </button>
                     <div class="account-form-links">
-                        <button class="account-form-link" id="mfa-login-restart" type="button" data-i18n="mfa.restart">Start again</button>
-                        <a class="account-form-link" href="/account/recovery" data-i18n="login.recoveryTitle">Recover account</a>
+                        <button class="account-form-link" data-i18n="mfa.restart" id="mfa-login-restart" type="button">
+                            Start again
+                        </button>
+                        <a class="account-form-link" data-i18n="login.recoveryTitle" href="/account/recovery">Recover
+                            account</a>
                     </div>
                 </form>
             </div>
@@ -251,7 +274,8 @@
                 <header class="account-page-heading">
                     <renop-icon aria-hidden="true" class="account-page-symbol" name="fileKey"></renop-icon>
                     <h1 data-i18n="login.recoveryTitle" id="recovery-title">Recover account</h1>
-                    <p data-i18n="login.recoverySubtitle">Enter your username or private email, four unused recovery codes, and a new password.</p>
+                    <p data-i18n="login.recoverySubtitle">Enter your username or private email, four unused recovery
+                        codes, and a new password.</p>
                     <a class="account-page-back" href="/account/login" id="recovery-back-login">
                         <renop-icon aria-hidden="true" name="chevronLeft"></renop-icon>
                         <span data-i18n="nav.signIn">Sign in</span>
@@ -259,7 +283,8 @@
                 </header>
                 <form class="account-page-form" id="account-recovery-form">
                     <div class="account-field">
-                        <label data-i18n="login.recoveryIdentifier" for="recovery-identifier">Username or private email</label>
+                        <label data-i18n="login.recoveryIdentifier" for="recovery-identifier">Username or private
+                            email</label>
                         <input autocomplete="username" data-i18n-placeholder="login.recoveryIdentifierPlaceholder"
                                id="recovery-identifier" maxlength="254" required type="text">
                     </div>
@@ -267,32 +292,35 @@
                         <legend data-i18n="login.recoveryCodesPrompt">Four distinct recovery codes</legend>
                         <div class="account-field">
                             <label for="recovery-code-1">Recovery code 1</label>
-                            <input autocomplete="off" autocapitalize="characters" id="recovery-code-1" maxlength="64"
+                            <input autocapitalize="characters" autocomplete="off" id="recovery-code-1" maxlength="64"
                                    name="recovery-code" required spellcheck="false" type="text">
                         </div>
                         <div class="account-field">
                             <label for="recovery-code-2">Recovery code 2</label>
-                            <input autocomplete="off" autocapitalize="characters" id="recovery-code-2" maxlength="64"
+                            <input autocapitalize="characters" autocomplete="off" id="recovery-code-2" maxlength="64"
                                    name="recovery-code" required spellcheck="false" type="text">
                         </div>
                         <div class="account-field">
                             <label for="recovery-code-3">Recovery code 3</label>
-                            <input autocomplete="off" autocapitalize="characters" id="recovery-code-3" maxlength="64"
+                            <input autocapitalize="characters" autocomplete="off" id="recovery-code-3" maxlength="64"
                                    name="recovery-code" required spellcheck="false" type="text">
                         </div>
                         <div class="account-field">
                             <label for="recovery-code-4">Recovery code 4</label>
-                            <input autocomplete="off" autocapitalize="characters" id="recovery-code-4" maxlength="64"
+                            <input autocapitalize="characters" autocomplete="off" id="recovery-code-4" maxlength="64"
                                    name="recovery-code" required spellcheck="false" type="text">
                         </div>
                     </fieldset>
                     <div class="account-field">
                         <label data-i18n="profile.newPasswordLabel" for="recovery-password">New password</label>
-                        <input autocomplete="new-password" id="recovery-password" maxlength="72" required type="password">
+                        <input autocomplete="new-password" id="recovery-password" maxlength="72" required
+                               type="password">
                     </div>
                     <div class="account-field">
-                        <label data-i18n="login.confirmNewPassword" for="recovery-password-confirmation">Confirm new password</label>
-                        <input autocomplete="new-password" id="recovery-password-confirmation" maxlength="72" required type="password">
+                        <label data-i18n="login.confirmNewPassword" for="recovery-password-confirmation">Confirm new
+                            password</label>
+                        <input autocomplete="new-password" id="recovery-password-confirmation" maxlength="72" required
+                               type="password">
                     </div>
                     <p class="account-form-error" id="recovery-error" role="alert"></p>
                     <button class="account-submit" data-i18n="login.resetPassword" type="submit">Reset password</button>
@@ -303,12 +331,14 @@
                 </form>
             </div>
         </section>
-        <section aria-labelledby="password-reset-title" class="tab-content" id="tab-content-password-recovery" style="display: none;">
+        <section aria-labelledby="password-reset-title" class="tab-content" id="tab-content-password-recovery"
+                 style="display: none;">
             <div class="account-page">
                 <header class="account-page-heading">
                     <renop-icon aria-hidden="true" class="account-page-symbol" name="fileKey"></renop-icon>
                     <h1 data-i18n="login.forgotPassword" id="password-reset-title">Forgot password?</h1>
-                    <p data-i18n="login.emailResetDescription">Verify your private email address with an eight-digit code, then set a new password. The code expires in 10 minutes.</p>
+                    <p data-i18n="login.emailResetDescription">Verify your private email address with an eight-digit
+                        code, then set a new password. The code expires in 10 minutes.</p>
                     <a class="account-page-back" href="/account/login" id="password-reset-back-login">
                         <renop-icon aria-hidden="true" name="chevronLeft"></renop-icon>
                         <span data-i18n="nav.signIn">Sign in</span>
@@ -318,26 +348,38 @@
                     <p class="account-form-error" id="password-reset-availability" role="status"></p>
                     <fieldset class="account-reset-fields" disabled id="password-reset-fields">
                         <div class="account-field">
-                            <label data-i18n="profile.privateEmailLabel" for="password-reset-email">Private email</label>
+                            <label data-i18n="profile.privateEmailLabel" for="password-reset-email">Private
+                                email</label>
                             <input autocomplete="email" id="password-reset-email" maxlength="254" required type="email">
                         </div>
-                        <button class="account-provider" data-i18n="login.sendEmailCode" id="password-reset-send" type="button">Send verification code</button>
-                        <div aria-live="polite" class="account-mail-status" id="password-reset-delivery" role="status"></div>
-                        <button class="account-provider" data-i18n="mail.refreshStatus" hidden id="password-reset-refresh" type="button">Refresh</button>
+                        <button class="account-provider" data-i18n="login.sendEmailCode" id="password-reset-send"
+                                type="button">Send verification code
+                        </button>
+                        <div aria-live="polite" class="account-mail-status" id="password-reset-delivery"
+                             role="status"></div>
+                        <button class="account-provider" data-i18n="mail.refreshStatus" hidden
+                                id="password-reset-refresh" type="button">Refresh
+                        </button>
                         <div class="account-field">
                             <label data-i18n="login.emailCode" for="password-reset-code">Verification code</label>
-                            <input autocomplete="one-time-code" id="password-reset-code" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" required type="text">
+                            <input autocomplete="one-time-code" id="password-reset-code" inputmode="numeric"
+                                   maxlength="8" pattern="[0-9]{8}" required type="text">
                         </div>
                         <div class="account-field">
-                            <label data-i18n="profile.newPasswordLabel" for="password-reset-password">New password</label>
-                            <input autocomplete="new-password" id="password-reset-password" maxlength="72" required type="password">
+                            <label data-i18n="profile.newPasswordLabel" for="password-reset-password">New
+                                password</label>
+                            <input autocomplete="new-password" id="password-reset-password" maxlength="72" required
+                                   type="password">
                         </div>
                         <div class="account-field">
-                            <label data-i18n="login.confirmNewPassword" for="password-reset-confirmation">Confirm new password</label>
-                            <input autocomplete="new-password" id="password-reset-confirmation" maxlength="72" required type="password">
+                            <label data-i18n="login.confirmNewPassword" for="password-reset-confirmation">Confirm new
+                                password</label>
+                            <input autocomplete="new-password" id="password-reset-confirmation" maxlength="72" required
+                                   type="password">
                         </div>
                         <p class="account-form-error" id="password-reset-error" role="alert"></p>
-                        <button class="account-submit" data-i18n="login.resetPassword" type="submit">Reset password</button>
+                        <button class="account-submit" data-i18n="login.resetPassword" type="submit">Reset password
+                        </button>
                     </fieldset>
                     <div class="account-form-links">
                         <a class="account-form-link" data-i18n="login.recoveryTitle" href="/account/recovery"
@@ -346,12 +388,14 @@
                 </form>
             </div>
         </section>
-        <section aria-labelledby="registration-title" class="tab-content" id="tab-content-registration" style="display: none;">
+        <section aria-labelledby="registration-title" class="tab-content" id="tab-content-registration"
+                 style="display: none;">
             <div class="account-page">
                 <header class="account-page-heading">
                     <renop-icon aria-hidden="true" class="account-page-symbol" name="user"></renop-icon>
                     <h1 data-i18n="registration.title" id="registration-title">Create account</h1>
-                    <p data-i18n="registration.description">Choose your account details and password. Verify your email when required.</p>
+                    <p data-i18n="registration.description">Choose your account details and password. Verify your email
+                        when required.</p>
                     <a class="account-page-back" href="/account/login" id="registration-back-login">
                         <renop-icon aria-hidden="true" name="chevronLeft"></renop-icon>
                         <span data-i18n="nav.signIn">Sign in</span>
@@ -360,41 +404,56 @@
                 <form class="account-page-form" id="registration-form">
                     <p class="account-form-error" id="registration-availability" role="status"></p>
                     <fieldset class="account-reset-fields" disabled id="registration-fields">
-                        <button class="account-provider" data-i18n="login.githubLogin" hidden id="registration-github" type="button">Continue with GitHub</button>
+                        <button class="account-provider" data-i18n="login.githubLogin" hidden id="registration-github"
+                                type="button">Continue with GitHub
+                        </button>
                         <div class="account-providers" hidden id="oauth-register-providers"></div>
-                        <div id="registration-provider-info" hidden>
+                        <div hidden id="registration-provider-info">
                             <p id="registration-provider-hint" role="status"></p>
-                            <label class="account-check"><input id="registration-import" type="checkbox"><span data-i18n="oauth.importProfile">Use the provider username, nickname, and avatar</span></label>
+                            <label class="account-check"><input id="registration-import" type="checkbox"><span
+                                    data-i18n="oauth.importProfile">Use the provider username, nickname, and avatar</span></label>
                         </div>
                         <div class="account-field">
                             <label data-i18n="profile.usernameLabel" for="registration-username">Username</label>
-                            <input autocomplete="username" id="registration-username" minlength="4" maxlength="18" pattern="[A-Za-z0-9_]{4,18}" required type="text" aria-describedby="registration-username-hint">
-                            <p id="registration-username-hint" data-i18n="registration.usernameHint">4–18 letters, numbers, or underscores.</p>
+                            <input aria-describedby="registration-username-hint" autocomplete="username" id="registration-username" maxlength="18"
+                                   minlength="4" pattern="[A-Za-z0-9_]{4,18}" required
+                                   type="text">
+                            <p data-i18n="registration.usernameHint" id="registration-username-hint">4–18 letters,
+                                numbers, or underscores.</p>
                         </div>
                         <div class="account-field">
-                            <label data-i18n="registration.nickname" for="registration-nickname">Nickname (optional)</label>
+                            <label data-i18n="registration.nickname" for="registration-nickname">Nickname
+                                (optional)</label>
                             <input autocomplete="nickname" id="registration-nickname" maxlength="72" type="text">
                         </div>
                         <div class="account-field">
                             <label data-i18n="profile.privateEmailLabel" for="registration-email">Private email</label>
                             <input autocomplete="email" id="registration-email" maxlength="254" type="email">
                         </div>
-                        <button class="account-provider" data-i18n="login.sendEmailCode" id="registration-send" type="button" hidden>Send verification code</button>
-                        <div aria-live="polite" class="account-mail-status" id="registration-delivery" role="status"></div>
+                        <button class="account-provider" data-i18n="login.sendEmailCode" hidden
+                                id="registration-send" type="button">Send verification code
+                        </button>
+                        <div aria-live="polite" class="account-mail-status" id="registration-delivery"
+                             role="status"></div>
                         <div class="account-field" hidden>
                             <label data-i18n="login.emailCode" for="registration-code">Verification code</label>
-                            <input autocomplete="one-time-code" id="registration-code" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" type="text">
+                            <input autocomplete="one-time-code" id="registration-code" inputmode="numeric" maxlength="8"
+                                   pattern="[0-9]{8}" type="text">
                         </div>
                         <div class="account-field">
                             <label data-i18n="profile.newPasswordLabel" for="registration-password">New password</label>
-                            <input autocomplete="new-password" id="registration-password" maxlength="72" required type="password">
+                            <input autocomplete="new-password" id="registration-password" maxlength="72" required
+                                   type="password">
                         </div>
                         <div class="account-field">
-                            <label data-i18n="login.confirmNewPassword" for="registration-confirmation">Confirm new password</label>
-                            <input autocomplete="new-password" id="registration-confirmation" maxlength="72" required type="password">
+                            <label data-i18n="login.confirmNewPassword" for="registration-confirmation">Confirm new
+                                password</label>
+                            <input autocomplete="new-password" id="registration-confirmation" maxlength="72" required
+                                   type="password">
                         </div>
                         <p class="account-form-error" id="registration-error" role="alert"></p>
-                        <button class="account-submit" data-i18n="registration.title" type="submit">Create account</button>
+                        <button class="account-submit" data-i18n="registration.title" type="submit">Create account
+                        </button>
                     </fieldset>
                 </form>
             </div>
@@ -405,7 +464,8 @@
                     <div class="browser-header">
                         <nav aria-label="Directory path" class="breadcrumb-nav" id="breadcrumb">
                             <span class="index-of">
-                                <svg aria-hidden="true" class="index-of-icon" fill="none" height="14" stroke="currentColor"
+                                <svg aria-hidden="true" class="index-of-icon" fill="none" height="14"
+                                     stroke="currentColor"
                                      stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"
                                      viewBox="0 0 24 24" width="14">
                                     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
@@ -413,10 +473,12 @@
                                 <span class="index-of-label" data-i18n="browser.indexOf">Index of</span>
                             </span>
                             <div class="breadcrumb-trail" id="breadcrumb-links"></div>
-                            <a aria-label="Up a directory" class="up-dir" data-i18n-aria-label="browser.upDirectory" data-i18n-title="browser.upDirectory"
+                            <a aria-label="Up a directory" class="up-dir" data-i18n-aria-label="browser.upDirectory"
+                               data-i18n-title="browser.upDirectory"
                                href=".." id="up-dir-btn"
                                title="Up a directory">
-                                <svg aria-hidden="true" fill="none" height="15" stroke="currentColor" stroke-linecap="round"
+                                <svg aria-hidden="true" fill="none" height="15" stroke="currentColor"
+                                     stroke-linecap="round"
                                      stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24"
                                      width="15">
                                     <line x1="12" x2="12" y1="19" y2="5"/>
@@ -426,17 +488,21 @@
                         </nav>
                         <form action="/" class="repository-search" hidden id="repository-search" role="search">
                             <span aria-hidden="true" class="repository-search-icon">
-                                <svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                <svg fill="none" height="15" stroke="currentColor" stroke-linecap="round"
+                                     stroke-linejoin="round"
                                      stroke-width="2.2" viewBox="0 0 24 24" width="15">
                                     <circle cx="11" cy="11" r="7"></circle>
                                     <line x1="20" x2="16.65" y1="20" y2="16.65"></line>
                                 </svg>
                             </span>
-                            <input aria-autocomplete="list" aria-controls="repository-search-results" autocomplete="off" id="repository-search-input"
+                            <input aria-autocomplete="list" aria-controls="repository-search-results" autocomplete="off"
+                                   id="repository-search-input"
                                    maxlength="128" type="search">
-                            <button aria-label="Clear search" class="repository-search-clear" data-i18n-aria-label="search.clear"
+                            <button aria-label="Clear search" class="repository-search-clear"
+                                    data-i18n-aria-label="search.clear"
                                     hidden id="repository-search-clear" type="button">
-                                <svg aria-hidden="true" fill="none" height="13" stroke="currentColor" stroke-linecap="round"
+                                <svg aria-hidden="true" fill="none" height="13" stroke="currentColor"
+                                     stroke-linecap="round"
                                      stroke-width="2.4" viewBox="0 0 24 24" width="13">
                                     <line x1="18" x2="6" y1="6" y2="18"></line>
                                     <line x1="6" x2="18" y1="6" y2="18"></line>
@@ -445,9 +511,11 @@
                         </form>
                         <div class="browser-adjustments">
                             <button aria-controls="adjustments-menu" aria-expanded="false" aria-haspopup="true"
-                                    class="adjustments-trigger-btn" data-i18n-title="browser.adjustments" id="adjustments-btn"
+                                    class="adjustments-trigger-btn" data-i18n-title="browser.adjustments"
+                                    id="adjustments-btn"
                                     title="Adjustments" type="button">
-                                <svg aria-hidden="true" fill="none" height="15" stroke="currentColor" stroke-linecap="round"
+                                <svg aria-hidden="true" fill="none" height="15" stroke="currentColor"
+                                     stroke-linecap="round"
                                      stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24"
                                      width="15">
                                     <line x1="4" x2="4" y1="21" y2="14"/>
@@ -524,7 +592,8 @@
                     </div>
 
                     <div class="upload-panel" hidden id="upload-zone-container">
-                        <div aria-label="Upload files by dropping or clicking to browse" class="upload-dropzone" data-i18n-aria-label="browser.uploadZoneAria" id="upload-zone"
+                        <div aria-label="Upload files by dropping or clicking to browse" class="upload-dropzone"
+                             data-i18n-aria-label="browser.uploadZoneAria" id="upload-zone"
                              role="button"
                              tabindex="0">
                             <div aria-hidden="true" class="upload-dropzone-icon">
@@ -556,7 +625,8 @@
                                             <span class="upload-file-count" id="upload-file-count"></span>
                                             <span class="upload-total-size" id="upload-total-size"></span>
                                         </div>
-                                        <button class="upload-clear-btn" data-i18n="browser.clearAll" id="upload-clear-btn"
+                                        <button class="upload-clear-btn" data-i18n="browser.clearAll"
+                                                id="upload-clear-btn"
                                                 type="button">Clear all
                                         </button>
                                     </div>
@@ -601,20 +671,26 @@
                                                     <div class="form-group">
                                                         <label data-i18n="browser.pomGroup"
                                                                for="pom-group-id">Group</label>
-                                                        <input autocomplete="off" data-i18n-placeholder="browser.pomGroupPlaceholder" id="pom-group-id"
+                                                        <input autocomplete="off"
+                                                               data-i18n-placeholder="browser.pomGroupPlaceholder"
+                                                               id="pom-group-id"
                                                                placeholder="com.example"
                                                                type="text">
                                                     </div>
                                                     <div class="form-group">
                                                         <label data-i18n="browser.pomArtifact" for="pom-artifact-id">Artifact</label>
-                                                        <input autocomplete="off" data-i18n-placeholder="browser.pomArtifactPlaceholder" id="pom-artifact-id"
+                                                        <input autocomplete="off"
+                                                               data-i18n-placeholder="browser.pomArtifactPlaceholder"
+                                                               id="pom-artifact-id"
                                                                placeholder="my-app"
                                                                type="text">
                                                     </div>
                                                     <div class="form-group">
                                                         <label data-i18n="browser.pomVersion"
                                                                for="pom-version">Version</label>
-                                                        <input autocomplete="off" data-i18n-placeholder="browser.pomVersionPlaceholder" id="pom-version"
+                                                        <input autocomplete="off"
+                                                               data-i18n-placeholder="browser.pomVersionPlaceholder"
+                                                               id="pom-version"
                                                                placeholder="1.0.0"
                                                                type="text">
                                                     </div>
@@ -627,7 +703,8 @@
                                         <div class="upload-destination-field">
                                             <label data-i18n="browser.uploadDest"
                                                    for="upload-destination">Destination</label>
-                                            <input autocomplete="off" data-i18n-placeholder="browser.uploadDestPlaceholder"
+                                            <input autocomplete="off"
+                                                   data-i18n-placeholder="browser.uploadDestPlaceholder"
                                                    id="upload-destination"
                                                    placeholder="repository/path/to/upload"
                                                    type="text">
@@ -722,7 +799,9 @@
                     <p class="dashboard-subtitle" data-i18n="dashboard.subtitle">Real-time metrics for your Renop
                         instance</p>
                 </div>
-                <button class="pill-btn manager-only" id="btn-dashboard-logs" type="button" data-i18n="audit.globalTitle">Global logs</button>
+                <button class="pill-btn manager-only" data-i18n="audit.globalTitle" id="btn-dashboard-logs"
+                        type="button">Global logs
+                </button>
                 <div class="dashboard-status-dot" data-i18n-title="dashboard.healthy" id="dashboard-status-indicator"
                      title="Instance healthy"></div>
             </div>
@@ -741,7 +820,8 @@
                              style="display:flex; flex-direction:column; align-items:flex-start; gap:0.25rem;">
                             <a href="https://github.com/404Setup/SRC-RenoP" id="dashboard-version"
                                target="_blank">...</a>
-                            <button class="pill-btn pill-btn--soft pill-btn--sm manager-only" data-i18n="dashboard.checkUpdate"
+                            <button class="pill-btn pill-btn--soft pill-btn--sm manager-only"
+                                    data-i18n="dashboard.checkUpdate"
                                     id="btn-dashboard-update" style="padding: 0.2rem 0.6rem; font-size: 0.75rem;"
                                     type="button">Check for Updates
                             </button>
@@ -897,7 +977,8 @@
                                 type="button">
                             Dump allocs profile
                         </button>
-                        <button class="pill-btn pill-btn--soft" data-i18n="dashboard.dumpGoroutine" id="btn-dump-goroutine"
+                        <button class="pill-btn pill-btn--soft" data-i18n="dashboard.dumpGoroutine"
+                                id="btn-dump-goroutine"
                                 type="button">
                             Dump goroutines
                         </button>
@@ -1033,30 +1114,46 @@
                                     <label data-i18n="profile.privateEmailLabel"
                                            for="profile-private-email">Primary email</label>
                                     <div class="profile-security-inline">
-                                        <input autocomplete="email" class="profile-input" data-i18n-placeholder="profile.privateEmailPlaceholder"
+                                        <input autocomplete="email" class="profile-input"
+                                               data-i18n-placeholder="profile.privateEmailPlaceholder"
                                                id="profile-private-email" maxlength="254" placeholder="name@example.com"
                                                required
                                                type="email">
-                                        <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.savePrivateEmail"
+                                        <button class="pill-btn pill-btn--primary profile-action-btn"
+                                                data-i18n="profile.savePrivateEmail"
                                                 type="submit">Save
                                         </button>
                                     </div>
-                                    <p class="profile-security-hint" id="profile-private-email-hint" data-i18n="profile.privateEmailHint">This email is
+                                    <p class="profile-security-hint" data-i18n="profile.privateEmailHint"
+                                       id="profile-private-email-hint">This email is
                                         never shown publicly and can be used to sign in or recover your account.</p>
-                                    <button class="pill-btn pill-btn--soft profile-action-btn" data-i18n="profile.githubVerifyEmail" id="profile-github-verify-email"
-                                            type="button" hidden>Use verified GitHub email</button>
+                                    <button class="pill-btn pill-btn--soft profile-action-btn"
+                                            data-i18n="profile.githubVerifyEmail" hidden
+                                            id="profile-github-verify-email" type="button">Use verified GitHub email
+                                    </button>
                                 </form>
-                                <section class="profile-security-email-form" aria-labelledby="profile-email-aliases-title">
-                                    <strong id="profile-email-aliases-title" data-i18n="profile.emailAliases">Other login emails</strong>
-                                    <p class="profile-security-hint" data-i18n="profile.emailAliasesHint">Provider emails remain private login and recovery addresses until you remove them. A provider can add its addresses again when you sign in.</p>
+                                <section aria-labelledby="profile-email-aliases-title"
+                                         class="profile-security-email-form">
+                                    <strong data-i18n="profile.emailAliases" id="profile-email-aliases-title">Other
+                                        login emails</strong>
+                                    <p class="profile-security-hint" data-i18n="profile.emailAliasesHint">Provider
+                                        emails remain private login and recovery addresses until you remove them. A
+                                        provider can add its addresses again when you sign in.</p>
                                     <ul class="profile-email-aliases" id="profile-email-aliases"></ul>
                                     <form id="profile-email-alias-form">
-                                        <label for="profile-email-alias" data-i18n="profile.addEmailAlias">Add a verified email</label>
+                                        <label data-i18n="profile.addEmailAlias" for="profile-email-alias">Add a
+                                            verified email</label>
                                         <div class="profile-security-inline">
-                                            <input class="profile-input" id="profile-email-alias" type="email" required maxlength="254" autocomplete="email">
-                                            <button class="pill-btn pill-btn--primary profile-action-btn" type="submit" data-i18n="profile.verifyPrivateEmail">Verify email</button>
+                                            <input autocomplete="email" class="profile-input" id="profile-email-alias" maxlength="254"
+                                                   required type="email">
+                                            <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.verifyPrivateEmail"
+                                                    type="submit">Verify email
+                                            </button>
                                         </div>
-                                        <p class="profile-security-hint" id="profile-email-alias-mail-disabled" data-i18n="profile.emailAliasMailDisabled" hidden>Enable email delivery to verify another address, or verify it with your provider and refresh the connection.</p>
+                                        <p class="profile-security-hint" data-i18n="profile.emailAliasMailDisabled"
+                                           hidden id="profile-email-alias-mail-disabled">Enable email delivery to
+                                            verify another address, or verify it with your provider and refresh the
+                                            connection.</p>
                                     </form>
                                 </section>
                                 <div class="profile-security-control">
@@ -1073,12 +1170,16 @@
                                 </div>
                                 <div class="profile-security-control">
                                     <div>
-                                        <strong data-i18n="mfa.passkeyTitle" id="profile-mfa-passkey-label">Passkey as a second factor</strong>
-                                        <p class="profile-security-hint" data-i18n="mfa.passkeyHint">Require a Passkey after password or third-party sign-in. A registered Passkey and another sign-in method are required.</p>
+                                        <strong data-i18n="mfa.passkeyTitle" id="profile-mfa-passkey-label">Passkey as a
+                                            second factor</strong>
+                                        <p class="profile-security-hint" data-i18n="mfa.passkeyHint">Require a Passkey
+                                            after password or third-party sign-in. A registered Passkey and another
+                                            sign-in method are required.</p>
                                     </div>
                                     <label class="profile-security-switch">
-                                        <input id="profile-mfa-passkey" type="checkbox" aria-labelledby="profile-mfa-passkey-label">
-	                                    <span aria-hidden="true"></span>
+                                        <input aria-labelledby="profile-mfa-passkey-label" id="profile-mfa-passkey"
+                                               type="checkbox">
+                                        <span aria-hidden="true"></span>
                                     </label>
                                 </div>
                                 <div class="profile-security-control">
@@ -1086,9 +1187,13 @@
                                         <strong data-i18n="mfa.authenticator">Authenticator app</strong>
                                         <p class="profile-security-hint" id="profile-mfa-totp-status"></p>
                                     </div>
-                                    <button class="pill-btn pill-btn--soft profile-action-btn" id="profile-mfa-totp" type="button" data-i18n="mfa.setup">Set up</button>
+                                    <button class="pill-btn pill-btn--soft profile-action-btn" data-i18n="mfa.setup"
+                                            id="profile-mfa-totp" type="button">Set up
+                                    </button>
                                 </div>
-                                <p class="profile-security-hint" data-i18n="mfa.recoveryHint">Save your recovery codes. Recovery clears the authenticator, turns off Passkey second-factor verification, and signs out all sessions. Use API tokens for package clients.</p>
+                                <p class="profile-security-hint" data-i18n="mfa.recoveryHint">Save your recovery codes.
+                                    Recovery clears the authenticator, turns off Passkey second-factor verification, and
+                                    signs out all sessions. Use API tokens for package clients.</p>
                                 <div class="profile-security-control profile-recovery-control">
                                     <div>
                                         <strong data-i18n="profile.recoveryCodesTitle">Recovery codes</strong>
@@ -1096,7 +1201,8 @@
                                            id="profile-recovery-code-status">No recovery codes have been
                                             generated.</p>
                                     </div>
-                                    <button class="pill-btn pill-btn--soft profile-action-btn" data-i18n="profile.generateRecoveryCodes"
+                                    <button class="pill-btn pill-btn--soft profile-action-btn"
+                                            data-i18n="profile.generateRecoveryCodes"
                                             id="btn-profile-recovery-codes"
                                             type="button">Generate codes
                                     </button>
@@ -1104,7 +1210,8 @@
                                 <div class="profile-security-control profile-retirement-control">
                                     <div>
                                         <strong data-i18n="profile.retireAccountTitle">Close account</strong>
-                                        <p class="profile-security-hint" data-i18n="profile.retireAccountHint">Review ownership requirements and permanently close this account.</p>
+                                        <p class="profile-security-hint" data-i18n="profile.retireAccountHint">Review
+                                            ownership requirements and permanently close this account.</p>
                                     </div>
                                     <button class="pill-btn pill-btn--ghost-danger profile-action-btn"
                                             data-i18n="profile.retireAccount" id="btn-profile-retirement"
@@ -1133,7 +1240,8 @@
                         <div class="profile-section-body profile-api-token-summary">
                             <p class="profile-security-hint" data-i18n="profile.apiTokensLoading"
                                id="profile-api-token-status">Loading API tokens…</p>
-                            <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.manageApiTokens"
+                            <button class="pill-btn pill-btn--primary profile-action-btn"
+                                    data-i18n="profile.manageApiTokens"
                                     id="btn-manage-api-tokens"
                                     type="button">Manage API Tokens
                             </button>
@@ -1160,7 +1268,8 @@
                             </div>
                         </div>
                         <div class="profile-section-body">
-                            <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.sessionsBtn"
+                            <button class="pill-btn pill-btn--primary profile-action-btn"
+                                    data-i18n="profile.sessionsBtn"
                                     id="btn-profile-sessions"
                                     type="button">Manage Sessions
                             </button>
@@ -1170,7 +1279,8 @@
                     <div class="profile-settings-section">
                         <div class="profile-section-card-header">
                             <div aria-hidden="true"
-                                 class="profile-section-icon profile-section-icon--fido" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                                 class="profile-section-icon profile-section-icon--fido"
+                                 style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
                                 <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round"
                                      stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="20"
                                      xmlns="http://www.w3.org/2000/svg">
@@ -1209,11 +1319,13 @@
                             <p class="profile-github-status" data-i18n="profile.githubLoading"
                                id="profile-github-status">Loading GitHub connection…</p>
                             <div class="profile-github-actions">
-                                <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.githubConnect"
+                                <button class="pill-btn pill-btn--primary profile-action-btn"
+                                        data-i18n="profile.githubConnect"
                                         hidden id="btn-profile-github-connect"
                                         type="button">Connect GitHub
                                 </button>
-                                <button class="pill-btn pill-btn--soft profile-action-btn" data-i18n="profile.githubDisconnect"
+                                <button class="pill-btn pill-btn--soft profile-action-btn"
+                                        data-i18n="profile.githubDisconnect"
                                         hidden id="btn-profile-github-disconnect"
                                         type="button">Disconnect
                                 </button>
@@ -1226,8 +1338,10 @@
                     <div class="profile-settings-section">
                         <div class="profile-section-card-header">
                             <div aria-hidden="true"
-                                 class="profile-section-icon profile-section-icon--audit" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">
-                                <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                 class="profile-section-icon profile-section-icon--audit"
+                                 style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">
+                                <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round"
+                                     stroke-linejoin="round"
                                      stroke-width="2" viewBox="0 0 24 24" width="20">
                                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                     <polyline points="14 2 14 8 20 8"></polyline>
@@ -1243,7 +1357,8 @@
                             </div>
                         </div>
                         <div class="profile-section-body">
-                            <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.auditLogsBtn"
+                            <button class="pill-btn pill-btn--primary profile-action-btn"
+                                    data-i18n="profile.auditLogsBtn"
                                     id="btn-profile-audit-logs"
                                     type="button">View Activity Logs
                             </button>
@@ -1263,7 +1378,8 @@
             <div class="users-stats-cards">
                 <div class="stat-card">
                     <div class="stat-icon stat-icon--total">
-                        <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                        <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round"
+                             stroke-linejoin="round"
                              stroke-width="2" viewBox="0 0 24 24" width="20">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                             <circle cx="9" cy="7" r="4"/>
@@ -1278,7 +1394,8 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon stat-icon--admin">
-                        <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                        <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round"
+                             stroke-linejoin="round"
                              stroke-width="2" viewBox="0 0 24 24" width="20">
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                         </svg>
@@ -1290,7 +1407,8 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon stat-icon--active">
-                        <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                        <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round"
+                             stroke-linejoin="round"
                              stroke-width="2" viewBox="0 0 24 24" width="20">
                             <rect height="11" rx="2" width="18" x="3" y="11"/>
                             <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
@@ -1315,7 +1433,8 @@
                 </div>
                 <div class="users-toolbar-actions"
                      style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                    <button class="settings-save-btn" data-i18n-title="users.createUserBtnTitle" id="btn-create-user" title="Create a new user"
+                    <button class="settings-save-btn" data-i18n-title="users.createUserBtnTitle" id="btn-create-user"
+                            title="Create a new user"
                             type="button">
                         <svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round"
                              stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24" width="16">
@@ -1351,9 +1470,11 @@
                     <p data-i18n="repos.subtitle">Manage package repositories and their protocol-specific
                         configuration.</p>
                 </div>
-                <button class="settings-save-btn" data-i18n-title="repos.addRepoTitle" id="btn-add-repository" title="Add a package repository"
+                <button class="settings-save-btn" data-i18n-title="repos.addRepoTitle" id="btn-add-repository"
+                        title="Add a package repository"
                         type="button">
-                    <svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                    <svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round"
+                         stroke-linejoin="round"
                          stroke-width="2.5" viewBox="0 0 24 24" width="16">
                         <line x1="12" x2="12" y1="5" y2="19"/>
                         <line x1="5" x2="19" y1="12" y2="12"/>
@@ -1369,7 +1490,8 @@
                 <div>
                     <h2 data-i18n="settings.title">Settings</h2>
                     <p data-i18n="settings.subtitle">Modify configuration shared between all instances.</p>
-                    <p class="settings-propagation" data-i18n="settings.propagationNotice">Configuration propagation can take up to 10 seconds on all your instances.</p>
+                    <p class="settings-propagation" data-i18n="settings.propagationNotice">Configuration propagation can
+                        take up to 10 seconds on all your instances.</p>
                 </div>
             </div>
 
@@ -1379,37 +1501,44 @@
                     <nav aria-labelledby="settings-nav-title" id="settings-nav"></nav>
                 </aside>
                 <div class="settings-main">
-                <div id="settings-page-picker"></div>
-                <div class="settings-page-header">
-                    <div class="settings-page-heading">
-                        <h3 id="settings-page-title" tabindex="-1"></h3>
-                        <span aria-live="polite" id="settings-draft-status" role="status"></span>
+                    <div id="settings-page-picker"></div>
+                    <div class="settings-page-header">
+                        <div class="settings-page-heading">
+                            <h3 id="settings-page-title" tabindex="-1"></h3>
+                            <span aria-live="polite" id="settings-draft-status" role="status"></span>
+                        </div>
+                        <div class="settings-actions">
+                            <button class="pill-btn pill-btn--soft" data-i18n-title="settings.restartBtnTitle"
+                                    id="settings-restart-btn"
+                                    title="Restart the Renop service" type="button">
+                                <svg aria-hidden="true" fill="none" height="16" stroke="currentColor"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="16">
+                                    <polyline points="23 4 23 10 17 10"/>
+                                    <path d="M20.49 15a9 9 0 1 1-.38-3.72"/>
+                                </svg>
+                                <span data-i18n="settings.restartBtn">Restart Renop</span>
+                            </button>
+                            <button class="pill-btn pill-btn--soft" data-i18n="settings.discard" disabled
+                                    id="settings-reset-btn" type="button">Discard changes
+                            </button>
+                            <button class="settings-save-btn" data-i18n-title="settings.saveBtnTitle" disabled
+                                    id="settings-save-btn" title="Save changes and reload configuration" type="button">
+                                <svg aria-hidden="true" fill="none" height="16" stroke="currentColor"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="16">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                    <polyline points="17 21 17 13 7 13 7 21"/>
+                                    <polyline points="7 3 7 8 15 8"/>
+                                </svg>
+                                <span data-i18n="settings.saveBtn">Update and reload</span>
+                            </button>
+                        </div>
                     </div>
-                <div class="settings-actions">
-                    <button class="pill-btn pill-btn--soft" data-i18n-title="settings.restartBtnTitle" id="settings-restart-btn"
-                            title="Restart the Renop service" type="button">
-                        <svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round"
-                             stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="16">
-                            <polyline points="23 4 23 10 17 10"/>
-                            <path d="M20.49 15a9 9 0 1 1-.38-3.72"/>
-                        </svg>
-                        <span data-i18n="settings.restartBtn">Restart Renop</span>
-                    </button>
-                    <button class="pill-btn pill-btn--soft" data-i18n="settings.discard" disabled id="settings-reset-btn" type="button">Discard changes</button>
-                    <button class="settings-save-btn" data-i18n-title="settings.saveBtnTitle" disabled
-                            id="settings-save-btn" title="Save changes and reload configuration" type="button">
-                        <svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round"
-                             stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="16">
-                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                            <polyline points="17 21 17 13 7 13 7 21"/>
-                            <polyline points="7 3 7 8 15 8"/>
-                        </svg>
-                        <span data-i18n="settings.saveBtn">Update and reload</span>
-                    </button>
-                </div>
-                </div>
-                <div aria-labelledby="settings-page-title" class="cfg-page-content" id="settings-form-container" role="region"></div>
-                <nav aria-label="Settings pages" class="renop-pagination" data-i18n-aria-label="settings.sections" id="settings-pagination"></nav>
+                    <div aria-labelledby="settings-page-title" class="cfg-page-content" id="settings-form-container"
+                         role="region"></div>
+                    <nav aria-label="Settings pages" class="renop-pagination" data-i18n-aria-label="settings.sections"
+                         id="settings-pagination"></nav>
                 </div>
             </div>
         </div>
@@ -1458,7 +1587,8 @@
 <div class="modal" id="message-center-modal" style="display: none;">
     <div class="modal-backdrop" id="message-center-backdrop"></div>
     <div class="modal-content message-center-modal-content">
-        <button aria-label="Close message center" class="close-btn" data-i18n-aria-label="modal.close" id="message-center-close"
+        <button aria-label="Close message center" class="close-btn" data-i18n-aria-label="modal.close"
+                id="message-center-close"
                 type="button">&times;
         </button>
         <div class="modal-header message-center-header">
@@ -1473,7 +1603,8 @@
                         data-i18n="messages.clearAll"
                         id="message-clear-all" type="button">Clear notifications
                 </button>
-                <button class="pill-btn pill-btn--soft pill-btn--sm" data-i18n="messages.markAllRead" id="message-mark-all-read"
+                <button class="pill-btn pill-btn--soft pill-btn--sm" data-i18n="messages.markAllRead"
+                        id="message-mark-all-read"
                         type="button">Mark all read
                 </button>
             </div>
@@ -1495,7 +1626,8 @@
 <div class="modal" id="message-compose-modal" style="display: none;">
     <div class="modal-backdrop" id="message-compose-backdrop"></div>
     <div class="modal-content message-compose-modal-content">
-        <button aria-label="Close notification composer" class="close-btn" data-i18n-aria-label="modal.close" id="message-compose-close"
+        <button aria-label="Close notification composer" class="close-btn" data-i18n-aria-label="modal.close"
+                id="message-compose-close"
                 type="button">&times;
         </button>
         <div class="modal-header message-compose-heading">
@@ -1514,8 +1646,10 @@
                     <div class="message-compose-field message-compose-recipient-field">
                         <label data-i18n="messages.recipients" for="message-compose-recipients">Recipients</label>
                         <span class="message-recipient-input-wrap">
-                            <input aria-autocomplete="list" aria-controls="message-recipient-suggestions" aria-expanded="false" autocomplete="off"
-                                   data-i18n-placeholder="messages.recipientsPlaceholder" id="message-compose-recipients" maxlength="4096"
+                            <input aria-autocomplete="list" aria-controls="message-recipient-suggestions"
+                                   aria-expanded="false" autocomplete="off"
+                                   data-i18n-placeholder="messages.recipientsPlaceholder"
+                                   id="message-compose-recipients" maxlength="4096"
                                    placeholder="alice, bob" role="combobox"
                                    type="text">
                             <span class="custom-select-dropdown message-recipient-suggestions"
@@ -1581,7 +1715,8 @@
         </div>
         <div class="modal-body">
             <div class="fido-device-list" id="profile-fido-list" style="margin-bottom: 1rem;"></div>
-            <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.addFidoBtn" id="btn-add-fido-device"
+            <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.addFidoBtn"
+                    id="btn-add-fido-device"
                     type="button">Add Passkey
             </button>
         </div>

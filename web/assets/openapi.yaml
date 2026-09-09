@@ -313,135 +313,135 @@ components:
         Subject must be a stable provider ID. OAuth-only custom clients bind identity to this selector;
         changing the selector requires reconnecting accounts. OIDC clients verify the ID-token subject.
       properties:
-        subject: {type: string, maxLength: 128}
-        username: {type: string, maxLength: 128}
-        name: {type: string, maxLength: 128}
-        email: {type: string, maxLength: 128}
-        email_verified: {type: string, maxLength: 128}
-        avatar: {type: string, maxLength: 128}
+        subject: { type: string, maxLength: 128 }
+        username: { type: string, maxLength: 128 }
+        name: { type: string, maxLength: 128 }
+        email: { type: string, maxLength: 128 }
+        email_verified: { type: string, maxLength: 128 }
+        avatar: { type: string, maxLength: 128 }
     OAuthProvider:
       type: object
-      required: [id, type, name]
+      required: [ id, type, name ]
       description: >-
         Built-in providers resolve official endpoints and claim mappings. Enabled clients require credentials,
         an exact callback path /api/auth/oauth/{id}/callback, and valid HTTPS or loopback HTTP endpoints.
         Stored credentials are returned as empty strings. Empty writes retain credentials only for the same
         ID, type, client ID, and token endpoint. Changing the configuration invalidates pending authorizations.
       properties:
-        id: {type: string, pattern: '^[a-z][a-z0-9_-]{0,31}$', description: Unique local provider ID. The value github is reserved.}
-        type: {type: string, enum: [microsoft, google, gitlab, cloudflare, stackexchange, custom]}
-        name: {type: string, maxLength: 80, description: Display name; limited to 80 UTF-8 bytes.}
-        enabled: {type: boolean, default: false}
-        client_id: {type: string, maxLength: 512}
-        client_secret: {type: string, format: password, maxLength: 4096}
-        callback_url: {type: string, maxLength: 2048}
-        tenant: {type: string, description: 'Microsoft common, organizations, consumers, or Entra tenant UUID.'}
-        base_url: {type: string, maxLength: 2048, description: GitLab instance; defaults to https://gitlab.com.}
-        site: {type: string, description: Stack Exchange site; defaults to stackoverflow.}
-        api_key: {type: string, format: password, maxLength: 4096}
-        authorize_url: {type: string, maxLength: 2048}
-        token_url: {type: string, maxLength: 2048}
-        userinfo_url: {type: string, maxLength: 2048}
-        issuer: {type: string, description: Custom OIDC issuer; requires jwks_url and the openid scope.}
-        jwks_url: {type: string, maxLength: 2048}
-        scopes: {type: string, maxLength: 1024, description: Space-separated scopes; built-in providers supply defaults.}
-        token_auth: {type: string, enum: [client_secret_post, client_secret_basic, none], default: client_secret_post}
-        disable_pkce: {type: boolean, default: false, description: Allowed only for custom providers with a client secret.}
-        claims: {$ref: '#/components/schemas/OAuthClaims'}
-        client_secret_configured: {type: boolean, readOnly: true}
-        api_key_configured: {type: boolean, readOnly: true}
-        clear_client_secret: {type: boolean, writeOnly: true}
-        clear_api_key: {type: boolean, writeOnly: true}
+        id: { type: string, pattern: '^[a-z][a-z0-9_-]{0,31}$', description: Unique local provider ID. The value github is reserved. }
+        type: { type: string, enum: [ microsoft, google, gitlab, cloudflare, stackexchange, custom ] }
+        name: { type: string, maxLength: 80, description: Display name; limited to 80 UTF-8 bytes. }
+        enabled: { type: boolean, default: false }
+        client_id: { type: string, maxLength: 512 }
+        client_secret: { type: string, format: password, maxLength: 4096 }
+        callback_url: { type: string, maxLength: 2048 }
+        tenant: { type: string, description: 'Microsoft common, organizations, consumers, or Entra tenant UUID.' }
+        base_url: { type: string, maxLength: 2048, description: GitLab instance; defaults to https://gitlab.com. }
+        site: { type: string, description: Stack Exchange site; defaults to stackoverflow. }
+        api_key: { type: string, format: password, maxLength: 4096 }
+        authorize_url: { type: string, maxLength: 2048 }
+        token_url: { type: string, maxLength: 2048 }
+        userinfo_url: { type: string, maxLength: 2048 }
+        issuer: { type: string, description: Custom OIDC issuer; requires jwks_url and the openid scope. }
+        jwks_url: { type: string, maxLength: 2048 }
+        scopes: { type: string, maxLength: 1024, description: Space-separated scopes; built-in providers supply defaults. }
+        token_auth: { type: string, enum: [ client_secret_post, client_secret_basic, none ], default: client_secret_post }
+        disable_pkce: { type: boolean, default: false, description: Allowed only for custom providers with a client secret. }
+        claims: { $ref: '#/components/schemas/OAuthClaims' }
+        client_secret_configured: { type: boolean, readOnly: true }
+        api_key_configured: { type: boolean, readOnly: true }
+        clear_client_secret: { type: boolean, writeOnly: true }
+        clear_api_key: { type: boolean, writeOnly: true }
     OAuthSettings:
       type: object
-      required: [providers]
+      required: [ providers ]
       properties:
-        providers: {type: array, maxItems: 32, items: {$ref: '#/components/schemas/OAuthProvider'}}
-        presets: {type: array, readOnly: true, items: {$ref: '#/components/schemas/OAuthProvider'}}
+        providers: { type: array, maxItems: 32, items: { $ref: '#/components/schemas/OAuthProvider' } }
+        presets: { type: array, readOnly: true, items: { $ref: '#/components/schemas/OAuthProvider' } }
     OAuthProfileStatus:
       type: object
       properties:
-        id: {type: string}
-        name: {type: string}
-        login: {type: string, description: Private provider display login; never used to identify the account.}
-        configured: {type: boolean}
-        linked: {type: boolean}
-        can_disconnect: {type: boolean}
-        can_verify_email: {type: boolean}
-        can_import_avatar: {type: boolean}
-        authorized_at: {type: integer, format: int64, description: Unix milliseconds.}
+        id: { type: string }
+        name: { type: string }
+        login: { type: string, description: Private provider display login; never used to identify the account. }
+        configured: { type: boolean }
+        linked: { type: boolean }
+        can_disconnect: { type: boolean }
+        can_verify_email: { type: boolean }
+        can_import_avatar: { type: boolean }
+        authorized_at: { type: integer, format: int64, description: Unix milliseconds. }
     MailInterval:
       type: object
-      required: [value, unit]
+      required: [ value, unit ]
       properties:
-        value: {type: integer, format: int64}
-        unit: {type: string, enum: [second, minute, hour, day]}
+        value: { type: integer, format: int64 }
+        unit: { type: string, enum: [ second, minute, hour, day ] }
       description: Duration bounded to one year. Allowed units and zero/negative behavior depend on the owning field.
     MailRate:
       type: object
-      required: [limit, interval]
+      required: [ limit, interval ]
       properties:
-        limit: {type: integer, format: int64, minimum: 1, maximum: 1000000}
-        interval: {$ref: "#/components/schemas/MailInterval"}
+        limit: { type: integer, format: int64, minimum: 1, maximum: 1000000 }
+        interval: { $ref: "#/components/schemas/MailInterval" }
     MailQuota:
       type: object
       properties:
-        limit: {type: integer, format: int64, maximum: 1000000000, default: 0}
-        period: {type: string, enum: [hour, day, week, month], default: month}
+        limit: { type: integer, format: int64, maximum: 1000000000, default: 0 }
+        period: { type: string, enum: [ hour, day, week, month ], default: month }
       description: Negative is unlimited. Regular quota zero selects automatic discovery; overage zero prohibits extra sends.
     MailPricing:
       type: object
       properties:
-        currency: {type: string, pattern: "^[A-Z]{3}$", default: USD}
-        rounding: {type: string, enum: [proportional, batch], default: proportional}
+        currency: { type: string, pattern: "^[A-Z]{3}$", default: USD }
+        rounding: { type: string, enum: [ proportional, batch ], default: proportional }
         tiers:
           type: array
           maxItems: 20
           items:
             type: object
-            required: [up_to, amount_micros, batch_size]
+            required: [ up_to, amount_micros, batch_size ]
             properties:
-              up_to: {type: integer, format: int64, minimum: 0, maximum: 1000000000}
-              amount_micros: {type: integer, format: int64, minimum: 0, maximum: 1000000000000}
-              batch_size: {type: integer, format: int64, minimum: 1, maximum: 1000000000}
+              up_to: { type: integer, format: int64, minimum: 0, maximum: 1000000000 }
+              amount_micros: { type: integer, format: int64, minimum: 0, maximum: 1000000000000 }
+              batch_size: { type: integer, format: int64, minimum: 1, maximum: 1000000000 }
       description: Progressive cumulative tiers. Final up_to zero is unbounded; monetary amounts use currency millionths.
     MailAccount:
       type: object
-      required: [id, provider, from]
+      required: [ id, provider, from ]
       properties:
-        id: {type: string, pattern: "^[a-zA-Z0-9_-]{1,64}$"}
-        name: {type: string, maxLength: 120}
-        enabled: {type: boolean}
-        provider: {type: string, enum: [smtp, cloudflare, graph, ses, sendgrid, gmail, aliyun, tencent, feishu]}
-        preset: {type: string}
+        id: { type: string, pattern: "^[a-zA-Z0-9_-]{1,64}$" }
+        name: { type: string, maxLength: 120 }
+        enabled: { type: boolean }
+        provider: { type: string, enum: [ smtp, cloudflare, graph, ses, sendgrid, gmail, aliyun, tencent, feishu ] }
+        preset: { type: string }
         scenes:
           type: array
           maxItems: 32
-          items: {type: string}
+          items: { type: string }
           description: Stable scene IDs from the presets endpoint; "*" is the fallback.
-        from: {type: string, format: email, maxLength: 254}
-        from_name: {type: string, maxLength: 120}
-        endpoint: {type: string, format: uri, maxLength: 1024}
-        region: {type: string}
-        smtp_host: {type: string, maxLength: 253}
-        smtp_port: {type: integer, minimum: 1, maximum: 65535}
-        smtp_security: {type: string, enum: [plain, tls, starttls], default: starttls}
-        username: {type: string}
-        password: {type: string, writeOnly: true, maxLength: 16384}
-        api_key: {type: string, writeOnly: true, maxLength: 16384}
-        api_secret: {type: string, writeOnly: true, maxLength: 16384}
-        session_token: {type: string, writeOnly: true, maxLength: 16384}
-        account_id: {type: string}
-        mailbox: {type: string}
-        tenant: {type: string}
-        client_id: {type: string}
-        client_secret: {type: string, writeOnly: true, maxLength: 16384}
-        access_token: {type: string, writeOnly: true, maxLength: 16384}
-        refresh_token: {type: string, writeOnly: true, maxLength: 16384}
-        quota: {$ref: "#/components/schemas/MailQuota"}
-        force_send: {type: boolean, default: false}
-        overage: {$ref: "#/components/schemas/MailQuota"}
-        pricing: {$ref: "#/components/schemas/MailPricing"}
+        from: { type: string, format: email, maxLength: 254 }
+        from_name: { type: string, maxLength: 120 }
+        endpoint: { type: string, format: uri, maxLength: 1024 }
+        region: { type: string }
+        smtp_host: { type: string, maxLength: 253 }
+        smtp_port: { type: integer, minimum: 1, maximum: 65535 }
+        smtp_security: { type: string, enum: [ plain, tls, starttls ], default: starttls }
+        username: { type: string }
+        password: { type: string, writeOnly: true, maxLength: 16384 }
+        api_key: { type: string, writeOnly: true, maxLength: 16384 }
+        api_secret: { type: string, writeOnly: true, maxLength: 16384 }
+        session_token: { type: string, writeOnly: true, maxLength: 16384 }
+        account_id: { type: string }
+        mailbox: { type: string }
+        tenant: { type: string }
+        client_id: { type: string }
+        client_secret: { type: string, writeOnly: true, maxLength: 16384 }
+        access_token: { type: string, writeOnly: true, maxLength: 16384 }
+        refresh_token: { type: string, writeOnly: true, maxLength: 16384 }
+        quota: { $ref: "#/components/schemas/MailQuota" }
+        force_send: { type: boolean, default: false }
+        overage: { $ref: "#/components/schemas/MailQuota" }
+        pricing: { $ref: "#/components/schemas/MailPricing" }
         balance_micros:
           type: integer
           format: int64
@@ -449,77 +449,77 @@ components:
           minimum: -1000000000000000
           maximum: 1000000000000000
           description: Known remaining balance in currency millionths; null means unknown.
-        fetch_balance: {type: boolean, default: false}
-        billing_endpoint: {type: string, format: uri}
-        tencent_template_id: {type: integer, minimum: 0, maximum: 9007199254740991, description: "Approved Tencent SES HTML template with subject and text variables; JSON variable data is limited to 800 bytes. Zero uses legacy custom-content permission."}
+        fetch_balance: { type: boolean, default: false }
+        billing_endpoint: { type: string, format: uri }
+        tencent_template_id: { type: integer, minimum: 0, maximum: 9007199254740991, description: "Approved Tencent SES HTML template with subject and text variables; JSON variable data is limited to 800 bytes. Zero uses legacy custom-content permission." }
     MailSettings:
       type: object
-      required: [manual_rate, account_rate]
+      required: [ manual_rate, account_rate ]
       properties:
-        enabled: {type: boolean, default: false}
-        public_url: {type: string, format: uri, description: Public HTTPS instance base URL required when enabled.}
-        site_name: {type: string, maxLength: 120, default: RenoP}
-        template_style: {type: string, enum: [card, compact, notice], default: card}
-        locale: {type: string, default: en-US}
+        enabled: { type: boolean, default: false }
+        public_url: { type: string, format: uri, description: Public HTTPS instance base URL required when enabled. }
+        site_name: { type: string, maxLength: 120, default: RenoP }
+        template_style: { type: string, enum: [ card, compact, notice ], default: card }
+        locale: { type: string, default: en-US }
         delay:
-          allOf: [{$ref: "#/components/schemas/MailInterval"}]
+          allOf: [ { $ref: "#/components/schemas/MailInterval" } ]
           description: Seconds, minutes, or hours; nonnegative. Default five seconds.
         calibration:
-          allOf: [{$ref: "#/components/schemas/MailInterval"}]
+          allOf: [ { $ref: "#/components/schemas/MailInterval" } ]
           description: Minutes, hours, or days. Nonpositive or empty disables remote lookups. Default five minutes.
         manual_rate:
-          allOf: [{$ref: "#/components/schemas/MailRate"}]
+          allOf: [ { $ref: "#/components/schemas/MailRate" } ]
           description: Per-IP manual request limit; minute/hour/day intervals. Default one request per two minutes.
         account_rate:
-          allOf: [{$ref: "#/components/schemas/MailRate"}]
+          allOf: [ { $ref: "#/components/schemas/MailRate" } ]
           description: Per-account attempt limit including manual sends. Default 50 per minute.
-        list_mode: {type: string, enum: [blacklist, whitelist], default: blacklist}
-        addresses: {type: array, maxItems: 1000, items: {type: string}}
-        accounts: {type: array, maxItems: 64, items: {$ref: "#/components/schemas/MailAccount"}}
+        list_mode: { type: string, enum: [ blacklist, whitelist ], default: blacklist }
+        addresses: { type: array, maxItems: 1000, items: { type: string } }
+        accounts: { type: array, maxItems: 64, items: { $ref: "#/components/schemas/MailAccount" } }
         clear_secrets:
           type: object
           writeOnly: true
           additionalProperties:
             type: array
-            items: {type: string, enum: [password, api_key, api_secret, session_token, client_secret, access_token, refresh_token]}
+            items: { type: string, enum: [ password, api_key, api_secret, session_token, client_secret, access_token, refresh_token ] }
           description: Account IDs mapped to credential fields to clear. Empty values preserve same-provider credentials; SMTP also requires an unchanged host and username.
         secrets_configured:
           type: object
           readOnly: true
-          additionalProperties: {type: array, items: {type: string}}
+          additionalProperties: { type: array, items: { type: string } }
           description: Account IDs mapped to stored credential field names; no credential values.
     MailReceipt:
       type: object
-      required: [id, status]
+      required: [ id, status ]
       properties:
-        id: {type: string}
-        status: {type: string, enum: [queued]}
-        ticket: {type: string, description: Private status capability returned for manual requests.}
+        id: { type: string }
+        status: { type: string, enum: [ queued ] }
+        ticket: { type: string, description: Private status capability returned for manual requests. }
     MailJobStatus:
       type: object
       properties:
-        id: {type: string}
-        account_id: {type: string}
-        scene: {type: string}
-        status: {type: string, enum: [queued, paused, sending, checking, accepted, sent, delivered, failed, unknown, expired, cancelled, queued_provider]}
-        code: {type: string, description: Stable safe status code, without raw provider diagnostics.}
-        created_at: {type: integer, format: int64, description: Unix milliseconds.}
-        updated_at: {type: integer, format: int64, description: Unix milliseconds.}
+        id: { type: string }
+        account_id: { type: string }
+        scene: { type: string }
+        status: { type: string, enum: [ queued, paused, sending, checking, accepted, sent, delivered, failed, unknown, expired, cancelled, queued_provider ] }
+        code: { type: string, description: Stable safe status code, without raw provider diagnostics. }
+        created_at: { type: integer, format: int64, description: Unix milliseconds. }
+        updated_at: { type: integer, format: int64, description: Unix milliseconds. }
     MailAccountStatus:
       type: object
       properties:
-        usage: {type: object, description: Counters keyed by hour/day/week/month; each contains start and used.}
-        overage: {type: object, description: Paid counters keyed by UTC calendar period.}
-        rate: {type: object, description: Current account attempt-rate counter.}
-        budget: {type: object, description: Last calibrated provider values with local deductions.}
-        remaining_quota: {type: integer, format: int64, nullable: true}
-        remaining_overage: {type: integer, format: int64, nullable: true}
-        balance_micros: {type: integer, format: int64, nullable: true}
-        calibration_at: {type: integer, format: int64}
-        calibration_error: {type: string}
-        attempts: {type: integer, format: int64}
-        charged: {type: integer, format: int64}
-        spent_micros: {type: integer, format: int64}
+        usage: { type: object, description: Counters keyed by hour/day/week/month; each contains start and used. }
+        overage: { type: object, description: Paid counters keyed by UTC calendar period. }
+        rate: { type: object, description: Current account attempt-rate counter. }
+        budget: { type: object, description: Last calibrated provider values with local deductions. }
+        remaining_quota: { type: integer, format: int64, nullable: true }
+        remaining_overage: { type: integer, format: int64, nullable: true }
+        balance_micros: { type: integer, format: int64, nullable: true }
+        calibration_at: { type: integer, format: int64 }
+        calibration_error: { type: string }
+        attempts: { type: integer, format: int64 }
+        charged: { type: integer, format: int64 }
+        spent_micros: { type: integer, format: int64 }
     ErrorBody:
       type: object
       properties:
@@ -2804,13 +2804,13 @@ components:
           description: Unix milliseconds timestamp.
         kind:
           type: string
-          enum: [audit, system]
+          enum: [ audit, system ]
         trigger:
           type: string
           description: Producer source; legacy rows use unknown.
         severity:
           type: string
-          enum: [info, warning, error]
+          enum: [ info, warning, error ]
 
         initiator:
           type: string
@@ -2878,10 +2878,10 @@ components:
 paths:
   /api/auth/oauth/providers:
     get:
-      tags: [auth]
+      tags: [ auth ]
       summary: List configured third-party login providers
       operationId: getOAuthProviders
-      security: []
+      security: [ ]
       responses:
         "200":
           description: Public IDs and names only; response is not cached.
@@ -2896,51 +2896,51 @@ paths:
                     items:
                       type: object
                       properties:
-                        id: {type: string}
-                        name: {type: string}
+                        id: { type: string }
+                        name: { type: string }
   /api/auth/oauth/{provider}/start:
     get:
-      tags: [auth]
+      tags: [ auth ]
       summary: Begin third-party authorization
       operationId: startOAuth
       description: >-
         Creates single-use state and an HttpOnly browser cookie valid for ten minutes, then redirects with PKCE.
         Link, email, and avatar intents require the initiating browser session. Register requires registration enabled.
         Unbound login identities also enter registration. Email matching never selects an existing local account.
-      security: []
+      security: [ ]
       parameters:
-        - {name: provider, in: path, required: true, schema: {type: string, maxLength: 32}}
-        - {name: intent, in: query, schema: {type: string, enum: [login, register, link, email, avatar], default: login}}
-        - {name: return_to, in: query, schema: {type: string, maxLength: 1024}, description: Local pathname; unsafe values fall back to / and queries and fragments are discarded.}
+        - { name: provider, in: path, required: true, schema: { type: string, maxLength: 32 } }
+        - { name: intent, in: query, schema: { type: string, enum: [ login, register, link, email, avatar ], default: login } }
+        - { name: return_to, in: query, schema: { type: string, maxLength: 1024 }, description: Local pathname; unsafe values fall back to / and queries and fragments are discarded. }
       responses:
-        "303": {description: Redirect to the provider authorization endpoint.}
-        "400": {$ref: '#/components/responses/PlainBadRequest'}
-        "403": {$ref: '#/components/responses/PlainForbidden'}
-        "404": {$ref: '#/components/responses/PlainNotFound'}
-        "503": {description: Authorization state or provider service unavailable.}
+        "303": { description: Redirect to the provider authorization endpoint. }
+        "400": { $ref: '#/components/responses/PlainBadRequest' }
+        "403": { $ref: '#/components/responses/PlainForbidden' }
+        "404": { $ref: '#/components/responses/PlainNotFound' }
+        "503": { description: Authorization state or provider service unavailable. }
   /api/auth/oauth/{provider}/callback:
     get:
-      tags: [auth]
+      tags: [ auth ]
       summary: Complete third-party authorization
       operationId: finishOAuth
       description: >-
         Requires the initiating OAuth state cookie. Profile actions also recheck the initiating session and security revision.
         OIDC verifies the signed ID token and the authenticated user-info subject. Login requires any configured second factor.
         Returns a stable oauth result marker or redirects to registration or /account/login?mfa=1.
-      security: []
+      security: [ ]
       parameters:
-        - {name: provider, in: path, required: true, schema: {type: string, maxLength: 32}}
-        - {name: state, in: query, required: true, schema: {type: string, minLength: 43, maxLength: 43}}
-        - {name: code, in: query, schema: {type: string, maxLength: 4096}}
-        - {name: error, in: query, schema: {type: string}}
+        - { name: provider, in: path, required: true, schema: { type: string, maxLength: 32 } }
+        - { name: state, in: query, required: true, schema: { type: string, minLength: 43, maxLength: 43 } }
+        - { name: code, in: query, schema: { type: string, maxLength: 4096 } }
+        - { name: error, in: query, schema: { type: string } }
       responses:
-        "303": {description: Local destination with the stable result marker, registration confirmation, or second-factor page.}
+        "303": { description: Local destination with the stable result marker, registration confirmation, or second-factor page. }
   /api/auth/profile/oauth:
     get:
-      tags: [auth]
+      tags: [ auth ]
       summary: Read private third-party account connections
       operationId: getProfileOAuth
-      security: [{sessionCookie: []}]
+      security: [ { sessionCookie: [ ] } ]
       responses:
         "200":
           description: Configured providers and retained bindings; no stable subjects, client secrets, or access tokens are returned.
@@ -2949,99 +2949,99 @@ paths:
               schema:
                 type: object
                 properties:
-                  providers: {type: array, maxItems: 64, items: {$ref: '#/components/schemas/OAuthProfileStatus'}}
-        "401": {$ref: '#/components/responses/PlainUnauthorized'}
-        "503": {description: Private provider state unavailable.}
+                  providers: { type: array, maxItems: 64, items: { $ref: '#/components/schemas/OAuthProfileStatus' } }
+        "401": { $ref: '#/components/responses/PlainUnauthorized' }
+        "503": { description: Private provider state unavailable. }
   /api/auth/profile/oauth/{provider}:
     delete:
-      tags: [auth]
+      tags: [ auth ]
       summary: Disconnect a third-party identity
       operationId: deleteProfileOAuth
       description: Preserves another primary login method and invalidates pending authentication proofs. Retired accounts cannot recreate bindings.
-      security: [{sessionCookie: []}]
+      security: [ { sessionCookie: [ ] } ]
       parameters:
-        - {name: provider, in: path, required: true, schema: {type: string, maxLength: 32}}
+        - { name: provider, in: path, required: true, schema: { type: string, maxLength: 32 } }
       responses:
-        "204": {description: Identity disconnected.}
-        "403": {$ref: '#/components/responses/PlainForbidden'}
-        "404": {$ref: '#/components/responses/PlainNotFound'}
-        "409": {description: oauth_last_login_method; another primary login method is required.}
-        "503": {description: Identity could not be disconnected.}
+        "204": { description: Identity disconnected. }
+        "403": { $ref: '#/components/responses/PlainForbidden' }
+        "404": { $ref: '#/components/responses/PlainNotFound' }
+        "409": { description: oauth_last_login_method; another primary login method is required. }
+        "503": { description: Identity could not be disconnected. }
   /api/settings/oauth-providers:
     get:
-      tags: [settings]
+      tags: [ settings ]
       summary: Read OAuth clients and built-in presets
       operationId: getOAuthSettings
-      security: [{sessionCookie: []}, {bearerAuth: []}]
+      security: [ { sessionCookie: [ ] }, { bearerAuth: [ ] } ]
       responses:
         "200":
           description: Administrator-only settings with credential flags and empty secret values.
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/OAuthSettings'}
-        "403": {$ref: '#/components/responses/PlainForbidden'}
+              schema: { $ref: '#/components/schemas/OAuthSettings' }
+        "403": { $ref: '#/components/responses/PlainForbidden' }
     put:
-      tags: [settings]
+      tags: [ settings ]
       summary: Replace the configured OAuth client list
       operationId: updateOAuthSettings
       description: >-
         Administrator only; requires a providers array. Missing or null providers are rejected; an explicit empty array clears the list.
         JSON body is limited to 128 KiB. Secrets are write-only and are preserved only for an unchanged client and token endpoint.
         Applies to new authorizations immediately. Removing configuration does not delete existing account bindings.
-      security: [{sessionCookie: []}, {bearerAuth: []}]
+      security: [ { sessionCookie: [ ] }, { bearerAuth: [ ] } ]
       requestBody:
         required: true
         content:
           application/json:
-            schema: {$ref: '#/components/schemas/OAuthSettings'}
+            schema: { $ref: '#/components/schemas/OAuthSettings' }
       responses:
         "200":
           description: Saved configuration with secrets removed from the response.
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/OAuthSettings'}
-        "400": {description: oauth_settings_invalid; invalid client configuration or a missing provider list.}
-        "403": {$ref: '#/components/responses/PlainForbidden'}
-        "413": {description: Request exceeds 128 KiB.}
-        "500": {description: oauth_settings_save_failed; configuration could not be persisted.}
+              schema: { $ref: '#/components/schemas/OAuthSettings' }
+        "400": { description: oauth_settings_invalid; invalid client configuration or a missing provider list. }
+        "403": { $ref: '#/components/responses/PlainForbidden' }
+        "413": { description: Request exceeds 128 KiB. }
+        "500": { description: oauth_settings_save_failed; configuration could not be persisted. }
   /api/settings/mail:
     get:
-      tags: [settings]
+      tags: [ settings ]
       summary: Read email settings with stored credentials hidden
       operationId: getMailSettings
-      security: [{sessionCookie: []}, {bearerAuth: []}]
+      security: [ { sessionCookie: [ ] }, { bearerAuth: [ ] } ]
       responses:
         "200":
           description: Administrator-only email configuration.
           content:
             application/json:
-              schema: {$ref: "#/components/schemas/MailSettings"}
-        "403": {$ref: "#/components/responses/PlainForbidden"}
+              schema: { $ref: "#/components/schemas/MailSettings" }
+        "403": { $ref: "#/components/responses/PlainForbidden" }
     put:
-      tags: [settings]
+      tags: [ settings ]
       summary: Replace email settings
       operationId: updateMailSettings
-      security: [{sessionCookie: []}, {bearerAuth: []}]
+      security: [ { sessionCookie: [ ] }, { bearerAuth: [ ] } ]
       description: Body limited to 1 MiB. Settings apply to subsequent queue operations. The persistent encryption key cannot be changed through this endpoint.
       requestBody:
         required: true
         content:
           application/json:
-            schema: {$ref: "#/components/schemas/MailSettings"}
+            schema: { $ref: "#/components/schemas/MailSettings" }
       responses:
         "200":
           description: Saved settings with credential values hidden.
           content:
             application/json:
-              schema: {$ref: "#/components/schemas/MailSettings"}
-        "400": {$ref: "#/components/responses/PlainBadRequest"}
-        "403": {$ref: "#/components/responses/PlainForbidden"}
+              schema: { $ref: "#/components/schemas/MailSettings" }
+        "400": { $ref: "#/components/responses/PlainBadRequest" }
+        "403": { $ref: "#/components/responses/PlainForbidden" }
   /api/settings/mail/presets:
     get:
-      tags: [settings]
+      tags: [ settings ]
       summary: List provider endpoints, price defaults, capabilities, and template scene IDs
       operationId: getMailPresets
-      security: [{sessionCookie: []}, {bearerAuth: []}]
+      security: [ { sessionCookie: [ ] }, { bearerAuth: [ ] } ]
       responses:
         "200":
           description: Administrator-only editable defaults; no credentials.
@@ -3050,27 +3050,27 @@ paths:
               schema:
                 type: object
                 properties:
-                  scenes: {type: array, items: {type: string}}
+                  scenes: { type: array, items: { type: string } }
                   presets:
                     type: array
                     items:
                       type: object
                       properties:
-                        id: {type: string}
-                        name: {type: string}
-                        account: {type: object, description: Partial transport and pricing defaults to merge with the sending identity.}
-                        price_source: {type: string}
-                        price_checked: {type: string, format: date}
-                        quota_api: {type: boolean}
-                        balance_api: {type: boolean}
-                        status_api: {type: boolean}
-                        paid_overage: {type: boolean}
+                        id: { type: string }
+                        name: { type: string }
+                        account: { type: object, description: Partial transport and pricing defaults to merge with the sending identity. }
+                        price_source: { type: string }
+                        price_checked: { type: string, format: date }
+                        quota_api: { type: boolean }
+                        balance_api: { type: boolean }
+                        status_api: { type: boolean }
+                        paid_overage: { type: boolean }
   /api/settings/mail/test:
     post:
-      tags: [settings]
+      tags: [ settings ]
       summary: Queue a test email using saved settings
       operationId: enqueueTestMail
-      security: [{sessionCookie: []}, {bearerAuth: []}]
+      security: [ { sessionCookie: [ ] }, { bearerAuth: [ ] } ]
       description: Requires administrator authority. Consumes the manual IP limit and later the account attempt limit. A 202 response confirms queue insertion.
       requestBody:
         required: true
@@ -3078,48 +3078,48 @@ paths:
           application/json:
             schema:
               type: object
-              required: [to]
+              required: [ to ]
               properties:
-                account_id: {type: string}
-                to: {type: string, format: email}
+                account_id: { type: string }
+                to: { type: string, format: email }
       responses:
         "202":
           description: Durable queue receipt; poll for delivery status.
           content:
             application/json:
-              schema: {$ref: "#/components/schemas/MailReceipt"}
-        "400": {$ref: "#/components/responses/PlainBadRequest"}
-        "403": {$ref: "#/components/responses/PlainForbidden"}
-        "429": {description: Manual per-IP email limit reached.}
-        "503": {description: Email disabled, queue full, or storage unavailable.}
+              schema: { $ref: "#/components/schemas/MailReceipt" }
+        "400": { $ref: "#/components/responses/PlainBadRequest" }
+        "403": { $ref: "#/components/responses/PlainForbidden" }
+        "429": { description: Manual per-IP email limit reached. }
+        "503": { description: Email disabled, queue full, or storage unavailable. }
   /api/settings/mail/accounts/{id}:
     get:
-      tags: [settings]
+      tags: [ settings ]
       summary: Read a sending account's local quota and billing state
       operationId: getMailAccountStatus
-      security: [{sessionCookie: []}, {bearerAuth: []}]
+      security: [ { sessionCookie: [ ] }, { bearerAuth: [ ] } ]
       parameters:
         - name: id
           in: path
           required: true
-          schema: {type: string}
+          schema: { type: string }
       responses:
         "200":
           description: Administrator-only counters; does not initiate a provider request.
           content:
             application/json:
-              schema: {$ref: "#/components/schemas/MailAccountStatus"}
-        "404": {$ref: "#/components/responses/PlainNotFound"}
+              schema: { $ref: "#/components/schemas/MailAccountStatus" }
+        "404": { $ref: "#/components/responses/PlainNotFound" }
   /api/settings/mail/jobs:
     get:
-      tags: [settings]
+      tags: [ settings ]
       summary: List recent email jobs
       operationId: getMailJobs
-      security: [{sessionCookie: []}, {bearerAuth: []}]
+      security: [ { sessionCookie: [ ] }, { bearerAuth: [ ] } ]
       parameters:
-        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50, default: 20}}
-        - {name: offset, in: query, schema: {type: integer, minimum: 0, maximum: 10000, default: 0}}
-        - {name: status, in: query, schema: {type: string}}
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, maximum: 10000, default: 0 } }
+        - { name: status, in: query, schema: { type: string } }
       responses:
         "200":
           description: Administrator-only bounded history, without recipient addresses or message content.
@@ -3128,17 +3128,17 @@ paths:
               schema:
                 type: object
                 properties:
-                  total: {type: integer}
-                  items: {type: array, items: {$ref: "#/components/schemas/MailJobStatus"}}
+                  total: { type: integer }
+                  items: { type: array, items: { $ref: "#/components/schemas/MailJobStatus" } }
   /api/settings/mail/templates/{scene}:
     get:
-      tags: [settings]
+      tags: [ settings ]
       summary: Preview an email template
       operationId: previewMailTemplate
-      security: [{sessionCookie: []}, {bearerAuth: []}]
+      security: [ { sessionCookie: [ ] }, { bearerAuth: [ ] } ]
       parameters:
-        - {name: scene, in: path, required: true, schema: {type: string}}
-        - {name: style, in: query, schema: {type: string, enum: [card, compact, notice]}}
+        - { name: scene, in: path, required: true, schema: { type: string } }
+        - { name: style, in: query, schema: { type: string, enum: [ card, compact, notice ] } }
       responses:
         "200":
           description: Administrator preview using harmless example substitutions.
@@ -3147,33 +3147,33 @@ paths:
               schema:
                 type: object
                 properties:
-                  subject: {type: string}
-                  html: {type: string}
-                  text: {type: string}
-        "400": {$ref: "#/components/responses/PlainBadRequest"}
+                  subject: { type: string }
+                  html: { type: string }
+                  text: { type: string }
+        "400": { $ref: "#/components/responses/PlainBadRequest" }
   /api/auth/mail/{id}:
     get:
-      tags: [auth]
+      tags: [ auth ]
       summary: Read owned email status or use a private status ticket
       operationId: getMailJobStatus
-      security: [{sessionCookie: []}, {mailTicket: []}]
+      security: [ { sessionCookie: [ ] }, { mailTicket: [ ] } ]
       parameters:
-        - {name: id, in: path, required: true, schema: {type: string, maxLength: 64}}
+        - { name: id, in: path, required: true, schema: { type: string, maxLength: 64 } }
       responses:
         "200":
           description: Safe job status. Acceptance and sent-folder confirmation do not establish recipient delivery.
           content:
             application/json:
-              schema: {$ref: "#/components/schemas/MailJobStatus"}
-        "404": {$ref: "#/components/responses/PlainNotFound"}
-        "503": {description: Mail storage unavailable.}
+              schema: { $ref: "#/components/schemas/MailJobStatus" }
+        "404": { $ref: "#/components/responses/PlainNotFound" }
+        "503": { description: Mail storage unavailable. }
   # ========== Auth ==========
   /api/auth/password-reset/status:
     get:
-      tags: [auth]
+      tags: [ auth ]
       summary: Read email password recovery availability
       operationId: getPasswordResetStatus
-      security: []
+      security: [ ]
       responses:
         "200":
           description: Whether mail delivery is enabled. This endpoint remains available when recovery is disabled.
@@ -3181,15 +3181,15 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [enabled]
+                required: [ enabled ]
                 properties:
-                  enabled: {type: boolean}
+                  enabled: { type: boolean }
   /api/auth/password-reset/request:
     post:
-      tags: [auth]
+      tags: [ auth ]
       summary: Queue an email ownership code for password recovery
       operationId: requestEmailPasswordReset
-      security: []
+      security: [ ]
       description: |
         Queues the same email for any valid address allowed by recipient policy, including an unregistered address.
         This proves mailbox ownership without disclosing registration status through the receipt or delivery lookup.
@@ -3202,27 +3202,27 @@ paths:
           application/json:
             schema:
               type: object
-              required: [email]
+              required: [ email ]
               properties:
-                email: {type: string, format: email, maxLength: 254}
+                email: { type: string, format: email, maxLength: 254 }
       responses:
         "202":
           description: Queued, not a delivery guarantee. Use the ticket in X-Renop-Mail-Ticket for GET /api/auth/mail/{id}.
           content:
             application/json:
-              schema: {$ref: "#/components/schemas/MailReceipt"}
-        "400": {description: Invalid address or JSON, or recipient policy rejected the address.}
-        "404": {description: Mail delivery disabled (mail_disabled).}
-        "413": {description: Request exceeds 4096 bytes.}
-        "415": {description: Content-Type must be application/json.}
-        "429": {description: Address cooldown or manual IP rate exceeded (mail_manual_rate_limited).}
-        "503": {description: Queue full, no enabled sending account, or storage unavailable.}
+              schema: { $ref: "#/components/schemas/MailReceipt" }
+        "400": { description: Invalid address or JSON, or recipient policy rejected the address. }
+        "404": { description: Mail delivery disabled (mail_disabled). }
+        "413": { description: Request exceeds 4096 bytes. }
+        "415": { description: Content-Type must be application/json. }
+        "429": { description: Address cooldown or manual IP rate exceeded (mail_manual_rate_limited). }
+        "503": { description: Queue full, no enabled sending account, or storage unavailable. }
   /api/auth/password-reset/confirm:
     post:
-      tags: [auth]
+      tags: [ auth ]
       summary: Consume an email code and reset the account password
       operationId: confirmEmailPasswordReset
-      security: []
+      security: [ ]
       description: |
         Accepts at most 4096 bytes of JSON. The new password must contain 6 to 72 UTF-8 bytes.
         Rechecks the account identity, email, password fingerprint, and security revision captured at issuance.
@@ -3235,11 +3235,11 @@ paths:
           application/json:
             schema:
               type: object
-              required: [email, code, new_password]
+              required: [ email, code, new_password ]
               properties:
-                email: {type: string, format: email, maxLength: 254}
-                code: {type: string, pattern: '^[0-9]{8}$'}
-                new_password: {type: string, format: password, maxLength: 72, description: Must contain 6 to 72 UTF-8 bytes.}
+                email: { type: string, format: email, maxLength: 254 }
+                code: { type: string, pattern: '^[0-9]{8}$' }
+                new_password: { type: string, format: password, maxLength: 72, description: Must contain 6 to 72 UTF-8 bytes. }
       responses:
         "200":
           description: Password reset; sign in with the new password.
@@ -3247,16 +3247,16 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [status, username]
+                required: [ status, username ]
                 properties:
-                  status: {type: string, enum: [success]}
-                  username: {type: string}
-        "400": {description: Invalid input (ACCOUNT_EMAIL_CODE_INVALID), or malformed JSON (mail_request_invalid).}
-        "401": {description: Invalid, expired, exhausted, consumed, or stale code (ACCOUNT_EMAIL_CODE_INVALID).}
-        "404": {description: Mail delivery disabled (mail_disabled).}
-        "413": {description: Request exceeds 4096 bytes.}
-        "415": {description: Content-Type must be application/json.}
-        "503": {description: Password recovery temporarily unavailable.}
+                  status: { type: string, enum: [ success ] }
+                  username: { type: string }
+        "400": { description: Invalid input (ACCOUNT_EMAIL_CODE_INVALID), or malformed JSON (mail_request_invalid). }
+        "401": { description: Invalid, expired, exhausted, consumed, or stale code (ACCOUNT_EMAIL_CODE_INVALID). }
+        "404": { description: Mail delivery disabled (mail_disabled). }
+        "413": { description: Request exceeds 4096 bytes. }
+        "415": { description: Content-Type must be application/json. }
+        "503": { description: Password recovery temporarily unavailable. }
   /api/auth/login:
     post:
       tags: [ auth ]
@@ -6861,8 +6861,8 @@ paths:
         Query fields and results match the activity endpoints with additional global kind and username filters.
       operationId: getGlobalLogs
       security:
-        - sessionCookie: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - bearerAuth: [ ]
       parameters:
         - name: kind
           in: query

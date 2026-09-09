@@ -112,7 +112,10 @@ export async function requestPasskeyAssertion(options, controls) {
     if (!options?.publicKey?.challenge) throw new DOMException('', 'DataError');
     const publicKey = {...options.publicKey, challenge: base64urlToBuffer(options.publicKey.challenge)};
     if (publicKey.allowCredentials?.length) {
-        publicKey.allowCredentials = publicKey.allowCredentials.map(credential => ({...credential, id: base64urlToBuffer(credential.id)}));
+        publicKey.allowCredentials = publicKey.allowCredentials.map(credential => ({
+            ...credential,
+            id: base64urlToBuffer(credential.id)
+        }));
     } else {
         delete publicKey.allowCredentials;
     }
@@ -132,12 +135,16 @@ export async function requestPasskeyAssertion(options, controls) {
 /** Register a Passkey with the same bounded prompt as authentication. */
 export async function requestPasskeyRegistration(options, controls) {
     if (!options?.publicKey?.challenge || !options.publicKey.user?.id) throw new DOMException('', 'DataError');
-    const publicKey = {...options.publicKey, challenge: base64urlToBuffer(options.publicKey.challenge),
+    const publicKey = {
+        ...options.publicKey, challenge: base64urlToBuffer(options.publicKey.challenge),
         user: {...options.publicKey.user, id: base64urlToBuffer(options.publicKey.user.id)},
         authenticatorSelection: {...options.publicKey.authenticatorSelection},
     };
     if (publicKey.excludeCredentials?.length) {
-        publicKey.excludeCredentials = publicKey.excludeCredentials.map(credential => ({...credential, id: base64urlToBuffer(credential.id)}));
+        publicKey.excludeCredentials = publicKey.excludeCredentials.map(credential => ({
+            ...credential,
+            id: base64urlToBuffer(credential.id)
+        }));
     } else delete publicKey.excludeCredentials;
     delete publicKey.authenticatorSelection.authenticatorAttachment;
     publicKey.authenticatorSelection.userVerification ||= 'preferred';
@@ -145,7 +152,9 @@ export async function requestPasskeyRegistration(options, controls) {
     const credential = await requestCredential('create', publicKey, controls);
     return {
         id: credential.id, rawId: bufferToBase64url(credential.rawId), type: credential.type,
-        response: {attestationObject: bufferToBase64url(credential.response.attestationObject),
-            clientDataJSON: bufferToBase64url(credential.response.clientDataJSON)},
+        response: {
+            attestationObject: bufferToBase64url(credential.response.attestationObject),
+            clientDataJSON: bufferToBase64url(credential.response.clientDataJSON)
+        },
     };
 }

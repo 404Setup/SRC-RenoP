@@ -338,7 +338,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 			return errorsOrMissing(err, "global team listing")
 		}
 		invitationID := uuid.NewString()
-		expiresAt := now + int64((time.Hour / time.Millisecond))
+		expiresAt := now + int64(time.Hour/time.Millisecond)
 		invitation := &core.SuperTeamInvitation{
 			ID: invitationID, TeamPrefix: team.Prefix, Inviter: username, Recipient: memberUsername,
 			Level: core.SuperTeamRoleWrite, CreatedAt: now, ExpiresAt: expiresAt,

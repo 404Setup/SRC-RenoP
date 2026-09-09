@@ -100,11 +100,15 @@ publication locale.
 ## Verrouillage des ressources
 
 Les pages des paquets et versions affichent les motifs publics traduits. Les administrateurs et modérateurs du dépôt
-y gèrent les verrous manuels. Le verrou d'écriture fige les modifications ; celui de lecture réserve aussi les métadonnées
-aux responsables et collaborateurs actuels et interdit tout téléchargement. Retirer un verrou manuel conserve les restrictions système.
+y gèrent les verrous manuels. Le verrou d'écriture fige les modifications ; celui de lecture réserve aussi les
+métadonnées
+aux responsables et collaborateurs actuels et interdit tout téléchargement. Retirer un verrou manuel conserve les
+restrictions système.
 
-Les versions verrouillées conservent leurs tags et bloquent le cycle de vie du paquet entier. Publiez les autres versions
-avec un tag distinct si le tag existant vise une version verrouillée. Les miroirs préservent le contenu stocké verrouillé.
+Les versions verrouillées conservent leurs tags et bloquent le cycle de vie du paquet entier. Publiez les autres
+versions
+avec un tag distinct si le tag existant vise une version verrouillée. Les miroirs préservent le contenu stocké
+verrouillé.
 Consultez l'[API npm](/docs/api/npm) pour les points d'accès et codes de réponse.
 
 La navigation ignore les anciennes réponses de paquet et les actualisations de verrou pour préserver la nouvelle page.

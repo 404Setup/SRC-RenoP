@@ -1443,7 +1443,7 @@ html.dark .cfg-badge--warning {
         justify-content: space-between;
     }
 
-            .cfg-field-row {
+    .cfg-field-row {
         flex-direction: column;
         align-items: flex-start;
         gap: 0.6rem;

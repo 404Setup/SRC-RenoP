@@ -23,7 +23,6 @@ import (
 	"renop/internal/core"
 )
 
-// ponytail: avatar writes are rare; shard this lock by user only if profile write throughput matters.
 var avatarMutationLock sync.Mutex
 
 func initUserAvatarTable(db *sql.DB, binaryType string) error {

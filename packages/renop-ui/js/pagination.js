@@ -37,14 +37,14 @@ export function clampCollectionPage(page, totalItems, pageSize) {
  * @returns {HTMLElement|null} Pager, or null for a single page.
  */
 function createCollectionPager({
-    page,
-    totalItems,
-    pageSize,
-    previousLabel,
-    nextLabel,
-    summary,
-    onPageChange,
-}) {
+                                   page,
+                                   totalItems,
+                                   pageSize,
+                                   previousLabel,
+                                   nextLabel,
+                                   summary,
+                                   onPageChange,
+                               }) {
     const pages = Math.max(1, Math.ceil(totalItems / pageSize));
     if (pages <= 1) return null;
     const previous = el('button', {
@@ -84,18 +84,18 @@ function createCollectionPager({
  *   Collection controller.
  */
 export function createPaginatedCollection({
-    list,
-    pager,
-    items,
-    pageSize = 8,
-    initialPage = 0,
-    renderItem,
-    renderEmpty,
-    previousLabel,
-    nextLabel,
-    summary,
-    onPageChanged,
-}) {
+                                              list,
+                                              pager,
+                                              items,
+                                              pageSize = 8,
+                                              initialPage = 0,
+                                              renderItem,
+                                              renderEmpty,
+                                              previousLabel,
+                                              nextLabel,
+                                              summary,
+                                              onPageChanged,
+                                          }) {
     let collection = Array.isArray(items) ? items.slice() : [];
     const boundedPageSize = Math.max(1, Math.min(100, Math.trunc(Number(pageSize) || 8)));
     let currentPage = clampCollectionPage(initialPage, collection.length, boundedPageSize);

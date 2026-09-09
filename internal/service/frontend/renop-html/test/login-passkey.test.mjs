@@ -97,25 +97,44 @@ test('native Passkey prompts bound waiting, restore buttons, and discard cancell
     let now = 0, nextTimer = 0, request, resolveCredential, calls = 0;
     const timeouts = new Map(), intervals = new Map(), listeners = new Map();
     const buffer = new Uint8Array([1, 2, 3]).buffer;
-    const valid = {id: 'key', rawId: buffer, type: 'public-key', response: {
-        authenticatorData: buffer, clientDataJSON: buffer, signature: buffer, attestationObject: buffer,
-    }};
+    const valid = {
+        id: 'key', rawId: buffer, type: 'public-key', response: {
+            authenticatorData: buffer, clientDataJSON: buffer, signature: buffer, attestationObject: buffer,
+        }
+    };
     const original = [{label: 'Passkey'}, {icon: true}], attributes = new Map();
-    const button = {childNodes: [...original],
-        replaceChildren(...nodes) { this.childNodes = nodes; },
+    const button = {
+        childNodes: [...original],
+        replaceChildren(...nodes) {
+            this.childNodes = nodes;
+        },
         getAttribute: key => attributes.get(key) ?? null,
         setAttribute: (key, value) => attributes.set(key, value), removeAttribute: key => attributes.delete(key),
     };
-    const browser = {PublicKeyCredential: true, isSecureContext: true,
+    const browser = {
+        PublicKeyCredential: true, isSecureContext: true,
         addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: name => listeners.delete(name),
     };
-    const native = options => { calls++; request = options; return new Promise(resolve => { resolveCredential = resolve; }); };
-    const context = vm.createContext({Uint8Array, atob, btoa, AbortController, DOMException,
+    const native = options => {
+        calls++;
+        request = options;
+        return new Promise(resolve => {
+            resolveCredential = resolve;
+        });
+    };
+    const context = vm.createContext({
+        Uint8Array, atob, btoa, AbortController, DOMException,
         window: browser, navigator: {credentials: {get: native, create: native}}, Date: {now: () => now},
         t: (key, values) => values ? `${key} (${values.seconds}s)` : key,
-        setTimeout: (fn, delay) => { timeouts.set(++nextTimer, {fn, delay}); return nextTimer; },
+        setTimeout: (fn, delay) => {
+            timeouts.set(++nextTimer, {fn, delay});
+            return nextTimer;
+        },
         clearTimeout: id => timeouts.delete(id),
-        setInterval: fn => { intervals.set(++nextTimer, fn); return nextTimer; }, clearInterval: id => intervals.delete(id),
+        setInterval: fn => {
+            intervals.set(++nextTimer, fn);
+            return nextTimer;
+        }, clearInterval: id => intervals.delete(id),
     });
     vm.runInContext(readFileSync(join(frontendRoot, 'js/fido-utils.js'), 'utf8').replace(/^import .*;\r?\n/gm, '').replaceAll('export ', ''), context);
     const options = {publicKey: {challenge: 'AQID', timeout: 120000}};
@@ -153,7 +172,10 @@ test('native Passkey prompts bound waiting, restore buttons, and discard cancell
     resolveCredential(valid);
     await assert.rejects(late, {name: 'TimeoutError'}, 'deadline also applies when timers are throttled');
 
-    for (const [credential, name] of [[null, 'NotAllowedError'], [{...valid, response: {}}, 'DataError'], [{...valid, type: 'password'}, 'DataError']]) {
+    for (const [credential, name] of [[null, 'NotAllowedError'], [{...valid, response: {}}, 'DataError'], [{
+        ...valid,
+        type: 'password'
+    }, 'DataError']]) {
         const invalid = context.requestPasskeyAssertion(options);
         resolveCredential(credential);
         await assert.rejects(invalid, {name});
@@ -164,8 +186,14 @@ test('native Passkey prompts bound waiting, restore buttons, and discard cancell
     browser.PublicKeyCredential = undefined;
     await assert.rejects(context.requestPasskeyAssertion(options), {name: 'NotSupportedError'});
     browser.PublicKeyCredential = true;
-    const registered = context.requestPasskeyRegistration({publicKey: {challenge: 'AQID', user: {id: 'AQID'},
-        excludeCredentials: [{id: 'AQID', type: 'public-key'}], authenticatorSelection: {userVerification: 'required'}}}, {button});
+    const registered = context.requestPasskeyRegistration({
+        publicKey: {
+            challenge: 'AQID',
+            user: {id: 'AQID'},
+            excludeCredentials: [{id: 'AQID', type: 'public-key'}],
+            authenticatorSelection: {userVerification: 'required'}
+        }
+    }, {button});
     assert.equal(request.publicKey.authenticatorSelection.userVerification, 'required');
     assert.deepEqual([...new Uint8Array(request.publicKey.user.id)], [1, 2, 3]);
     resolveCredential(valid);
@@ -182,13 +210,15 @@ test('primary Passkey login never submits timed-out credentials or completes aft
     const requests = [], completions = [], listeners = new Map();
     let delayedBegin = false, releaseBegin, delayedFinish = false, releaseFinish;
     let failure = new DOMException('', 'TimeoutError');
-    const context = vm.createContext({AbortController, DOMException,
+    const context = vm.createContext({
+        AbortController, DOMException,
         window: {PublicKeyCredential: true, addEventListener: (type, callback) => listeners.set(type, callback)},
         document: {getElementById: () => ({value: 'alice'})},
         loginError: {style: {}, textContent: ''}, btnFidoLogin: {}, t: key => key,
         passkeyErrorMessage: error => error.name === 'TimeoutError' ? 'fido.timeout' : 'login.fidoFailed',
         requestPasskeyAssertion: async (_, {signal, button}) => {
-            assert.ok(signal); assert.ok(button);
+            assert.ok(signal);
+            assert.ok(button);
             if (failure) throw failure;
             return {id: 'credential'};
         },
@@ -196,10 +226,17 @@ test('primary Passkey login never submits timed-out credentials or completes aft
         fetch: async (url, options) => {
             requests.push({url, options});
             if (url.endsWith('/begin')) {
-                if (delayedBegin) await new Promise(resolve => { releaseBegin = resolve; });
-                return {ok: true, json: async () => ({session_id: 'challenge', options: {publicKey: {challenge: 'AQID'}}})};
+                if (delayedBegin) await new Promise(resolve => {
+                    releaseBegin = resolve;
+                });
+                return {
+                    ok: true,
+                    json: async () => ({session_id: 'challenge', options: {publicKey: {challenge: 'AQID'}}})
+                };
             }
-            if (delayedFinish) await new Promise(resolve => { releaseFinish = resolve; });
+            if (delayedFinish) await new Promise(resolve => {
+                releaseFinish = resolve;
+            });
             return {ok: true, json: async () => ({access_token: {name: 'alice'}})};
         },
     });

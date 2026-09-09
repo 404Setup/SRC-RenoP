@@ -1,7 +1,10 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
- * If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -19,13 +22,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v3"
-	"github.com/stretchr/testify/require"
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/service/index"
 	"renop/internal/service/proxy"
+
+	"github.com/gofiber/fiber/v3"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPackageLocksPrecedeCacheConditionalsAndMirrorRefresh(t *testing.T) {
@@ -59,8 +63,8 @@ func TestPackageLocksPrecedeCacheConditionalsAndMirrorRefresh(t *testing.T) {
 			old := time.Now().Add(-time.Hour)
 			require.NoError(t, os.Chtimes(path, old, old))
 			state.Inner.FileIndex.InsertFile(filepath.ToSlash(path), index.FileInfo{Size: 7, ModTime: old.UnixNano()})
-			lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: tc.format, Repository: tc.format,
-				Name: "demo", Version: "2.0.0-RC"}, Source: core.ResourceLockSystem, Mode: core.ResourceLockWrite,
+			lock := &core.ResourceLock{Format: tc.format, Repository: tc.format,
+				Name: "demo", Version: "2.0.0-RC", Source: core.ResourceLockSystem, Mode: core.ResourceLockWrite,
 				Reason: "hold", LockedAt: time.Now().UnixMilli()}
 			require.NoError(t, db.SetResourceLock(lock, "", ""))
 			app := fiber.New()

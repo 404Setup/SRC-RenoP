@@ -30,7 +30,9 @@ export class RenopFieldRow extends HTMLElement {
      */
     connectedCallback() {
         this.render();
-        queueMicrotask(() => { if (this.isConnected) this.render(); });
+        queueMicrotask(() => {
+            if (this.isConnected) this.render();
+        });
     }
 
     /**

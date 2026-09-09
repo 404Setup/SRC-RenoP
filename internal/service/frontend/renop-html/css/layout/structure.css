@@ -129,7 +129,7 @@ header.main-header {
     grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
     gap: 2rem;
     transition: grid-template-columns 0.32s cubic-bezier(0.16, 1, 0.3, 1),
-        gap 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    gap 0.32s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .layout-two-col.no-sidebar,

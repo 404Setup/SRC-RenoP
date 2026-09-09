@@ -1,7 +1,10 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
- * If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -19,7 +22,10 @@ let publicProviders = [], privateProviders = [], profileUsername = '', profileRe
 /** Start a server-authorized provider action with a local return route. */
 function startOAuth(provider, intent) {
     const returnTo = ['login', 'register'].includes(intent) ? loginReturnTo() : window.location.pathname;
-    window.location.assign('/api/auth/oauth/' + encodeURIComponent(provider) + '/start?' + new URLSearchParams({intent, return_to: returnTo}));
+    window.location.assign('/api/auth/oauth/' + encodeURIComponent(provider) + '/start?' + new URLSearchParams({
+        intent,
+        return_to: returnTo
+    }));
 }
 
 /** Build a provider action without interpreting provider-supplied text as markup. */
@@ -44,29 +50,45 @@ export async function initializeOAuth() {
     const current = new URL(window.location.href);
     const result = current.searchParams.get('oauth');
     if (result) {
-        current.searchParams.delete('oauth'); current.searchParams.delete('provider');
+        current.searchParams.delete('oauth');
+        current.searchParams.delete('provider');
         window.history.replaceState(window.history.state, '', current.pathname + current.search + current.hash);
         const messages = {
-            success: ['oauth.success', 'success'], linked: ['oauth.linked', 'success'],
-            provider_denied: ['oauth.denied', 'info'], state_invalid: ['oauth.expired', 'error'],
-            session_changed: ['oauth.expired', 'error'], configuration_changed: ['oauth.expired', 'error'],
+            success: ['oauth.success', 'success'],
+            linked: ['oauth.linked', 'success'],
+            provider_denied: ['oauth.denied', 'info'],
+            state_invalid: ['oauth.expired', 'error'],
+            session_changed: ['oauth.expired', 'error'],
+            configuration_changed: ['oauth.expired', 'error'],
             identity_linked: ['oauth.alreadyLinked', 'error'],
-            account_banned: ['login.accountBanned', 'error'], account_deleted: ['login.accountDeleted', 'error'],
-            email_updated: ['profile.privateEmailSaved', 'success'], email_conflict: ['profile.privateEmailConflict', 'error'],
-            email_unverified: ['profile.providerEmailUnverified', 'error'], email_limit: ['profile.emailAliasLimit', 'error'],
-            email_blocked: ['mail.recipientBlocked', 'error'], email_missing: ['oauth.emailMissing', 'error'],
-            avatar_updated: ['profile.avatarUpdated', 'success'], avatar_failed: ['oauth.avatarFailed', 'error'],
-            registration_disabled: ['registration.disabled', 'error'], registration_ip_limited: ['registration.ipLimited', 'error'],
-            registration_cooldown: ['registration.cooldown', 'error'], registration_pending: ['registration.pending', 'error'],
+            account_banned: ['login.accountBanned', 'error'],
+            account_deleted: ['login.accountDeleted', 'error'],
+            email_updated: ['profile.privateEmailSaved', 'success'],
+            email_conflict: ['profile.privateEmailConflict', 'error'],
+            email_unverified: ['profile.providerEmailUnverified', 'error'],
+            email_limit: ['profile.emailAliasLimit', 'error'],
+            email_blocked: ['mail.recipientBlocked', 'error'],
+            email_missing: ['oauth.emailMissing', 'error'],
+            avatar_updated: ['profile.avatarUpdated', 'success'],
+            avatar_failed: ['oauth.avatarFailed', 'error'],
+            registration_disabled: ['registration.disabled', 'error'],
+            registration_ip_limited: ['registration.ipLimited', 'error'],
+            registration_cooldown: ['registration.cooldown', 'error'],
+            registration_pending: ['registration.pending', 'error'],
         };
         const [key, kind] = messages[result] || ['oauth.failed', 'error'];
         showAlert(t(key), kind);
     }
     let providers = [];
     try {
-        const response = await fetch('/api/auth/oauth/providers', {credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(15000)});
+        const response = await fetch('/api/auth/oauth/providers', {
+            credentials: 'include',
+            cache: 'no-store',
+            signal: AbortSignal.timeout(15000)
+        });
         providers = response.ok ? (await response.json()).providers : [];
-    } catch {}
+    } catch {
+    }
     if (revision !== publicRevision) return;
     publicProviders = providers;
     renderPublicProviders();
@@ -84,7 +106,10 @@ function renderPrivateProviders() {
         if (provider.can_verify_email) actions.appendChild(providerButton(t('oauth.useEmail'), provider.id, 'email'));
         if (provider.linked && provider.can_import_avatar) actions.appendChild(providerButton(t('oauth.useAvatar'), provider.id, 'avatar'));
         if (provider.linked && provider.can_disconnect) {
-            const disconnect = el('button', {type: 'button', class: 'pill-btn pill-btn--soft profile-action-btn'}, t('oauth.disconnect'));
+            const disconnect = el('button', {
+                type: 'button',
+                class: 'pill-btn pill-btn--soft profile-action-btn'
+            }, t('oauth.disconnect'));
             disconnect.addEventListener('click', () => runButtonAction(disconnect, async () => {
                 const username = profileUsername;
                 if (!(await window.showConfirm(t('oauth.disconnectConfirm', {provider: provider.name}))) || username !== profileUsername) return;
@@ -95,7 +120,9 @@ function renderPrivateProviders() {
                     showAlert(t('oauth.disconnected'), 'success');
                     await refreshOAuthProfile(username);
                     await refreshAccountSecurity();
-                } catch (error) { showAlert(error instanceof LocalizedResponseError ? error.message : t('oauth.failed'), 'error'); }
+                } catch (error) {
+                    showAlert(error instanceof LocalizedResponseError ? error.message : t('oauth.failed'), 'error');
+                }
             }));
             actions.appendChild(disconnect);
         }
@@ -131,11 +158,16 @@ export async function refreshOAuthProfile(username) {
     }
 }
 
-window.addEventListener('languageChanged', () => { renderPublicProviders(); if (privateProviders.length) renderPrivateProviders(); });
+window.addEventListener('languageChanged', () => {
+    renderPublicProviders();
+    if (privateProviders.length) renderPrivateProviders();
+});
 window.addEventListener('oauthProvidersChanged', initializeOAuth);
 window.addEventListener('authChanged', event => {
     if (event.detail?.isLoggedIn && event.detail.username === profileUsername) return;
-    profileRevision++; profileUsername = ''; privateProviders = [];
+    profileRevision++;
+    profileUsername = '';
+    privateProviders = [];
     renderPrivateProviders();
 });
 window.addEventListener('accountSecurityUpdated', event => {
@@ -144,6 +176,9 @@ window.addEventListener('accountSecurityUpdated', event => {
     const canDisconnect = (security.password_configured && security.password_login_enabled) || security.github_linked ||
         Number(security.oauth_identity_count) > 1 || (Number(security.fido_device_count) > 0 && !security.passkey_second_factor);
     if (privateProviders.every(provider => !provider.linked || provider.can_disconnect === Boolean(canDisconnect))) return;
-    privateProviders = privateProviders.map(provider => ({...provider, can_disconnect: provider.linked && Boolean(canDisconnect)}));
+    privateProviders = privateProviders.map(provider => ({
+        ...provider,
+        can_disconnect: provider.linked && Boolean(canDisconnect)
+    }));
     renderPrivateProviders();
 });

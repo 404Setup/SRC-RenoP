@@ -42,10 +42,10 @@ const inertConfig = {
  * @returns {void}
  */
 export function configureModalInert({
-    modalIds,
-    rootSelectors,
-    installGlobal = true,
-} = {}) {
+                                        modalIds,
+                                        rootSelectors,
+                                        installGlobal = true,
+                                    } = {}) {
     if (Array.isArray(modalIds)) inertConfig.modalIds = modalIds.slice();
     if (Array.isArray(rootSelectors)) inertConfig.rootSelectors = rootSelectors.slice();
     if (installGlobal && typeof window !== 'undefined') {
@@ -179,14 +179,14 @@ export function closeModalWithAnim(modal, callback, {durationMs, fast = false} =
  * @returns {{ open: () => void, close: () => void }|null}
  */
 export function bindModalChrome({
-    modal,
-    openTriggers = [],
-    closeTriggers = [],
-    escape = true,
-    onOpen,
-    onClose,
-    fastClose = false,
-} = {}) {
+                                    modal,
+                                    openTriggers = [],
+                                    closeTriggers = [],
+                                    escape = true,
+                                    onOpen,
+                                    onClose,
+                                    fastClose = false,
+                                } = {}) {
     if (!modal) return null;
 
     const open = () => {

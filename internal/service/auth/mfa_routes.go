@@ -14,19 +14,21 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/base32"
-	"encoding/base64"
 	"errors"
 	"net/http"
 	"net/url"
 	"time"
 
+	"github.com/emmansun/base64"
+
+	"renop/internal/core"
+	"renop/internal/service/audit"
+
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
-	qrcode "github.com/skip2/go-qrcode"
-	"renop/internal/core"
-	"renop/internal/service/audit"
+	"github.com/skip2/go-qrcode"
 )
 
 func setupMFARoutes(auth fiber.Router, state *core.AppState) {

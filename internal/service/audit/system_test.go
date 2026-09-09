@@ -20,12 +20,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v3"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/proto"
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/pkg/pb"
+
+	"github.com/gofiber/fiber/v3"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestGlobalLogFiltersAndHiddenOperators(t *testing.T) {

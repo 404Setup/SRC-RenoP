@@ -412,7 +412,11 @@ function openEditDialog(details) {
                     try {
                         const response = await apiRequest(`/api/super-teams/${encodeURIComponent(details.team.prefix)}`, {
                             method: 'PUT', headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({name: name.value.trim(), description: description.value.trim(), links})
+                            body: JSON.stringify({
+                                name: name.value.trim(),
+                                description: description.value.trim(),
+                                links
+                            })
                         });
                         if (!response.ok) throw await localizedResponseError(response, 'superTeam.updateFailed', {}, SUPER_TEAM_ERROR_KEYS);
                         dialog.close(true);

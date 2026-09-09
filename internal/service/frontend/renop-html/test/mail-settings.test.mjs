@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -18,8 +20,29 @@ const applyPreset = vm.runInNewContext(declaration.replace('export ', '') + '; a
 
 test('email provider presets preserve account policy and do not share mutable pricing', () => {
     const quota = {limit: 40, period: 'week'};
-    const account = {id: 'primary', name: 'Main', enabled: true, provider: 'smtp', from: 'sender@example.com', scenes: ['test'], password: 'old-password', quota, overage: {limit: 2, period: 'month'}, force_send: true, balance_micros: 5000000, pricing: {currency: 'USD'}};
-    const preset = {id: 'api', account: {provider: 'sendgrid', endpoint: 'https://api.sendgrid.com/v3', quota: {limit: 0, period: 'month'}, pricing: {currency: 'USD', tiers: [{up_to: 0, amount_micros: 100, batch_size: 1}]}}};
+    const account = {
+        id: 'primary',
+        name: 'Main',
+        enabled: true,
+        provider: 'smtp',
+        from: 'sender@example.com',
+        scenes: ['test'],
+        password: 'old-password',
+        quota,
+        overage: {limit: 2, period: 'month'},
+        force_send: true,
+        balance_micros: 5000000,
+        pricing: {currency: 'USD'}
+    };
+    const preset = {
+        id: 'api',
+        account: {
+            provider: 'sendgrid',
+            endpoint: 'https://api.sendgrid.com/v3',
+            quota: {limit: 0, period: 'month'},
+            pricing: {currency: 'USD', tiers: [{up_to: 0, amount_micros: 100, batch_size: 1}]}
+        }
+    };
     applyPreset(account, preset);
     assert.equal(account.id, 'primary');
     assert.equal(account.quota, quota);
@@ -39,18 +62,35 @@ test('built-in disposable filtering preserves its choice and is disabled in whit
     assert.doesNotMatch(source, /select\(fields, data, 'locale'/);
     assert.match(source, /t\('mail\.automaticLanguage'\)/);
     let selectChange, toggleChange, tagsChange, disabled, changed = 0;
-    const toggle = {toggleAttribute: (name, value) => { assert.equal(name, 'disabled'); disabled = value; }};
-    const context = {t: key => key,
+    const toggle = {
+        toggleAttribute: (name, value) => {
+            assert.equal(name, 'disabled');
+            disabled = value;
+        }
+    };
+    const context = {
+        t: key => key,
         createToggleRow: (_label, _hint, checked, update) => {
-            assert.equal(checked, true); toggleChange = update; return {querySelector: () => toggle};
+            assert.equal(checked, true);
+            toggleChange = update;
+            return {querySelector: () => toggle};
         },
-        makeCustomSelect: (_options, _current, update) => { selectChange = update; return {dataset: {}, querySelector: () => null}; },
-        createFieldRow: () => ({}), makeTagListInput: options => { tagsChange = options.onChange; return {}; },
+        makeCustomSelect: (_options, _current, update) => {
+            selectChange = update;
+            return {dataset: {}, querySelector: () => null};
+        },
+        createFieldRow: () => ({}), makeTagListInput: options => {
+            tagsChange = options.onChange;
+            return {};
+        },
     };
     const policy = source.match(/^export function renderMailRecipientPolicy\([\s\S]*?^}/m)?.[0];
     const render = vm.runInNewContext(policy.replace('export ', '') + '; renderMailRecipientPolicy', context);
     const data = {list_mode: 'blacklist', use_disposable_blacklist: true};
-    render({append() {}}, data, () => changed++);
+    render({
+        append() {
+        }
+    }, data, () => changed++);
     assert.equal(disabled, false);
     selectChange('whitelist');
     assert.equal(disabled, true);

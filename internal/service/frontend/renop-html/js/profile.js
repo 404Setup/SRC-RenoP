@@ -1122,10 +1122,12 @@ function buildProfileIdentityEditor(profile) {
         type: 'submit', class: 'pill-btn pill-btn--primary'
     }, t('users.saveBtn'));
     const form = el('form', {class: 'profile-identity-form', action: 'javascript:void(0);'},
-        createProfileAvatarEditor(profile, {onUpdated: updated => {
-            profile = updated;
-            updateProfileEditHeading(profile);
-        }}),
+        createProfileAvatarEditor(profile, {
+            onUpdated: updated => {
+                profile = updated;
+                updateProfileEditHeading(profile);
+            }
+        }),
         el('div', {class: 'profile-field'},
             el('div', {class: 'profile-field-label-row'},
                 el('label', {for: 'profile-nickname'}, t('profile.nicknameLabel')),

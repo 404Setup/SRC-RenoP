@@ -28,21 +28,36 @@ package/domain collaboration. Administrator operations are recorded and do not s
 Moderator permissions include private review visibility, but do not grant publication, user management, repository
 configuration, or system settings access.
 
-Administrators and moderators cannot be suspended while they hold those roles. Revoke all administrator and moderator permissions before banning an account. A suspended account must be unbanned before receiving those roles. The database checks both operations inside the account transaction, including permission changes and renames. Conflicts return `409` with `ACCOUNT_BAN_PROTECTED`; rejected bans leave existing sessions intact.
+Administrators and moderators cannot be suspended while they hold those roles. Revoke all administrator and moderator
+permissions before banning an account. A suspended account must be unbanned before receiving those roles. The database
+checks both operations inside the account transaction, including permission changes and renames. Conflicts return `409`
+with `ACCOUNT_BAN_PROTECTED`; rejected bans leave existing sessions intact.
 
 ## Account and IP suspension
 
-System administrators can suspend accounts from the users page with a reason, an optional expiry, and **Also ban recorded login IPs**. The server collects at most 64 normalized addresses from retained sessions (the 64 most recently active records) and the latest 256 successful sign-ins from the last 30 days. It also retains addresses already covered by an active IP suspension. Arbitrary addresses from the browser are not accepted. If no usable address exists, the entire operation fails with `409 ACCOUNT_BAN_IP_UNKNOWN`; turn off the option to suspend only the account.
+System administrators can suspend accounts from the users page with a reason, an optional expiry, and **Also ban
+recorded login IPs**. The server collects at most 64 normalized addresses from retained sessions (the 64 most recently
+active records) and the latest 256 successful sign-ins from the last 30 days. It also retains addresses already covered
+by an active IP suspension. Arbitrary addresses from the browser are not accepted. If no usable address exists, the
+entire operation fails with `409 ACCOUNT_BAN_IP_UNKNOWN`; turn off the option to suspend only the account.
 
-IP restrictions, the account suspension, and session revocation commit together. Restrictions survive restarts and account renames and expire with the account ban. Startup preserves retired account tombstones without recreating credentials or memberships. Unchecking the option removes that account's IP restrictions while preserving its suspension; unbanning removes both. An address remains blocked while another account's active suspension still covers it. Omitting `ban_ip` when editing preserves the current active IP restrictions.
+IP restrictions, the account suspension, and session revocation commit together. Restrictions survive restarts and
+account renames and expire with the account ban. Startup preserves retired account tombstones without recreating
+credentials or memberships. Unchecking the option removes that account's IP restrictions while preserving its
+suspension; unbanning removes both. An address remains blocked while another account's active suspension still covers
+it. Omitting `ban_ip` when editing preserves the current active IP restrictions.
 
-A blocked address receives `403` with `IP_BANNED` for HTTP requests, including sign-in, registration, authenticated requests, and public downloads. Other users sharing the address are also affected. Forwarded client addresses are accepted only from configured trusted proxies. The administrator status response exposes a count rather than the stored addresses; all suspension endpoints require system administrator authority and return private, non-cacheable metadata. API tokens also need the `admin:users` scope.
+A blocked address receives `403` with `IP_BANNED` for HTTP requests, including sign-in, registration, authenticated
+requests, and public downloads. Other users sharing the address are also affected. Forwarded client addresses are
+accepted only from configured trusted proxies. The administrator status response exposes a count rather than the stored
+addresses; all suspension endpoints require system administrator authority and return private, non-cacheable metadata.
+API tokens also need the `admin:users` scope.
 
-| Method | Path | Request or result |
-|---|---|---|
-| GET | `/api/tokens/:name/ban` | `{ban,ip_count,protected_role}` |
-| PUT | `/api/tokens/:name/ban` | `{reason,expires_at,ban_ip}`; expiry may be null |
-| DELETE | `/api/tokens/:name/ban` | Lift the account and its IP restrictions; `204` |
+| Method | Path                    | Request or result                                |
+|--------|-------------------------|--------------------------------------------------|
+| GET    | `/api/tokens/:name/ban` | `{ban,ip_count,protected_role}`                  |
+| PUT    | `/api/tokens/:name/ban` | `{reason,expires_at,ban_ip}`; expiry may be null |
+| DELETE | `/api/tokens/:name/ban` | Lift the account and its IP restrictions; `204`  |
 
 ## Repository and team layers
 
@@ -66,7 +81,8 @@ A blocked address receives `403` with `IP_BANNED` for HTTP requests, including s
 `Authorization: Session`, session secrets in URLs, and query-string credentials are rejected. API Token scopes and
 targets are always intersected with current account authorization.
 
-A `403` during session restoration does not sign the browser out: an IP or authorization restriction may apply to an otherwise valid session. A `401` requires signing in again.
+A `403` during session restoration does not sign the browser out: an IP or authorization restriction may apply to an
+otherwise valid session. A `401` requires signing in again.
 
 ## Defense in depth
 

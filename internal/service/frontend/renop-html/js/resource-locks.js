@@ -1,7 +1,10 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
- * If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -45,10 +48,14 @@ export function createResourceLockButton({locks = [], name, request, onSuccess})
             let reason = manual?.reason || 'quality';
             const modeSelect = makeCustomSelect(['', 'write', 'read'].map(value => ({
                 value, label: t(`resourceLock.${value || 'none'}`)
-            })), mode, value => { mode = value; });
+            })), mode, value => {
+                mode = value;
+            });
             const reasonSelect = makeCustomSelect(reasons.map(value => ({
                 value, label: t(`resourceLock.reason.${value}`)
-            })), reason, value => { reason = value; });
+            })), reason, value => {
+                reason = value;
+            });
             void RenopDialog.show({
                 id: 'resource-lock-dialog', glass: true, size: 'sm',
                 title: t('resourceLock.manage'), subtitle: name,
@@ -61,19 +68,24 @@ export function createResourceLockButton({locks = [], name, request, onSuccess})
                     locks.some(lock => lock.inherited) ? el('p', {}, t('resourceLock.inheritedNotice')) : null
                 ].filter(Boolean),
                 footer: [
-                    {text: t('common.cancel'), className: 'action-btn', onClick: (_event, dialog) => dialog.close(false)},
-                    {text: t('common.save'), variant: 'primary', onClick: (event, dialog) =>
-                        runButtonAction(event.currentTarget, async () => {
-                            try {
-                                const response = await request(mode, reason);
-                                if (!response.ok) throw await localizedResponseError(response, 'resourceLock.failed');
-                                dialog.close(true);
-                                showAlert(t('resourceLock.saved'), 'success');
-                                await onSuccess?.();
-                            } catch (error) {
-                                showAlert(caughtErrorMessage(error, 'resourceLock.failed'), 'error');
-                            }
-                        })
+                    {
+                        text: t('common.cancel'),
+                        className: 'action-btn',
+                        onClick: (_event, dialog) => dialog.close(false)
+                    },
+                    {
+                        text: t('common.save'), variant: 'primary', onClick: (event, dialog) =>
+                            runButtonAction(event.currentTarget, async () => {
+                                try {
+                                    const response = await request(mode, reason);
+                                    if (!response.ok) throw await localizedResponseError(response, 'resourceLock.failed');
+                                    dialog.close(true);
+                                    showAlert(t('resourceLock.saved'), 'success');
+                                    await onSuccess?.();
+                                } catch (error) {
+                                    showAlert(caughtErrorMessage(error, 'resourceLock.failed'), 'error');
+                                }
+                            })
                     }
                 ]
             });

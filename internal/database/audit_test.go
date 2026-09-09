@@ -12,13 +12,14 @@ package database
 
 import (
 	"database/sql"
-	"github.com/stretchr/testify/require"
 	"path/filepath"
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/testutil"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestLegacyAuditMigrationAndSeparateRetention(t *testing.T) {

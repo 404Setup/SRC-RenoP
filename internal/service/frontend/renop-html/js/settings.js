@@ -131,12 +131,16 @@ function renderDomainNavigation() {
     nav.replaceChildren(...domainsList.map(domain => el('button', {
         type: 'button', class: 'settings-nav-item', 'data-settings-domain': domain,
         'aria-current': domain === currentDomain ? 'page' : null,
-        onclick: () => { if (domain !== currentDomain) void loadDomainSettings(domain, true); }
+        onclick: () => {
+            if (domain !== currentDomain) void loadDomainSettings(domain, true);
+        }
     }, el('span', {}, domainLabel(domain)), el('span', {class: 'settings-draft-dot', 'aria-hidden': 'true'}))));
     const picker = document.getElementById('settings-page-picker');
     if (picker) {
         const select = makeCustomSelect(domainsList.map(domain => ({value: domain, label: domainLabel(domain)})),
-            currentDomain || '', domain => { if (domain !== currentDomain) void loadDomainSettings(domain, true); });
+            currentDomain || '', domain => {
+                if (domain !== currentDomain) void loadDomainSettings(domain, true);
+            });
         select.querySelector('button')?.setAttribute('aria-label', t('settings.sections'));
         picker.replaceChildren(select);
     }
@@ -144,20 +148,27 @@ function renderDomainNavigation() {
     if (heading) heading.textContent = currentDomain ? domainLabel(currentDomain) : t('settings.title');
     const pager = document.getElementById('settings-pagination');
     if (pager) pager.replaceChildren(...(currentDomain ? [
-        el('button', {type: 'button', class: 'renop-pagination-btn', 'data-step': '-1',
-            onclick: () => void loadDomainSettings(domainsList[domainsList.indexOf(currentDomain) - 1], true)}, t('common.prev')),
+        el('button', {
+            type: 'button', class: 'renop-pagination-btn', 'data-step': '-1',
+            onclick: () => void loadDomainSettings(domainsList[domainsList.indexOf(currentDomain) - 1], true)
+        }, t('common.prev')),
         el('span', {class: 'renop-pagination-summary'}, t('settings.sectionPage', {
             page: domainsList.indexOf(currentDomain) + 1, pages: domainsList.length
         })),
-        el('button', {type: 'button', class: 'renop-pagination-btn', 'data-step': '1',
-            onclick: () => void loadDomainSettings(domainsList[domainsList.indexOf(currentDomain) + 1], true)}, t('common.next'))
+        el('button', {
+            type: 'button', class: 'renop-pagination-btn', 'data-step': '1',
+            onclick: () => void loadDomainSettings(domainsList[domainsList.indexOf(currentDomain) + 1], true)
+        }, t('common.next'))
     ] : []));
     enableSave();
 }
 
 /** @param {string} message - Localized error or empty state. @param {Function} retry - Retry action. @returns {void} */
 function settingsLoadState(message, retry) {
-    document.getElementById('settings-form-container')?.replaceChildren(el('div', {class: 'settings-load-state', role: 'status'},
+    document.getElementById('settings-form-container')?.replaceChildren(el('div', {
+            class: 'settings-load-state',
+            role: 'status'
+        },
         createIcon('warning'), el('p', {}, message),
         el('button', {type: 'button', class: 'pill-btn pill-btn--soft', onclick: retry}, t('offline.retryBtn'))));
 }

@@ -87,7 +87,8 @@ export function resetMFALogin() {
     code.disabled = false;
     passkey.disabled = false;
     passwordForm.hidden = false;
-    if (hadChallenge) void mfaRequest('', undefined, 'DELETE').catch(() => {});
+    if (hadChallenge) void mfaRequest('', undefined, 'DELETE').catch(() => {
+    });
 }
 
 /** Restore a pending OAuth or refreshed login challenge when the login route opens. */
@@ -109,16 +110,30 @@ async function verifyFactor(factor) {
         if (factor === 'passkey') {
             const begin = await mfaRequest('/passkey/begin', {});
             controller.signal.throwIfAborted();
-            if (!begin.ok) { errorBox.textContent = await responseErrorMessage(begin, 'mfa.invalid'); errorBox.hidden = false; return; }
+            if (!begin.ok) {
+                errorBox.textContent = await responseErrorMessage(begin, 'mfa.invalid');
+                errorBox.hidden = false;
+                return;
+            }
             const {options} = await begin.json();
             controller.signal.throwIfAborted();
-            payload = {credential: await requestPasskeyAssertion(options, {signal: controller.signal, button: passkey})};
+            payload = {
+                credential: await requestPasskeyAssertion(options, {
+                    signal: controller.signal,
+                    button: passkey
+                })
+            };
         }
         controller.signal.throwIfAborted();
         const response = await mfaRequest(factor === 'totp' ? '/totp' : '/passkey/finish', payload);
         if (current !== sequence || controller.signal.aborted) return;
         code.value = '';
-        if (!response.ok) { errorBox.textContent = await responseErrorMessage(response, 'mfa.invalid'); errorBox.hidden = false; code.focus(); return; }
+        if (!response.ok) {
+            errorBox.textContent = await responseErrorMessage(response, 'mfa.invalid');
+            errorBox.hidden = false;
+            code.focus();
+            return;
+        }
         const session = await response.json();
         if (current !== sequence || controller.signal.aborted) return;
         active = false;
@@ -136,5 +151,8 @@ form?.addEventListener('submit', event => {
     if (code.checkValidity()) void runButtonAction(document.getElementById('mfa-login-submit'), () => verifyFactor('totp'));
 });
 passkey?.addEventListener('click', () => void runButtonAction(passkey, () => verifyFactor('passkey')));
-document.getElementById('mfa-login-restart')?.addEventListener('click', () => { resetMFALogin(); document.getElementById('username').focus(); });
+document.getElementById('mfa-login-restart')?.addEventListener('click', () => {
+    resetMFALogin();
+    document.getElementById('username').focus();
+});
 window.addEventListener('pagehide', resetMFALogin);

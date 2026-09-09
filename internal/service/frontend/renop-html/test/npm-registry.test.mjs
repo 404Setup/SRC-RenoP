@@ -28,16 +28,24 @@ test('npm navigation and lock refreshes ignore stale package responses', async (
     const context = vm.createContext({
         npmRequest: () => new Promise(resolve => requests.push(resolve)),
         npmAPI: () => '/package', t: key => key,
-        setRepositoryViewBusy: () => {}, renderPackage: () => [],
-        replaceRepositoryView: async () => { renders++; },
-        hideRepositoryView: view => { view.hidden = true; }, npmUserSuggestions: {detach() {}},
+        setRepositoryViewBusy: () => {
+        }, renderPackage: () => [],
+        replaceRepositoryView: async () => {
+            renders++;
+        },
+        hideRepositoryView: view => {
+            view.hidden = true;
+        }, npmUserSuggestions: {
+            detach() {
+            }
+        },
     });
     vm.runInContext(`let loadSequence = 1, versionPackage = '', versionPage = 0, npmPackageView = '';
         let packageDetails = null, view = {hidden: false, firstElementChild: {}};
         function currentName() { return packageDetails?.package?.name; }
         ${['loadPackage', 'refreshPackage', 'hideNPMRepositoryView'].map(name =>
-            npmView.match(new RegExp(`(?:export )?(?:async )?function ${name}\\([^]*?\\n}`))[0].replace('export ', '')
-        ).join('\n')}`, context);
+        npmView.match(new RegExp(`(?:export )?(?:async )?function ${name}\\([^]*?\\n}`))[0].replace('export ', '')
+    ).join('\n')}`, context);
     const first = context.loadPackage('first', 1);
     vm.runInContext('loadSequence = 2', context);
     const second = context.loadPackage('second', 2);

@@ -7,7 +7,7 @@ description: 邮件服务、持久队列、配额、计费、模板及管理 API
 
 # 邮件发送
 
-在**设置 → 服务**中配置邮件。添加邮件账号、选择服务预设、填写凭证并保存。
+在 **设置 → 服务**中配置邮件。添加邮件账号、选择服务预设、填写凭证并保存。
 设置实例公开 HTTPS 地址后启用邮件。配置立即应用于后续队列操作，无需重启 RenoP。
 
 ## 配置
@@ -18,20 +18,20 @@ mail:
   public_url: https://packages.example.com
   site_name: RenoP
   template_style: card
-  delay: {value: 5, unit: second}
-  manual_rate: {limit: 1, interval: {value: 2, unit: minute}}
-  account_rate: {limit: 50, interval: {value: 1, unit: minute}}
-  calibration: {value: 5, unit: minute}
+  delay: { value: 5, unit: second }
+  manual_rate: { limit: 1, interval: { value: 2, unit: minute } }
+  account_rate: { limit: 50, interval: { value: 1, unit: minute } }
+  calibration: { value: 5, unit: minute }
   list_mode: blacklist
   use_disposable_blacklist: false
-  addresses: []
+  addresses: [ ]
   accounts:
     - id: primary
       name: Main mailbox
       enabled: true
       provider: smtp
       preset: smtp-custom
-      scenes: ["*"]
+      scenes: [ "*" ]
       from: noreply@example.com
       from_name: RenoP
       smtp_host: smtp.example.com
@@ -39,16 +39,16 @@ mail:
       smtp_security: starttls
       username: noreply@example.com
       password: ""
-      quota: {limit: 0, period: month}
+      quota: { limit: 0, period: month }
       force_send: false
-      overage: {limit: -1, period: month}
+      overage: { limit: -1, period: month }
       balance_micros: null
       fetch_balance: false
       pricing:
         currency: USD
         rounding: proportional
         tiers:
-          - {up_to: 0, amount_micros: 100000, batch_size: 1000}
+          - { up_to: 0, amount_micros: 100000, batch_size: 1000 }
 ```
 
 仅启用一个账号时，所有场景均使用该账号。启用多个账号时，明确分配的场景优先于唯一的 `*` 默认账号。
@@ -63,31 +63,37 @@ mail:
 
 `list_mode` 可选 `blacklist` 或 `whitelist`。策略在入队前和发送前检查。国际化域名的 Unicode 与 Punycode 写法等价，末尾的域名点号会被忽略。
 
-| 规则 | 匹配范围 |
-|---|---|
-| `person@example.com` | 该完整邮箱 |
-| `@example.com` | 该精确提供商域名，不包含子域名 |
+| 规则                     | 匹配范围                            |
+|--------------------------|-------------------------------------|
+| `person@example.com`     | 该完整邮箱                          |
+| `@example.com`           | 该精确提供商域名，不包含子域名      |
 | `.com` 或 `.example.com` | 完整 DNS 后缀，包含基础域名及子域名 |
 
-设置 `use_disposable_blacklist: true` 可在黑名单规则之外启用内置临时邮箱名单。默认关闭，白名单模式忽略此选项。当前快照合并了 [disposable/disposable-email-domains](https://github.com/disposable/disposable-email-domains) 和 [disposable-email-domains/disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains) 的 75,627 个域名，不按国家或提供者筛选。名单中的域名及其子域名都会被拦截，匹配时不访问外部服务。
+设置 `use_disposable_blacklist: true`
+可在黑名单规则之外启用内置临时邮箱名单。默认关闭，白名单模式忽略此选项。当前快照合并了 [disposable/disposable-email-domains](https://github.com/disposable/disposable-email-domains)
+和 [disposable-email-domains/disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains)
+的 75,627 个域名，不按国家或提供者筛选。名单中的域名及其子域名都会被拦截，匹配时不访问外部服务。
 
-该名单是随版本发布的快照，无法穷尽不断出现的新提供商，可通过自定义规则补充。构建会按照 `scripts/update-disposable-domains.ps1` 中固定的版本和校验值自动生成被 Git 忽略的 `internal/mail/data/`，已有且校验通过的数据可离线复用。来源许可证见 `THIRD_PARTY_NOTICES.md`。
+该名单是随版本发布的快照，无法穷尽不断出现的新提供商，可通过自定义规则补充。构建会按照
+`scripts/update-disposable-domains.ps1` 中固定的版本和校验值自动生成被 Git 忽略的 `internal/mail/data/`
+，已有且校验通过的数据可离线复用。来源许可证见 `THIRD_PARTY_NOTICES.md`。
 
 ## 服务商与入口
 
-| 服务商 | 预设与凭证 | 远端能力 |
-| --- | --- | --- |
-| SMTP | 明文 SMTP、隐式 SSL/TLS、必须升级的 STARTTLS；用户名及密码或支持的 OAuth | 本地估算、SMTP 接收响应 |
-| Cloudflare Email | 账号 ID、API 令牌；全球 REST 入口 | 首次响应中的送达、拒绝或排队结果 |
-| Microsoft Graph | Outlook.com、Microsoft 365/Entra；全球、美国政府 L4/L5、中国入口 | 已发送文件夹状态 |
-| Amazon SES | 区域 IPv4、双栈及可用的 FIPS 入口；访问密钥、私钥、可选临时令牌 | 发件限额、邮件洞察 |
-| Twilio SendGrid | 全球和欧盟入口；API 密钥 | 额度、Email Activity 状态 |
-| Google Gmail | Gmail、Workspace；委托 OAuth 凭证 | 已发送标签状态 |
-| 阿里云邮件推送 | 杭州、新加坡、弗吉尼亚、法兰克福；公网与 VPC 入口；访问密钥及私钥 | 免费配额、账号余额、无法精确关联的投递统计 |
-| 腾讯云邮件推送 | 中国及国际版邮件、账单入口；访问密钥及私钥 | 账号余额、收件人投递状态 |
-| 飞书 / Lark 邮箱 | 飞书及 Lark 入口；用户委托 OAuth 凭证 | 收件人投递状态 |
+| 服务商           | 预设与凭证                                                               | 远端能力                                   |
+|------------------|--------------------------------------------------------------------------|--------------------------------------------|
+| SMTP             | 明文 SMTP、隐式 SSL/TLS、必须升级的 STARTTLS；用户名及密码或支持的 OAuth | 本地估算、SMTP 接收响应                    |
+| Cloudflare Email | 账号 ID、API 令牌；全球 REST 入口                                        | 首次响应中的送达、拒绝或排队结果           |
+| Microsoft Graph  | Outlook.com、Microsoft 365/Entra；全球、美国政府 L4/L5、中国入口         | 已发送文件夹状态                           |
+| Amazon SES       | 区域 IPv4、双栈及可用的 FIPS 入口；访问密钥、私钥、可选临时令牌          | 发件限额、邮件洞察                         |
+| Twilio SendGrid  | 全球和欧盟入口；API 密钥                                                 | 额度、Email Activity 状态                  |
+| Google Gmail     | Gmail、Workspace；委托 OAuth 凭证                                        | 已发送标签状态                             |
+| 阿里云邮件推送   | 杭州、新加坡、弗吉尼亚、法兰克福；公网与 VPC 入口；访问密钥及私钥        | 免费配额、账号余额、无法精确关联的投递统计 |
+| 腾讯云邮件推送   | 中国及国际版邮件、账单入口；访问密钥及私钥                               | 账号余额、收件人投递状态                   |
+| 飞书 / Lark 邮箱 | 飞书及 Lark 入口；用户委托 OAuth 凭证                                    | 收件人投递状态                             |
 
-区域支持以 [SES 入口目录](https://docs.aws.amazon.com/general/latest/gr/ses.html)及[阿里云邮件推送入口目录](https://www.alibabacloud.com/help/en/direct-mail/api-dm-2015-11-23-endpoint)为准。
+区域支持以 [SES 入口目录](https://docs.aws.amazon.com/general/latest/gr/ses.html)
+及[阿里云邮件推送入口目录](https://www.alibabacloud.com/help/en/direct-mail/api-dm-2015-11-23-endpoint)为准。
 阿里云 VPC 入口需要同区域网络连通性；预设不包含已停用的悉尼入口。
 SMTP 预设包含 Gmail、Outlook.com、Microsoft 365、QQ、网易 163/126、Cloudflare、SendGrid、SES、阿里云、腾讯云及飞书。
 入口和价格均可修改。切换预设会加载对应入口及计费默认值；切换服务商不会沿用另一服务商的已保存凭证。
@@ -103,7 +109,8 @@ TLS 会验证证书和服务器名称；选择 STARTTLS 后必须完成升级，
 Graph 委托账号使用 `client_id`、可选 `client_secret` 及 `refresh_token`，个人账号可使用租户 `common`。
 应用权限使用 Entra 租户 ID 和客户端凭证；此时 `mailbox` 必须为用户 ID 或邮箱地址，委托权限可以使用 `me`。
 发送需要 `Mail.Send`，查询已发送文件夹需要相应的 `Mail.Read` 权限；应用权限需要管理员同意。
-参见 [Graph sendMail](https://learn.microsoft.com/en-us/graph/api/user-sendmail)及[国家云部署](https://learn.microsoft.com/en-us/graph/deployments)。
+参见 [Graph sendMail](https://learn.microsoft.com/en-us/graph/api/user-sendmail)
+及[国家云部署](https://learn.microsoft.com/en-us/graph/deployments)。
 
 具体权限范围、IAM/CAM/RAM 操作、令牌获取、服务开通要求及已核对的请求契约见[邮件 API 权限](mail-api-permissions.md)。
 腾讯云 API 普通账号需要通过 `tencent_template_id` 配置已审核模板；`Simple` 自定义正文属于历史受限能力。
@@ -129,9 +136,13 @@ API 字段包括 `api_key`、`api_secret`、可选 `session_token`、`account_id
 `rounding: proportional` 按比例分摊批次价格；`batch` 在使用一批中的第一封邮件时收取整批价格。
 价格和余额使用三字母 `currency` 货币的百万分之一，1000000 表示一个货币单位。界面显示普通金额。
 
-预设计价核对日期为 2026-09-08：[Cloudflare](https://developers.cloudflare.com/email-service/platform/pricing/) 计划外邮件为每千封 0.35 美元；[SES](https://aws.amazon.com/ses/pricing/) 发件为每千封 0.10 美元。
-[SendGrid 公布的套餐](https://sendgrid.com/content/dam/sendgrid/global/en/other/sendgrid-pricing/twi121--sendgrid-pricing-pdf-st1.pdf)提供可编辑的 Essentials 50K 和 Pro 100K 计划外计价默认值；欧盟入口需要符合条件的套餐。
-[阿里云邮件推送](https://www.alibabacloud.com/help/en/direct-mail/billing-methods)为每千封 0.29 美元；[腾讯云中国版](https://cloud.tencent.com/document/product/1288/47930)为每封 0.0019 元，[国际版](https://www-sg.tencentcloud.com/document/product/1084/39335)为每封 0.00028 美元。
+预设计价核对日期为 2026-09-08：[Cloudflare](https://developers.cloudflare.com/email-service/platform/pricing/) 计划外邮件为每千封
+0.35 美元；[SES](https://aws.amazon.com/ses/pricing/) 发件为每千封 0.10 美元。
+[SendGrid 公布的套餐](https://sendgrid.com/content/dam/sendgrid/global/en/other/sendgrid-pricing/twi121--sendgrid-pricing-pdf-st1.pdf)
+提供可编辑的 Essentials 50K 和 Pro 100K 计划外计价默认值；欧盟入口需要符合条件的套餐。
+[阿里云邮件推送](https://www.alibabacloud.com/help/en/direct-mail/billing-methods)为每千封 0.29
+美元；[腾讯云中国版](https://cloud.tencent.com/document/product/1288/47930)为每封 0.0019
+元，[国际版](https://www-sg.tencentcloud.com/document/product/1084/39335)为每封 0.00028 美元。
 Graph、Gmail、飞书/Lark 的边际计费预估为 0，套餐限制仍然适用。
 估算不包含订阅、税费、附件流量及可选服务费用，应按照实际合同调整模型。
 
@@ -163,7 +174,8 @@ Cloudflare 直接使用初始响应，不调用不存在的单封邮件轮询接
 
 ## 模板与通知
 
-`template_style` 可选 `card`、`compact`、`notice`。模板采用服务界面的中性色表面、圆角卡片、胶囊按钮及明暗配色。邮件使用收件账号保存的语言；新注册及尚未保存偏好的收件人使用发起页面的 `Accept-Language`，缺省为 `en-US`。支持前端的全部 12 种语言。邮件入队时确定语言。旧版全局 `locale` 配置会被忽略，设置页面不再提供手动选择。
+`template_style` 可选 `card`、`compact`、`notice`。模板采用服务界面的中性色表面、圆角卡片、胶囊按钮及明暗配色。邮件使用收件账号保存的语言；新注册及尚未保存偏好的收件人使用发起页面的
+`Accept-Language`，缺省为 `en-US`。支持前端的全部 12 种语言。邮件入队时确定语言。旧版全局 `locale` 配置会被忽略，设置页面不再提供手动选择。
 各样式均包含纯文本版本、经过转义的变量，以及限定为实例公开地址的 HTTPS 操作链接。
 
 ```text
@@ -201,13 +213,13 @@ GET 和成功的 PUT 不返回凭证值，而以 `secrets_configured` 将账号 
 测试接口使用已保存的配置，请求 JSON 如下：
 
 ```json
-{"account_id":"primary","to":"receiver@example.com"}
+{"account_id": "primary", "to": "receiver@example.com"}
 ```
 
 入队成功返回 HTTP 202，此时尚不能确认已经送达：
 
 ```json
-{"id":"opaque-job-id","status":"queued","ticket":"private-status-capability"}
+{"id": "opaque-job-id", "status": "queued", "ticket": "private-status-capability"}
 ```
 
 使用返回的 `X-Renop-Mail-Ticket` 请求头轮询账号状态接口，或使用任务所有者的登录会话。

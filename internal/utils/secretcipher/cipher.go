@@ -14,8 +14,9 @@ package secretcipher
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"encoding/base64"
 	"errors"
+
+	"github.com/emmansun/base64"
 )
 
 // New creates an authenticated cipher with automatic random nonces from a 256-bit key.

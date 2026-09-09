@@ -16,7 +16,10 @@ import vm from 'node:vm';
 test('account recovery validates distinct codes, submits once, clears secrets, and restores sign-in', async () => {
     const elements = new Map();
     const field = id => {
-        if (!elements.has(id)) elements.set(id, {value: '', textContent: '', labels: [{}], focus() {}});
+        if (!elements.has(id)) elements.set(id, {
+            value: '', textContent: '', labels: [{}], focus() {
+            }
+        });
         return elements.get(id);
     };
     const codes = Array.from({length: 4}, (_, i) => field('code-' + i));
@@ -26,27 +29,46 @@ test('account recovery validates distinct codes, submits once, clears secrets, a
     const form = {
         querySelectorAll: () => codes,
         querySelector: () => button,
-        addEventListener: (name, handler) => { submit = handler; },
-        reset: () => { for (const element of elements.values()) element.value = ''; },
+        addEventListener: (name, handler) => {
+            submit = handler;
+        },
+        reset: () => {
+            for (const element of elements.values()) element.value = '';
+        },
     };
     const context = vm.createContext({
         document: {getElementById: id => id === 'account-recovery-form' ? form : field(id)},
-        window: {addEventListener: (name, handler) => { pagehide = handler; }},
+        window: {
+            addEventListener: (name, handler) => {
+                pagehide = handler;
+            }
+        },
         t: key => key,
-        attachPasswordStrength: () => ({reset() {}}),
+        attachPasswordStrength: () => ({
+            reset() {
+            }
+        }),
         getPasswordLengthError: value => value.length < 6 ? 'short' : '',
         confirmWeakPasswordIfNeeded: async () => allowWeak,
         loginReturnTo: () => '/account/reviews',
-        navigateToLogin: (path, options) => { events.push(['login', path, options.replace]); },
-        logout: async reason => { events.push(['logout', reason]); },
-        showAlert: () => { events.push(['success']); },
+        navigateToLogin: (path, options) => {
+            events.push(['login', path, options.replace]);
+        },
+        logout: async reason => {
+            events.push(['logout', reason]);
+        },
+        showAlert: () => {
+            events.push(['success']);
+        },
         fetch: async (url, options) => {
             requests++;
             assert.equal(url, '/api/auth/recovery/password');
             assert.equal(options.credentials, 'include');
             assert.equal(options.cache, 'no-store');
             assert.equal(JSON.parse(options.body).new_password, 'a valid password');
-            await new Promise(resolve => { release = resolve; });
+            await new Promise(resolve => {
+                release = resolve;
+            });
             return {ok: status === 200, status, json: async () => ({username: 'alice'})};
         },
         console,
@@ -60,29 +82,44 @@ test('account recovery validates distinct codes, submits once, clears secrets, a
     };
     const source = readFileSync(new URL('../js/account-recovery.js', import.meta.url), 'utf8');
     vm.runInContext(source.replace(/^import .*;$/gm, '').replace('export function ', 'function '), context);
-    const send = () => submit({preventDefault() {}});
-    const finish = async () => { await pending; pending = null; };
+    const send = () => submit({
+        preventDefault() {
+        }
+    });
+    const finish = async () => {
+        await pending;
+        pending = null;
+    };
     const fill = () => {
         field('recovery-identifier').value = 'alice';
         field('recovery-password').value = field('recovery-password-confirmation').value = 'a valid password';
-        codes.forEach((input, i) => { input.value = 'CODE-' + i; });
+        codes.forEach((input, i) => {
+            input.value = 'CODE-' + i;
+        });
     };
     fill();
     field('recovery-password-confirmation').value = 'different';
-    send(); await finish();
+    send();
+    await finish();
     assert.equal(field('recovery-error').textContent, 'login.passwordsDoNotMatch');
-    fill(); codes[1].value = ' code-0 ';
-    send(); await finish();
+    fill();
+    codes[1].value = ' code-0 ';
+    send();
+    await finish();
     assert.equal(field('recovery-error').textContent, 'login.fourDistinctCodesRequired');
-    fill(); allowWeak = false;
-    send(); await finish();
+    fill();
+    allowWeak = false;
+    send();
+    await finish();
     assert.equal(requests, 0);
     allowWeak = true;
     for (status of [500, 401, 429, 200]) {
-        send(); send();
+        send();
+        send();
         await new Promise(resolve => setImmediate(resolve));
         assert.equal(button.disabled, true);
-        release(); await finish();
+        release();
+        await finish();
         assert.equal(button.disabled, false);
         if (status !== 200) assert.equal(field('recovery-error').textContent,
             status === 500 ? 'login.recoveryFailed' : status === 401 ? 'login.recoveryInvalid' : 'login.recoveryRateLimited');
@@ -92,7 +129,8 @@ test('account recovery validates distinct codes, submits once, clears secrets, a
     assert.equal(field('username').value, 'alice');
     assert.equal(field('recovery-password').value, '');
     assert.ok(codes.every(input => input.value === ''));
-    fill(); pagehide();
+    fill();
+    pagehide();
     assert.equal(field('recovery-password').value, '');
     assert.ok(codes.every(input => input.value === ''));
 });

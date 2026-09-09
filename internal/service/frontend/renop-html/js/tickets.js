@@ -420,8 +420,10 @@ async function downloadPublicationBundle(task) {
 
 /** @param {string} type - Stored resource type. @returns {string} Localized label. */
 function resourceLabel(type) {
-    const aliases = {docker: 'docker_image', npm: 'npm_package', cargo: 'cargo_package',
-        maven: 'maven_artifact', 'maven-domain': 'maven_domain'};
+    const aliases = {
+        docker: 'docker_image', npm: 'npm_package', cargo: 'cargo_package',
+        maven: 'maven_artifact', 'maven-domain': 'maven_domain'
+    };
     return ['user', 'superteam', 'support'].includes(type)
         ? t(`ticket.type.${type}`) : t(`review.type.${aliases[type] || type}`);
 }
@@ -454,11 +456,18 @@ async function openTicket(id) {
 
 /** @param {object} task - Claimed ticket. @param {string} action - Resolution step. @param {Function} onChanged - Refresh detail. @returns {void} */
 function openResolutionDialog(task, action, onChanged) {
-    const response = el('textarea', {class: 'profile-input', rows: '6', maxlength: '4096', required: true}, task.response || '');
+    const response = el('textarea', {
+        class: 'profile-input',
+        rows: '6',
+        maxlength: '4096',
+        required: true
+    }, task.response || '');
     let outcome = task.kind === 'report' ? task.outcome === 'upheld' ? 'upheld' : 'dismissed' : 'resolved';
     const choices = task.kind === 'report' && action !== 'close'
         ? makeCustomSelect(['dismissed', 'upheld'].map(value => ({value, label: t(`ticket.outcome.${value}`)})),
-            outcome, value => { outcome = value; }) : null;
+            outcome, value => {
+                outcome = value;
+            }) : null;
     void RenopDialog.show({
         id: 'ticket-resolution-dialog', maxWidth: '600px', title: t(`ticket.action.${action}`),
         body: el('div', {class: 'review-reject-form'},
@@ -467,7 +476,8 @@ function openResolutionDialog(task, action, onChanged) {
             el('p', {class: 'review-transfer-copy'}, t('ticket.responsePrivacy'))),
         footer: [
             {text: t('common.cancel'), className: 'action-btn', onClick: (event, dialog) => dialog.close(false)},
-            {text: t(`ticket.action.${action}`), className: 'action-btn primary-btn',
+            {
+                text: t(`ticket.action.${action}`), className: 'action-btn primary-btn',
                 onClick: (event, dialog) => runButtonAction(event.currentTarget, async () => {
                     if (!response.reportValidity()) return;
                     try {
@@ -477,7 +487,8 @@ function openResolutionDialog(task, action, onChanged) {
                     } catch (error) {
                         showAlert(caughtErrorMessage(error, 'review.operationFailed'), 'error');
                     }
-                })}
+                })
+            }
         ]
     });
 }
@@ -492,14 +503,18 @@ export async function openTicketComposer(target = null) {
             const {response, data} = await fetchProto('/api/repositories/details', FileDetails);
             if (!response.ok) throw await localizedResponseError(response, 'review.loadFailed', {}, REVIEW_ERROR_KEYS);
             scope = makeCustomSelect([{value: '', label: t('ticket.globalScope')},
-                ...(data?.files || []).map(repo => ({value: repo.name, label: repo.name}))], repository,
-            value => { repository = value; });
+                    ...(data?.files || []).map(repo => ({value: repo.name, label: repo.name}))], repository,
+                value => {
+                    repository = value;
+                });
         }
         const title = el('input', {type: 'text', class: 'profile-input', maxlength: '160', required: true});
         const description = el('textarea', {class: 'profile-input', rows: '7', maxlength: '8000', required: true});
         const kindSelect = target ? null : makeCustomSelect(['feedback', 'suggestion'].map(value => ({
             value, label: t(`ticket.kind.${value}`)
-        })), kind, value => { kind = value; });
+        })), kind, value => {
+            kind = value;
+        });
         void RenopDialog.show({
             id: 'ticket-compose-dialog', maxWidth: '640px', title: t(target ? 'ticket.report' : 'ticket.create'),
             body: el('div', {class: 'review-reject-form'},
@@ -512,13 +527,20 @@ export async function openTicketComposer(target = null) {
                 el('p', {class: 'review-transfer-copy'}, t(target ? 'ticket.reportPrivacy' : 'ticket.createHint'))),
             footer: [
                 {text: t('common.cancel'), className: 'action-btn', onClick: (event, dialog) => dialog.close(false)},
-                {text: t('review.submitRequest'), className: 'action-btn primary-btn',
+                {
+                    text: t('review.submitRequest'), className: 'action-btn primary-btn',
                     onClick: (event, dialog) => runButtonAction(event.currentTarget, async () => {
                         if (!title.reportValidity() || !description.reportValidity()) return;
                         try {
                             const response = await requestReview('/api/tickets', {
                                 method: 'POST', headers: {'Content-Type': 'application/json'},
-                                body: JSON.stringify({kind, repository, title: title.value.trim(), body: description.value.trim(), target})
+                                body: JSON.stringify({
+                                    kind,
+                                    repository,
+                                    title: title.value.trim(),
+                                    body: description.value.trim(),
+                                    target
+                                })
                             });
                             if (!response.ok) throw await localizedResponseError(response, 'review.operationFailed', {}, REVIEW_ERROR_KEYS);
                             dialog.close(true);
@@ -528,7 +550,8 @@ export async function openTicketComposer(target = null) {
                         } catch (error) {
                             showAlert(caughtErrorMessage(error, 'review.operationFailed'), 'error');
                         }
-                    })}
+                    })
+                }
             ]
         });
     } catch (error) {
@@ -555,7 +578,10 @@ function taskCard(task, onChanged = null) {
                 void runButtonAction(event.currentTarget, async () => {
                     if (action !== 'claim' && !await showConfirm(t(`ticket.confirm.${action}`))) return;
                     try {
-                        await transitionTicket(task.id, {action: action === 'force_claim' ? 'claim' : action, force: action === 'force_claim'});
+                        await transitionTicket(task.id, {
+                            action: action === 'force_claim' ? 'claim' : action,
+                            force: action === 'force_claim'
+                        });
                         await onChanged();
                     } catch (error) {
                         showAlert(caughtErrorMessage(error, 'review.operationFailed'), 'error');
@@ -690,7 +716,8 @@ function toolbar() {
     }
     return el('div', {class: 'review-toolbar'},
         el('div', {class: 'review-toolbar-selects'}, viewSelect, statusSelect,
-            el('button', {type: 'button', class: 'action-btn primary-btn',
+            el('button', {
+                type: 'button', class: 'action-btn primary-btn',
                 onclick: event => runButtonAction(event.currentTarget, () => openTicketComposer())
             }, t('ticket.create'))), filters);
 }
@@ -731,8 +758,10 @@ async function loadTasks({refreshToolbar = false} = {}) {
         view: activeView, status: activeStatus, limit: String(pageSize), offset: String(pageOffset)
     });
     if (activeTypes.size > 0) {
-        const aliases = {docker_image: 'docker', npm_package: 'npm', cargo_package: 'cargo',
-            maven_artifact: 'maven', maven_domain: 'maven-domain'};
+        const aliases = {
+            docker_image: 'docker', npm_package: 'npm', cargo_package: 'cargo',
+            maven_artifact: 'maven', maven_domain: 'maven-domain'
+        };
         query.set('types', [...activeTypes].flatMap(type => aliases[type] ? [type, aliases[type]] : [type]).join(','));
     }
     try {

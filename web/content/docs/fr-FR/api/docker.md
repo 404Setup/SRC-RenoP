@@ -79,14 +79,29 @@ Le digest SHA-256 déclaré doit également correspondre exactement aux octets J
 
 ## Verrouillage des ressources
 
-Les administrateurs et modérateurs du dépôt utilisent `PUT /api/docker/repositories/{repo}/locks?image={name}` pour définir un verrouillage manuel et `DELETE /api/docker/repositories/{repo}/locks?image={name}` pour le retirer. Ces opérations exigent un cookie de session navigateur valide ; les jetons API ne peuvent pas gérer les verrouillages. La requête désigne le condensat immuable d’un manifeste existant ; une valeur `version` vide verrouille toute l’image.
+Les administrateurs et modérateurs du dépôt utilisent `PUT /api/docker/repositories/{repo}/locks?image={name}` pour
+définir un verrouillage manuel et `DELETE /api/docker/repositories/{repo}/locks?image={name}` pour le retirer. Ces
+opérations exigent un cookie de session navigateur valide ; les jetons API ne peuvent pas gérer les verrouillages. La
+requête désigne le condensat immuable d’un manifeste existant ; une valeur `version` vide verrouille toute l’image.
 
 ```json
 {"version":"sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","mode":"read","reason":"trojan"}
 ```
 
-Les modes sont `write` et `read`. Les motifs publics sont `hold`, `prohibited`, `expired`, `trojan`, `abuse`, `dmca`, `reup`, `squatting` et `quality`. Un verrouillage de lecture interdit aussi les écritures : seuls les administrateurs, modérateurs du dépôt, propriétaires et collaborateurs (y compris L0) peuvent consulter les métadonnées. Personne ne peut télécharger ou monter les couches et configurations depuis cette image. Catalogues, recherches, pages de tags, profils et ressources d’équipe appliquent les mêmes règles.
+Les modes sont `write` et `read`. Les motifs publics sont `hold`, `prohibited`, `expired`, `trojan`, `abuse`, `dmca`,
+`reup`, `squatting` et `quality`. Un verrouillage de lecture interdit aussi les écritures : seuls les administrateurs,
+modérateurs du dépôt, propriétaires et collaborateurs (y compris L0) peuvent consulter les métadonnées. Personne ne peut
+télécharger ou monter les couches et configurations depuis cette image. Catalogues, recherches, pages de tags, profils
+et ressources d’équipe appliquent les mêmes règles.
 
-Un verrouillage par condensat couvre tous les alias de tags ainsi que les manifestes enfants et blobs référencés par un index multi-architecture. Les références enregistrées survivent aux redémarrages jusqu’au retrait du verrouillage d’origine. Les réponses exposent `locks`, `inherited`, `moderator`, `member` et `version_locked`, sans identifier l’opérateur. Retirer un verrouillage manuel conserve les restrictions système et héritées. Le traitement est limité à 8,192 condensats et 64 MiB de métadonnées ; un graphe invalide ou trop volumineux renvoie `400` sans modifier le verrouillage précédent.
+Un verrouillage par condensat couvre tous les alias de tags ainsi que les manifestes enfants et blobs référencés par un
+index multi-architecture. Les références enregistrées survivent aux redémarrages jusqu’au retrait du verrouillage
+d’origine. Les réponses exposent `locks`, `inherited`, `moderator`, `member` et `version_locked`, sans identifier
+l’opérateur. Retirer un verrouillage manuel conserve les restrictions système et héritées. Le traitement est limité à
+8,192 condensats et 64 MiB de métadonnées ; un graphe invalide ou trop volumineux renvoie `400` sans modifier le
+verrouillage précédent.
 
-Les mutations bloquées renvoient `423` et `X-Renop-Error-Code: resource_locked`, notamment la réaffectation des tags, l’approbation des publications, les modifications d’équipe sous verrouillage d’image, et la suppression ou l’abandon de l’image lorsqu’une version est verrouillée. La suppression ou le remplacement d’un blob partagé vérifie également les verrouillages des autres images du dépôt. Le contenu miroir figé n’est ni actualisé ni remplacé.
+Les mutations bloquées renvoient `423` et `X-Renop-Error-Code: resource_locked`, notamment la réaffectation des tags,
+l’approbation des publications, les modifications d’équipe sous verrouillage d’image, et la suppression ou l’abandon de
+l’image lorsqu’une version est verrouillée. La suppression ou le remplacement d’un blob partagé vérifie également les
+verrouillages des autres images du dépôt. Le contenu miroir figé n’est ni actualisé ni remplacé.

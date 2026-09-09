@@ -13,7 +13,8 @@ account- or global-team-specific override.
 
 ## Policy
 
-The `period` is `day`, `week`, `month`, or `lifetime`; recurring boundaries use UTC. A limit of zero is valid only for an owner override and
+The `period` is `day`, `week`, `month`, or `lifetime`; recurring boundaries use UTC. A limit of zero is valid only for
+an owner override and
 prevents that operation. The administrator-only `unlimited` override disables quota consumption for that owner. An empty
 override object restores every global default.
 

@@ -28,7 +28,7 @@
     font-size: 0.78rem;
     font-weight: 650;
     transition: border-color 0.16s ease, background-color 0.16s ease,
-        color 0.16s ease, transform 0.16s ease;
+    color 0.16s ease, transform 0.16s ease;
 }
 
 .renop-pagination-btn:hover:not(:disabled),

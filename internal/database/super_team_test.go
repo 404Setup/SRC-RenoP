@@ -114,7 +114,7 @@ func TestSuperTeamInvitationAndOwnerInvariants(t *testing.T) {
 		Prefix: "release", Name: "Release", CreatedAt: now,
 	}, "alice", 5, 5))
 	id := "00000000-0000-4000-8000-000000000301"
-	expiresAt := now + int64((7 * 24 * time.Hour / time.Millisecond))
+	expiresAt := now + int64(7*24*time.Hour/time.Millisecond)
 	invitation := &core.SuperTeamInvitation{
 		ID: id, TeamPrefix: "release", Inviter: "alice", Recipient: "charlie",
 		Level: core.SuperTeamRoleRead, CreatedAt: now + 1, ExpiresAt: expiresAt,

@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -17,18 +19,33 @@ test('email verification preserves rejected input state and discards responses a
     const context = vm.createContext({
         AbortController, Date,
         document: {getElementById: id => elements.get(id)},
-        window: {location: {pathname: '/user/alice/edit'},
-            addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: name => listeners.delete(name)},
+        window: {
+            location: {pathname: '/user/alice/edit'},
+            addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: name => listeners.delete(name)
+        },
         el: (tag, props, ...children) => {
-            const node = {tag, ...props, children, value: '', handlers: {}, textContent: typeof children[0] === 'string' ? children[0] : '',
-                addEventListener(name, fn) { this.handlers[name] = fn; }, focus() {}};
+            const node = {
+                tag, ...props,
+                children,
+                value: '',
+                handlers: {},
+                textContent: typeof children[0] === 'string' ? children[0] : '',
+                addEventListener(name, fn) {
+                    this.handlers[name] = fn;
+                },
+                focus() {
+                }
+            };
             if (node.id) elements.set(node.id, node);
             return node;
         },
         t: key => key,
         mailStatusLabel: status => 'mail.' + status,
         responseErrorMessage: async () => 'invalid-code',
-        setTimeout: fn => { timers.set(++timerID, fn); return timerID; }, clearTimeout: id => timers.delete(id),
+        setTimeout: fn => {
+            timers.set(++timerID, fn);
+            return timerID;
+        }, clearTimeout: id => timers.delete(id),
         apiRequest: async (path, request) => {
             assert.ok(request.signal instanceof AbortSignal);
             if (path.includes('/mail/')) {
@@ -37,29 +54,43 @@ test('email verification preserves rejected input state and discards responses a
             }
             assert.equal(path, '/api/auth/profile/email/confirm');
             assert.deepEqual(JSON.parse(request.body), {email: 'new@example.com', code: '12345678'});
-            if (delayed) await new Promise(resolve => { release = resolve; });
+            if (delayed) await new Promise(resolve => {
+                release = resolve;
+            });
             return {ok: accept, status: accept ? 200 : 400, json: async () => ({email: 'new@example.com'})};
         },
-        RenopDialog: {show: current => {
-            options = current;
-            return new Promise(resolve => {
-                elements.set(current.id, {close: result => {
-                    closed++; current.onClose(); elements.delete(current.id); resolve(result);
-                }});
-                for (const button of current.footer) if (button.id) elements.set(button.id, {disabled: false});
-            });
-        }},
+        RenopDialog: {
+            show: current => {
+                options = current;
+                return new Promise(resolve => {
+                    elements.set(current.id, {
+                        close: result => {
+                            closed++;
+                            current.onClose();
+                            elements.delete(current.id);
+                            resolve(result);
+                        }
+                    });
+                    for (const button of current.footer) if (button.id) elements.set(button.id, {disabled: false});
+                });
+            }
+        },
     });
     const button = readFileSync(new URL('../js/components/button.js', import.meta.url), 'utf8');
     context.runButtonAction = vm.runInContext(button.slice(button.indexOf('export async function runButtonAction')).replace('export ', '') + '; runButtonAction', context);
     const source = readFileSync(new URL('../js/profile-email-verification.js', import.meta.url), 'utf8').replace(/^import .*;\r?\n/gm, '').replace('export async function', 'async function');
     vm.runInContext(source, context);
-    const settle = async () => { for (let index = 0; index < 8; index++) await new Promise(resolve => setImmediate(resolve)); };
+    const settle = async () => {
+        for (let index = 0; index < 8; index++) await new Promise(resolve => setImmediate(resolve));
+    };
     const receipt = {id: 'job', status: 'queued', ticket: 'ticket'};
     const first = context.verifyProfileEmail('new@example.com', receipt);
     const code = elements.get('profile-email-code');
     code.value = '12345678';
-    options.body.handlers.submit({preventDefault() {}});
+    options.body.handlers.submit({
+        preventDefault() {
+        }
+    });
     await settle();
     assert.equal(closed, 0);
     assert.equal(code.value, '');
@@ -70,7 +101,10 @@ test('email verification preserves rejected input state and discards responses a
     assert.equal(timers.size, 0);
     accept = true;
     code.value = '12345678';
-    options.body.handlers.submit({preventDefault() {}});
+    options.body.handlers.submit({
+        preventDefault() {
+        }
+    });
     assert.equal((await first).email, 'new@example.com');
     assert.equal(receipt.ticket, '');
     assert.equal(listeners.size, 0);
@@ -78,7 +112,10 @@ test('email verification preserves rejected input state and discards responses a
     delayed = true;
     const second = context.verifyProfileEmail('new@example.com', {id: 'job', status: 'queued', ticket: 'ticket'});
     elements.get('profile-email-code').value = '12345678';
-    options.body.handlers.submit({preventDefault() {}});
+    options.body.handlers.submit({
+        preventDefault() {
+        }
+    });
     await settle();
     listeners.get('pagehide')();
     assert.equal(await second, null);

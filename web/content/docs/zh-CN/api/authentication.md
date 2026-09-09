@@ -10,9 +10,12 @@ description: 浏览器会话、个人资料、登录方式、恢复代码与会�
 浏览器认证使用 HttpOnly `renop_session` Cookie。个人资料与会话列表不会返回会话密钥，请求头和 URL 也不
 接受该密钥。私有安全设置接口仅接受浏览器会话，不接受密码或 API Token。
 
-浏览器登录页面为 `/account/login`。密码、Passkey 和第三方登录完成后，会返回可选查询参数 `return_to` 指定的本站路径，不保留查询参数和片段。外部地址、认证接口及超过 1,024 个字符的值会回退到 `/`。会话过期时进入登录页；已登录用户遇到权限不足时返回首页，保留当前会话。
+浏览器登录页面为 `/account/login`。密码、Passkey 和第三方登录完成后，会返回可选查询参数 `return_to`
+指定的本站路径，不保留查询参数和片段。外部地址、认证接口及超过 1,024 个字符的值会回退到 `/`
+。会话过期时进入登录页；已登录用户遇到权限不足时返回首页，保留当前会话。
 
-[二次验证](../security/two-step-verification.md)说明验证器配置、Passkey 二次验证、待完成登录响应与恢复流程。二次验证 Passkey 不算作初次登录方式。离线恢复会移除验证器并关闭 Passkey 二次验证；邮件重置密码会保留这两项设置。
+[二次验证](../security/two-step-verification.md)说明验证器配置、Passkey 二次验证、待完成登录响应与恢复流程。二次验证
+Passkey 不算作初次登录方式。离线恢复会移除验证器并关闭 Passkey 二次验证；邮件重置密码会保留这两项设置。
 
 ## 使用密码或邮箱登录
 
@@ -45,9 +48,11 @@ description: 浏览器会话、个人资料、登录方式、恢复代码与会�
 只有管理员完成 OAuth 配置后才显示 GitHub 登录。RenoP 请求读取用户与组织，保存不可变 Provider ID 和当前
 Principal 快照，但不会持久化 OAuth Access Token。
 
-未绑定本地账号的 GitHub 身份需要完成[账号注册](../security/registration.md)并设置密码。OAuth 请求 `read:user read:org user:email`，回调必须携带发起授权时的浏览器 Cookie。
+未绑定本地账号的 GitHub 身份需要完成[账号注册](../security/registration.md)并设置密码。OAuth 请求
+`read:user read:org user:email`，回调必须携带发起授权时的浏览器 Cookie。
 
-Microsoft、Google、GitLab、Cloudflare、Stack Exchange 和自定义 OAuth 客户端使用[第三方登录 API](../security/oauth-login.md)，支持账号绑定、注册时必要的邮箱验证、可选资料导入，以及相同的二次验证策略。
+Microsoft、Google、GitLab、Cloudflare、Stack Exchange 和自定义 OAuth 客户端使用[第三方登录 API](../security/oauth-login.md)
+，支持账号绑定、注册时必要的邮箱验证、可选资料导入，以及相同的二次验证策略。
 
 ## 当前账号与公开个人资料
 
@@ -69,32 +74,43 @@ Microsoft、Google、GitLab、Cloudflare、Stack Exchange 和自定义 OAuth 客
 ### 邮箱与密码登录策略
 
 - **读取状态**：`GET /api/auth/profile/security`
-- **设置邮箱**：`PUT /api/auth/profile/email`；邮件入队后的确认流程及 GitHub 验证见[安全邮箱验证](../security/email-verification.md)。
+- **设置邮箱**：`PUT /api/auth/profile/email`；邮件入队后的确认流程及 GitHub
+  验证见[安全邮箱验证](../security/email-verification.md)。
 - **启用或禁用密码登录**：`PUT /api/auth/profile/password-login`
 - 只有仍保留用于主要登录的 Passkey 或第三方账号时才能禁用密码登录；重新启用前必须已经设置密码。
 
 ### 邮件验证码找回密码
 
-独立页面 `/account/forgot-password` 验证账号已记录的安全邮箱。邮件服务关闭时，该页面及申请、确认 API 返回 `404`；登录和恢复账号页面隐藏邮件找回入口。离线恢复页面 `/account/recovery` 仍可使用。
+独立页面 `/account/forgot-password` 验证账号已记录的安全邮箱。邮件服务关闭时，该页面及申请、确认 API 返回 `404`
+；登录和恢复账号页面隐藏邮件找回入口。离线恢复页面 `/account/recovery` 仍可使用。
 
 - **可用状态**：`GET /api/auth/password-reset/status` 返回 `{"enabled":true}` 或 `{"enabled":false}`。
-- **发送验证码**：`POST /api/auth/password-reset/request` 接收 `{"email":"admin@example.com"}`，邮件持久化入队后返回 `202` 及 `{id,status,ticket}`，此时尚未发送。
-- **投递状态**：`GET /api/auth/mail/:id` 通过 `X-Renop-Mail-Ticket` 请求头接收私有凭据。页面每 3 秒查询一次，最长 10 分钟，离开页面即停止，并显示失败或未能确认的投递状态。服务商接受邮件不代表收件人已收到。凭据不得写入 URL 或浏览器存储。
-- **重置密码**：`POST /api/auth/password-reset/confirm` 接收以下 JSON。两个 POST 请求均要求 `Content-Type: application/json`，请求体上限为 4,096 字节；密码须为 6–72 个 UTF-8 字节。
+- **发送验证码**：`POST /api/auth/password-reset/request` 接收 `{"email":"admin@example.com"}`，邮件持久化入队后返回 `202`
+  及 `{id,status,ticket}`，此时尚未发送。
+- **投递状态**：`GET /api/auth/mail/:id` 通过 `X-Renop-Mail-Ticket` 请求头接收私有凭据。页面每 3 秒查询一次，最长 10
+  分钟，离开页面即停止，并显示失败或未能确认的投递状态。服务商接受邮件不代表收件人已收到。凭据不得写入 URL 或浏览器存储。
+- **重置密码**：`POST /api/auth/password-reset/confirm` 接收以下 JSON。两个 POST 请求均要求
+  `Content-Type: application/json`，请求体上限为 4,096 字节；密码须为 6–72 个 UTF-8 字节。
 
 ```json
 {"email":"admin@example.com","code":"01234567","new_password":"new_secure_password"}
 ```
 
-八位验证码有效期为 10 分钟，允许五次错误尝试。除配置的 IP 发信限流外，每个邮箱还受 60 秒申请冷却限制。新验证码成功入队后才使旧码失效；入队失败则保留旧码。邮件入队、验证码存储和限流计数在同一事务中提交。邮箱验证记录最多保留 2,048 条，入队前和定期清理时会删除过期记录。
+八位验证码有效期为 10 分钟，允许五次错误尝试。除配置的 IP 发信限流外，每个邮箱还受 60
+秒申请冷却限制。新验证码成功入队后才使旧码失效；入队失败则保留旧码。邮件入队、验证码存储和限流计数在同一事务中提交。邮箱验证记录最多保留
+2,048 条，入队前和定期清理时会删除过期记录。
 
 收件策略允许的有效地址均会收到相同的邮箱控制权验证邮件，包括未注册地址，因此不能通过投递状态判断账号是否存在。重置时重新检查签发时的账号身份、邮箱、密码和安全状态版本。后来注册的账号不能使用此前签发的验证码；账号注销后旧码失效。
 
-成功时原子消费验证码、修改密码、启用密码登录并撤销浏览器会话。API 返回 `{status:"success",username}` 并清除会话 Cookie，页面返回登录；其他凭据保持绑定，封禁仍然有效。`ACCOUNT_EMAIL_CODE_INVALID` 表示验证码无效、过期、错误次数耗尽、已使用或账号状态已变化。限流返回 `429`，队列或服务故障返回 `503`。所有响应均使用 `Cache-Control: no-store`。
+成功时原子消费验证码、修改密码、启用密码登录并撤销浏览器会话。API 返回 `{status:"success",username}` 并清除会话
+Cookie，页面返回登录；其他凭据保持绑定，封禁仍然有效。`ACCOUNT_EMAIL_CODE_INVALID` 表示验证码无效、过期、错误次数耗尽、已使用或账号状态已变化。限流返回
+`429`，队列或服务故障返回 `503`。所有响应均使用 `Cache-Control: no-store`。
 
 ### 恢复代码
 
-独立的恢复账号页面为 `/account/recovery`，可通过登录页的**恢复账号**入口打开，无需启用邮件服务。恢复成功后，浏览器清除原有会话并返回登录页，自动填入用户名，同时保留有效的本地 `return_to` 目标。离开页面时会清空恢复代码和密码，这些内容不会写入浏览器历史记录。
+独立的恢复账号页面为 `/account/recovery`，可通过登录页的 **恢复账号**
+入口打开，无需启用邮件服务。恢复成功后，浏览器清除原有会话并返回登录页，自动填入用户名，同时保留有效的本地 `return_to`
+目标。离开页面时会清空恢复代码和密码，这些内容不会写入浏览器历史记录。
 
 - **生成**：`POST /api/auth/profile/recovery-codes`
 - **重设密码**：`POST /api/auth/recovery/password`

@@ -18,8 +18,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"renop/internal/core"
+
+	"github.com/google/uuid"
 )
 
 func mfaStateQuery(query func(string, ...any) row, username string) (*core.MFAState, error) {

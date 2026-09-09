@@ -23,22 +23,6 @@ export class RenopToggle extends HTMLElement {
     }
 
     /**
-     * Render when inserted into the DOM.
-     * @returns {void}
-     */
-    connectedCallback() {
-        this.render();
-    }
-
-    /**
-     * Re-render or sync state when observed attributes change.
-     * @returns {void}
-     */
-    attributeChangedCallback() {
-        this.render();
-    }
-
-    /**
      * Whether the toggle is checked.
      * @returns {boolean}
      */
@@ -56,6 +40,22 @@ export class RenopToggle extends HTMLElement {
         else this.removeAttribute('checked');
         const input = $(this).find('input[type="checkbox"]').get(0);
         if (input) $(input).prop('checked', !!val);
+    }
+
+    /**
+     * Render when inserted into the DOM.
+     * @returns {void}
+     */
+    connectedCallback() {
+        this.render();
+    }
+
+    /**
+     * Re-render or sync state when observed attributes change.
+     * @returns {void}
+     */
+    attributeChangedCallback() {
+        this.render();
     }
 
     /**

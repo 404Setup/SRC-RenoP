@@ -80,14 +80,27 @@ The declared SHA-256 digest must also match the exact JSON bytes before persiste
 
 ## Resource locks
 
-Administrators and repository moderators use `PUT /api/docker/repositories/{repo}/locks?image={name}` to set a manual lock and `DELETE /api/docker/repositories/{repo}/locks?image={name}` to remove it. Both operations require a current browser session cookie. API tokens cannot manage locks. The request identifies an existing immutable manifest digest; an empty `version` locks the entire image.
+Administrators and repository moderators use `PUT /api/docker/repositories/{repo}/locks?image={name}` to set a manual
+lock and `DELETE /api/docker/repositories/{repo}/locks?image={name}` to remove it. Both operations require a current
+browser session cookie. API tokens cannot manage locks. The request identifies an existing immutable manifest digest; an
+empty `version` locks the entire image.
 
 ```json
 {"version":"sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","mode":"read","reason":"trojan"}
 ```
 
-Modes are `write` and `read`. Public reasons are `hold`, `prohibited`, `expired`, `trojan`, `abuse`, `dmca`, `reup`, `squatting`, and `quality`. Read locks also freeze writes: only administrators, repository moderators, owners, and collaborators (including L0) can inspect metadata, and everyone is denied layer/configuration downloads and mounts from that image. Catalogs, searches, tag pages, profiles, and team resources apply the same visibility rules.
+Modes are `write` and `read`. Public reasons are `hold`, `prohibited`, `expired`, `trojan`, `abuse`, `dmca`, `reup`,
+`squatting`, and `quality`. Read locks also freeze writes: only administrators, repository moderators, owners, and
+collaborators (including L0) can inspect metadata, and everyone is denied layer/configuration downloads and mounts from
+that image. Catalogs, searches, tag pages, profiles, and team resources apply the same visibility rules.
 
-Digest locks cover every tag alias and the referenced child manifests and blobs of a multi-architecture index. Captured references survive restart and remain until the originating lock is removed. Inspection responses expose public `locks`, `inherited`, `moderator`, `member`, and `version_locked` fields without operator identities. Removing a manual lock preserves system and inherited restrictions. Lock processing is bounded to 8,192 digests and 64 MiB of manifest metadata; invalid or oversized reference graphs return `400` without changing the previous lock.
+Digest locks cover every tag alias and the referenced child manifests and blobs of a multi-architecture index. Captured
+references survive restart and remain until the originating lock is removed. Inspection responses expose public `locks`,
+`inherited`, `moderator`, `member`, and `version_locked` fields without operator identities. Removing a manual lock
+preserves system and inherited restrictions. Lock processing is bounded to 8,192 digests and 64 MiB of manifest
+metadata; invalid or oversized reference graphs return `400` without changing the previous lock.
 
-Locked mutations return `423` with `X-Renop-Error-Code: resource_locked`, including tag reassignment, publication approval, team changes under an image lock, and whole-image deletion or deprecation when any version is locked. Shared blob deletion and replacement also check locks on other images in the repository. Frozen mirror content is not refreshed or replaced.
+Locked mutations return `423` with `X-Renop-Error-Code: resource_locked`, including tag reassignment, publication
+approval, team changes under an image lock, and whole-image deletion or deprecation when any version is locked. Shared
+blob deletion and replacement also check locks on other images in the repository. Frozen mirror content is not refreshed
+or replaced.

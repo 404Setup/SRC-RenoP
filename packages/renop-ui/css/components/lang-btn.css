@@ -24,10 +24,10 @@
     font-weight: 500;
     cursor: pointer;
     transition: width 0.3s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
-        background-color 0.2s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
-        border-color 0.2s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
-        color 0.2s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
-        box-shadow 0.2s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+    background-color 0.2s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+    border-color 0.2s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+    color 0.2s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+    box-shadow 0.2s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
     box-sizing: border-box;
     overflow: hidden;
     white-space: nowrap;
@@ -36,9 +36,9 @@
 
 .lang-btn.is-animating {
     transition: width 0.3s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
-        background-color 0.2s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
-        border-color 0.2s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
-        color 0.2s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+    background-color 0.2s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+    border-color 0.2s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+    color 0.2s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 .lang-btn:hover {
@@ -52,7 +52,7 @@
     line-height: 1;
     font-size: 0.825rem;
     transition: opacity 0.12s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
-        transform 0.12s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+    transform 0.12s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
     will-change: opacity, transform;
 }
 

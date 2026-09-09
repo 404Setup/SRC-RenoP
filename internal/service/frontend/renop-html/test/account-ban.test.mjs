@@ -23,20 +23,29 @@ test('ban editor loads current protection and submits the explicit IP choice', a
     const alerts = [];
     const fields = new Map(), requests = [];
     let status = {ban: null, protected_role: true, ip_count: 0}, dialog, refreshed = 0;
-    const context = vm.createContext({Date, encodeURIComponent,
+    const context = vm.createContext({
+        Date, encodeURIComponent,
         t: key => key, showAlert: (message, tone) => alerts.push({message, tone}),
         apiRequest: async (url, options = {}) => {
             requests.push({url, ...options});
             return {ok: true, json: async () => status};
         },
         el: (tag, properties = {}, ...children) => {
-            const field = {tag, ...properties, children, addEventListener() {}, focus() {}};
+            const field = {
+                tag, ...properties, children, addEventListener() {
+                }, focus() {
+                }
+            };
             if (properties.id) fields.set(properties.id, field);
             return field;
         },
         document: {getElementById: id => fields.get(id)}, requestAnimationFrame: callback => callback(),
         formatTimestamp: () => 'date', createIcon: () => ({}),
-        runButtonAction: async (_, action) => action(), RenopDialog: {show: options => { dialog = options; }},
+        runButtonAction: async (_, action) => action(), RenopDialog: {
+            show: options => {
+                dialog = options;
+            }
+        },
     });
     vm.runInContext(source('internal/service/frontend/renop-html/js/users/ban.js')
         .replace(/^import .*;\r?\n/gm, '').replaceAll('export ', ''), context);
@@ -44,14 +53,31 @@ test('ban editor loads current protection and submits the explicit IP choice', a
     assert.equal(alerts.at(-1).message, 'users.banProtected', 'live server roles override a stale list');
     assert.equal(dialog, undefined);
     status = {ban: {reason: 'Abuse'}, protected_role: false, ip_count: 2};
-    await context.openUserBanDialog({name: 'alice'}, () => { refreshed++; });
+    await context.openUserBanDialog({name: 'alice'}, () => {
+        refreshed++;
+    });
     assert.equal(fields.get('user-ban-ip').checked, true);
-    await dialog.form.onSubmit({preventDefault() {}}, {close() {}});
+    await dialog.form.onSubmit({
+        preventDefault() {
+        }
+    }, {
+        close() {
+        }
+    });
     assert.equal(JSON.parse(requests.at(-1).body).ban_ip, true);
     fields.get('user-ban-ip').checked = false;
-    await dialog.form.onSubmit({preventDefault() {}}, {close() {}});
+    await dialog.form.onSubmit({
+        preventDefault() {
+        }
+    }, {
+        close() {
+        }
+    });
     assert.equal(JSON.parse(requests.at(-1).body).ban_ip, false);
-    await dialog.footer.find(button => button.text === 'users.unban').onClick({currentTarget: {}}, {close() {}});
+    await dialog.footer.find(button => button.text === 'users.unban').onClick({currentTarget: {}}, {
+        close() {
+        }
+    });
     assert.equal(requests.at(-1).method, 'DELETE');
     assert.equal(refreshed, 3);
 });

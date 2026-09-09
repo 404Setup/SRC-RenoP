@@ -506,7 +506,10 @@ export async function fidoLogin() {
             return;
         }
 
-        const credentialJSON = await requestPasskeyAssertion(options, {signal: controller.signal, button: btnFidoLogin});
+        const credentialJSON = await requestPasskeyAssertion(options, {
+            signal: controller.signal,
+            button: btnFidoLogin
+        });
         controller.signal.throwIfAborted();
 
         const finishRes = await fetch('/api/auth/fido/login/finish', {

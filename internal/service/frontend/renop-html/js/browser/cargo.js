@@ -46,7 +46,12 @@ import {
     setRepositoryViewBusy
 } from './repository-view.js';
 import {RepositoryUserSuggestions} from './user-suggestions.js';
-import {createResourceLockButton, createResourceLockNotices, resourceReadLocked, resourceWriteLocked} from '../resource-locks.js';
+import {
+    createResourceLockButton,
+    createResourceLockNotices,
+    resourceReadLocked,
+    resourceWriteLocked
+} from '../resource-locks.js';
 
 const cargoRepositoryIcon = getRepositoryFormat('cargo').icon;
 
@@ -802,8 +807,10 @@ function buildCargoVersionsSection() {
             );
             row.appendChild(meta);
             const actions = el('div', {class: 'cargo-row-actions'});
-            actions.appendChild(createTicketReportButton({format: 'cargo', repository: activeRepository,
-                name: packageRecord.name, version: version.version}, pendingReview || packageRecord.mirrored || version.mirrored ||
+            actions.appendChild(createTicketReportButton({
+                format: 'cargo', repository: activeRepository,
+                name: packageRecord.name, version: version.version
+            }, pendingReview || packageRecord.mirrored || version.mirrored ||
                 Number(packageRecord.permission_level) >= 4 || resourceReadLocked(packageRecord, version)));
             if (version.has_docs === true && !resourceReadLocked(packageRecord, version)) {
                 const docLink = el('a', {

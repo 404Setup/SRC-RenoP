@@ -13,18 +13,20 @@ package auth
 import (
 	"bytes"
 	"crypto/rand"
-	"encoding/base64"
 	"errors"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/gofiber/fiber/v3"
-	"go.yaml.in/yaml/v3"
+	"github.com/emmansun/base64"
+
 	"renop/internal/core"
 	"renop/internal/utils"
 	"renop/internal/utils/secretcipher"
+
+	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/gofiber/fiber/v3"
+	"go.yaml.in/yaml/v3"
 )
 
 const mfaCookieName = "renop_mfa"

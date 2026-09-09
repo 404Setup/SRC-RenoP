@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/klauspost/compress/zip"
-	brrr "github.com/molecule-man/go-brrr"
+	"github.com/molecule-man/go-brrr"
 )
 
 type downloadValidationTestCase struct {

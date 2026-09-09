@@ -1,7 +1,10 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
- * If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -14,13 +17,20 @@ test('ticket details use server actions and refresh only after successful claims
     const requests = [], alerts = [];
     let accepted = false, refreshed = 0;
     const context = vm.createContext({
-        el: (tag, attributes, ...children) => ({tag, ...attributes, children: children.filter(Boolean),
-            append(...items) { this.children.push(...items); }, appendChild(item) { this.children.push(item); }}),
+        el: (tag, attributes, ...children) => ({
+            tag, ...attributes, children: children.filter(Boolean),
+            append(...items) {
+                this.children.push(...items);
+            }, appendChild(item) {
+                this.children.push(item);
+            }
+        }),
         createIcon: name => ({icon: name}), t: key => key, formatTimestamp: () => 'now',
         runButtonAction: (_button, action) => action(), showConfirm: async () => true,
         showAlert: value => alerts.push(value), caughtErrorMessage: () => 'safe error',
         apiRequest: async (url, options, policy) => {
-            requests.push({url, options, policy}); return {ok: accepted};
+            requests.push({url, options, policy});
+            return {ok: accepted};
         },
         localizedResponseError: async () => new Error('safe error'), REVIEW_ERROR_KEYS: {},
     });
@@ -28,9 +38,20 @@ test('ticket details use server actions and refresh only after successful claims
     vm.runInContext(source.replace(/^import .*;\r?\n/gm, '').replaceAll('export ', '') +
         '\nloadTasks = async () => {};', context);
     const buttons = node => [node, ...node.children?.flatMap(buttons) || []].filter(node => node.tag === 'button');
-    const ticket = {id: 'one', kind: 'report', resource_type: 'npm', resource_name: 'demo',
-        status: 'pending', ticket_status: 'unprocessed', title: '<script>bad()</script>', body: '<img onerror=bad()>', actions: ['claim']};
-    const refresh = () => { refreshed++; };
+    const ticket = {
+        id: 'one',
+        kind: 'report',
+        resource_type: 'npm',
+        resource_name: 'demo',
+        status: 'pending',
+        ticket_status: 'unprocessed',
+        title: '<script>bad()</script>',
+        body: '<img onerror=bad()>',
+        actions: ['claim']
+    };
+    const refresh = () => {
+        refreshed++;
+    };
     const list = context.taskCard(ticket);
     assert.deepEqual(buttons(list).map(button => button.children[0]), ['ticket.open']);
     const detail = context.taskCard(ticket, refresh);

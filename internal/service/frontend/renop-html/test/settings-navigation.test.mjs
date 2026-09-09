@@ -1,7 +1,10 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
- * If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -13,29 +16,62 @@ import vm from 'node:vm';
 test('settings pages preserve drafts and isolate loads, saves, credentials, and account changes', async () => {
     const requests = [], alerts = [], rendered = [], listeners = new Map();
     let delayedLoad, delayedSave, rejectSave = false, invalid = null;
-    const element = {replaceChildren() {}, setAttribute() {}, addEventListener() {}};
+    const element = {
+        replaceChildren() {
+        }, setAttribute() {
+        }, addEventListener() {
+        }
+    };
     const response = data => ({response: {ok: true, status: 200}, data});
     const context = vm.createContext({
-        structuredClone, Event, URLSearchParams,
+        structuredClone,
+        Event,
+        URLSearchParams,
         document: {getElementById: () => element, querySelector: () => invalid, querySelectorAll: () => []},
-        window: {addEventListener: (name, callback) => listeners.set(name, callback), dispatchEvent() {}},
-        t: key => key, showAlert: text => alerts.push(text), showConfirm: async () => true,
-        createSkeleton: () => ({}), exitProtectedRouteOnDenial: () => false,
-        responseErrorMessage: async () => 'safe error', caughtErrorMessage: () => 'safe error',
+        window: {
+            addEventListener: (name, callback) => listeners.set(name, callback), dispatchEvent() {
+            }
+        },
+        t: key => key,
+        showAlert: text => alerts.push(text),
+        showConfirm: async () => true,
+        createSkeleton: () => ({}),
+        exitProtectedRouteOnDenial: () => false,
+        responseErrorMessage: async () => 'safe error',
+        caughtErrorMessage: () => 'safe error',
         LocalizedResponseError: Error,
-        renderCacheSettings() {}, renderRegistrationSettings() {}, renderOAuthSettings() {},
-        renderMailSettings() {}, renderMavenDomainSettings() {},
-        FrontendConfig: {}, ServerConfig: {}, StorageConfig: {}, ProxyConfig: {}, UpdaterConfig: {}, IndexDomainSettings: {},
+        renderCacheSettings() {
+        },
+        renderRegistrationSettings() {
+        },
+        renderOAuthSettings() {
+        },
+        renderMailSettings() {
+        },
+        renderMavenDomainSettings() {
+        },
+        FrontendConfig: {},
+        ServerConfig: {},
+        StorageConfig: {},
+        ProxyConfig: {},
+        UpdaterConfig: {},
+        IndexDomainSettings: {},
         fetchProto: async url => {
             requests.push({url, method: 'GET'});
             if (url.endsWith('/server') && delayedLoad) return delayedLoad;
             return response({title: 'Saved', channel: 'stable'});
         },
         putProto: async (url, _type, data) => {
-            requests.push({url, method: 'PUT', data}); return response(null);
+            requests.push({url, method: 'PUT', data});
+            return response(null);
         },
         apiRequest: async (url, options = {}, policy) => {
-            requests.push({url, method: options.method || 'GET', data: options.body && JSON.parse(options.body), policy});
+            requests.push({
+                url,
+                method: options.method || 'GET',
+                data: options.body && JSON.parse(options.body),
+                policy
+            });
             if (options.method === 'PUT') {
                 if (delayedSave) return delayedSave;
                 if (rejectSave) return {ok: false, status: 422};
@@ -58,7 +94,9 @@ test('settings pages preserve drafts and isolate loads, saves, credentials, and 
     assert.equal(requests.length, 2, 'dirty page must not be fetched again');
 
     let finishLoad;
-    delayedLoad = new Promise(resolve => { finishLoad = resolve; });
+    delayedLoad = new Promise(resolve => {
+        finishLoad = resolve;
+    });
     const pending = context.loadDomainSettings('server');
     assert.equal(vm.runInContext('currentConfig', context), null);
     await context.saveDomainSettings();
@@ -71,7 +109,11 @@ test('settings pages preserve drafts and isolate loads, saves, credentials, and 
     delayedLoad = null;
 
     vm.runInContext("currentConfig.password = 'draft-secret'; currentConfig.clear_password = true;", context);
-    invalid = {reportValidity() { this.reported = true; }};
+    invalid = {
+        reportValidity() {
+            this.reported = true;
+        }
+    };
     await context.saveDomainSettings();
     assert.equal(invalid.reported, true);
     assert.equal(requests.filter(request => request.method === 'PUT').length, 0);
@@ -83,7 +125,9 @@ test('settings pages preserve drafts and isolate loads, saves, credentials, and 
     assert.equal(alerts.at(-1), 'safe error');
     rejectSave = false;
     let finishSave;
-    delayedSave = new Promise(resolve => { finishSave = resolve; });
+    delayedSave = new Promise(resolve => {
+        finishSave = resolve;
+    });
     const saving = context.saveDomainSettings();
     await context.loadDomainSettings('frontend');
     await context.saveDomainSettings();
@@ -98,7 +142,9 @@ test('settings pages preserve drafts and isolate loads, saves, credentials, and 
     assert.equal(requests.at(-1).url, '/api/settings/cache');
     assert.equal(requests.at(-1).policy.logoutOnForbidden, false);
 
-    delayedSave = new Promise(resolve => { finishSave = resolve; });
+    delayedSave = new Promise(resolve => {
+        finishSave = resolve;
+    });
     vm.runInContext("currentConfig.password = 'another-secret';", context);
     const previousAccountSave = context.saveDomainSettings();
     listeners.get('authChanged')({detail: {isLoggedIn: false}});

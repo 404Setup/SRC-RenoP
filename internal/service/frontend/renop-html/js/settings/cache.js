@@ -26,7 +26,10 @@ export function renderCacheSettings(container, data, changed) {
         {value: 'memory', label: t('cache.memory')},
         {value: 'redis', label: 'Redis'},
         {value: 'valkey', label: 'Valkey'},
-    ], data.mode || 'memory', value => { data.mode = value; changed(); });
+    ], data.mode || 'memory', value => {
+        data.mode = value;
+        changed();
+    });
     fields.appendChild(createFieldRow(t('cache.mode'), t('cache.scope'), mode));
     for (const [key, type, placeholder, min, max] of [
         ['address', 'text', 'localhost:6379'], ['username', 'text', ''],
@@ -39,13 +42,26 @@ export function renderCacheSettings(container, data, changed) {
             data[key] = value;
             changed();
         });
-        if (type === 'number') { input.min = String(min); input.max = String(max); input.step = '1'; }
-        if (key === 'password') { input.id = 'settings-cache-password'; input.autocomplete = 'new-password'; }
+        if (type === 'number') {
+            input.min = String(min);
+            input.max = String(max);
+            input.step = '1';
+        }
+        if (key === 'password') {
+            input.id = 'settings-cache-password';
+            input.autocomplete = 'new-password';
+        }
         fields.appendChild(createFieldRow(t(`cache.${key}`), key === 'password' ? t('cache.keepPassword') : '', input));
     }
-    const clearPassword = createToggleRow(t('cache.clearPassword'), '', false, checked => { data.clear_password = checked; changed(); });
+    const clearPassword = createToggleRow(t('cache.clearPassword'), '', false, checked => {
+        data.clear_password = checked;
+        changed();
+    });
     clearPassword.id = 'settings-cache-clear-password';
-    fields.append(createToggleRow(t('cache.tls'), '', data.tls === true, checked => { data.tls = checked; changed(); }), clearPassword);
+    fields.append(createToggleRow(t('cache.tls'), '', data.tls === true, checked => {
+        data.tls = checked;
+        changed();
+    }), clearPassword);
     const test = el('button', {type: 'button', class: 'pill-btn pill-btn--soft'}, t('cache.test'));
     test.addEventListener('click', () => runButtonAction(test, async () => {
         try {
@@ -54,7 +70,9 @@ export function renderCacheSettings(container, data, changed) {
             });
             showAlert(response.ok ? t('cache.testPassed') : await responseErrorMessage(response, 'cache.testFailed'),
                 response.ok ? 'success' : 'error');
-        } catch { showAlert(t('cache.testFailed'), 'error'); }
+        } catch {
+            showAlert(t('cache.testFailed'), 'error');
+        }
     }));
     fields.appendChild(test);
     wrap.appendChild(section);
