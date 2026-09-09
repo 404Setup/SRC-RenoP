@@ -172,6 +172,7 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   Preserve SHA-256 checks, legacy ZIP decoding, current/previous commit ordering, and bounded nightly retention.
   Nightly metadata is rebuilt by `.github/scripts/nightly-info.ps1`; publishing requires PowerShell 7.5 or later
   to preserve JSON date strings.
+  The custom linker receives `-o2` through `-ldflags`; do not pass it as a `go build` flag.
   Actions share the workflow-level `renop-actions` FIFO group with `queue: max`; retain serial job dependencies.
   Compile/compression pools remain independently bounded; see `scripts/build-target.ps1` and
   `scripts/compress-target.ps1`.

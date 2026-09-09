@@ -39,7 +39,7 @@ try {
         New-Item -ItemType Directory -Path $binaryDirectory -Force | Out-Null
     }
     Write-Host "Compiling $($spec.goos)/$($spec.goarch)"
-    & go build -o2 -ldflags ([string]$spec.ldflags) -o $binaryPath .
+    & go build -ldflags ([string]$spec.ldflags) -o $binaryPath .
     if ($LASTEXITCODE -ne 0) {
         throw "go build failed for $($spec.goos)/$($spec.goarch) with exit code $LASTEXITCODE."
     }
