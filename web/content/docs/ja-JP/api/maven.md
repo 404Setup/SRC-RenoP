@@ -73,3 +73,22 @@ POM、OpenPGP 検証は生成または実行しません。
 読み取りと公開は `/{repo}/{maven-path}` を使用します。パスワード、または `repository:read` や
 `repository:publish` を持つ API Token で認証します。可視性が読み取りを制御し、検証済みドメインと
 アカウントの L0-L4 が変更操作を制御します。完全な仕様は `web/assets/openapi.yaml` にあります。
+
+## リソースのロック
+
+管理者と対象リポジトリのモデレーターは、有効なブラウザーセッション Cookie を使ってアーティファクトやバージョンをロックします。
+
+- `PUT /api/maven/repositories/{repo_name}/package/locks?group={group}&artifact={artifact}`
+- `DELETE /api/maven/repositories/{repo_name}/package/locks?group={group}&artifact={artifact}`
+
+```json
+{"version":"1.2.3","mode":"read","reason":"trojan"}
+```
+
+`version` の省略または空文字列はアーティファクト全体を対象とします。DELETE は `{"version":"1.2.3"}` を受け取り、その手動ロックだけを解除します。システムロックは独立して残ります。API Token ではロックを管理できません。公開理由の `hold`、`prohibited`、`expired`、`trojan`、`abuse`、`dmca`、`reup`、`squatting`、`quality` は UI で翻訳されます。
+
+どちらのモードも書き込みを停止します。`write` は保存済みファイルのダウンロードを維持します。`read` では管理者、対象リポジトリのモデレーター、ドメイン所有者・協力者（L0 を含む）、ドメインまたはアーティファクトに関連付けられたグローバルチームのメンバーだけがメタデータを参照できます。ファイル本体、POM、署名、チェックサムは誰もダウンロードできません。権限のある利用者はカタログ詳細と解析済み `maven-metadata.xml` を参照でき、その他の利用者にはカタログ、検索、ディレクトリ一覧、バージョン API、統計から対象のアーティファクトやバージョンが見えません。共有 XML は非公開バージョンを除き latest/release を調整しますが、保存済みファイルは変更しません。
+
+任意の付随ファイルやタイムスタンプ付き SNAPSHOT も対象です。凍結されたファイルは期限切れで削除されず、ミラーから再取得されません。バージョンのロック中は共有メタデータの上書き、アーティファクト全体の恒久的な廃止、リポジトリの再設定・削除も禁止されます。詳細には `locks`、`moderator`、`member`、`version_locked` が含まれます。拒否された変更は `423` と `X-Renop-Error-Code: resource_locked`、拒否された読み取りは `404` を返します。
+
+バージョンの削除ではストレージを変更する前に各座標要素を検証し、パス区切りやドットによるディレクトリエイリアスを拒否します。

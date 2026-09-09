@@ -11,6 +11,8 @@
 package storage
 
 import (
+	"github.com/gofiber/fiber/v3"
+
 	"renop/internal/config"
 	"renop/internal/core"
 )
@@ -26,6 +28,9 @@ var MavenPublicationQuotaOwner func(state *core.AppState, username string, repo 
 
 // MavenReadAuthorizer is wired by the Maven service for private-domain membership reads.
 var MavenReadAuthorizer func(state *core.AppState, user *config.User, repo *config.Repository, path string, isRoot bool) (bool, error)
+
+// MavenReadLocks runs before cached bytes, conditionals, and mirror requests.
+var MavenReadLocks func(c fiber.Ctx, state *core.AppState, repo *config.Repository, storagePath, path string) (bool, error)
 
 // MavenPublicationReviewCandidate classifies paths that may require pre-commit review hiding.
 var MavenPublicationReviewCandidate func(path string) bool

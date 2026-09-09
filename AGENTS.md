@@ -114,7 +114,9 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   resources explicitly, check upstream conflicts, and keep mirrored packages pull-only. Permanent package deprecation
   blocks every mutation while retaining downloads; pending transfers/reviews prevent deprecation.
 - **Resource locks:** Shared records live in `internal/database/resource_lock.go`; protocol enforcement lives in
-  `internal/service/cargo/locks.go`, `internal/service/npm/locks.go`, and `internal/service/docker/locks.go`.
+  `internal/service/cargo/locks.go`, `internal/service/npm/locks.go`, `internal/service/docker/locks.go`, and
+  `internal/service/maven/locks.go`. Maven XML projections live in `internal/service/maven/metadata_locks.go`;
+  preserve SNAPSHOT and companion-path coverage in `internal/database/maven_locks.go`.
   Docker index references are captured in `internal/database/docker_locks.go`; preserve source-specific inheritance
   and shared-blob protection. Cross-repository mounts acquire ordered gates in `repositorygate/`.
   Shared mirror authorization is wired in `internal/service/storage/mirror.go`.

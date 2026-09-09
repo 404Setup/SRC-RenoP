@@ -78,6 +78,7 @@ type StateDB interface {
 	SetResourceLock(lock *ResourceLock, actor, session string) error
 	DeleteResourceLock(target ResourceLockTarget, source, actor, session string) error
 	GetResourceLocks(target ResourceLockTarget, allVersions bool) ([]*ResourceLock, error)
+	GetMavenPathLocks(repository, path string, descendants bool) ([]*ResourceLock, error)
 	EnsureResourceMutable(target ResourceLockTarget, allVersions bool) error
 	EnsureRepositoryResourcesMutable(repository string) error
 	ListAPITokens(username string) ([]*APIToken, error)
@@ -250,8 +251,8 @@ type StateDB interface {
 	CreateMavenDomain(domain *MavenDomain, owner string) error
 	ListMavenDomains(username string, includeAll bool) ([]*MavenDomain, error)
 	ListManagedMavenDomains(options MavenDomainListOptions) ([]*MavenDomain, int, error)
-	ListMavenRepositoryDomains(repository, username string) ([]*MavenDomain, error)
-	SearchMavenRepositoryDomains(repository, query string, limit int) ([]*MavenDomain, int, error)
+	ListMavenRepositoryDomains(repository, username string, moderator bool) ([]*MavenDomain, error)
+	SearchMavenRepositoryDomains(repository, query, username string, moderator bool, limit int) ([]*MavenDomain, int, error)
 	GetMavenDomainDetails(domain, username string) (*MavenDomainDetails, error)
 	ReserveMavenVerificationAttempt(domain, actor string, administrator bool, checkedAt, minimumPrevious int64) error
 	MarkMavenDomainVerified(domain, code string, verifiedAt int64) error
@@ -263,11 +264,14 @@ type StateDB interface {
 	MavenArtifactExists(repository, groupID, artifactID string) (bool, error)
 	ListMavenArtifacts(repository, domain, query string, limit, offset int) ([]*MavenArtifact, int, error)
 	ListMavenDomainArtifacts(repositories []string, domain string, limit, offset int) ([]*MavenArtifact, int, error)
+	ListReadableMavenArtifacts(repositories []string, domain, query, username string, moderated []string, limit, offset int) ([]*MavenArtifact, int, error)
 	GetMavenArtifactDetails(repository, groupID, artifactID string) (*MavenArtifactDetails, error)
 	GetMavenArtifactTeamAccess(repository, groupID, artifactID, username string) (string, bool, int, error)
+	IsMavenArtifactMember(repository, groupID, artifactID, username string) (bool, error)
 	UpdateMavenArtifactDescription(repository, groupID, artifactID, description string) error
 	UpdateMavenArtifactReadme(repository, groupID, artifactID, readme string) error
 	DeleteMavenVersionMetadata(repository, groupID, artifactID, version string) error
+	RollbackMavenPublication(repository, groupID, artifactID, version string) error
 	DeleteMavenRepository(repository string) error
 	EnsureImportedMavenDomain(domain *MavenDomain) error
 	EnsureMirroredMavenDomain(domain string, createdAt int64) error

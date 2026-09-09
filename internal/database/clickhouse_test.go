@@ -33,6 +33,13 @@ func TestClickHouseDialectUsesNativeMutationSyntax(t *testing.T) {
 		"ALTER TABLE tokens UPDATE description = ? WHERE name = ?",
 		dialect.Rebind("UPDATE tokens SET description = ? WHERE name = ?"),
 	)
+	for _, query := range []string{"UPDATE\ntokens SET\n description = ? WHERE name = ?",
+		"update\ttokens\r\nset\t description = ? WHERE name = ?"} {
+		assert.Equal(t, "ALTER TABLE tokens UPDATE description = ? WHERE name = ?", dialect.Rebind(query))
+	}
+	for _, query := range []string{"UPDATEtokens SET description = ? WHERE name = ?", "UPDATE tokens SETTING description = ? WHERE name = ?"} {
+		assert.Equal(t, query, dialect.Rebind(query))
+	}
 	assert.Contains(t, dialect.UpsertTokenQuery(), "renop:upsert")
 	assert.NotContains(t, dialect.UpsertTokenQuery(), "ON CONFLICT")
 }

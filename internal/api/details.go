@@ -370,6 +370,8 @@ func filterLockedPackageDetails(state *core.AppState, user *config.User, reposit
 		filter = cargo.VisibleMetadataPaths
 	case config.RepositoryFormatNPM:
 		filter = npm.VisibleMetadataPaths
+	case config.RepositoryFormatMaven:
+		filter = maven.VisibleMetadataPaths
 	default:
 		return nil
 	}
@@ -421,6 +423,13 @@ func GetRepoDetails(c fiber.Ctx, state *core.AppState) error {
 	var metadataCount int64
 
 	repoDir := filepath.Join(cfg.StoragePath, repoName)
+	var visible func(string) bool
+	if repo.NormalizedFormat() == config.RepositoryFormatMaven {
+		visible, err = maven.MetadataPathFilter(state, user, repoName)
+		if err != nil {
+			return fiber.ErrServiceUnavailable
+		}
+	}
 
 	if repo.NormalizedFormat() == config.RepositoryFormatDocker {
 		if db := state.GetDB(); db != nil {
@@ -452,6 +461,12 @@ func GetRepoDetails(c fiber.Ctx, state *core.AppState) error {
 		state.Inner.FileIndex.Walk(repoDir, func(filePath string, fileInfo index.FileInfo, isDir bool) bool {
 			if isDir {
 				return true
+			}
+			if visible != nil {
+				relative, err := filepath.Rel(repoDir, filePath)
+				if err != nil || !visible(filepath.ToSlash(relative)) {
+					return true
+				}
 			}
 
 			totalFiles++

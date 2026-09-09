@@ -26,14 +26,13 @@ import (
 
 const (
 	maxMavenDomainLength = 253
-	maxMavenPathParts    = 32
+	maxMavenPathParts    = core.MaxMavenPathParts
 )
 
 var (
-	dnsLabelPattern       = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$`)
-	githubAccountPattern  = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,37}[a-z0-9])?$`)
-	gitlabAccountPattern  = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9_-]{0,61}[a-z0-9])?$`)
-	coordinatePartPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$`)
+	dnsLabelPattern      = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$`)
+	githubAccountPattern = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,37}[a-z0-9])?$`)
+	gitlabAccountPattern = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9_-]{0,61}[a-z0-9])?$`)
 )
 
 // NormalizeDomain validates and canonicalizes a Maven namespace.
@@ -131,11 +130,11 @@ func ParseArtifactPath(path string) (MavenCoordinate, bool) {
 	artifactID := parts[len(parts)-3]
 	version := parts[len(parts)-2]
 	groupParts := parts[:len(parts)-3]
-	if len(groupParts) < 2 || !coordinatePartPattern.MatchString(artifactID) || !coordinatePartPattern.MatchString(version) {
+	if len(groupParts) < 2 || !core.ValidMavenCoordinatePart(artifactID) || !core.ValidMavenCoordinatePart(version) {
 		return MavenCoordinate{}, false
 	}
 	for _, part := range groupParts {
-		if !coordinatePartPattern.MatchString(part) {
+		if !core.ValidMavenCoordinatePart(part) {
 			return MavenCoordinate{}, false
 		}
 	}
@@ -161,7 +160,7 @@ func isMavenPublicationPath(path string) bool {
 		return false
 	}
 	for _, part := range parts[:len(parts)-1] {
-		if !coordinatePartPattern.MatchString(part) {
+		if !core.ValidMavenCoordinatePart(part) {
 			return false
 		}
 	}
@@ -175,7 +174,7 @@ func pathNamespaceCandidate(path string) string {
 	}
 	directories := parts[:len(parts)-1]
 	for _, part := range directories {
-		if !coordinatePartPattern.MatchString(part) {
+		if !core.ValidMavenCoordinatePart(part) {
 			return ""
 		}
 	}

@@ -470,6 +470,19 @@ func ProcessUploadedFile(ctx context.Context, state *core.AppState, repo *config
 func processUploadedFileWithReviewLocked(ctx context.Context, state *core.AppState, repo *config.Repository,
 	upload *PreparedUpload,
 ) (GPGUploadResult, error) {
+	if upload != nil && repo.NormalizedFormat() == config.RepositoryFormatMaven && MavenMutationGuard != nil {
+		cfg := state.Inner.Config.Load()
+		if cfg == nil {
+			return GPGUploadResult{}, core.ErrDatabaseUnavailable
+		}
+		relative, err := filepath.Rel(filepath.Join(cfg.StoragePath, repo.Name), upload.LocalFilePath)
+		if err != nil {
+			return GPGUploadResult{}, err
+		}
+		if err := MavenMutationGuard(state, repo, filepath.ToSlash(relative)); err != nil {
+			return GPGUploadResult{}, err
+		}
+	}
 	preparation, err := prepareMavenPublication(state, repo, upload.LocalFilePath)
 	if err != nil {
 		return GPGUploadResult{}, err

@@ -69,7 +69,7 @@ func ReadLocked(locks []*ResourceLock) bool {
 
 // ResourceLockVersionKey includes case aliases that address the same package file on Windows.
 func ResourceLockVersionKey(format, version string) string {
-	if runtime.GOOS == "windows" && (format == "cargo" || format == "npm") {
+	if runtime.GOOS == "windows" && (format == "cargo" || format == "npm" || format == "maven") {
 		return strings.ToLower(version)
 	}
 	return version

@@ -121,10 +121,7 @@ func (db *DB) EnsurePackageMutable(format, repository, packageKey string) error 
 	if deprecated {
 		return core.ErrPackageDeprecated
 	}
-	if format == config.RepositoryFormatCargo || format == config.RepositoryFormatNPM || format == config.RepositoryFormatDocker {
-		return db.EnsureResourceMutable(core.ResourceLockTarget{Format: format, Repository: repository, Name: packageKey}, false)
-	}
-	return nil
+	return db.EnsureResourceMutable(core.ResourceLockTarget{Format: format, Repository: repository, Name: packageKey}, false)
 }
 
 // DeprecatePackage permanently freezes one exact package and cancels its outstanding team invitations.

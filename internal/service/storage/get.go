@@ -27,6 +27,7 @@ import (
 	"renop/internal/service/index"
 	"renop/internal/service/npm"
 	"renop/internal/service/proxy"
+	"renop/internal/service/repositorygate"
 	"renop/internal/utils"
 )
 
@@ -106,6 +107,18 @@ func HandleGet(c fiber.Ctx, state *core.AppState, repo *config.Repository, stora
 		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
 	}
 	path = sanitized
+	var releaseRead func()
+	if repo.NormalizedFormat() == config.RepositoryFormatMaven && MavenReadLocks != nil {
+		releaseRead = repositorygate.AcquireMutation(repo.Name)
+		defer func() {
+			if releaseRead != nil {
+				releaseRead()
+			}
+		}()
+		if handled, err := MavenReadLocks(c, state, repo, storagePath, path); handled {
+			return err
+		}
+	}
 	if handled, err := cargoHandler.HandleReadLocks(c, state, repo, storagePath, path); handled {
 		return err
 	}
@@ -190,6 +203,11 @@ func HandleGet(c fiber.Ctx, state *core.AppState, repo *config.Repository, stora
 	}
 
 	setArtifactContentType(c, path)
+	// The proxy acquires its own gate and rechecks locks before contacting an upstream.
+	if releaseRead != nil {
+		releaseRead()
+		releaseRead = nil
+	}
 	handled, err = handleProxy(c, state, repo, localFilePath, path, pathStr, storagePath, contentDisposition)
 	if handled {
 		return err
@@ -216,6 +234,13 @@ func HandleHead(c fiber.Ctx, state *core.AppState, repo *config.Repository, stor
 		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
 	}
 	path = sanitized
+	if repo.NormalizedFormat() == config.RepositoryFormatMaven && MavenReadLocks != nil {
+		releaseRead := repositorygate.AcquireMutation(repo.Name)
+		defer releaseRead()
+		if handled, err := MavenReadLocks(c, state, repo, storagePath, path); handled {
+			return err
+		}
+	}
 	if handled, err := cargoHandler.HandleReadLocks(c, state, repo, storagePath, path); handled {
 		return err
 	}

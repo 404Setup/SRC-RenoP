@@ -75,3 +75,22 @@ génération de sommes, génération de POM ni validation OpenPGP.
 Les lectures et publications utilisent `/{repo}/{maven-path}`. Utilisez un mot de passe ou un API Token avec
 `repository:read` et/ou `repository:publish`. La visibilité contrôle la lecture ; le domaine vérifié et le niveau L0-L4
 du compte contrôlent les mutations. Le contrat complet se trouve dans `web/assets/openapi.yaml`.
+
+## Verrouillage des ressources
+
+Les administrateurs et les modérateurs du dépôt gèrent les verrous des artefacts ou versions avec un cookie de session navigateur actif :
+
+- `PUT /api/maven/repositories/{repo_name}/package/locks?group={group}&artifact={artifact}`
+- `DELETE /api/maven/repositories/{repo_name}/package/locks?group={group}&artifact={artifact}`
+
+```json
+{"version":"1.2.3","mode":"read","reason":"trojan"}
+```
+
+Omettre `version` ou utiliser une chaîne vide cible l’artefact. DELETE accepte `{"version":"1.2.3"}` et retire uniquement ce verrou manuel ; les verrous système restent indépendants. Les API Tokens ne peuvent pas gérer les verrous. L’interface traduit les motifs publics : `hold`, `prohibited`, `expired`, `trojan`, `abuse`, `dmca`, `reup`, `squatting` et `quality`.
+
+Les deux modes bloquent les écritures. `write` conserve les téléchargements stockés ; `read` réserve aussi les métadonnées aux administrateurs, modérateurs du dépôt, propriétaires/collaborateurs du domaine (y compris L0) et membres des équipes globales liées au domaine ou à l’artefact. Aucun utilisateur ne peut télécharger les fichiers, POM, signatures ou sommes de contrôle. Les personnes autorisées peuvent consulter le catalogue et le contenu analysé de `maven-metadata.xml` ; les autres ne découvrent pas les artefacts ou versions concernés dans le catalogue, la recherche, les répertoires, les API de versions ou les statistiques. Le XML partagé omet les versions masquées et ajuste latest/release sans modifier le fichier stocké.
+
+Les verrous couvrent les fichiers associés arbitraires et les SNAPSHOT horodatés. Les fichiers gelés n’expirent pas et ne sont pas récupérés depuis les miroirs. Les métadonnées partagées ne peuvent pas être remplacées lorsqu’une version est verrouillée ; la dépréciation permanente de l’artefact et la reconfiguration/suppression du dépôt sont aussi bloquées. Les détails exposent `locks`, `moderator`, `member` et `version_locked`. Une écriture refusée renvoie `423` avec `X-Renop-Error-Code: resource_locked` ; une lecture refusée renvoie `404`.
+
+La suppression d’une version valide chaque segment de coordonnées avant toute modification du stockage ; les séparateurs de chemin et les alias de répertoires à points sont refusés.

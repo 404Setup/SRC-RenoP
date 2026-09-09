@@ -431,6 +431,24 @@ func TestRepositoryModeratorApprovalPublishesMavenCatalogBeforeFiles(t *testing.
 	require.NoError(t, err)
 	state.Inner.FileIndex.BlockFile(absolute)
 	*current = config.User{Username: "bob", Roles: []string{"base", "canmoderate:releases"}}
+	lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "maven", Repository: "releases",
+		Name: "org.example:demo", Version: "1.0.0"}, Source: core.ResourceLockSystem, Mode: core.ResourceLockRead,
+		Reason: "trojan", LockedAt: now}
+	require.NoError(t, state.GetDB().SetResourceLock(lock, "", ""))
+	files, err := state.GetDB().ListReviewTaskFiles(result.TaskID)
+	require.NoError(t, err)
+	require.Len(t, files, 1)
+	preview := reviewRequest(t, app, http.MethodGet, "/api/reviews/"+result.TaskID+"/files/"+files[0].ID, nil)
+	require.Equal(t, http.StatusNotFound, preview.StatusCode)
+	require.NoError(t, preview.Body.Close())
+	for _, decision := range []string{core.ReviewStatusApproved, core.ReviewStatusRejected} {
+		response := reviewRequest(t, app, http.MethodPost, "/api/reviews/"+result.TaskID+"/decision", decisionRequest{Decision: decision, ReasonCode: "malware"})
+		require.Equal(t, http.StatusLocked, response.StatusCode)
+		require.NoError(t, response.Body.Close())
+	}
+	require.FileExists(t, absolute)
+	require.True(t, state.Inner.FileIndex.IsBlocked(absolute))
+	require.NoError(t, state.GetDB().DeleteResourceLock(lock.ResourceLockTarget, core.ResourceLockSystem, "", ""))
 	response := reviewRequest(t, app, http.MethodPost, "/api/reviews/"+result.TaskID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusApproved})
 	require.Equal(t, http.StatusOK, response.StatusCode)

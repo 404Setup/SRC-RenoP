@@ -53,7 +53,7 @@ func LatestBadge(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
 
-	metadata, err := FindMetadata(state, repoName, sanitizedGav)
+	metadata, err := FindMetadata(state, user, repoName, sanitizedGav)
 	if err != nil {
 		if errors.Is(err, fiber.ErrNotFound) {
 			return c.Status(fiber.StatusNotFound).SendString("Not found")

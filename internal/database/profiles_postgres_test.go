@@ -407,7 +407,7 @@ func TestPostgresMavenDomainsMigrateToGlobalOwnership(t *testing.T) {
 		Repository: "releases", GroupID: "com.example", ArtifactID: "postgres-demo",
 		Version: "2.0.0", Size: 4096, CreatedAt: publishedAt + 1,
 	}))
-	repositoryDomains, err := db.ListMavenRepositoryDomains("releases", "maven_bob")
+	repositoryDomains, err := db.ListMavenRepositoryDomains("releases", "maven_bob", false)
 	require.NoError(t, err)
 	require.Len(t, repositoryDomains, 1)
 	require.Equal(t, "com.example", repositoryDomains[0].Domain)
@@ -420,7 +420,7 @@ func TestPostgresMavenDomainsMigrateToGlobalOwnership(t *testing.T) {
 	require.True(t, artifactDetails.Artifact.Mirrored)
 	require.Len(t, artifactDetails.Versions, 2)
 	require.True(t, artifactDetails.Versions[0].Mirrored)
-	searchedDomains, searchedTotal, err := db.SearchMavenRepositoryDomains("releases", "example", 10)
+	searchedDomains, searchedTotal, err := db.SearchMavenRepositoryDomains("releases", "example", "maven_bob", false, 10)
 	require.NoError(t, err)
 	require.Equal(t, 1, searchedTotal)
 	require.Len(t, searchedDomains, 1)

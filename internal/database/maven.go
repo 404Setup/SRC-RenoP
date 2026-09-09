@@ -476,7 +476,7 @@ func (db *DB) ListManagedMavenDomains(options core.MavenDomainListOptions) ([]*c
 }
 
 // ListMavenRepositoryDomains lists verified global namespaces that contain artifacts in one repository.
-func (db *DB) ListMavenRepositoryDomains(repository, username string) ([]*core.MavenDomain, error) {
+func (db *DB) ListMavenRepositoryDomains(repository, username string, moderator bool) ([]*core.MavenDomain, error) {
 	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
@@ -493,16 +493,23 @@ func (db *DB) ListMavenRepositoryDomains(repository, username string) ([]*core.M
 			return nil, err
 		}
 	}
+	var moderated []string
+	if moderator {
+		moderated = []string{repository}
+	}
+	args := []any{repository}
+	readable := db.mavenReadCondition("a", "''", userID, moderated, &args)
+	args = append(args, userID, userID, globalMavenRepository)
 	rows, err := db.Query(`SELECT `+mavenRepositoryDomainSelectColumns+`
 		FROM maven_domains d JOIN (
-			SELECT domain, COUNT(*) AS artifact_count FROM maven_artifacts
-			WHERE repository = ? GROUP BY domain
+			SELECT a.domain, COUNT(*) AS artifact_count FROM maven_artifacts a
+			WHERE a.repository = ? AND `+readable+` GROUP BY a.domain
 		) catalog ON catalog.domain = d.domain
 		LEFT JOIN maven_domain_members m ON m.repository = d.repository
 		AND m.domain = d.domain AND m.user_id = ?
 		LEFT JOIN super_team_members stm ON stm.team_prefix = d.super_team_prefix AND stm.user_id = ?
 		WHERE d.repository = ? AND d.verified = 1 ORDER BY d.domain`,
-		repository, userID, userID, globalMavenRepository)
+		args...)
 	if err != nil {
 		return nil, fmt.Errorf("list Maven repository domains: %w", err)
 	}
@@ -522,7 +529,7 @@ func (db *DB) ListMavenRepositoryDomains(repository, username string) ([]*core.M
 }
 
 // SearchMavenRepositoryDomains returns a bounded domain page containing artifacts in one repository.
-func (db *DB) SearchMavenRepositoryDomains(repository, query string, limit int) ([]*core.MavenDomain, int, error) {
+func (db *DB) SearchMavenRepositoryDomains(repository, query, username string, moderator bool, limit int) ([]*core.MavenDomain, int, error) {
 	if db == nil || db.SQLDB == nil {
 		return nil, 0, core.ErrDatabaseUnavailable
 	}
@@ -532,17 +539,30 @@ func (db *DB) SearchMavenRepositoryDomains(repository, query string, limit int) 
 		return nil, 0, errors.New("maven repository domain search is invalid")
 	}
 	pattern := "%" + query + "%"
+	userID, err := db.mavenViewerID(username)
+	if err != nil {
+		return nil, 0, err
+	}
+	var moderated []string
+	if moderator {
+		moderated = []string{repository}
+	}
+	args := []any{globalMavenRepository, pattern, repository}
+	readable := db.mavenReadCondition("a", "''", userID, moderated, &args)
 	var total int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM maven_domains d WHERE d.repository = ? AND d.verified = 1
 		AND LOWER(d.domain) LIKE ? AND EXISTS (
-			SELECT 1 FROM maven_artifacts a WHERE a.repository = ? AND a.domain = d.domain
-		)`, globalMavenRepository, pattern, repository).Scan(&total); err != nil {
+			SELECT 1 FROM maven_artifacts a WHERE a.repository = ? AND a.domain = d.domain AND `+readable+`
+		)`, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count Maven repository domain search: %w", err)
 	}
+	args = []any{repository, globalMavenRepository, pattern}
+	readable = db.mavenReadCondition("a", "''", userID, moderated, &args)
+	args = append(args, limit)
 	rows, err := db.Query(`SELECT d.domain, d.super_team_prefix, d.verified_at, COUNT(a.artifact_id)
 		FROM maven_domains d JOIN maven_artifacts a ON a.domain = d.domain AND a.repository = ?
-		WHERE d.repository = ? AND d.verified = 1 AND LOWER(d.domain) LIKE ?
-		GROUP BY d.domain, d.super_team_prefix, d.verified_at ORDER BY d.domain LIMIT ?`, repository, globalMavenRepository, pattern, limit)
+		WHERE d.repository = ? AND d.verified = 1 AND LOWER(d.domain) LIKE ? AND `+readable+`
+		GROUP BY d.domain, d.super_team_prefix, d.verified_at ORDER BY d.domain LIMIT ?`, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("search Maven repository domains: %w", err)
 	}
@@ -1012,6 +1032,9 @@ func (db *DB) recordMavenPublication(artifact *core.MavenArtifact, version *core
 		return fmt.Errorf("begin Maven publication: %w", err)
 	}
 	defer tx.Rollback()
+	if err := ensureMavenMutableTx(tx, repository, groupID, artifactID, versionName, false); err != nil {
+		return err
+	}
 	if superTeamPrefix != "" {
 		publisherID, identityErr := userIDForUsernameTx(tx, publisher)
 		if identityErr != nil {
@@ -1108,7 +1131,7 @@ func (db *DB) recordMavenPublication(artifact *core.MavenArtifact, version *core
 
 // ListMavenArtifacts returns a bounded catalog page and total count.
 func (db *DB) ListMavenArtifacts(repository, domain, query string, limit, offset int) ([]*core.MavenArtifact, int, error) {
-	return db.listMavenArtifacts([]string{repository}, domain, query, limit, offset)
+	return db.listMavenArtifacts([]string{repository}, domain, query, limit, offset, "", nil, false)
 }
 
 // ListMavenDomainArtifacts returns one bounded domain catalog across the supplied repositories.
@@ -1116,10 +1139,15 @@ func (db *DB) ListMavenDomainArtifacts(repositories []string, domain string, lim
 	if domain = sanitizeMavenDomain(domain); domain == "" {
 		return nil, 0, errors.New("maven domain is invalid")
 	}
-	return db.listMavenArtifacts(repositories, domain, "", limit, offset)
+	return db.listMavenArtifacts(repositories, domain, "", limit, offset, "", nil, false)
 }
 
-func (db *DB) listMavenArtifacts(repositories []string, domain, query string, limit, offset int) ([]*core.MavenArtifact, int, error) {
+// ListReadableMavenArtifacts applies live membership and locks before counting and paging.
+func (db *DB) ListReadableMavenArtifacts(repositories []string, domain, query, username string, moderated []string, limit, offset int) ([]*core.MavenArtifact, int, error) {
+	return db.listMavenArtifacts(repositories, domain, query, limit, offset, username, moderated, true)
+}
+
+func (db *DB) listMavenArtifacts(repositories []string, domain, query string, limit, offset int, username string, moderated []string, filtered bool) ([]*core.MavenArtifact, int, error) {
 	if db == nil || db.SQLDB == nil {
 		return nil, 0, core.ErrDatabaseUnavailable
 	}
@@ -1154,6 +1182,15 @@ func (db *DB) listMavenArtifacts(repositories []string, domain, query string, li
 		pattern := "%" + query + "%"
 		args = append(args, pattern, pattern)
 	}
+	userID := ""
+	if filtered {
+		var err error
+		userID, err = db.mavenViewerID(username)
+		if err != nil {
+			return nil, 0, err
+		}
+		where += ` AND ` + db.mavenReadCondition("maven_artifacts", "''", userID, moderated, &args)
+	}
 	var total int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM maven_artifacts`+where, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count Maven artifacts: %w", err)
@@ -1183,6 +1220,14 @@ func (db *DB) listMavenArtifacts(repositories []string, domain, query string, li
 	}
 	if err := rows.Err(); err != nil {
 		return nil, 0, fmt.Errorf("iterate Maven artifacts: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, 0, err
+	}
+	if filtered {
+		if err := db.filterMavenArtifactVersions(artifacts, userID, moderated); err != nil {
+			return nil, 0, err
+		}
 	}
 	return artifacts, total, nil
 }
@@ -1283,7 +1328,15 @@ func (db *DB) GetMavenArtifactTeamAccess(repository, groupID, artifactID, userna
 // UpdateMavenArtifactDescription updates the short catalog description.
 func (db *DB) UpdateMavenArtifactDescription(repository, groupID, artifactID, description string) error {
 	description = SanitizeInputString(strings.TrimSpace(description), 4000)
-	result, err := db.Exec(`UPDATE maven_artifacts SET description = ?, updated_at = ?
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := ensureMavenMutableTx(tx, repository, groupID, artifactID, "", false); err != nil {
+		return err
+	}
+	result, err := tx.Exec(`UPDATE maven_artifacts SET description = ?, updated_at = ?
 		WHERE repository = ? AND group_id = ? AND artifact_id = ?`, description, time.Now().UnixMilli(),
 		sanitizeMavenRepository(repository), sanitizeMavenDomain(groupID),
 		SanitizeInputString(strings.TrimSpace(artifactID), 255))
@@ -1297,13 +1350,21 @@ func (db *DB) UpdateMavenArtifactDescription(repository, groupID, artifactID, de
 	if changed == 0 {
 		return core.ErrMavenArtifactNotFound
 	}
-	return nil
+	return tx.Commit()
 }
 
 // UpdateMavenArtifactReadme updates bounded Markdown documentation for one catalog artifact.
 func (db *DB) UpdateMavenArtifactReadme(repository, groupID, artifactID, readme string) error {
 	readme = sanitizePackageReadme(readme)
-	result, err := db.Exec(`UPDATE maven_artifacts SET readme = ?, updated_at = ?
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := ensureMavenMutableTx(tx, repository, groupID, artifactID, "", false); err != nil {
+		return err
+	}
+	result, err := tx.Exec(`UPDATE maven_artifacts SET readme = ?, updated_at = ?
 		WHERE repository = ? AND group_id = ? AND artifact_id = ?`, readme, time.Now().UnixMilli(),
 		sanitizeMavenRepository(repository), sanitizeMavenDomain(groupID),
 		SanitizeInputString(strings.TrimSpace(artifactID), 255))
@@ -1317,11 +1378,20 @@ func (db *DB) UpdateMavenArtifactReadme(repository, groupID, artifactID, readme 
 	if changed == 0 {
 		return core.ErrMavenArtifactNotFound
 	}
-	return nil
+	return tx.Commit()
 }
 
 // DeleteMavenVersionMetadata removes a catalog version after storage deletion.
 func (db *DB) DeleteMavenVersionMetadata(repository, groupID, artifactID, version string) error {
+	return db.deleteMavenVersionMetadata(repository, groupID, artifactID, version, false)
+}
+
+// RollbackMavenPublication removes provisional metadata after a failed durable review decision.
+func (db *DB) RollbackMavenPublication(repository, groupID, artifactID, version string) error {
+	return db.deleteMavenVersionMetadata(repository, groupID, artifactID, version, true)
+}
+
+func (db *DB) deleteMavenVersionMetadata(repository, groupID, artifactID, version string, rollback bool) error {
 	repository, groupID = sanitizeMavenRepository(repository), sanitizeMavenDomain(groupID)
 	artifactID = SanitizeInputString(strings.TrimSpace(artifactID), 255)
 	version = SanitizeInputString(strings.TrimSpace(version), 255)
@@ -1330,6 +1400,11 @@ func (db *DB) DeleteMavenVersionMetadata(repository, groupID, artifactID, versio
 		return fmt.Errorf("begin Maven version deletion: %w", err)
 	}
 	defer tx.Rollback()
+	if !rollback {
+		if err := ensureMavenMutableTx(tx, repository, groupID, artifactID, version, false); err != nil {
+			return err
+		}
+	}
 	result, err := tx.Exec(`DELETE FROM maven_versions WHERE repository = ? AND group_id = ? AND artifact_id = ? AND version = ?`,
 		repository, groupID, artifactID, version)
 	if err != nil {

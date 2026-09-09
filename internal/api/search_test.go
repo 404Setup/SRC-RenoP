@@ -25,6 +25,7 @@ func TestSearchClassicMavenRepositoryUsesIndexAndOmitsBlockedFiles(t *testing.T)
 	storagePath := testutil.TempDir(t)
 	repo := &config.Repository{Name: "releases", Format: config.RepositoryFormatMavenClassic, Visibility: "PUBLIC"}
 	state := core.NewAppState()
+	initMavenReadTestDB(t, state)
 	state.Inner.FileIndex = index.NewFileIndexCustom(true)
 	root := filepath.Join(storagePath, repo.Name)
 	artifact := filepath.Join(root, "org", "example", "demo", "1.0.0", "demo-1.0.0.jar")
@@ -34,7 +35,10 @@ func TestSearchClassicMavenRepositoryUsesIndexAndOmitsBlockedFiles(t *testing.T)
 	state.Inner.FileIndex.InsertFile(blocked, index.FileInfo{Size: 45, ModTime: 1})
 	state.Inner.FileIndex.BlockFile(blocked)
 
-	response := searchFileTreeRepository(state, storagePath, repo, &config.User{Username: "guest", Roles: []string{"base"}}, "demo", 20)
+	response, err := searchFileTreeRepository(state, storagePath, repo, &config.User{Username: "guest", Roles: []string{"base"}}, "demo", 20)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if response.Format != config.RepositoryFormatMavenClassic || response.Total != 3 {
 		t.Fatalf("unexpected Maven search metadata: %+v", response)
 	}
@@ -81,7 +85,7 @@ func TestSearchModernMavenRepositoryReturnsDomainAndArtifactRoutes(t *testing.T)
 	}
 
 	response, err := searchModernMavenRepository(state,
-		&config.Repository{Name: "releases", Format: config.RepositoryFormatMaven}, "example", 20)
+		&config.Repository{Name: "releases", Format: config.RepositoryFormatMaven}, &config.User{Username: "guest"}, "example", 20)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -364,7 +364,7 @@ func TestMavenArtifactMovesToMostSpecificDomain(t *testing.T) {
 	assert.Equal(t, 1, childDetails.Domain.ArtifactCount)
 	assert.Equal(t, 1, childDetails.Domain.RepositoryCount)
 	assert.Equal(t, 1, childDetails.Domain.MemberCount)
-	repositoryDomains, err := db.ListMavenRepositoryDomains("releases", "alice")
+	repositoryDomains, err := db.ListMavenRepositoryDomains("releases", "alice", false)
 	require.NoError(t, err)
 	require.Len(t, repositoryDomains, 1)
 	assert.Equal(t, "com.example.tools", repositoryDomains[0].Domain)

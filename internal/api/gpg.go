@@ -19,6 +19,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/auth"
 	"renop/internal/service/gpg"
+	"renop/internal/service/maven"
 	"renop/internal/utils/protohttp"
 	"renop/pkg/pb"
 )
@@ -42,6 +43,13 @@ func GetGPGSignature(c fiber.Ctx, state *core.AppState) error {
 	db := state.GetDB()
 	if db == nil {
 		return c.Status(fiber.StatusServiceUnavailable).SendString("Database unavailable")
+	}
+	visible, err := maven.VisibleMetadataPaths(state, user, repository, []string{artifactPath})
+	if err != nil {
+		return fiber.ErrServiceUnavailable
+	}
+	if !visible[0] {
+		return fiber.ErrNotFound
 	}
 	signature, err := db.GetGPGSignature(gpg.ArtifactKey(repository, artifactPath))
 	if err != nil {

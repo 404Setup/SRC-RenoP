@@ -57,17 +57,8 @@ func wireStorageHooks() {
 		_, err := AuthorizeMutation(state, user, repo, path, requiredLevel)
 		return err
 	}
-	storage.MavenMutationGuard = func(state *core.AppState, repo *config.Repository, path string) error {
-		if state == nil || state.GetDB() == nil {
-			return core.ErrDatabaseUnavailable
-		}
-		groupID, artifactID, ok := pathArtifactCandidate(path)
-		if !ok {
-			return nil
-		}
-		return state.GetDB().EnsurePackageMutable(config.RepositoryFormatMaven, repo.Name,
-			groupID+":"+artifactID)
-	}
+	storage.MavenMutationGuard = EnsurePathMutable
+	storage.MavenReadLocks = HandleReadLocks
 	storage.MavenPublicationQuotaOwner = func(state *core.AppState, username string, repo *config.Repository, path string) (string, error) {
 		domain, err := AuthorizeMutation(state, &config.User{Username: username}, repo, path, core.MavenPermissionPublish)
 		if err != nil {
@@ -108,6 +99,8 @@ func SetupRoutes(router fiber.Router, state *core.AppState) {
 	base.Get("/packages", func(c fiber.Ctx) error { return listArtifacts(c, state) })
 	base.Get("/package", func(c fiber.Ctx) error { return getArtifact(c, state) })
 	base.Put("/package", func(c fiber.Ctx) error { return updateArtifact(c, state) })
+	base.Put("/package/locks", func(c fiber.Ctx) error { return setResourceLockAPI(c, state) })
+	base.Delete("/package/locks", func(c fiber.Ctx) error { return setResourceLockAPI(c, state) })
 	base.Put("/package/deprecate", func(c fiber.Ctx) error { return deprecateArtifact(c, state) })
 	base.Delete("/versions", func(c fiber.Ctx) error { return deleteVersion(c, state) })
 }
@@ -156,6 +149,15 @@ func authenticated(c fiber.Ctx) (*config.User, error) {
 
 func apiError(c fiber.Ctx, err error) error {
 	switch {
+	case errors.Is(err, core.ErrResourceLocked):
+		c.Set("X-Renop-Error-Code", "resource_locked")
+		return c.Status(fiber.StatusLocked).SendString("Maven resource is locked")
+	case errors.Is(err, core.ErrResourceLockInvalid):
+		c.Set("X-Renop-Error-Code", "resource_lock_invalid")
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid resource lock")
+	case errors.Is(err, core.ErrResourceLockPermission):
+		c.Set("X-Renop-Error-Code", "resource_lock_permission")
+		return c.Status(fiber.StatusForbidden).SendString("Resource lock permission denied")
 	case errors.Is(err, core.ErrSuperTeamBindingRequired):
 		c.Set("X-Renop-Error-Code", "super_team_required")
 		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
@@ -332,7 +334,7 @@ func listDomains(c fiber.Ctx, state *core.AppState) error {
 		if err := UpgradeLegacyRepository(state, repo.Name); err != nil {
 			return apiError(c, err)
 		}
-		domains, err := state.GetDB().ListMavenRepositoryDomains(repo.Name, username)
+		domains, err := state.GetDB().ListMavenRepositoryDomains(repo.Name, username, user.CheckModeratePermission(repo.Name))
 		if err != nil {
 			return apiError(c, err)
 		}
@@ -536,7 +538,14 @@ func listDomainArtifacts(c fiber.Ctx, state *core.AppState) error {
 		}
 	}
 	slices.Sort(repositories)
-	artifacts, total, err := state.GetDB().ListMavenDomainArtifacts(repositories, c.Params("domain"), limit, offset)
+	user := auth.GetUser(c)
+	moderated := make([]string, 0, len(repositories))
+	for _, name := range repositories {
+		if user.CheckModeratePermission(name) {
+			moderated = append(moderated, name)
+		}
+	}
+	artifacts, total, err := state.GetDB().ListReadableMavenArtifacts(repositories, c.Params("domain"), "", user.Username, moderated, limit, offset)
 	if err != nil {
 		return apiError(c, err)
 	}
@@ -723,7 +732,12 @@ func listArtifacts(c fiber.Ctx, state *core.AppState) error {
 	}
 	domain := strings.ToLower(strings.TrimSpace(c.Query("domain")))
 	query := strings.TrimSpace(c.Query("q"))
-	artifacts, total, err := state.GetDB().ListMavenArtifacts(repo.Name, domain, query, limit, offset)
+	user := auth.GetUser(c)
+	var moderated []string
+	if user.CheckModeratePermission(repo.Name) {
+		moderated = []string{repo.Name}
+	}
+	artifacts, total, err := state.GetDB().ListReadableMavenArtifacts([]string{repo.Name}, domain, query, user.Username, moderated, limit, offset)
 	if err != nil {
 		return apiError(c, err)
 	}
@@ -753,11 +767,13 @@ func getArtifact(c fiber.Ctx, state *core.AppState) error {
 		return apiError(c, err)
 	}
 	details.Artifact.Deprecated = deprecated
-	if err := enrichMavenArtifactDetails(state, repo.Name, details); err != nil {
-		log.Printf("failed to enrich Maven artifact %s:%s in %s: %v", groupID, artifactID, repo.Name, err)
-	}
 	user := auth.GetUser(c)
+	details.Moderator = user != nil && user.CheckModeratePermission(repo.Name)
 	if user != nil && !strings.EqualFold(user.Username, "guest") {
+		details.Member, err = state.GetDB().IsMavenArtifactMember(repo.Name, groupID, artifactID, user.Username)
+		if err != nil {
+			return apiError(c, err)
+		}
 		if domain, authErr := AuthorizeArtifact(
 			state, user, repo, groupID, artifactID, core.MavenPermissionRead, true); authErr == nil {
 			details.Artifact.PermissionLevel = domain.PermissionLevel
@@ -770,6 +786,12 @@ func getArtifact(c fiber.Ctx, state *core.AppState) error {
 				return apiError(c, err)
 			}
 		}
+	}
+	if err := applyArtifactLocks(state, details); err != nil {
+		return apiError(c, err)
+	}
+	if err := enrichMavenArtifactDetails(state, repo.Name, details); err != nil {
+		log.Printf("failed to enrich Maven artifact %s:%s in %s: %v", groupID, artifactID, repo.Name, err)
 	}
 	c.Set(fiber.HeaderCacheControl, "no-store")
 	return c.JSON(details)

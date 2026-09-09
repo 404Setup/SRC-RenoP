@@ -25,11 +25,12 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/maven"
 	"renop/internal/service/storage"
 	"renop/internal/utils"
 )
 
-func FindMetadata(state *core.AppState, repoName string, gav string) (*config.Metadata, error) {
+func FindMetadata(state *core.AppState, user *config.User, repoName string, gav string) (*config.Metadata, error) {
 	const maxMetadataSize = 2 * 1024 * 1024
 
 	cfg := state.Inner.Config.Load()
@@ -45,6 +46,13 @@ func FindMetadata(state *core.AppState, repoName string, gav string) (*config.Me
 	if !ok || sanitizedGav == "" {
 		return nil, fiber.ErrBadRequest
 	}
+	visible, err := maven.VisibleMetadataPaths(state, user, repoName, []string{sanitizedGav})
+	if err != nil {
+		return nil, err
+	}
+	if !visible[0] {
+		return nil, fiber.ErrNotFound
+	}
 
 	metadataPaths := metadataPathCandidates(cfg.StoragePath, repoName, sanitizedGav)
 	for _, localFilePath := range metadataPaths {
@@ -53,11 +61,21 @@ func FindMetadata(state *core.AppState, repoName string, gav string) (*config.Me
 		}
 
 		cacheKey := filepath.ToSlash(localFilePath)
+		relative, err := filepath.Rel(filepath.Join(cfg.StoragePath, repoName), localFilePath)
+		if err != nil {
+			return nil, fiber.ErrBadRequest
+		}
 		if cachedMeta, ok := state.Inner.MetadataCache.Load(cacheKey); ok {
-			return cachedMeta, nil
+			return maven.FilterMetadata(state, user, repoName, filepath.ToSlash(relative), cachedMeta)
 		}
 
 		if !metadataPathExists(state, localFilePath) {
+			if err := maven.EnsurePathMutable(state, repo, filepath.ToSlash(relative)); err != nil {
+				if errors.Is(err, core.ErrResourceLocked) {
+					return nil, fiber.ErrNotFound
+				}
+				return nil, err
+			}
 			if fetchErr := storage.FetchMetadataFromMirror(state, repoName, localFilePath); fetchErr != nil &&
 				!errors.Is(fetchErr, fiber.ErrNotFound) && !errors.Is(fetchErr, fiber.ErrBadRequest) {
 				log.Printf("failed to fetch Maven metadata %s from mirror: %v", localFilePath, fetchErr)
@@ -67,7 +85,7 @@ func FindMetadata(state *core.AppState, repoName string, gav string) (*config.Me
 		metadata, err := readMetadataFile(localFilePath, maxMetadataSize)
 		if err == nil {
 			state.StoreMetadataCache(cacheKey, metadata)
-			return metadata, nil
+			return maven.FilterMetadata(state, user, repoName, filepath.ToSlash(relative), metadata)
 		}
 		if errors.Is(err, fiber.ErrRequestEntityTooLarge) {
 			return nil, err

@@ -11,14 +11,81 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"renop/internal/core"
 )
 
-func checkResourceLocks(db *DB, repository, npmRepository, dockerRepository, prefix, owner, suffix string, now int64) error {
+func checkMavenLocks(db *DB, repository, domain, owner, moderator, session string, now int64) error {
+	pkg := &core.MavenArtifact{Repository: repository, Domain: domain, GroupID: domain,
+		ArtifactID: "lock-demo", CreatedAt: now, UpdatedAt: now}
+	for _, version := range []string{"1.0", "2.0-SNAPSHOT"} {
+		if err := db.RecordMavenPublication(pkg, &core.MavenVersion{Version: version, Publisher: owner, Size: 10, CreatedAt: now}); err != nil {
+			return err
+		}
+	}
+	target := mavenLockTarget(repository, domain, pkg.ArtifactID, "2.0-SNAPSHOT")
+	lock := &core.ResourceLock{ResourceLockTarget: target, Source: core.ResourceLockManual,
+		Mode: core.ResourceLockRead, Reason: "trojan", LockedAt: now}
+	if err := db.SetResourceLock(lock, moderator, session); err != nil {
+		return err
+	}
+	for _, path := range []string{"lock-demo/maven-metadata.xml", "lock-demo/2.0-SNAPSHOT/other.bin"} {
+		locks, err := db.GetMavenPathLocks(repository, strings.ReplaceAll(domain, ".", "/")+"/"+path, false)
+		if err != nil || len(locks) != 1 {
+			return errorsOrMissing(err, "Maven metadata and companion lock resolution")
+		}
+	}
+	if err := db.DeleteMavenVersionMetadata(repository, domain, pkg.ArtifactID, target.Version); !errors.Is(err, core.ErrResourceLocked) {
+		return errorsOrMissing(err, "Maven locked version deletion")
+	}
+	for _, viewer := range []string{"", owner} {
+		artifacts, total, err := db.ListReadableMavenArtifacts([]string{repository}, "", pkg.ArtifactID, viewer, nil, 10, 0)
+		if err != nil || total != 1 || len(artifacts) != 1 {
+			return errorsOrMissing(err, "Maven filtered artifact listing")
+		}
+		if viewer == "" && (artifacts[0].VersionCount != 1 || artifacts[0].LatestVersion != "1.0" || artifacts[0].TotalSize != 10) {
+			return errors.New("Maven locked version exposed in aggregates")
+		}
+		visible, err := db.ResourceMetadataVisibility("maven", repository, viewer, false, []core.ResourceLockTarget{target})
+		if err != nil || len(visible) != 1 || visible[0] != (viewer == owner) {
+			return errorsOrMissing(err, "Maven owner metadata visibility")
+		}
+	}
+	lock.Version = ""
+	if err := db.SetResourceLock(lock, moderator, session); err != nil {
+		return err
+	}
+	if err := db.UpdateMavenArtifactReadme(repository, domain, pkg.ArtifactID, "blocked"); !errors.Is(err, core.ErrResourceLocked) {
+		return errorsOrMissing(err, "Maven locked README mutation")
+	}
+	for _, viewer := range []string{"", owner} {
+		domains, err := db.ListMavenRepositoryDomains(repository, viewer, false)
+		if err != nil || len(domains) != 1 {
+			return errorsOrMissing(err, "Maven visible domain counts")
+		}
+		want := 1
+		if viewer == owner {
+			want = 2
+		}
+		if domains[0].ArtifactCount != want {
+			return fmt.Errorf("Maven visible domain artifact count: got %d, want %d", domains[0].ArtifactCount, want)
+		}
+		searched, total, err := db.SearchMavenRepositoryDomains(repository, domain, viewer, false, 10)
+		if err != nil || total != 1 || len(searched) != 1 || searched[0].ArtifactCount != want {
+			return errorsOrMissing(err, "Maven domain search aggregates")
+		}
+	}
+	if err := db.DeleteResourceLock(target, core.ResourceLockManual, moderator, session); err != nil {
+		return err
+	}
+	return db.DeleteResourceLock(lock.ResourceLockTarget, core.ResourceLockManual, moderator, session)
+}
+
+func checkResourceLocks(db *DB, repository, npmRepository, dockerRepository, mavenRepository, mavenDomain, prefix, owner, suffix string, now int64) error {
 	moderator := "lockmod-" + suffix
-	if err := db.SaveToken(&core.AccessToken{Name: moderator, Permissions: []string{"canmoderate:" + repository, "canmoderate:" + npmRepository, "canmoderate:" + dockerRepository}}); err != nil {
+	if err := db.SaveToken(&core.AccessToken{Name: moderator, Permissions: []string{"canmoderate:" + repository, "canmoderate:" + npmRepository, "canmoderate:" + dockerRepository, "canmoderate:" + mavenRepository}}); err != nil {
 		return err
 	}
 	sessionToken := "lock-session-" + suffix
@@ -111,7 +178,10 @@ func checkResourceLocks(db *DB, repository, npmRepository, dockerRepository, pre
 	if err := checkNPMLocks(db, npmRepository, prefix, owner, moderator, sessionToken, now); err != nil {
 		return err
 	}
-	return checkDockerLocks(db, dockerRepository, prefix, owner, moderator, sessionToken, now)
+	if err := checkDockerLocks(db, dockerRepository, prefix, owner, moderator, sessionToken, now); err != nil {
+		return err
+	}
+	return checkMavenLocks(db, mavenRepository, mavenDomain, owner, moderator, sessionToken, now)
 }
 
 func checkDockerLocks(db *DB, repository, prefix, owner, moderator, session string, now int64) error {

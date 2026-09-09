@@ -25,7 +25,12 @@ import (
 
 func init() {
 	proxy.OnMirrorArtifactStored = recordMirroredArtifact
-	proxy.AuthorizeMirrorWrite = npm.EnsureMirrorPathMutable
+	proxy.AuthorizeMirrorWrite = func(state *core.AppState, repo *config.Repository, path string) error {
+		if repo != nil && repo.NormalizedFormat() == config.RepositoryFormatMaven && MavenMutationGuard != nil {
+			return MavenMutationGuard(state, repo, path)
+		}
+		return npm.EnsureMirrorPathMutable(state, repo, path)
+	}
 }
 
 func recordMirroredArtifact(state *core.AppState, repo *config.Repository, localPath string, size, modTime int64) {

@@ -21,8 +21,10 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
+	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/auth"
+	"renop/internal/service/repositorygate"
 	"renop/internal/service/storage"
 	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
@@ -49,7 +51,7 @@ func FindVersions(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
 
-	metadata, err := FindMetadata(state, repoName, sanitizedPath)
+	metadata, err := FindMetadata(state, user, repoName, sanitizedPath)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
@@ -91,7 +93,7 @@ func LatestVersion(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
 
-	metadata, err := FindMetadata(state, repoName, sanitizedPath)
+	metadata, err := FindMetadata(state, user, repoName, sanitizedPath)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
@@ -127,13 +129,13 @@ func isBadPath(str string) bool {
 	return strings.IndexByte(str, '/') != -1 || strings.IndexByte(str, '\\') != -1 || strings.Contains(str, "..")
 }
 
-func ResolveLatestPath(state *core.AppState, repoName string, gav string, query *ArtifactDetailsQuery) (string, bool, error) {
+func ResolveLatestPath(state *core.AppState, user *config.User, repoName string, gav string, query *ArtifactDetailsQuery) (string, bool, error) {
 	sanitizedGav, ok := utils.SanitizePath(gav)
 	if !ok {
 		return "", false, fiber.ErrBadRequest
 	}
 
-	metadata, err := FindMetadata(state, repoName, sanitizedGav)
+	metadata, err := FindMetadata(state, user, repoName, sanitizedGav)
 	if err != nil {
 		return "", false, fiber.ErrNotFound
 	}
@@ -273,7 +275,7 @@ func LatestDetails(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	query := parseArtifactDetailsQuery(c)
-	localFilePath, _, err := ResolveLatestPath(state, repoName, gav, &query)
+	localFilePath, _, err := ResolveLatestPath(state, user, repoName, gav, &query)
 	if err != nil {
 		return handleResolveLatestError(c, err)
 	}
@@ -344,11 +346,26 @@ func LatestFile(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	query := parseArtifactDetailsQuery(c)
-	localFilePath, isDir, err := ResolveLatestPath(state, repoName, gav, &query)
+	localFilePath, isDir, err := ResolveLatestPath(state, user, repoName, gav, &query)
 	if err != nil {
 		return handleResolveLatestError(c, err)
 	}
 
+	if repo.NormalizedFormat() == config.RepositoryFormatMaven {
+		release := repositorygate.AcquireMutation(repoName)
+		defer release()
+		relative, err := filepath.Rel(filepath.Join(cfg.StoragePath, repoName), localFilePath)
+		if err != nil {
+			return fiber.ErrBadRequest
+		}
+		locks, err := state.GetDB().GetMavenPathLocks(repoName, filepath.ToSlash(relative), false)
+		if err != nil {
+			return fiber.ErrServiceUnavailable
+		}
+		if core.ReadLocked(locks) {
+			return fiber.ErrNotFound
+		}
+	}
 	if isDir {
 		return c.Status(fiber.StatusBadRequest).SendString("Is a dir")
 	}
@@ -396,5 +413,6 @@ func LatestFile(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
 
-	return c.SendFile(localFilePath)
+	// Do not keep a Windows file handle open after a response; versions can be removed immediately.
+	return c.SendFile(localFilePath, fiber.SendFile{CacheDuration: -1})
 }

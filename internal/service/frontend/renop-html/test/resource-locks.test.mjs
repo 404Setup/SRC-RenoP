@@ -10,6 +10,36 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 
+test('Maven version locks hide deletion while retaining staff lock controls and metadata', () => {
+    const actions = [];
+    const context = vm.createContext({
+        el: (tag, attributes, ...children) => {
+            const node = {tag, ...attributes, children, appendChild(child) { this.children.push(child); }};
+            if (attributes.class === 'maven-version-actions') actions.push(node);
+            return node;
+        },
+        t: key => key, formatDate: value => value, formatBytes: value => value,
+        createIcon: name => ({icon: name}), createResourceLockNotices: locks => ({locks}),
+        mavenVersionFiles: version => ({files: version.files}),
+    });
+    const locks = readFileSync(new URL('../js/resource-locks.js', import.meta.url), 'utf8');
+    const maven = readFileSync(new URL('../js/browser/maven.js', import.meta.url), 'utf8');
+    vm.runInContext(locks.match(/export function resourceWriteLocked\([^]*?\n}/)[0].replace('export ', '') + '\n' +
+        maven.match(/function mavenVersionEntry\([^]*?\n}(?=\r?\n)/)[0], context);
+    const locked = {version: '2.0', locks: [{mode: 'read', reason: 'trojan'}], files: [{name: 'demo.jar'}]};
+    const options = {canManageVersions: true, manageLock: () => ({lockButton: true}), artifact: {}};
+    const row = context.mavenVersionEntry(locked, options);
+    assert.equal(actions.at(-1).children.length, 1);
+    assert.equal(actions.at(-1).children[0].lockButton, true);
+    assert.equal(row.children.at(-1).files, locked.files);
+    context.mavenVersionEntry({version: '1.0'}, options);
+    assert.equal(actions.at(-1).children.length, 2);
+    context.mavenVersionEntry(locked, {...options, manageLock: null});
+    assert.equal(actions.at(-1).children.length, 0);
+    context.mavenVersionEntry({version: '3.0', review_status: 'pending'}, options);
+    assert.equal(actions.at(-1).children.length, 0);
+});
+
 test('lock controls submit only a manual restriction and retain the dialog on failure', async () => {
     let dialog, closed = false, refreshed = 0, accepted = true;
     const selections = [], requests = [], alerts = [];

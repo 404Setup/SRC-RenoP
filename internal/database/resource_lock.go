@@ -56,6 +56,16 @@ func normalizeResourceLockTarget(target core.ResourceLockTarget) (core.ResourceL
 	if target.Format == "docker" {
 		target.Version = strings.ToLower(target.Version)
 	}
+	if target.Format == "maven" {
+		group, artifact, ok := strings.Cut(target.Name, ":")
+		if !ok || group == "" || artifact == "" || strings.Contains(artifact, ":") {
+			return core.ResourceLockTarget{}, core.ErrResourceLockInvalid
+		}
+		target.Name = strings.ToLower(group) + ":" + artifact
+		if runtime.GOOS == "windows" {
+			target.Name = strings.ToLower(target.Name)
+		}
+	}
 	if !valid || len(target.Version) > 255 || strings.IndexFunc(target.Version, unicode.IsControl) >= 0 ||
 		strings.TrimSpace(target.Version) != target.Version {
 		return core.ResourceLockTarget{}, core.ErrResourceLockInvalid
@@ -69,7 +79,7 @@ func resourceLockID(target core.ResourceLockTarget) string {
 }
 
 func resourceLockVersionColumn(format, column string) string {
-	if runtime.GOOS == "windows" && (format == "cargo" || format == "npm") {
+	if runtime.GOOS == "windows" && (format == "cargo" || format == "npm" || format == "maven") {
 		return "LOWER(" + column + ")"
 	}
 	return column
@@ -94,6 +104,11 @@ func (db *DB) SetResourceLock(lock *core.ResourceLock, actor, session string) er
 	defer tx.Rollback()
 	if err := authorizeResourceLockTx(tx, target, lock.Source, actor, session); err != nil {
 		return err
+	}
+	if target.Format == "maven" {
+		if err := lockMavenArtifactTargetTx(tx, target); err != nil {
+			return err
+		}
 	}
 	if err := setDockerLockVersionsTx(tx, target, lock.Source); err != nil {
 		return err
@@ -124,6 +139,11 @@ func (db *DB) DeleteResourceLock(target core.ResourceLockTarget, source, actor, 
 	defer tx.Rollback()
 	if err := authorizeResourceLockTx(tx, target, source, actor, session); err != nil {
 		return err
+	}
+	if target.Format == "maven" {
+		if err := lockMavenArtifactTargetTx(tx, target); err != nil {
+			return err
+		}
 	}
 	if _, err := tx.Exec(`DELETE FROM resource_lock_versions WHERE lock_id = ? AND source = ?`, resourceLockID(target), source); err != nil {
 		return err
@@ -223,6 +243,9 @@ func ensureResourceMutableQuery(queryRow func(string, ...any) row, target core.R
 
 // ResourceMetadataVisibility checks a bounded package page without per-entry membership or lock queries.
 func (db *DB) ResourceMetadataVisibility(format, repository, username string, moderator bool, targets []core.ResourceLockTarget) ([]bool, error) {
+	if format == "maven" {
+		return db.mavenMetadataVisibility(repository, username, moderator, targets)
+	}
 	table, members, nameColumn := "cargo_packages", "cargo_members", "normalized_name"
 	switch format {
 	case "cargo":

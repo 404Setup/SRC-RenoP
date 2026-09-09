@@ -24,6 +24,7 @@ import (
 	"renop/internal/service/auth"
 	"renop/internal/service/docker"
 	"renop/internal/service/index"
+	"renop/internal/service/maven"
 	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
 	"renop/pkg/pb"
@@ -78,9 +79,9 @@ func SearchRepository(c fiber.Ctx, state *core.AppState) error {
 	} else if repo.NormalizedFormat() == config.RepositoryFormatNPM {
 		response, err = searchNPMRepository(state, repo, user, query, limit)
 	} else if repo.UsesModernMavenLayout() {
-		response, err = searchModernMavenRepository(state, repo, query, limit)
+		response, err = searchModernMavenRepository(state, repo, user, query, limit)
 	} else {
-		response = searchFileTreeRepository(state, cfg.StoragePath, repo, user, query, limit)
+		response, err = searchFileTreeRepository(state, cfg.StoragePath, repo, user, query, limit)
 	}
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Repository search failed")
@@ -179,16 +180,20 @@ func searchCargoRepository(state *core.AppState, user *config.User, repo *config
 	}, nil
 }
 
-func searchModernMavenRepository(state *core.AppState, repo *config.Repository, query string, limit int) (*pb.RepositorySearchResponse, error) {
+func searchModernMavenRepository(state *core.AppState, repo *config.Repository, user *config.User, query string, limit int) (*pb.RepositorySearchResponse, error) {
 	db := state.GetDB()
 	if db == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
-	domains, domainTotal, err := db.SearchMavenRepositoryDomains(repo.Name, query, min(limit+1, 100))
+	domains, domainTotal, err := db.SearchMavenRepositoryDomains(repo.Name, query, user.Username, user.CheckModeratePermission(repo.Name), min(limit+1, 100))
 	if err != nil {
 		return nil, err
 	}
-	artifacts, artifactTotal, err := db.ListMavenArtifacts(repo.Name, "", query, min(limit+1, 100), 0)
+	var moderated []string
+	if user.CheckModeratePermission(repo.Name) {
+		moderated = []string{repo.Name}
+	}
+	artifacts, artifactTotal, err := db.ListReadableMavenArtifacts([]string{repo.Name}, "", query, user.Username, moderated, min(limit+1, 100), 0)
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +242,15 @@ func searchModernMavenRepository(state *core.AppState, repo *config.Repository, 
 	}, nil
 }
 
-func searchFileTreeRepository(state *core.AppState, storagePath string, repo *config.Repository, user *config.User, query string, limit int) *pb.RepositorySearchResponse {
+func searchFileTreeRepository(state *core.AppState, storagePath string, repo *config.Repository, user *config.User, query string, limit int) (*pb.RepositorySearchResponse, error) {
+	var visible func(string) bool
+	if repo.NormalizedFormat() == config.RepositoryFormatMaven {
+		var err error
+		visible, err = maven.MetadataPathFilter(state, user, repo.Name)
+		if err != nil {
+			return nil, err
+		}
+	}
 	root := filepath.ToSlash(filepath.Clean(filepath.Join(storagePath, repo.Name)))
 	rootPrefix := root + "/"
 	needle := strings.ToLower(query)
@@ -266,7 +279,7 @@ func searchFileTreeRepository(state *core.AppState, storagePath string, repo *co
 			relative = filepath.ToSlash(rel)
 		}
 		if relative == "" || !containsFold(relative, needle) ||
-			!user.CheckReadPermission(repo.Name, relative, repo.Visibility, isDir) {
+			!user.CheckReadPermission(repo.Name, relative, repo.Visibility, isDir) || visible != nil && !visible(relative) {
 			return true
 		}
 		total++
@@ -307,7 +320,7 @@ func searchFileTreeRepository(state *core.AppState, storagePath string, repo *co
 	return &pb.RepositorySearchResponse{
 		Format: repo.ConfiguredFormat(), Results: results, Total: int32(total),
 		HasMore: scanLimitReached || total > len(results),
-	}
+	}, nil
 }
 
 func containsFold(s, substrLower string) bool {

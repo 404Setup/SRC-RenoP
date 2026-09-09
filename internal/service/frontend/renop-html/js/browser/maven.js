@@ -29,6 +29,7 @@ import {
     createPackageDeprecationNotice
 } from '../package-deprecation.js';
 import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '../response-errors.js';
+import {createResourceLockButton, createResourceLockNotices, resourceWriteLocked} from '../resource-locks.js';
 import {exitProtectedRouteOnDenial} from '../protected-route.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
 import {copyWithFeedback} from './copy-feedback.js';
@@ -141,6 +142,7 @@ function ensureContainer() {
 
 /** Hide and clear the Maven view. */
 export function hideMavenRepositoryView() {
+    mavenLoadSequence++;
     hideRepositoryView(mavenContainer);
 }
 
@@ -1523,6 +1525,7 @@ function mavenArtifactReadmeSection(container, repository, artifact, sequence, c
  * @param {object} version - Version detail.
  * @param {object} options - Row options.
  * @param {boolean} options.canManageVersions - Whether delete is available.
+ * @param {function|null} options.manageLock - Staff lock action factory.
  * @param {HTMLElement} options.container - Repository view container.
  * @param {string} options.repository - Repository name.
  * @param {object} options.artifact - Parent artifact.
@@ -1533,6 +1536,7 @@ function mavenArtifactReadmeSection(container, repository, artifact, sequence, c
  */
 function mavenVersionEntry(version, {
     canManageVersions,
+    manageLock,
     container,
     repository,
     artifact,
@@ -1542,7 +1546,8 @@ function mavenVersionEntry(version, {
 }) {
     const actions = el('div', {class: 'maven-version-actions'});
     const pendingReview = version.review_status === 'pending';
-    if (canManageVersions && !pendingReview) {
+    if (manageLock && !pendingReview) actions.appendChild(manageLock(version));
+    if (canManageVersions && !resourceWriteLocked(version) && !pendingReview) {
         actions.appendChild(el('button', {
             type: 'button', class: 'maven-icon-btn is-danger', title: t('maven.deleteVersion'), onclick: async () => {
                 if (!(await showConfirm(t('maven.deleteVersionConfirm', {version: version.version})))) return;
@@ -1580,7 +1585,8 @@ function mavenVersionEntry(version, {
             version.last_modified ? el('span', {}, formatDate(version.last_modified)) : null,
             actions)
     );
-    return el('div', {class: 'maven-version-entry'}, row, mavenVersionFiles(version));
+    return el('div', {class: 'maven-version-entry'}, row,
+        createResourceLockNotices(version.locks), mavenVersionFiles(version));
 }
 
 /**
@@ -1607,16 +1613,31 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
         if (sequence !== mavenLoadSequence) return;
         if (!response.ok) throw await localizedResponseError(response, 'maven.artifactLoadFailed');
         const details = await response.json();
+        if (sequence !== mavenLoadSequence) return;
         const artifact = details.artifact;
         const project = details.project || null;
         const versions = Array.isArray(details.versions) ? details.versions : [];
         const isDeprecated = artifact.deprecated === true;
-        const canDeprecate = details.administrator || Number(artifact.permission_level) >= 3;
-        const canManageVersions = !isDeprecated &&
+        const writeLocked = resourceWriteLocked(artifact);
+        const canDeprecate = !writeLocked && !artifact.version_locked &&
+            (details.administrator || Number(artifact.permission_level) >= 3);
+        const canManageVersions = !isDeprecated && !writeLocked &&
             (details.administrator || Number(artifact.permission_level) >= 2);
-        const canOwnArtifact = !isDeprecated &&
+        const canOwnArtifact = !isDeprecated && !writeLocked &&
             (details.administrator || Number(artifact.permission_level) >= 4);
+        const manageLock = details.moderator && cachedIsLoggedIn ? version => createResourceLockButton({
+            locks: version?.locks || artifact.locks || [],
+            name: `${artifact.group_id}:${artifact.artifact_id}${version ? ` ${version.version}` : ''}`,
+            request: (mode, reason) => apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/package/locks?${query}`, {
+                method: mode ? 'PUT' : 'DELETE', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({version: version?.version || '', mode, reason})
+            }),
+            onSuccess: () => {
+                if (sequence === mavenLoadSequence) return renderArtifact(container, repository, groupID, artifactID, sequence);
+            }
+        }) : null;
         const artifactActions = el('div', {class: 'maven-domain-actions'});
+        if (manageLock) artifactActions.appendChild(manageLock());
         if (canDeprecate && !artifact.mirrored && !isDeprecated) {
             artifactActions.appendChild(createDeprecatePackageButton(
                 () => apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/package/deprecate?${query}`, {
@@ -1680,7 +1701,7 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
             pageSize: 8,
             initialPage: artifactVersionPage,
             renderItem: version => mavenVersionEntry(version, {
-                canManageVersions, container, repository, artifact, groupID, artifactID, sequence
+                canManageVersions, manageLock, container, repository, artifact, groupID, artifactID, sequence
             }),
             renderEmpty: () => el('div', {class: 'maven-empty'}, t('maven.noVersions')),
             previousLabel: t('common.prev'),
@@ -1712,6 +1733,7 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
         await replaceRepositoryView(container, [
             hero,
             isDeprecated ? createPackageDeprecationNotice() : null,
+            createResourceLockNotices(artifact.locks),
             detail
         ].filter(Boolean), {duration: 280, enterDuration: 420});
     } catch (error) {

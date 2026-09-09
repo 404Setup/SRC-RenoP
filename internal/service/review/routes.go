@@ -47,6 +47,8 @@ func reviewError(c fiber.Ctx, err error) error {
 	status := fiber.StatusInternalServerError
 	code := "review_failed"
 	switch {
+	case errors.Is(err, core.ErrResourceLocked):
+		status, code = fiber.StatusLocked, "resource_locked"
 	case errors.Is(err, fiber.ErrBadRequest):
 		status, code = fiber.StatusBadRequest, "invalid_request"
 	case errors.Is(err, fiber.ErrUnauthorized):
@@ -440,6 +442,19 @@ func decidePublicationTask(c fiber.Ctx, state *core.AppState, username string,
 	files, err := state.GetDB().ListReviewTaskFiles(current.ID)
 	if err != nil {
 		return nil, err
+	}
+	if current.ResourceType == core.ReviewResourceMavenArtifact {
+		cfg := state.Inner.Config.Load()
+		if cfg == nil || cfg.Maven.Repositories[current.Repository] == nil {
+			return nil, core.ErrReviewResourceConflict
+		}
+		for _, file := range files {
+			if file != nil {
+				if err := maven.EnsurePathMutable(state, cfg.Maven.Repositories[current.Repository], file.Path); err != nil {
+					return nil, err
+				}
+			}
+		}
 	}
 	if decision == core.ReviewStatusRejected {
 		if err := storage.DeletePublicationReviewFiles(state, files); err != nil {

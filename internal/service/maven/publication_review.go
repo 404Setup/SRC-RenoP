@@ -60,7 +60,7 @@ func publicationMetadataCandidates(path string) []mavenMetadataCandidate {
 		return nil
 	}
 	for _, part := range parts[:len(parts)-1] {
-		if !coordinatePartPattern.MatchString(part) {
+		if !core.ValidMavenCoordinatePart(part) {
 			return nil
 		}
 	}
@@ -160,6 +160,11 @@ func ProcessPublishedFiles(state *core.AppState, repo *config.Repository, userna
 ) (*core.PublicationReviewResult, error) {
 	if state == nil || state.GetDB() == nil || repo == nil || len(files) == 0 {
 		return nil, core.ErrDatabaseUnavailable
+	}
+	for _, file := range files {
+		if err := EnsurePathMutable(state, repo, file.Path); err != nil {
+			return nil, err
+		}
 	}
 	coordinate, valid := publicationReviewCoordinate(files)
 	if valid {
@@ -283,7 +288,7 @@ func RemoveApprovedPublicationMetadata(state *core.AppState, task *core.ReviewTa
 	if separator <= 0 || separator == len(task.ResourceKey)-1 {
 		return core.ErrReviewInvalidRequest
 	}
-	err := state.GetDB().DeleteMavenVersionMetadata(task.Repository, task.ResourceKey[:separator],
+	err := state.GetDB().RollbackMavenPublication(task.Repository, task.ResourceKey[:separator],
 		task.ResourceKey[separator+1:], task.ResourceVersion)
 	if errors.Is(err, core.ErrMavenVersionNotFound) {
 		return nil

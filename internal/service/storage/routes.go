@@ -32,6 +32,10 @@ import (
 var HTMLFallback func(c fiber.Ctx, state *core.AppState) error
 
 func mavenMutationError(c fiber.Ctx, err error) error {
+	if errors.Is(err, core.ErrResourceLocked) {
+		c.Set("X-Renop-Error-Code", "resource_locked")
+		return c.Status(fiber.StatusLocked).SendString("Maven resource is locked")
+	}
 	if errors.Is(err, core.ErrPackageDeprecated) {
 		c.Set("X-Renop-Error-Code", "package_deprecated")
 		return c.Status(fiber.StatusConflict).SendString("Maven artifact is permanently deprecated and read-only")

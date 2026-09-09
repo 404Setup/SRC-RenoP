@@ -24,6 +24,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/index"
+	"renop/internal/service/repositorygate"
 	"renop/internal/utils"
 )
 
@@ -254,6 +255,21 @@ func ServePublicationReviewFile(c fiber.Ctx, state *core.AppState, file *core.Re
 	path, err := reviewFileLocalPath(state, file)
 	if err != nil {
 		return err
+	}
+	cfg := state.Inner.Config.Load()
+	if repo := cfg.Maven.Repositories[file.Repository]; repo != nil && repo.NormalizedFormat() == config.RepositoryFormatMaven {
+		release := repositorygate.AcquireMutation(file.Repository)
+		defer release()
+		if state.GetDB() == nil {
+			return core.ErrDatabaseUnavailable
+		}
+		locks, err := state.GetDB().GetMavenPathLocks(file.Repository, file.Path, false)
+		if err != nil {
+			return err
+		}
+		if core.ReadLocked(locks) {
+			return core.ErrReviewFileNotFound
+		}
 	}
 	name := strings.ReplaceAll(file.Name, `"`, "")
 	if name == "" {

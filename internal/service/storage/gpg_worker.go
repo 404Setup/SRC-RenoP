@@ -23,6 +23,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/gpg"
 	"renop/internal/service/index"
@@ -518,6 +519,11 @@ func publishGPGRelease(state *core.AppState, release *core.GPGRelease) error {
 	repo := cfg.Maven.Repositories[release.Repository]
 	if repo == nil {
 		return ErrGPGRepositoryMissing
+	}
+	if repo.NormalizedFormat() == config.RepositoryFormatMaven && MavenMutationGuard != nil {
+		if err := MavenMutationGuard(state, repo, release.ArtifactPath); err != nil {
+			return err
+		}
 	}
 	localArtifactPath, err := releaseLocalArtifactPath(state, release)
 	if err != nil {

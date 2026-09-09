@@ -667,6 +667,9 @@ func applySuperTeamTransferTx(tx *Tx, task *core.ReviewTask) error {
 		if !valid {
 			return core.ErrReviewResourceConflict
 		}
+		if err := ensureMavenMutableTx(tx, task.Repository, groupID, artifactID, "", false); err != nil {
+			return err
+		}
 		result, err = tx.Exec(`UPDATE maven_artifacts SET super_team_prefix = ?, updated_at = ?
 			WHERE repository = ? AND group_id = ? AND artifact_id = ? AND super_team_prefix = ?`,
 			task.TargetTeamPrefix, task.DecidedAt, task.Repository, groupID, artifactID, task.SourceTeamPrefix)

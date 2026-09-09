@@ -55,13 +55,13 @@ func (d *ClickHouseDialect) UpsertGPGSignatureQuery() string {
 func (d *ClickHouseDialect) Rebind(query string) string {
 	trimmed := strings.TrimSpace(query)
 	upper := strings.ToUpper(trimmed)
-	if strings.HasPrefix(upper, "UPDATE ") {
-		remainder := strings.TrimSpace(trimmed[len("UPDATE "):])
+	if strings.HasPrefix(upper, "UPDATE") && len(upper) > 6 && strings.ContainsRune(" \t\r\n", rune(upper[6])) {
+		remainder := strings.TrimSpace(trimmed[len("UPDATE"):])
 		if separator := strings.IndexAny(remainder, " \t\r\n"); separator > 0 {
 			table := remainder[:separator]
 			assignment := strings.TrimSpace(remainder[separator:])
-			if strings.HasPrefix(strings.ToUpper(assignment), "SET ") {
-				return "ALTER TABLE " + table + " UPDATE " + strings.TrimSpace(assignment[len("SET "):])
+			if len(assignment) > 3 && strings.EqualFold(assignment[:3], "SET") && strings.ContainsRune(" \t\r\n", rune(assignment[3])) {
+				return "ALTER TABLE " + table + " UPDATE " + strings.TrimSpace(assignment[len("SET"):])
 			}
 		}
 	}

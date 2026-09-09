@@ -124,6 +124,15 @@ func updateMavenMetadataAfterVersionDelete(state *core.AppState, metadataPath, v
 
 // RemoveMavenVersion deletes one complete version directory and updates artifact metadata.
 func RemoveMavenVersion(state *core.AppState, repository, groupID, artifactID, version string) error {
+	parts := append(strings.Split(groupID, "."), artifactID, version)
+	if len(parts) < 4 || len(parts)+1 > core.MaxMavenPathParts {
+		return core.ErrMavenVersionNotFound
+	}
+	for _, part := range parts {
+		if !core.ValidMavenCoordinatePart(part) || !utils.IsValidRepositoryName(part) {
+			return core.ErrMavenVersionNotFound
+		}
+	}
 	if state == nil || state.Inner == nil || state.Inner.FileIndex == nil {
 		return core.ErrDatabaseUnavailable
 	}
@@ -136,6 +145,10 @@ func RemoveMavenVersion(state *core.AppState, repository, groupID, artifactID, v
 		groupID+":"+artifactID); err != nil {
 		return err
 	}
+	if err := state.GetDB().EnsureResourceMutable(core.ResourceLockTarget{Format: "maven", Repository: repository,
+		Name: groupID + ":" + artifactID, Version: version}, false); err != nil {
+		return err
+	}
 	cfg := state.Inner.Config.Load()
 	if cfg == nil || cfg.Maven.Repositories[repository] == nil ||
 		cfg.Maven.Repositories[repository].NormalizedFormat() != config.RepositoryFormatMaven {
@@ -144,7 +157,7 @@ func RemoveMavenVersion(state *core.AppState, repository, groupID, artifactID, v
 	groupPath := filepath.FromSlash(strings.ReplaceAll(groupID, ".", "/"))
 	artifactDir := filepath.Join(cfg.StoragePath, repository, groupPath, artifactID)
 	versionDir := filepath.Join(artifactDir, version)
-	if !utils.IsSubPath(filepath.Join(cfg.StoragePath, repository), versionDir) {
+	if !utils.IsSubPath(filepath.Join(cfg.StoragePath, repository), artifactDir) || !utils.IsSubPath(artifactDir, versionDir) {
 		return core.ErrMavenVersionNotFound
 	}
 	gpgReleaseStorageMutation.Lock()

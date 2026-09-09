@@ -1941,10 +1941,37 @@ components:
         administrator:
           type: boolean
 
+    ResourceLock:
+      type: object
+      required: [ mode, reason, source, locked_at ]
+      properties:
+        mode:
+          type: string
+          enum: [ write, read ]
+        reason:
+          type: string
+          enum: [ hold, prohibited, expired, trojan, abuse, dmca, reup, squatting, quality ]
+        source:
+          type: string
+          enum: [ manual, system ]
+        version:
+          type: string
+        locked_at:
+          type: integer
+          format: int64
+        inherited:
+          type: boolean
+
     MavenArtifact:
       type: object
       required: [ repository, domain, group_id, artifact_id, version_count, total_size, mirrored, created_at, updated_at ]
       properties:
+        locks:
+          type: array
+          items:
+            $ref: "#/components/schemas/ResourceLock"
+        version_locked:
+          type: boolean
         repository:
           type: string
         domain:
@@ -1994,6 +2021,10 @@ components:
       type: object
       required: [ version, size, mirrored, created_at ]
       properties:
+        locks:
+          type: array
+          items:
+            $ref: "#/components/schemas/ResourceLock"
         version:
           type: string
         publisher:
@@ -2161,8 +2192,14 @@ components:
 
     MavenArtifactDetails:
       type: object
-      required: [ artifact, versions, administrator ]
+      required: [ artifact, versions, administrator, moderator, member ]
       properties:
+        moderator:
+          type: boolean
+          description: Live moderation authority for this repository.
+        member:
+          type: boolean
+          description: Explicit domain membership, including L0, or either bound global team.
         artifact:
           $ref: "#/components/schemas/MavenArtifact"
         versions:
@@ -5294,11 +5331,82 @@ paths:
         "200":
           description: Artifact updated.
 
+  /api/maven/repositories/{repo_name}/package/locks:
+    parameters:
+      - $ref: "#/components/parameters/RepoName"
+      - name: group
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: artifact
+        in: query
+        required: true
+        schema:
+          type: string
+    put:
+      tags: [ maven ]
+      summary: Set a Maven artifact or version lock
+      operationId: setMavenResourceLock
+      description: Requires an active browser session cookie and administrator or repository moderator authority. Read mode also freezes writes and denies file bytes to every role.
+      security:
+        - sessionCookie: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ mode, reason ]
+              properties:
+                version:
+                  type: string
+                  description: Omit or use an empty string for the artifact; otherwise supply an existing catalog version.
+                mode:
+                  type: string
+                  enum: [ write, read ]
+                reason:
+                  type: string
+                  enum: [ hold, prohibited, expired, trojan, abuse, dmca, reup, squatting, quality ]
+      responses:
+        "200":
+          description: Manual lock saved.
+        "400":
+          description: Invalid resource lock.
+        "403":
+          description: Browser session or moderation authority missing.
+        "404":
+          description: Artifact or version not found.
+    delete:
+      tags: [ maven ]
+      summary: Remove one manual Maven artifact or version lock
+      operationId: deleteMavenResourceLock
+      description: Requires the same authority as PUT and preserves independent system locks.
+      security:
+        - sessionCookie: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                version:
+                  type: string
+      responses:
+        "200":
+          description: Manual lock removed.
+        "403":
+          description: Browser session or moderation authority missing.
+        "404":
+          description: Artifact or version not found.
+
   /api/maven/repositories/{repo_name}/versions:
     delete:
       tags: [ maven ]
       summary: Delete one Maven artifact version
       operationId: deleteMavenArtifactVersion
+      description: Every coordinate segment is validated before storage changes. Path separators and dot-directory aliases are rejected.
       security:
         - sessionCookie: [ ]
       parameters:

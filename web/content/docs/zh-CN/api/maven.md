@@ -68,3 +68,22 @@ OpenPGP 校验。
 读取和发布使用 `/{repo}/{maven-path}`。可使用密码，或带有 `repository:read`、`repository:publish` 的
 API Token。仓库可见性控制读取，已验证域及账号当前 L0-L4 控制修改。完整契约位于
 `web/assets/openapi.yaml`。
+
+## 资源锁定
+
+仓库管理员和所属仓库的版主通过有效的浏览器会话 Cookie 管理包或版本锁定：
+
+- `PUT /api/maven/repositories/{repo_name}/package/locks?group={group}&artifact={artifact}`
+- `DELETE /api/maven/repositories/{repo_name}/package/locks?group={group}&artifact={artifact}`
+
+```json
+{"version":"1.2.3","mode":"read","reason":"trojan"}
+```
+
+省略 `version` 或使用空字符串表示锁定整个包。DELETE 接受 `{"version":"1.2.3"}`，仅移除对应的手动锁定，系统锁定独立保留。API Token 不能管理锁定。界面会本地化显示公开原因：`hold`、`prohibited`、`expired`、`trojan`、`abuse`、`dmca`、`reup`、`squatting`、`quality`。
+
+两种模式都会冻结写入。`write` 保留已存储文件的下载；`read` 还会将元数据限制为管理员、所属仓库版主、发布域所有者与协作者（包括 L0），以及包或发布域所绑定超级团队的成员可见。任何人都不能下载文件内容、POM、签名或校验文件。有权限的人员仍可查看目录详情和解析后的 `maven-metadata.xml`；其他人不能通过目录、搜索、文件树、版本 API 或统计发现受限的包或版本。共享 XML 元数据会移除隐藏版本并调整 latest/release，存储中的原文件不变。
+
+锁定覆盖任意附属文件及带时间戳的 SNAPSHOT 文件。冻结文件不会因缓存到期而删除，也不会从镜像重新填充。版本被锁定时，共享元数据不能被覆盖；整个包的永久弃用及仓库重配置、删除也会被阻止。详情返回公开的 `locks`、`moderator`、`member`、`version_locked` 状态。受限写入返回 `423` 和 `X-Renop-Error-Code: resource_locked`；受限读取返回 `404`。
+
+版本删除会在修改存储前校验每个坐标段，拒绝路径分隔符和点目录别名。

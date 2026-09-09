@@ -10,7 +10,20 @@
 
 package core
 
-import "errors"
+import (
+	"errors"
+	"regexp"
+)
+
+// MaxMavenPathParts bounds artifact and metadata path depth.
+const MaxMavenPathParts = 32
+
+var mavenCoordinatePartPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$`)
+
+// ValidMavenCoordinatePart excludes path separators, dot aliases, and reserved punctuation.
+func ValidMavenCoordinatePart(value string) bool {
+	return mavenCoordinatePartPattern.MatchString(value)
+}
 
 const (
 	MavenPermissionRead    = 0
@@ -110,26 +123,29 @@ type MavenDomainDetails struct {
 
 // MavenArtifact is durable catalog metadata for one groupId and artifactId.
 type MavenArtifact struct {
-	Repository      string `json:"repository"`
-	Domain          string `json:"domain"`
-	GroupID         string `json:"group_id"`
-	ArtifactID      string `json:"artifact_id"`
-	Description     string `json:"description,omitempty"`
-	Readme          string `json:"readme,omitempty"`
-	Publisher       string `json:"publisher,omitempty"`
-	LatestVersion   string `json:"latest_version,omitempty"`
-	VersionCount    int    `json:"version_count"`
-	TotalSize       int64  `json:"total_size"`
-	Mirrored        bool   `json:"mirrored"`
-	Deprecated      bool   `json:"deprecated,omitempty"`
-	SuperTeamPrefix string `json:"super_team_prefix,omitempty"`
-	CreatedAt       int64  `json:"created_at"`
-	UpdatedAt       int64  `json:"updated_at"`
-	PermissionLevel int    `json:"permission_level,omitempty"`
+	Locks           []*ResourceLock `json:"locks,omitempty"`
+	VersionLocked   bool            `json:"version_locked,omitempty"`
+	Repository      string          `json:"repository"`
+	Domain          string          `json:"domain"`
+	GroupID         string          `json:"group_id"`
+	ArtifactID      string          `json:"artifact_id"`
+	Description     string          `json:"description,omitempty"`
+	Readme          string          `json:"readme,omitempty"`
+	Publisher       string          `json:"publisher,omitempty"`
+	LatestVersion   string          `json:"latest_version,omitempty"`
+	VersionCount    int             `json:"version_count"`
+	TotalSize       int64           `json:"total_size"`
+	Mirrored        bool            `json:"mirrored"`
+	Deprecated      bool            `json:"deprecated,omitempty"`
+	SuperTeamPrefix string          `json:"super_team_prefix,omitempty"`
+	CreatedAt       int64           `json:"created_at"`
+	UpdatedAt       int64           `json:"updated_at"`
+	PermissionLevel int             `json:"permission_level,omitempty"`
 }
 
 // MavenVersion is one published version in the Maven catalog.
 type MavenVersion struct {
+	Locks           []*ResourceLock     `json:"locks,omitempty"`
 	Repository      string              `json:"-"`
 	GroupID         string              `json:"-"`
 	ArtifactID      string              `json:"-"`
@@ -216,6 +232,8 @@ type MavenProjectMetadata struct {
 
 // MavenArtifactDetails combines an artifact with all indexed versions.
 type MavenArtifactDetails struct {
+	Moderator       bool                  `json:"moderator"`
+	Member          bool                  `json:"member"`
 	Artifact        *MavenArtifact        `json:"artifact"`
 	Versions        []*MavenVersion       `json:"versions"`
 	Project         *MavenProjectMetadata `json:"project,omitempty"`

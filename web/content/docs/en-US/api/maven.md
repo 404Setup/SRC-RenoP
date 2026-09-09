@@ -80,3 +80,22 @@ Artifact reads and publications use `/{repo}/{maven-path}`. Authenticate Maven o
 an API token carrying `repository:read` and/or `repository:publish`. Repository visibility controls reads, while
 verified domain membership and the owning account's L0-L4 domain level control mutation. The complete endpoint and
 schema list is available in `web/assets/openapi.yaml`.
+
+## Resource locks
+
+Administrators and moderators for this repository manage artifact or version locks using an active browser session cookie:
+
+- `PUT /api/maven/repositories/{repo_name}/package/locks?group={group}&artifact={artifact}`
+- `DELETE /api/maven/repositories/{repo_name}/package/locks?group={group}&artifact={artifact}`
+
+```json
+{"version":"1.2.3","mode":"read","reason":"trojan"}
+```
+
+Omit `version` or use an empty string to target the artifact. DELETE accepts `{"version":"1.2.3"}` and removes only that manual lock; system locks remain independent. API tokens cannot manage locks. The UI localizes public reasons: `hold`, `prohibited`, `expired`, `trojan`, `abuse`, `dmca`, `reup`, `squatting`, and `quality`.
+
+Both modes freeze writes. `write` preserves stored downloads; `read` also restricts metadata to administrators, repository moderators, domain owners/collaborators (including L0), and members of either bound global team. File bytes, POM downloads, signatures, and checksums are unavailable to every viewer. Permitted viewers can inspect catalog details and parsed `maven-metadata.xml`; other viewers cannot discover the restricted artifact or version through catalogs, search, directory listings, version APIs, or statistics. Shared XML metadata omits hidden versions and adjusts latest/release values without changing the stored file.
+
+Locks cover arbitrary companions and timestamped SNAPSHOT files. Frozen bytes neither expire nor refill from mirrors. Shared metadata cannot be overwritten while a version is locked; whole-artifact deprecation and repository reconfiguration/deletion are also blocked. Details expose public `locks`, `moderator`, `member`, and `version_locked` state. Denied mutations return `423` with `X-Renop-Error-Code: resource_locked`; denied reads return `404`.
+
+Version deletion validates every coordinate segment before changing storage; path separators and dot-directory aliases are rejected.

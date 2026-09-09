@@ -11,6 +11,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -20,6 +21,80 @@ import (
 	"renop/internal/database"
 	"renop/internal/testutil"
 )
+
+func TestMavenLocksCoverMetadataCompanionsAndCatalogMutations(t *testing.T) {
+	db := newMavenDB(t)
+	now := time.Now().UnixMilli()
+	require.NoError(t, db.CreateMavenDomain(&core.MavenDomain{Domain: "com.example", VerificationType: "dns",
+		VerificationHost: "example.com", VerificationCode: "proof", CreatedAt: now}, "alice"))
+	require.NoError(t, db.MarkMavenDomainVerified("com.example", "proof", now))
+	require.NoError(t, db.ForceAddMavenMembers("com.example", "alice", []string{"bob"}, 0))
+	publish := func(version string) error {
+		return db.RecordMavenPublication(&core.MavenArtifact{Repository: "maven", Domain: "com.example",
+			GroupID: "com.example", ArtifactID: "demo", Publisher: "alice", CreatedAt: now},
+			&core.MavenVersion{Version: version, Publisher: "alice", CreatedAt: now})
+	}
+	require.NoError(t, publish("1.0-SNAPSHOT"))
+	require.NoError(t, publish("2.0"))
+	lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "maven", Repository: "maven",
+		Name: "com.example:demo", Version: "1.0-SNAPSHOT"}, Source: core.ResourceLockSystem,
+		Mode: core.ResourceLockRead, Reason: "trojan", LockedAt: now}
+	require.NoError(t, db.SetResourceLock(lock, "", ""))
+	for _, path := range []string{"com/example/demo/1.0-SNAPSHOT/demo-1.0-20260909.1.jar",
+		"com/example/demo/1.0-SNAPSHOT/maven-metadata.xml.sha256", "com/example/demo/1.0-SNAPSHOT/arbitrary.txt",
+		"com/example/demo/maven-metadata.xml", "com/example/demo/1.0-SNAPSHOT"} {
+		locks, err := db.GetMavenPathLocks("maven", path, false)
+		require.NoError(t, err, path)
+		require.Len(t, locks, 1, path)
+	}
+	locks, err := db.GetMavenPathLocks("maven", "com/example/demo/2.0/demo-2.0.jar", false)
+	require.NoError(t, err)
+	require.Empty(t, locks)
+	locks, err = db.GetMavenPathLocks("maven", "com/example", true)
+	require.NoError(t, err)
+	require.Len(t, locks, 1)
+	for _, viewer := range []string{"guest", "bob", "alice"} {
+		visible, err := db.ResourceMetadataVisibility("maven", "maven", viewer, false, []core.ResourceLockTarget{lock.ResourceLockTarget})
+		require.NoError(t, err)
+		require.Equal(t, []bool{viewer != "guest"}, visible)
+		artifacts, total, err := db.ListReadableMavenArtifacts([]string{"maven"}, "", "", viewer, nil, 10, 0)
+		require.NoError(t, err)
+		require.Equal(t, 1, total)
+		require.Equal(t, "2.0", artifacts[0].LatestVersion)
+		if viewer == "guest" {
+			require.Equal(t, 1, artifacts[0].VersionCount)
+		} else {
+			require.Equal(t, 2, artifacts[0].VersionCount)
+		}
+	}
+	require.ErrorIs(t, publish("1.0-SNAPSHOT"), core.ErrResourceLocked)
+	require.ErrorIs(t, db.DeleteMavenVersionMetadata("maven", "com.example", "demo", "1.0-SNAPSHOT"), core.ErrResourceLocked)
+	require.ErrorIs(t, db.DeprecatePackage("maven", "maven", "com.example:demo", now), core.ErrResourceLocked)
+	if runtime.GOOS == "windows" {
+		require.ErrorIs(t, publish("1.0-snapshot"), core.ErrResourceLocked)
+		locks, err := db.GetMavenPathLocks("maven", "COM/EXAMPLE/DEMO/1.0-snapshot/other.bin", false)
+		require.NoError(t, err)
+		require.Len(t, locks, 1)
+	}
+	require.NoError(t, publish("3.0"))
+	require.NoError(t, db.UpdateMavenArtifactDescription("maven", "com.example", "demo", "allowed"))
+	lock.Version, lock.Mode = "", core.ResourceLockWrite
+	require.NoError(t, db.SetResourceLock(lock, "", ""))
+	require.ErrorIs(t, publish("4.0"), core.ErrResourceLocked)
+	require.ErrorIs(t, db.UpdateMavenArtifactDescription("maven", "com.example", "demo", "blocked"), core.ErrResourceLocked)
+	require.ErrorIs(t, db.UpdateMavenArtifactReadme("maven", "com.example", "demo", "blocked"), core.ErrResourceLocked)
+	require.NoError(t, db.RollbackMavenPublication("maven", "com.example", "demo", "3.0"))
+	lock.Mode = core.ResourceLockRead
+	require.NoError(t, db.SetResourceLock(lock, "", ""))
+	artifacts, total, err := db.ListReadableMavenArtifacts([]string{"maven"}, "", "", "guest", nil, 10, 0)
+	require.NoError(t, err)
+	require.Zero(t, total)
+	require.Empty(t, artifacts)
+	artifacts, total, err = db.ListReadableMavenArtifacts([]string{"maven"}, "", "", "guest", []string{"maven"}, 10, 0)
+	require.NoError(t, err)
+	require.Equal(t, 1, total)
+	require.Len(t, artifacts, 1)
+}
 
 func TestDockerLocksProtectAliasesIndexChildrenAndSharedBlobs(t *testing.T) {
 	db := newMavenDB(t)
