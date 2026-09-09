@@ -429,7 +429,7 @@ try {
             $goamd64 = if ($Matches[2]) { $Matches[2] } else { 'v1' }
         }
 
-        $ldflags = "-o2 -s -w -X=renop/internal/version.Version=$displayVersion -X=renop/internal/version.Development=$developmentValue -X=renop/internal/version.Commit=$commitFull -X=renop/internal/version.PreviousCommit=$previousCommitFull"
+        $ldflags = "all=-o3 -fmth -s -w -X=renop/internal/version.Version=$displayVersion -X=renop/internal/version.Development=$developmentValue -X=renop/internal/version.Commit=$commitFull -X=renop/internal/version.PreviousCommit=$previousCommitFull"
         if ($goos -eq 'linux') {
             # Apply before runtime initialization so even the first Go heap mapping
             # avoids transparent huge pages. A process-level GODEBUG still overrides it.
