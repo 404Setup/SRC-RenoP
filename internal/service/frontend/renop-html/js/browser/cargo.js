@@ -45,8 +45,28 @@ import {
     setRepositoryViewBusy
 } from './repository-view.js';
 import {RepositoryUserSuggestions} from './user-suggestions.js';
+import {createResourceLockButton, createResourceLockNotices, resourceReadLocked, resourceWriteLocked} from '../resource-locks.js';
 
 const cargoRepositoryIcon = getRepositoryFormat('cargo').icon;
+
+/** Bind a lock dialog to the exact package and repository shown when it opens. */
+function cargoResourceLockButton(packageRecord, version = null) {
+    const endpoint = cargoAPIPath('crates', packageRecord.name, 'locks');
+    const repository = activeRepository;
+    return createResourceLockButton({
+        locks: version?.locks || packageRecord.locks || [],
+        name: version ? `${packageRecord.name} ${version.version}` : packageRecord.name,
+        request: (mode, reason) => apiRequest(endpoint, {
+            method: mode ? 'PUT' : 'DELETE', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({version: version?.version || '', mode, reason})
+        }),
+        onSuccess: () => {
+            if (activeRepository === repository && activePackageDetails?.package?.name === packageRecord.name) {
+                return refreshCargoPackagePage();
+            }
+        }
+    });
+}
 
 const CARGO_CATALOG_PAGE_SIZE = 50;
 const CARGO_VERSION_PAGE_SIZE = 5;
@@ -781,7 +801,7 @@ function buildCargoVersionsSection() {
             );
             row.appendChild(meta);
             const actions = el('div', {class: 'cargo-row-actions'});
-            if (version.has_docs === true) {
+            if (version.has_docs === true && !resourceReadLocked(packageRecord, version)) {
                 const docLink = el('a', {
                     class: 'pill-btn pill-btn--soft pill-btn--sm',
                     href: `/cargodoc/${encodePathSegment(activeRepository)}/${encodePathSegment(packageRecord.name)}/${encodePathSegment(version.version)}/`,
@@ -790,7 +810,7 @@ function buildCargoVersionsSection() {
                 actions.appendChild(docLink);
             }
 
-            if (canManageVersions && !pendingReview) {
+            if (canManageVersions && !pendingReview && !resourceWriteLocked(packageRecord, version)) {
                 const restoreLocked = version.yanked && (
                     (version.admin_yanked && !activeAdministrator) || packageRecord.archived
                 );
@@ -818,6 +838,11 @@ function buildCargoVersionsSection() {
                     'data-cargo-action': 'delete-version', 'data-cargo-version': String(version.version || '')
                 }, t('common.delete')));
             }
+            if (activePackageDetails.moderator && !pendingReview) {
+                actions.appendChild(cargoResourceLockButton(packageRecord, version));
+            }
+            const lockNotice = createResourceLockNotices(version.locks);
+            if (lockNotice) meta.appendChild(lockNotice);
             row.appendChild(actions);
             versionRows.push({row, badge, version: version.version});
             nextRows.push(row);
@@ -940,7 +965,7 @@ function buildMemberLevelSelect(member) {
  */
 function buildCargoTeamSection(animate = false) {
     const packageRecord = activePackageDetails.package;
-    const canManageTeam = !packageRecord.deprecated &&
+    const canManageTeam = !packageRecord.deprecated && !resourceWriteLocked(packageRecord) &&
         (activeAdministrator || Number(packageRecord.permission_level) >= 3);
     const currentUsername = String(localStorage.getItem('username') || '').trim().toLowerCase();
     const section = el('section', {class: 'cargo-page-section'},
@@ -972,7 +997,7 @@ function buildCargoTeamSection(animate = false) {
                 }, isSelf ? t('team.leave') : t('common.remove')));
             }
             row.appendChild(controls);
-        } else if (isSelf && memberLevel < 4) {
+        } else if (isSelf && memberLevel < 4 && !resourceWriteLocked(packageRecord)) {
             row.appendChild(el('div', {class: 'cargo-team-controls'},
                 el('button', {
                     type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm',
@@ -1092,7 +1117,7 @@ function buildCargoPackageHero() {
     downloadBtn.append(downloadIcon, downloadLabel);
 
     function updateDownloadBtn(curVer) {
-        if (!curVer?.version) {
+        if (!curVer?.version || resourceReadLocked(packageRecord, curVer)) {
             downloadBtn.hidden = true;
             return;
         }
@@ -1114,7 +1139,7 @@ function buildCargoPackageHero() {
     docBtn.hidden = true;
     actions.appendChild(docBtn);
 
-    const canModifyPackage = !packageRecord?.deprecated &&
+    const canModifyPackage = !packageRecord?.deprecated && !resourceWriteLocked(packageRecord) &&
         (activeAdministrator || Number(packageRecord?.permission_level) >= 1);
     let uploadDocBtn = null;
     if (canModifyPackage) {
@@ -1126,13 +1151,13 @@ function buildCargoPackageHero() {
     }
 
     function updateDocsButtons(curVer) {
-        if (curVer?.has_docs === true) {
+        if (curVer?.has_docs === true && !resourceReadLocked(packageRecord, curVer)) {
             docBtn.href = `/cargodoc/${encodePathSegment(activeRepository)}/${encodePathSegment(packageName)}/${encodePathSegment(curVer.version)}/`;
             docBtn.hidden = false;
             if (uploadDocBtn) uploadDocBtn.hidden = true;
         } else {
             docBtn.hidden = true;
-            if (uploadDocBtn) uploadDocBtn.hidden = !canModifyPackage;
+            if (uploadDocBtn) uploadDocBtn.hidden = !canModifyPackage || resourceWriteLocked(curVer);
         }
     }
 
@@ -1140,13 +1165,16 @@ function buildCargoPackageHero() {
 
     const canManagePackage = activeAdministrator || Number(packageRecord?.permission_level) >= 3;
     const canOwnPackage = activeAdministrator || Number(packageRecord?.permission_level) >= 4;
-    if (canManagePackage && !packageRecord?.mirrored && !packageRecord?.deprecated) {
+    const anyLockedVersion = activePackageDetails.versions?.some(version => resourceWriteLocked(version));
+    const canRewritePackage = !resourceWriteLocked(packageRecord) && !anyLockedVersion;
+    if (activePackageDetails.moderator) actions.appendChild(cargoResourceLockButton(packageRecord));
+    if (canManagePackage && canRewritePackage && !packageRecord?.mirrored && !packageRecord?.deprecated) {
         actions.appendChild(createDeprecatePackageButton(
             () => apiRequest(cargoAPIPath('crates', packageName, 'deprecate'), {method: 'PUT'}),
             refreshCargoPackagePage
         ));
     }
-    if (canOwnPackage && !packageRecord?.mirrored && !packageRecord?.deprecated) {
+    if (canOwnPackage && !resourceWriteLocked(packageRecord) && !packageRecord?.mirrored && !packageRecord?.deprecated) {
         actions.appendChild(el('button', {
             type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
             onclick: () => openSuperTeamTransferDialog({
@@ -1156,7 +1184,7 @@ function buildCargoPackageHero() {
             })
         }, createIcon('refresh'), el('span', {}, t('review.transferOwnership'))));
     }
-    if (canManagePackage && !packageRecord?.deprecated) {
+    if (canManagePackage && canRewritePackage && !packageRecord?.deprecated) {
         const restoreLocked = packageRecord.archived && packageRecord.admin_archived && !activeAdministrator;
         actions.appendChild(el('button', {
             type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
@@ -1251,6 +1279,7 @@ function renderCargoPackagePage(animateTeam = false) {
     activeView.replaceChildren(...[
         buildCargoPackageHero(),
         activePackageDetails.package.deprecated ? createPackageDeprecationNotice() : null,
+        createResourceLockNotices(activePackageDetails.package.locks),
         detail
     ].filter(Boolean));
 }

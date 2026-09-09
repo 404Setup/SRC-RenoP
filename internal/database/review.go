@@ -649,6 +649,10 @@ func applySuperTeamTransferTx(tx *Tx, task *core.ReviewTask) error {
 			WHERE repository = ? AND package_name = ? AND super_team_prefix = ?`, task.TargetTeamPrefix,
 			task.DecidedAt, task.Repository, task.ResourceKey, task.SourceTeamPrefix)
 	case core.ReviewResourceCargoPackage:
+		if err := ensureResourceMutableQuery(tx.QueryRow, core.ResourceLockTarget{Format: config.RepositoryFormatCargo,
+			Repository: task.Repository, Name: task.ResourceKey}, false); err != nil {
+			return err
+		}
 		result, err = tx.Exec(`UPDATE cargo_packages SET super_team_prefix = ?, updated_at = ?
 			WHERE repository = ? AND normalized_name = ? AND super_team_prefix = ?`, task.TargetTeamPrefix,
 			task.DecidedAt, task.Repository, task.ResourceKey, task.SourceTeamPrefix)

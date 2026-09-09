@@ -57,6 +57,8 @@ const (
 	ActionReviewCancel           = "REVIEW_CANCEL"
 
 	ActionCargoPublish        = "CARGO_PUBLISH"
+	ActionResourceLock        = "RESOURCE_LOCK"
+	ActionResourceUnlock      = "RESOURCE_UNLOCK"
 	ActionCargoDocsUpload     = "CARGO_DOCS_UPLOAD"
 	ActionCargoDocsDelete     = "CARGO_DOCS_DELETE"
 	ActionCargoYank           = "CARGO_YANK"
@@ -163,6 +165,8 @@ func KnownActions() []string {
 		ActionReviewDecision,
 		ActionReviewCancel,
 		ActionCargoPublish,
+		ActionResourceLock,
+		ActionResourceUnlock,
 		ActionCargoDocsUpload,
 		ActionCargoDocsDelete,
 		ActionCargoYank,

@@ -121,6 +121,9 @@ func (db *DB) EnsurePackageMutable(format, repository, packageKey string) error 
 	if deprecated {
 		return core.ErrPackageDeprecated
 	}
+	if format == config.RepositoryFormatCargo {
+		return db.EnsureResourceMutable(core.ResourceLockTarget{Format: format, Repository: repository, Name: packageKey}, false)
+	}
 	return nil
 }
 

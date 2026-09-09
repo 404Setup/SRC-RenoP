@@ -69,6 +69,9 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	}
 	creating := existing == nil
 	if existing != nil && state.GetDB() != nil {
+		if err := requireUnlockedRepository(c, state, repoName); err != nil {
+			return err
+		}
 		if pending, pendingErr := state.GetDB().HasPendingPublicationReviews(repoName); pendingErr != nil {
 			return c.Status(fiber.StatusServiceUnavailable).SendString("Repository review state is unavailable")
 		} else if pending {
@@ -350,6 +353,9 @@ func MigrateRepositoryEngine(c fiber.Ctx, state *core.AppState) error {
 	} else if pending {
 		return repositoryMigrationError(c, fiber.StatusConflict, "repository_migration_pending_review", "Repository has pending publication reviews")
 	}
+	if err := requireUnlockedRepository(c, state, repository); err != nil {
+		return err
+	}
 
 	original := current.DeepCopy()
 	replacement := repositoryWithMigratedEngine(current, target)
@@ -443,6 +449,9 @@ func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	releaseMigration := repositorygate.AcquireMigration(repoName)
 	defer releaseMigration()
 	if db := state.GetDB(); db != nil {
+		if err := requireUnlockedRepository(c, state, repoName); err != nil {
+			return err
+		}
 		if pending, err := db.HasPendingPublicationReviews(repoName); err != nil {
 			return c.Status(fiber.StatusServiceUnavailable).SendString("Repository review state is unavailable")
 		} else if pending {
@@ -518,6 +527,17 @@ func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	return c.Status(fiber.StatusOK).SendString("")
+}
+
+func requireUnlockedRepository(c fiber.Ctx, state *core.AppState, repository string) error {
+	if err := state.GetDB().EnsureRepositoryResourcesMutable(repository); err != nil {
+		if errors.Is(err, core.ErrResourceLocked) {
+			c.Set("X-Renop-Error-Code", "resource_locked")
+			return fiber.NewError(fiber.StatusLocked, "Repository contains locked resources")
+		}
+		return fiber.ErrServiceUnavailable
+	}
+	return nil
 }
 
 func saveRepositories(cfg *config.Config) error {

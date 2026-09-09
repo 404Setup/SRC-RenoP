@@ -19,6 +19,7 @@ import (
 
 	"golang.org/x/mod/semver"
 
+	"renop/internal/config"
 	"renop/internal/core"
 )
 
@@ -70,6 +71,26 @@ func cargoEffectivePermission(queryRow func(string, ...any) row, repository, nor
 
 func cargoEffectivePermissionTx(tx *Tx, repository, normalizedName, userID string) (int, bool, error) {
 	return cargoEffectivePermission(tx.QueryRow, repository, normalizedName, userID)
+}
+
+// HasCargoPackageMembership includes explicit L0 collaborators and bound global-team members.
+func (db *DB) HasCargoPackageMembership(repository, normalizedName, username string) (bool, error) {
+	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
+	if username == "" || strings.EqualFold(username, "guest") {
+		return false, nil
+	}
+	userID, err := db.userIDForUsername(username)
+	if errors.Is(err, core.ErrUserProfileNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	_, member, err := cargoEffectivePermission(db.QueryRow, repository, normalizedName, userID)
+	if errors.Is(err, core.ErrCargoPackageNotFound) {
+		return false, nil
+	}
+	return member, err
 }
 
 func scanCargoPackage(scanner cargoPackageScanner, includeReadme bool) (*core.CargoPackage, error) {
@@ -273,7 +294,7 @@ func (db *DB) ListCargoPackages(repository, username string, administrator bool)
 	return packages, nil
 }
 
-func (db *DB) SearchCargoPackages(repository, query string, limit, offset int) ([]*core.CargoPackage, int, error) {
+func (db *DB) SearchCargoPackages(repository, query, username string, moderator bool, limit, offset int) ([]*core.CargoPackage, int, error) {
 	if db == nil || db.SQLDB == nil {
 		return nil, 0, core.ErrDatabaseUnavailable
 	}
@@ -288,14 +309,33 @@ func (db *DB) SearchCargoPackages(repository, query string, limit, offset int) (
 	}
 	pattern := "%" + query + "%"
 	where := `repository = ? AND archived = 0 AND (normalized_name LIKE ? OR LOWER(description) LIKE ?)`
+	args := []any{repository, pattern, pattern}
+	userID := ""
+	if username != "" && !strings.EqualFold(username, "guest") {
+		var err error
+		userID, err = db.userIDForUsername(username)
+		if err != nil && !errors.Is(err, core.ErrUserProfileNotFound) {
+			return nil, 0, err
+		}
+	}
+	if !moderator {
+		where += ` AND (NOT EXISTS (SELECT 1 FROM resource_locks l WHERE l.format = 'cargo'
+			AND l.repository = cargo_packages.repository AND l.resource_name = cargo_packages.normalized_name
+			AND l.version = '' AND l.mode = 'read')
+			OR EXISTS (SELECT 1 FROM cargo_members m WHERE m.repository = cargo_packages.repository
+			AND m.normalized_name = cargo_packages.normalized_name AND m.user_id = ?)
+			OR EXISTS (SELECT 1 FROM super_team_members m WHERE m.team_prefix = cargo_packages.super_team_prefix
+			AND m.user_id = ?))`
+		args = append(args, userID, userID)
+	}
 	var total int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM cargo_packages WHERE `+where,
-		repository, pattern, pattern).Scan(&total); err != nil {
+		args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count Cargo search results: %w", err)
 	}
 	rows, err := db.Query(`SELECT `+cargoPackageColumns+` FROM cargo_packages WHERE `+where+
 		` ORDER BY CASE WHEN normalized_name = ? THEN 0 ELSE 1 END, normalized_name LIMIT ? OFFSET ?`,
-		repository, pattern, pattern, query, limit, offset)
+		append(args, query, limit, offset)...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("search Cargo packages: %w", err)
 	}
@@ -328,8 +368,19 @@ func (db *DB) SearchCargoPackages(repository, query string, limit, offset int) (
 		arguments = append(arguments, pkg.NormalizedName)
 		packagesByName[pkg.NormalizedName] = pkg
 	}
-	versionRows, err := db.Query(`SELECT normalized_name, version FROM cargo_versions
-		WHERE repository = ? AND yanked = 0 AND normalized_name IN (`+strings.Join(placeholders, ",")+`)`, arguments...)
+	versionQuery := `SELECT v.normalized_name, v.version FROM cargo_versions v
+		JOIN cargo_packages p ON p.repository = v.repository AND p.normalized_name = v.normalized_name
+		WHERE v.repository = ? AND v.yanked = 0 AND v.normalized_name IN (` + strings.Join(placeholders, ",") + `)`
+	if !moderator {
+		versionQuery += ` AND (NOT EXISTS (SELECT 1 FROM resource_locks l WHERE l.format = 'cargo'
+			AND l.repository = v.repository AND l.resource_name = v.normalized_name
+			AND ` + resourceLockVersionColumn("cargo", "l.version") + ` = ` + resourceLockVersionColumn("cargo", "v.version") + ` AND l.mode = 'read')
+			OR EXISTS (SELECT 1 FROM cargo_members m WHERE m.repository = v.repository
+			AND m.normalized_name = v.normalized_name AND m.user_id = ?)
+			OR EXISTS (SELECT 1 FROM super_team_members m WHERE m.team_prefix = p.super_team_prefix AND m.user_id = ?))`
+		arguments = append(arguments, userID, userID)
+	}
+	versionRows, err := db.Query(versionQuery, arguments...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list Cargo search versions: %w", err)
 	}
@@ -419,6 +470,10 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 	}
 	defer tx.Rollback()
 	if err := lockAccountLoginMethodsTx(tx, userID); err != nil {
+		return err
+	}
+	if err := ensureResourceMutableQuery(tx.QueryRow, core.ResourceLockTarget{Format: config.RepositoryFormatCargo,
+		Repository: repository, Name: normalizedName, Version: versionName}, false); err != nil {
 		return err
 	}
 
@@ -1293,6 +1348,10 @@ func requireCargoMemberPermission(tx *Tx, repository, normalizedName, userID str
 }
 
 func lockCargoPackageTeam(tx *Tx, repository, normalizedName string) error {
+	if err := ensureResourceMutableQuery(tx.QueryRow, core.ResourceLockTarget{Format: config.RepositoryFormatCargo,
+		Repository: repository, Name: normalizedName}, false); err != nil {
+		return err
+	}
 	if _, err := tx.Exec(`UPDATE cargo_packages SET updated_at = updated_at
 		WHERE repository = ? AND normalized_name = ?`, repository, normalizedName); err != nil {
 		return fmt.Errorf("lock Cargo package team: %w", err)

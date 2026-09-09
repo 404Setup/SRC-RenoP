@@ -88,13 +88,14 @@ type SuperTeamResource struct {
 
 // SuperTeamResourceListOptions bounds and authorizes one global-team resource page.
 type SuperTeamResourceListOptions struct {
-	Prefix              string
-	Format              string
-	Viewer              string
-	VisibleRepositories []string
-	PrivateRepositories []string
-	Limit               int
-	Offset              int
+	Prefix                string
+	Format                string
+	Viewer                string
+	VisibleRepositories   []string
+	PrivateRepositories   []string
+	ModeratedRepositories []string
+	Limit                 int
+	Offset                int
 }
 
 // SuperTeamDetails combines one team with the members visible to its managers.

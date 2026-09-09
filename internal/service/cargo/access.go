@@ -42,7 +42,7 @@ func CanReadRepository(state *core.AppState, user *config.User, repo *config.Rep
 	if user != nil && user.CheckReadPermission(repo.Name, path, repo.Visibility, isRoot) {
 		return true, nil
 	}
-	if repo.NormalizedFormat() != config.RepositoryFormatCargo || user.Username == "" || strings.EqualFold(user.Username, "guest") {
+	if repo.NormalizedFormat() != config.RepositoryFormatCargo || user == nil || user.Username == "" || strings.EqualFold(user.Username, "guest") {
 		return false, nil
 	}
 	if state == nil {
@@ -103,7 +103,13 @@ func authorizePackageMutation(c fiber.Ctx, state *core.AppState, repository, cra
 
 func cargoError(c fiber.Ctx, err error) error {
 	switch {
-	case errors.Is(err, core.ErrCargoPermissionDenied):
+	case errors.Is(err, core.ErrResourceLocked):
+		c.Set("X-Renop-Error-Code", "resource_locked")
+		return errorResponse(c, fiber.StatusLocked, "Resource is locked")
+	case errors.Is(err, core.ErrResourceLockInvalid):
+		c.Set("X-Renop-Error-Code", "invalid_request")
+		return errorResponse(c, fiber.StatusBadRequest, "Invalid resource lock")
+	case errors.Is(err, core.ErrCargoPermissionDenied), errors.Is(err, core.ErrResourceLockPermission):
 		return errorResponse(c, fiber.StatusForbidden, "You do not have permission to perform this Cargo operation")
 	case errors.Is(err, core.ErrCargoPackageNotFound):
 		return errorResponse(c, fiber.StatusNotFound, "Crate was not found")

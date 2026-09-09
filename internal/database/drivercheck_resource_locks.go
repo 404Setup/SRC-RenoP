@@ -1,0 +1,107 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+ * If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+package database
+
+import (
+	"errors"
+	"time"
+
+	"renop/internal/core"
+)
+
+func checkResourceLocks(db *DB, repository, prefix, owner, suffix string, now int64) error {
+	moderator := "lockmod-" + suffix
+	if err := db.SaveToken(&core.AccessToken{Name: moderator, Permissions: []string{"canmoderate:" + repository}}); err != nil {
+		return err
+	}
+	sessionToken := "lock-session-" + suffix
+	session := &core.Session{PublicID: "lock-" + suffix, Username: moderator, CreatedAt: now}
+	session.LastActive.Store(time.Now().UnixMilli())
+	if err := db.SaveSession(session, sessionToken); err != nil {
+		return err
+	}
+	pkg := &core.CargoPackage{Repository: repository, Name: "lock-demo", NormalizedName: "lock-demo",
+		SuperTeamPrefix: prefix, CreatedAt: now, UpdatedAt: now}
+	for _, version := range []string{"1.0.0", "2.0.0"} {
+		if err := db.RecordCargoPublication(pkg, &core.CargoVersion{Repository: repository, Package: pkg.Name,
+			Version: version, Publisher: owner, CreatedAt: now}, owner); err != nil {
+			return err
+		}
+	}
+	if _, err := db.Exec(`UPDATE cargo_packages SET super_team_prefix = ? WHERE repository = ? AND normalized_name = ?`,
+		prefix, repository, pkg.Name); err != nil {
+		return err
+	}
+	target := core.ResourceLockTarget{Format: "cargo", Repository: repository, Name: pkg.Name, Version: "2.0.0"}
+	lock := &core.ResourceLock{ResourceLockTarget: target, Source: core.ResourceLockManual,
+		Mode: core.ResourceLockRead, Reason: "trojan", LockedAt: now}
+	if err := db.SetResourceLock(lock, moderator, sessionToken); err != nil {
+		return err
+	}
+	if err := db.EnsureResourceMutable(target, false); !errors.Is(err, core.ErrResourceLocked) {
+		return errorsOrMissing(err, "locked version mutation denial")
+	}
+	packages, total, err := db.SearchCargoPackages(repository, pkg.Name, "", false, 10, 0)
+	if err != nil || total != 1 || len(packages) != 1 || packages[0].MaxVersion != "1.0.0" {
+		return errorsOrMissing(err, "visible latest Cargo version")
+	}
+	visible, err := db.CargoMetadataVisibility(repository, "", false, []core.ResourceLockTarget{target})
+	if err != nil || len(visible) != 1 || visible[0] {
+		return errorsOrMissing(err, "locked Cargo path filtering")
+	}
+	lock.Source = core.ResourceLockSystem
+	if err := db.SetResourceLock(lock, "", ""); err != nil {
+		return err
+	}
+	if err := db.DeleteResourceLock(target, core.ResourceLockManual, moderator, sessionToken); err != nil {
+		return err
+	}
+	locks, err := db.GetResourceLocks(target, false)
+	if err != nil || len(locks) != 1 || locks[0].Source != core.ResourceLockSystem {
+		return errorsOrMissing(err, "independent system lock")
+	}
+	if err := db.DeleteResourceLock(target, core.ResourceLockSystem, "", ""); err != nil {
+		return err
+	}
+	target.Version = ""
+	lock.ResourceLockTarget, lock.Source = target, core.ResourceLockManual
+	if err := db.SetResourceLock(lock, moderator, sessionToken); err != nil {
+		return err
+	}
+	packages, total, err = db.SearchCargoPackages(repository, pkg.Name, "", false, 10, 0)
+	if err != nil || total != 0 || len(packages) != 0 {
+		return errorsOrMissing(err, "locked Cargo search totals")
+	}
+	profile, err := db.GetUserProfile(owner)
+	if err != nil {
+		return err
+	}
+	memberships, err := db.ListUserPackageMemberships(profile.UserID, "cargo", "", nil)
+	if err != nil {
+		return err
+	}
+	for _, membership := range memberships {
+		if membership.Repository == repository && membership.Name == pkg.Name {
+			return errors.New("locked Cargo package exposed on public profile")
+		}
+	}
+	options := core.SuperTeamResourceListOptions{Prefix: prefix, Format: "cargo", VisibleRepositories: []string{repository}, Limit: 10}
+	_, total, err = db.ListSuperTeamResources(options)
+	if err != nil || total != 0 {
+		return errorsOrMissing(err, "locked global-team resource filtering")
+	}
+	options.ModeratedRepositories = []string{repository}
+	_, total, err = db.ListSuperTeamResources(options)
+	if err != nil || total != 1 {
+		return errorsOrMissing(err, "moderator global-team resource visibility")
+	}
+	if err := db.EnsureRepositoryResourcesMutable(repository); !errors.Is(err, core.ErrResourceLocked) {
+		return errorsOrMissing(err, "locked repository reconfiguration denial")
+	}
+	return db.DeleteResourceLock(target, core.ResourceLockManual, moderator, sessionToken)
+}

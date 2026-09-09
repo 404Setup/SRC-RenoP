@@ -441,6 +441,9 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 	if err := initNPMTables(db); err != nil {
 		return err
 	}
+	if err := initResourceLockTable(db); err != nil {
+		return err
+	}
 	if err := initPackageDeprecationTable(db); err != nil {
 		return err
 	}

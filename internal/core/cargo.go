@@ -51,23 +51,24 @@ type CargoDependency struct {
 
 // CargoPackage is durable registry metadata for a local or mirrored crate.
 type CargoPackage struct {
-	Repository      string `json:"repository"`
-	Name            string `json:"name"`
-	NormalizedName  string `json:"-"`
-	Description     string `json:"description"`
-	Readme          string `json:"readme,omitempty"`
-	RepositoryURL   string `json:"repository_url,omitempty"`
-	Homepage        string `json:"homepage,omitempty"`
-	Documentation   string `json:"documentation,omitempty"`
-	Archived        bool   `json:"archived"`
-	AdminArchived   bool   `json:"admin_archived"`
-	Deprecated      bool   `json:"deprecated,omitempty"`
-	Mirrored        bool   `json:"mirrored"`
-	SuperTeamPrefix string `json:"super_team_prefix,omitempty"`
-	CreatedAt       int64  `json:"created_at"`
-	UpdatedAt       int64  `json:"updated_at"`
-	PermissionLevel int    `json:"permission_level,omitempty"`
-	MaxVersion      string `json:"-"`
+	Repository      string          `json:"repository"`
+	Name            string          `json:"name"`
+	NormalizedName  string          `json:"-"`
+	Description     string          `json:"description"`
+	Readme          string          `json:"readme,omitempty"`
+	RepositoryURL   string          `json:"repository_url,omitempty"`
+	Homepage        string          `json:"homepage,omitempty"`
+	Documentation   string          `json:"documentation,omitempty"`
+	Archived        bool            `json:"archived"`
+	AdminArchived   bool            `json:"admin_archived"`
+	Deprecated      bool            `json:"deprecated,omitempty"`
+	Locks           []*ResourceLock `json:"locks,omitempty"`
+	Mirrored        bool            `json:"mirrored"`
+	SuperTeamPrefix string          `json:"super_team_prefix,omitempty"`
+	CreatedAt       int64           `json:"created_at"`
+	UpdatedAt       int64           `json:"updated_at"`
+	PermissionLevel int             `json:"permission_level,omitempty"`
+	MaxVersion      string          `json:"-"`
 }
 
 // CargoVersion tracks local or mirrored versions and the origin of yank state.
@@ -95,6 +96,7 @@ type CargoVersion struct {
 	Mirrored      bool                `json:"mirrored"`
 	ReviewStatus  string              `json:"review_status,omitempty"`
 	ReviewID      string              `json:"review_id,omitempty"`
+	Locks         []*ResourceLock     `json:"locks,omitempty"`
 }
 
 // CargoMember is one package-team membership.

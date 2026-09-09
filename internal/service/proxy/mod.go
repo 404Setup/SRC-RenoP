@@ -227,6 +227,10 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 		return nil, fiber.ErrBadRequest
 	}
 	path = sanitizedPath
+	if err := cargo.EnsureMirrorPathMutable(state, repo, path); err != nil {
+		state.Inner.InFlightDownloads.UnlockPath(pathStr, dl, false)
+		return nil, err
+	}
 	var lastBlockedReason string
 	var globalProxyConfig config.ProxyConfig
 	if state != nil && state.Inner != nil {

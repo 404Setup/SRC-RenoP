@@ -288,6 +288,22 @@ func TestHandleCargodocPageAndServeRaw(t *testing.T) {
 	if respMissing.StatusCode != http.StatusNotFound {
 		t.Fatalf("expected status 404 for missing crate, got %d", respMissing.StatusCode)
 	}
+	if err := db.SetResourceLock(&core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{
+		Format: "cargo", Repository: "cargo-repo", Name: "demo-crate", Version: "0.1.0"},
+		Source: core.ResourceLockSystem, Mode: core.ResourceLockRead, Reason: "trojan", LockedAt: 1}, "", ""); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"/cargodoc/cargo-repo/demo-crate/0.1.0",
+		"/cargodoc/cargo-repo/demo-crate/0.1.0/raw/index.html", "/cargodoc/cargo-repo/demo-crate/0.1.0/raw/stylesheet.css"} {
+		response, err := app.Test(httptest.NewRequest(http.MethodGet, path, nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = response.Body.Close()
+		if response.StatusCode != http.StatusNotFound {
+			t.Fatalf("locked documentation %s: status %d", path, response.StatusCode)
+		}
+	}
 }
 
 func TestCleanupAndClearAllCargodocCaches(t *testing.T) {

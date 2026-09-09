@@ -51,6 +51,10 @@
     display: none;
 }
 
+.cargo-repository-view .pill-btn[hidden] {
+    display: none;
+}
+
 .file-list-container[hidden],
 .browser-adjustments[hidden] {
     display: none;

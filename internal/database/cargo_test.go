@@ -96,7 +96,7 @@ func TestCargoOwnershipInvitationAndAdministratorLocks(t *testing.T) {
 	require.NoError(t, db.RecordCargoPublication(pkg, &core.CargoVersion{
 		Repository: "cargo", Package: "demo", Version: "1.10.0", Publisher: "bob", CreatedAt: now + 3,
 	}, "bob"))
-	results, total, err := db.SearchCargoPackages("cargo", "demo", 10, 0)
+	results, total, err := db.SearchCargoPackages("cargo", "demo", "", false, 10, 0)
 	require.NoError(t, err)
 	require.Equal(t, 1, total)
 	require.Len(t, results, 1)
@@ -265,7 +265,7 @@ func TestCargoMirrorPublicationHasNoOwnerAndRetainsProvenance(t *testing.T) {
 	require.Len(t, details.Versions, 1)
 	assert.True(t, details.Versions[0].Mirrored)
 	assert.Equal(t, int64(2048), details.Versions[0].Size)
-	packages, total, err := db.SearchCargoPackages("cargo", "serde", 10, 0)
+	packages, total, err := db.SearchCargoPackages("cargo", "serde", "", false, 10, 0)
 	require.NoError(t, err)
 	assert.Equal(t, 1, total)
 	require.Len(t, packages, 1)

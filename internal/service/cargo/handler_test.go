@@ -612,7 +612,7 @@ func TestConcurrentNormalizedCargoNamesCannotCreateSplitPackages(t *testing.T) {
 		t.Fatalf("concurrent normalized-name publish statuses = %v", statuses)
 	}
 
-	packages, total, err := db.SearchCargoPackages("cargo", "demo", 10, 0)
+	packages, total, err := db.SearchCargoPackages("cargo", "demo", "", false, 10, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

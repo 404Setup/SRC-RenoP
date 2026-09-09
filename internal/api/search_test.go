@@ -118,7 +118,7 @@ func TestSearchCargoRepositoryReturnsNavigablePublicPackage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	response, err := searchCargoRepository(state,
+	response, err := searchCargoRepository(state, &config.User{Username: "guest"},
 		&config.Repository{Name: "cargo", Format: config.RepositoryFormatCargo},
 		"demo", 20)
 	if err != nil {

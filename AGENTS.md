@@ -73,7 +73,7 @@ Check `packages/renop-ui/package.json` exports before building another shared co
 | Email accounts, provider presets, billing, delivery     | `js/settings/mail.js`; JSON settings are integrated by `js/settings.js`                                                                                   |
 | Reviews / messages / administrator composer             | `js/reviews.js`, `js/review-messages.js`, `js/messages.js`, `js/notification-composer.js`                                                                |
 | Teams and quota                                         | `js/super-teams.js`, `js/super-team-resources.js`, `js/publication-quota.js`                                                                             |
-| Repository/package UI                                   | `js/browser/`; reuse `repository-view.js`, `package-detail-tabs.js`, `copy-feedback.js`, `user-suggestions.js`; lifecycle in `js/package-deprecation.js` |
+| Repository/package UI                                   | `js/browser/`; reuse `repository-view.js`, `package-detail-tabs.js`, `copy-feedback.js`, `user-suggestions.js`; lifecycle in `js/package-deprecation.js`; lock controls in `js/resource-locks.js` |
 | Markdown, clipboard, timestamps, async buttons          | `js/markdown.js`, `js/clipboard.js`, `js/time.js`, `js/components/button.js`                                                                             |
 | Localization and API error codes                        | `js/i18n/<locale>/`, `scripts/i18n-catalog.mjs`, `js/*-errors.js`                                                                                        |
 | Shared controls, animation, styling, jQuery runtime     | `@renop/ui` exports and matching styles in `packages/renop-ui/`                                                                                          |
@@ -113,6 +113,10 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   visibility filters. Scoped npm and namespaced Docker require the matching global-team prefix. Reserve npm/Docker
   resources explicitly, check upstream conflicts, and keep mirrored packages pull-only. Permanent package deprecation
   blocks every mutation while retaining downloads; pending transfers/reviews prevent deprecation.
+- **Resource locks:** Shared records live in `internal/database/resource_lock.go`; Cargo enforcement lives in
+  `internal/service/cargo/locks.go`.
+  Keep manual and system locks independent. Read locks freeze writes, restrict metadata to live staff/members, and deny
+  files to everyone. Include index/search/profile visibility, cached files, mirror refreshes, and repository changes.
 - **Maven lifecycle:** Domains are global across repositories. Closure blocks mutations, preserves downloads, and holds
   the name for 31 days; a later claimant must verify ownership and obtain administrator approval before publication.
   Preserve classic/catalog layouts and Maven/files migration without moving stored objects.

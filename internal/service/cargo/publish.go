@@ -85,6 +85,9 @@ func (h Handler) publish(c fiber.Ctx, state *core.AppState, repo *config.Reposit
 	}
 
 	normalizedName := normalizeCrateName(metadata.Name)
+	if err := db.EnsureResourceMutable(cargoLockTarget(repo.Name, normalizedName, metadata.Version), false); err != nil {
+		return cargoError(c, err)
+	}
 	lockPath := cargoPackageLockPath(storagePath, repo, normalizedName)
 	if !utils.IsSubPath(storagePath, lockPath) {
 		return errorResponse(c, fiber.StatusBadRequest, "Invalid Cargo package path")

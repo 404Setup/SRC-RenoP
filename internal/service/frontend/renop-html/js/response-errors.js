@@ -72,6 +72,7 @@ const commonErrorCodeKeys = Object.freeze({
     GITHUB_LAST_LOGIN_METHOD: 'profile.githubOnlyLogin',
     MAVEN_USER_NOT_FOUND: 'maven.userNotFound',
     package_deprecated: 'package.deprecationNotice',
+    resource_locked: 'resourceLock.blocked',
     review_pending: 'package.reviewPending',
     maven_domain_closed: 'maven.domainClosedError',
     maven_domain_locked: 'maven.domainLockedError',

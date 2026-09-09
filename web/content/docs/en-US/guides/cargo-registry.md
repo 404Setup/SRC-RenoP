@@ -91,3 +91,13 @@ When documentation is uploaded, RenoP validates and extracts rustdoc into a sand
 its size limits in `config.yaml`.
 
 Access URL: `http://localhost:3000/cargodoc/{repo}/{crate}/{version}/index.html`
+
+## Resource Locks
+
+The package page lets administrators and repository moderators lock a package or individual version and select a
+public reason. Write locks freeze changes; read locks additionally restrict metadata to staff and collaborators and
+block all file downloads and Cargodoc previews. Members retain metadata access without gaining permission to change
+locked content. Removing a manual lock leaves any system lock active. An unlocked version can still be published
+when another version is locked; operations that rewrite the whole package remain blocked.
+
+See [Cargo API](/docs/api/cargo) for lock requests, reasons, and response codes.

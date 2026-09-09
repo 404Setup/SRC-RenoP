@@ -23,6 +23,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
+	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/auth"
 	"renop/internal/utils"
@@ -249,6 +250,9 @@ func HandleCargodocPage(c fiber.Ctx, state *core.AppState) error {
 		if targetVer == "" {
 			return c.Status(fiber.StatusNotFound).SendString("No published version for Cargo package")
 		}
+		if err := authorizeDocLock(state, repoName, crateName, targetVer); err != nil {
+			return err
+		}
 		return c.Redirect().To(fmt.Sprintf("/cargodoc/%s/%s/%s/", repoName, crateName, targetVer))
 	}
 
@@ -263,6 +267,9 @@ func HandleCargodocPage(c fiber.Ctx, state *core.AppState) error {
 		return ServeRawCargodoc(c, state, repoName, crateName, version, resource)
 	}
 
+	if err := authorizeDocLock(state, repoName, crateName, version); err != nil {
+		return err
+	}
 	_, err := EnsureCargodocExtractedBlocking(state, repoName, crateName, version)
 	if err != nil {
 		if !errors.Is(err, fiber.ErrNotFound) && !errors.Is(err, os.ErrNotExist) {
@@ -346,6 +353,9 @@ func serveInjectedCargodocHTML(c fiber.Ctx, path string, size int64) (bool, erro
 
 // ServeRawCargodoc streams one sandboxed extracted documentation resource.
 func ServeRawCargodoc(c fiber.Ctx, state *core.AppState, repoName, crateName, version, resource string) error {
+	if err := authorizeDocLock(state, repoName, crateName, version); err != nil {
+		return err
+	}
 	cfg := state.Inner.Config.Load()
 	if !cfg.EnableCargodocPreview {
 		return c.Status(fiber.StatusNotFound).SendString("Cargo docs preview is not enabled on this RenoP instance.")
@@ -405,4 +415,19 @@ func ServeRawCargodoc(c fiber.Ctx, state *core.AppState, repoName, crateName, ve
 		CacheDuration: -1,
 		MaxAge:        3600,
 	})
+}
+
+func authorizeDocLock(state *core.AppState, repository, name, version string) error {
+	if state == nil || state.GetDB() == nil {
+		return fiber.ErrServiceUnavailable
+	}
+	locks, err := state.GetDB().GetResourceLocks(core.ResourceLockTarget{Format: config.RepositoryFormatCargo,
+		Repository: repository, Name: name, Version: version}, false)
+	if err != nil {
+		return fiber.ErrServiceUnavailable
+	}
+	if core.ReadLocked(locks) {
+		return fiber.ErrNotFound
+	}
+	return nil
 }

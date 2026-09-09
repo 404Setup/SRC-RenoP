@@ -149,6 +149,9 @@ func ApprovePublicationReview(state *core.AppState, task *core.ReviewTask, store
 	if err != nil {
 		return nil, err
 	}
+	if err := state.GetDB().EnsureResourceMutable(cargoLockTarget(task.Repository, task.ResourceKey, task.ResourceVersion), false); err != nil {
+		return nil, err
+	}
 	indexFilePath := cargoIndexPath(cfg.StoragePath, repo, payload.Package.Name)
 	if !utils.IsSubPath(cfg.StoragePath, indexFilePath) {
 		return nil, core.ErrReviewInvalidRequest

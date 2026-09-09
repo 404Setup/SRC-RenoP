@@ -59,3 +59,26 @@ RenoP 实现 Cargo Registry 与 Sparse Index 规范。
 - **Yank**：`DELETE /{repo}/api/v1/crates/{crate_name}/{version}/yank`
 - **Unyank**：`PUT /{repo}/api/v1/crates/{crate_name}/{version}/unyank`
 - **认证**：crate 所有者或管理员。
+
+## 资源锁定
+
+管理员和此仓库的版主使用有效的浏览器会话 Cookie，调用 `PUT /{repo}/api/v1/crates/{crate_name}/locks`。
+API 令牌和包客户端凭据不能管理锁定。
+
+```json
+{"version":"1.2.3","mode":"read","reason":"trojan"}
+```
+
+省略 `version` 或使用 `""` 可锁定整个包。模式为 `write` 和 `read`。支持本地化公开显示的原因有：
+`hold`、`prohibited`、`expired`、`trojan`、`abuse`、`dmca`、`reup`、`squatting` 和 `quality`。
+修改成功返回 `{"ok":true}`。移除指定的人工锁定时，调用
+`DELETE /{repo}/api/v1/crates/{crate_name}/locks`，请求体为 `{"version":"1.2.3"}`。
+
+禁止写入会冻结修改和上游刷新，已存储的文件仍可下载。禁止读取还会阻止所有文件下载和文档预览，包括工作人员。
+元数据仅对管理员、仓库版主、所有者和协作者可见，包括 L0 成员及绑定的全局团队成员。其他访问者无法在元数据、
+稀疏索引、搜索、用户资料或团队资源列表中看到被锁定的包或版本。
+
+包和版本元数据中的公开 `locks` 记录包含 `mode`、`reason`、`source` 和 `locked_at`。
+系统锁定与人工锁定相互独立，移除人工锁定不会解除系统限制。修改请求返回 `423` 及
+`X-Renop-Error-Code: resource_locked`，被拒绝的读取返回 `404`。版本锁定会阻止整个包的归档、
+永久弃用和删除，但仍可发布其他版本。存在资源锁定时，仓库不可重新配置或删除。

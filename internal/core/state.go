@@ -75,6 +75,11 @@ type StateDB interface {
 	IsPackageDeprecated(format, repository, packageKey string) (bool, error)
 	EnsurePackageMutable(format, repository, packageKey string) error
 	DeprecatePackage(format, repository, packageKey string, deprecatedAt int64) error
+	SetResourceLock(lock *ResourceLock, actor, session string) error
+	DeleteResourceLock(target ResourceLockTarget, source, actor, session string) error
+	GetResourceLocks(target ResourceLockTarget, allVersions bool) ([]*ResourceLock, error)
+	EnsureResourceMutable(target ResourceLockTarget, allVersions bool) error
+	EnsureRepositoryResourcesMutable(repository string) error
 	ListAPITokens(username string) ([]*APIToken, error)
 	CreateAPIToken(username string, token *APIToken, secretHash string) error
 	DeleteAPIToken(username, tokenID string) error
@@ -94,7 +99,7 @@ type StateDB interface {
 	GetUserAvatar(username string) (*UserAvatar, error)
 	PutUserAvatar(username string, avatar *UserAvatar) error
 	DeleteUserAvatar(username string) error
-	ListUserPackageMemberships(userID, format string) ([]*UserPackageMembership, error)
+	ListUserPackageMemberships(userID, format, viewer string, moderatedRepositories []string) ([]*UserPackageMembership, error)
 	UpdateUserProfileLinks(username string, links PublicLinks, updatedAt int64) (*UserProfile, error)
 	UpdateUserProfile(oldUsername, newUsername, nickname string, token *AccessToken, changedAt int64, changes AccountTokenChanges) (*UserProfile, error)
 	GetSession(sessionToken string) (*Session, error)
@@ -277,7 +282,9 @@ type StateDB interface {
 	CargoHasPublishedVersions(repository, normalizedName string) (bool, error)
 	GetCargoPackageDetails(repository, normalizedName, username string) (*CargoPackageDetails, error)
 	ListCargoPackages(repository, username string, administrator bool) ([]*CargoPackage, error)
-	SearchCargoPackages(repository, query string, limit, offset int) ([]*CargoPackage, int, error)
+	SearchCargoPackages(repository, query, username string, moderator bool, limit, offset int) ([]*CargoPackage, int, error)
+	HasCargoPackageMembership(repository, normalizedName, username string) (bool, error)
+	CargoMetadataVisibility(repository, username string, moderator bool, targets []ResourceLockTarget) ([]bool, error)
 	HasCargoMembership(repository, username string) (bool, error)
 	RecordCargoPublication(pkg *CargoPackage, version *CargoVersion, username string) error
 	RollbackCargoPublicationReview(repository, normalizedName, version string, previous *CargoPackage) error

@@ -146,5 +146,6 @@ type packageListResponse struct {
 
 type packageInfoResponse struct {
 	*core.CargoPackageDetails
-	Admin bool `json:"administrator"`
+	Admin     bool `json:"administrator"`
+	Moderator bool `json:"moderator"`
 }

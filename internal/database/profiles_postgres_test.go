@@ -179,11 +179,11 @@ func TestPostgresUserProfileIntegration(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "profile_pg_two", byID.Username)
 	require.Equal(t, "https://profile.pg.example", byID.Links.Website)
-	cargoMemberships, err := db.ListUserPackageMemberships(stableUserID, config.RepositoryFormatCargo)
+	cargoMemberships, err := db.ListUserPackageMemberships(stableUserID, config.RepositoryFormatCargo, "", nil)
 	require.NoError(t, err)
 	require.Len(t, cargoMemberships, 1)
 	require.Equal(t, "profile-pg-crate", cargoMemberships[0].Name)
-	dockerMemberships, err := db.ListUserPackageMemberships(stableUserID, config.RepositoryFormatDocker)
+	dockerMemberships, err := db.ListUserPackageMemberships(stableUserID, config.RepositoryFormatDocker, "", nil)
 	require.NoError(t, err)
 	require.Len(t, dockerMemberships, 1)
 	require.Equal(t, "profile/pg", dockerMemberships[0].Name)
@@ -460,7 +460,7 @@ func TestPostgresDriverContract(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
 	results, err := database.RunDriverCheck(context.Background(), db)
 	require.NoError(t, err)
-	require.Len(t, results, 18)
+	require.Len(t, results, 19)
 }
 
 func TestPostgresAccountRetirementCannotRestoreConcurrentCredentials(t *testing.T) {

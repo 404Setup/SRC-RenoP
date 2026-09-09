@@ -41,7 +41,9 @@ func (h Handler) search(c fiber.Ctx, state *core.AppState, repo *config.Reposito
 	if db == nil {
 		return cargoError(c, core.ErrDatabaseUnavailable)
 	}
-	packages, total, err := db.SearchCargoPackages(repo.Name, query, perPage, (page-1)*perPage)
+	user := auth.GetUser(c)
+	packages, total, err := db.SearchCargoPackages(repo.Name, query, user.Username,
+		user.CheckModeratePermission(repo.Name), perPage, (page-1)*perPage)
 	if err != nil {
 		return cargoError(c, err)
 	}
@@ -107,9 +109,13 @@ func (h Handler) packageInfo(c fiber.Ctx, state *core.AppState, repo *config.Rep
 	}
 
 	h.enrichPackageVersionsFromIndex(state, repo, storagePath, details)
+	if err := applyPackageLocks(state, user, details); err != nil {
+		return cargoError(c, err)
+	}
 
 	c.Set(fiber.HeaderCacheControl, "no-store")
-	return c.JSON(packageInfoResponse{CargoPackageDetails: details, Admin: administrator})
+	return c.JSON(packageInfoResponse{CargoPackageDetails: details, Admin: administrator,
+		Moderator: user.CheckModeratePermission(repo.Name)})
 }
 
 func (h Handler) enrichPackageVersionsFromIndex(state *core.AppState, repo *config.Repository, storagePath string, details *core.CargoPackageDetails) {

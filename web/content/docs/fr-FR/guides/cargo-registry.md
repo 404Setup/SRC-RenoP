@@ -93,3 +93,14 @@ comme amont, sans propriétaire local, et restent en lecture seule.
 RenoP valide et extrait rustdoc dans un viewer sandboxé. Activez Cargodoc et ses limites dans `config.yaml`.
 
 URL : `http://localhost:3000/cargodoc/{repo}/{crate}/{version}/index.html`
+
+## Verrouillage des ressources
+
+La page du paquet permet aux administrateurs et modérateurs du dépôt de verrouiller un paquet ou une version
+avec un motif public. Le verrouillage en écriture bloque les modifications ; celui en lecture réserve aussi
+les métadonnées au personnel et aux collaborateurs et interdit tous les téléchargements et aperçus Cargodoc.
+Les membres conservent les métadonnées sans pouvoir modifier le contenu verrouillé. Retirer un verrouillage
+manuel ne supprime pas le verrouillage système. Les autres versions peuvent être publiées, mais les opérations
+qui modifient tout le paquet restent bloquées.
+
+Voir [Cargo API](/docs/api/cargo) pour les requêtes, motifs et codes de réponse.

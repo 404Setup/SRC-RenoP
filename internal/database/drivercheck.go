@@ -43,7 +43,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	suffix := uuid.NewString()[:8]
 	username := "dbcheck-" + suffix
 	now := time.Now().UnixMilli()
-	results := make([]DriverCheckResult, 0, 18)
+	results := make([]DriverCheckResult, 0, 19)
 	run := func(name string, check func() error) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -556,6 +556,11 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 			ManifestJSON: `{"name":"` + npmPackage + `","version":"1.0.0"}`, Publisher: username,
 			TarballPath: npmPackage + "/-/demo-1.0.0.tgz", CreatedAt: now,
 		}, map[string]string{"latest": "1.0.0"}, username)
+	}); err != nil {
+		return results, err
+	}
+	if err := run("resource locks", func() error {
+		return checkResourceLocks(db, cargoRepository, globalTeamPrefix, username, suffix, now)
 	}); err != nil {
 		return results, err
 	}

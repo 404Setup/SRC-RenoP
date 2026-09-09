@@ -305,6 +305,9 @@ func GetDetailsRoot(c fiber.Ctx, state *core.AppState) error {
 	if err := annotateGPGSignatures(state, repoName, "", details); err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load signature status")
 	}
+	if err := filterCargoDetails(state, user, repoName, "", details); err != nil {
+		return err
+	}
 
 	return protohttp.Write(c, toPbFileDetails(details))
 }
@@ -338,6 +341,9 @@ func GetDetails(c fiber.Ctx, state *core.AppState) error {
 	if err := annotateGPGSignatures(state, repoName, pathParam, details); err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load signature status")
 	}
+	if err := filterCargoDetails(state, user, repoName, pathParam, details); err != nil {
+		return err
+	}
 
 	return protohttp.Write(c, toPbFileDetails(details))
 }
@@ -351,6 +357,33 @@ func isChecksumOrMetadata(filename string) bool {
 		return true
 	}
 	return false
+}
+
+func filterCargoDetails(state *core.AppState, user *config.User, repository, parent string, details *FileDetails) error {
+	repo := state.Inner.Config.Load().Maven.Repositories[repository]
+	if repo == nil || repo.NormalizedFormat() != config.RepositoryFormatCargo {
+		return nil
+	}
+	paths := make([]string, 1, len(details.Files)+1)
+	paths[0] = parent
+	for _, file := range details.Files {
+		paths = append(paths, path.Join(parent, file.Name))
+	}
+	visible, err := cargo.VisibleMetadataPaths(state, user, repository, paths)
+	if err != nil {
+		return fiber.ErrServiceUnavailable
+	}
+	if !visible[0] {
+		return fiber.ErrNotFound
+	}
+	files := details.Files[:0]
+	for i, file := range details.Files {
+		if visible[i+1] {
+			files = append(files, file)
+		}
+	}
+	details.Files = files
+	return nil
 }
 
 func GetRepoDetails(c fiber.Ctx, state *core.AppState) error {

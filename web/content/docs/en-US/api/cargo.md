@@ -59,3 +59,28 @@ the browser renders through the shared element and URL allowlist. Catalog and se
 - **Yank**: `DELETE /{repo}/api/v1/crates/{crate_name}/{version}/yank`
 - **Unyank**: `PUT /{repo}/api/v1/crates/{crate_name}/{version}/unyank`
 - **Auth**: Crate owner or Admin
+
+## Resource Locks
+
+Administrators and this repository's moderators use `PUT /{repo}/api/v1/crates/{crate_name}/locks` with an
+active browser session cookie. API tokens and package credentials cannot manage locks.
+
+```json
+{"version":"1.2.3","mode":"read","reason":"trojan"}
+```
+
+Omit `version` or use `""` to lock the package. Modes are `write` and `read`. Public, localized reasons are
+`hold`, `prohibited`, `expired`, `trojan`, `abuse`, `dmca`, `reup`, `squatting`, and `quality`.
+Successful changes return `{"ok":true}`. To remove the exact manual lock, send
+`DELETE /{repo}/api/v1/crates/{crate_name}/locks` with `{"version":"1.2.3"}`.
+
+Write locks freeze mutations and upstream refreshes while keeping stored downloads available. Read locks also block
+every file download and documentation preview, including for staff. Metadata remains visible to administrators,
+repository moderators, owners, and collaborators, including L0 members and bound global-team members. Other viewers
+cannot see the locked package or version in metadata, sparse indexes, search, profiles, or team resource lists.
+
+Package and version metadata expose public `locks` records with `mode`, `reason`, `source`, and `locked_at`.
+System and manual locks are independent; removing a manual lock preserves system restrictions. Mutations return
+`423` with `X-Renop-Error-Code: resource_locked`; denied reads return `404`. A locked version prevents whole-package
+archive, deprecation, and deletion, but other versions can still be published. Repository reconfiguration and deletion
+are blocked while resource locks exist.

@@ -37,6 +37,17 @@ func (h Handler) Handle(c fiber.Ctx, state *core.AppState, repo *config.Reposito
 	if h.Store == nil || repo == nil || repo.NormalizedFormat() != config.RepositoryFormatCargo {
 		return false, nil
 	}
+	parts := strings.Split(strings.Trim(requestPath, "/"), "/")
+	if len(parts) == 5 && parts[0] == "api" && parts[1] == "v1" && parts[2] == "crates" &&
+		parts[4] == "locks" && (c.Method() == fiber.MethodPut || c.Method() == fiber.MethodDelete) {
+		return true, h.setResourceLock(c, state, repo, parts[3])
+	}
+	_, _, metadata := cargoPathResource(requestPath)
+	if metadata && strings.HasPrefix(requestPath, "api/v1/") && (c.Method() == fiber.MethodGet || c.Method() == fiber.MethodHead) {
+		if handled, err := h.HandleReadLocks(c, state, repo, storagePath, requestPath); handled {
+			return true, err
+		}
+	}
 	if c.Method() == fiber.MethodPut || c.Method() == fiber.MethodDelete || c.Method() == fiber.MethodPost {
 		release := repositorygate.AcquireMutation(repo.Name)
 		defer release()
@@ -48,7 +59,6 @@ func (h Handler) Handle(c fiber.Ctx, state *core.AppState, repo *config.Reposito
 		return true, h.publish(c, state, repo, storagePath)
 	}
 
-	parts := strings.Split(strings.Trim(requestPath, "/"), "/")
 	if len(parts) >= 3 && parts[0] == "api" && parts[1] == "v1" {
 		switch {
 		case len(parts) == 3 && parts[2] == "crates" && c.Method() == fiber.MethodGet:
@@ -66,6 +76,16 @@ func (h Handler) Handle(c fiber.Ctx, state *core.AppState, repo *config.Reposito
 
 func (h Handler) handleCrateAPI(c fiber.Ctx, state *core.AppState, repo *config.Repository, storagePath string, parts []string) (bool, error) {
 	crateName := parts[3]
+	if c.Method() != fiber.MethodGet && c.Method() != fiber.MethodHead {
+		version := ""
+		if len(parts) >= 5 && validatePackage(crateName, parts[4]) == nil {
+			version = parts[4]
+		}
+		allVersions := len(parts) == 4 || (len(parts) == 5 && (parts[4] == "archive" || parts[4] == "deprecate"))
+		if err := state.GetDB().EnsureResourceMutable(cargoLockTarget(repo.Name, crateName, version), allVersions); err != nil {
+			return true, cargoError(c, err)
+		}
+	}
 	deprecationRequest := len(parts) == 5 && parts[4] == "deprecate" && c.Method() == fiber.MethodPut
 	if !deprecationRequest && c.Method() != fiber.MethodGet && c.Method() != fiber.MethodHead {
 		if err := state.GetDB().EnsurePackageMutable(config.RepositoryFormatCargo, repo.Name,

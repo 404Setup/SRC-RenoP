@@ -187,11 +187,19 @@ func publicUserSuperTeams(c fiber.Ctx, state *core.AppState) error {
 
 func visibleUserPackageMemberships(c fiber.Ctx, state *core.AppState, profile *core.UserProfile, format string) ([]*core.UserPackageMembership, error) {
 	db := state.GetDB()
-	memberships, err := db.ListUserPackageMemberships(profile.UserID, format)
+	viewer := GetUser(c)
+	moderated := make([]string, 0)
+	if cfg := state.Inner.Config.Load(); cfg != nil && viewer != nil {
+		for name := range cfg.Maven.Repositories {
+			if viewer.CheckModeratePermission(name) {
+				moderated = append(moderated, name)
+			}
+		}
+	}
+	memberships, err := db.ListUserPackageMemberships(profile.UserID, format, viewer.Username, moderated)
 	if err != nil {
 		return nil, err
 	}
-	viewer := GetUser(c)
 	if format == config.RepositoryFormatMaven {
 		return memberships, nil
 	}

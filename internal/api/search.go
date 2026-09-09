@@ -72,7 +72,7 @@ func SearchRepository(c fiber.Ctx, state *core.AppState) error {
 
 	var response *pb.RepositorySearchResponse
 	if repo.NormalizedFormat() == config.RepositoryFormatCargo {
-		response, err = searchCargoRepository(state, repo, query, limit)
+		response, err = searchCargoRepository(state, user, repo, query, limit)
 	} else if repo.NormalizedFormat() == config.RepositoryFormatDocker {
 		response, err = searchDockerRepository(state, repo, user, query, limit)
 	} else if repo.NormalizedFormat() == config.RepositoryFormatNPM {
@@ -153,12 +153,13 @@ func searchDockerRepository(state *core.AppState, repo *config.Repository, user 
 	}, nil
 }
 
-func searchCargoRepository(state *core.AppState, repo *config.Repository, query string, limit int) (*pb.RepositorySearchResponse, error) {
+func searchCargoRepository(state *core.AppState, user *config.User, repo *config.Repository, query string, limit int) (*pb.RepositorySearchResponse, error) {
 	db := state.GetDB()
 	if db == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
-	packages, total, err := db.SearchCargoPackages(repo.Name, query, limit, 0)
+	packages, total, err := db.SearchCargoPackages(repo.Name, query, user.Username,
+		user.CheckModeratePermission(repo.Name), limit, 0)
 	if err != nil {
 		return nil, err
 	}

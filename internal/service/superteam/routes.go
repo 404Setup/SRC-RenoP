@@ -218,6 +218,7 @@ func listTeamResources(c fiber.Ctx, state *core.AppState) error {
 	}
 	visibleRepositories := make([]string, 0)
 	privateRepositories := make([]string, 0)
+	moderatedRepositories := make([]string, 0)
 	cfg := state.Inner.Config.Load()
 	if cfg == nil {
 		return apiError(c, core.ErrDatabaseUnavailable)
@@ -228,6 +229,9 @@ func listTeamResources(c fiber.Ctx, state *core.AppState) error {
 		}
 		if viewer.CheckReadPermission(name, "", repository.Visibility, true) {
 			visibleRepositories = append(visibleRepositories, name)
+		}
+		if viewer.CheckModeratePermission(name) {
+			moderatedRepositories = append(moderatedRepositories, name)
 		}
 		if viewer.IsManager() || viewer.CheckUpdatePermission(name) ||
 			format == config.RepositoryFormatNPM && viewer.CheckReadPermission(name, "", "PRIVATE", false) {
@@ -241,7 +245,8 @@ func listTeamResources(c fiber.Ctx, state *core.AppState) error {
 	resources, total, err := state.GetDB().ListSuperTeamResources(core.SuperTeamResourceListOptions{
 		Prefix: c.Params("prefix"), Format: format, Viewer: viewerName,
 		VisibleRepositories: visibleRepositories, PrivateRepositories: privateRepositories,
-		Limit: limit, Offset: offset,
+		ModeratedRepositories: moderatedRepositories,
+		Limit:                 limit, Offset: offset,
 	})
 	if err != nil {
 		return apiError(c, err)

@@ -101,6 +101,10 @@ func (db *DB) ListSuperTeamResources(options core.SuperTeamResourceListOptions) 
 		whereClause = ` WHERE resource.super_team_prefix = ? AND (` +
 			resourceRepositoryCondition("resource.repository", visibleRepositories, &args) +
 			` OR explicit_member.user_id IS NOT NULL OR team_member.user_id IS NOT NULL)`
+		whereClause += ` AND (explicit_member.user_id IS NOT NULL OR team_member.user_id IS NOT NULL OR ` +
+			resourceRepositoryCondition("resource.repository", normalizeResourceRepositories(options.ModeratedRepositories), &args) +
+			` OR NOT EXISTS (SELECT 1 FROM resource_locks l WHERE l.format = 'cargo' AND l.mode = 'read'
+			AND l.version = '' AND l.repository = resource.repository AND l.resource_name = resource.normalized_name))`
 		orderClause = ` ORDER BY resource.repository, resource.normalized_name`
 	case config.RepositoryFormatDocker, config.RepositoryFormatNPM:
 		table, nameColumn, memberTable := "docker_images", "image_name", "docker_members"

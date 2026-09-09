@@ -121,7 +121,7 @@ func (db *DB) invalidateUserProfileCaches(usernames ...string) {
 }
 
 // ListUserPackageMemberships returns format-specific teams linked to an immutable user ID.
-func (db *DB) ListUserPackageMemberships(userID, format string) ([]*core.UserPackageMembership, error) {
+func (db *DB) ListUserPackageMemberships(userID, format, viewer string, moderatedRepositories []string) ([]*core.UserPackageMembership, error) {
 	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
@@ -131,16 +131,31 @@ func (db *DB) ListUserPackageMemberships(userID, format string) ([]*core.UserPac
 	}
 	format = strings.ToLower(strings.TrimSpace(format))
 	var query string
+	args := []any{userID}
 	switch format {
 	case "maven":
 		query = `SELECT '', d.domain, '', m.permission_level, 0
 			FROM maven_domain_members m JOIN maven_domains d ON d.repository = m.repository
 			AND d.domain = m.domain WHERE m.user_id = ? AND d.repository = '' AND d.verified = 1 ORDER BY d.domain`
 	case "cargo":
+		viewerID := ""
+		if viewer != "" && !strings.EqualFold(viewer, "guest") {
+			var err error
+			viewerID, err = db.userIDForUsername(viewer)
+			if err != nil && !errors.Is(err, core.ErrUserProfileNotFound) {
+				return nil, err
+			}
+		}
+		args = append(args, viewerID, viewerID)
 		query = `SELECT p.repository, p.package_name, p.description, m.permission_level, p.archived
 			FROM cargo_members m JOIN cargo_packages p ON p.repository = m.repository
 			AND p.normalized_name = m.normalized_name WHERE m.user_id = ?
-			ORDER BY p.repository, p.normalized_name`
+			AND (NOT EXISTS (SELECT 1 FROM resource_locks l WHERE l.format = 'cargo' AND l.mode = 'read'
+			AND l.repository = p.repository AND l.resource_name = p.normalized_name AND l.version = '')
+			OR EXISTS (SELECT 1 FROM cargo_members v WHERE v.repository = p.repository AND v.normalized_name = p.normalized_name AND v.user_id = ?)
+			OR EXISTS (SELECT 1 FROM super_team_members v WHERE v.team_prefix = p.super_team_prefix AND v.user_id = ?)
+			OR ` + resourceRepositoryCondition("p.repository", normalizeResourceRepositories(moderatedRepositories), &args) +
+			`) ORDER BY p.repository, p.normalized_name`
 	case "docker":
 		query = `SELECT i.repository, i.image_name, i.description, m.permission_level, 0
 			FROM docker_members m JOIN docker_images i ON i.repository = m.repository
@@ -154,7 +169,7 @@ func (db *DB) ListUserPackageMemberships(userID, format string) ([]*core.UserPac
 	default:
 		return nil, errors.New("package membership format must be maven, cargo, docker, or npm")
 	}
-	rows, err := db.Query(query, userID)
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list %s memberships for user %s: %w", format, userID, err)
 	}

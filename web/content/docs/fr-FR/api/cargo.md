@@ -59,3 +59,29 @@ commune d’éléments et d’URL autorisés. Les catalogues et recherches ne ch
 - **Yank** : `DELETE /{repo}/api/v1/crates/{crate_name}/{version}/yank`
 - **Unyank** : `PUT /{repo}/api/v1/crates/{crate_name}/{version}/unyank`
 - **Authentification** : propriétaire de la crate ou administrateur.
+
+## Verrouillage des ressources
+
+Les administrateurs et modérateurs de ce dépôt utilisent `PUT /{repo}/api/v1/crates/{crate_name}/locks` avec
+le cookie d'une session de navigateur active. Les jetons API et identifiants des clients de paquets sont exclus.
+
+```json
+{"version":"1.2.3","mode":"read","reason":"trojan"}
+```
+
+Omettez `version` ou utilisez `""` pour verrouiller le paquet. Les modes sont `write` et `read`. Les motifs
+publics traduits sont `hold`, `prohibited`, `expired`, `trojan`, `abuse`, `dmca`, `reup`, `squatting` et `quality`.
+Une modification réussie renvoie `{"ok":true}`. Pour supprimer le verrouillage manuel exact, envoyez
+`DELETE /{repo}/api/v1/crates/{crate_name}/locks` avec `{"version":"1.2.3"}`.
+
+Le mode écriture bloque les modifications et actualisations amont, mais conserve les téléchargements déjà stockés.
+Le mode lecture interdit aussi tout téléchargement de fichier et aperçu documentaire, même au personnel.
+Les métadonnées restent accessibles aux administrateurs, modérateurs du dépôt, propriétaires et collaborateurs,
+y compris L0 et membres des équipes globales liées. Les autres visiteurs ne voient pas la ressource verrouillée
+dans les métadonnées, index sparse, recherches, profils ou listes de ressources des équipes.
+
+Les métadonnées de paquet et de version exposent `locks`, avec `mode`, `reason`, `source` et `locked_at`.
+Les verrouillages système et manuels sont indépendants. Supprimer le manuel conserve les restrictions système.
+Les mutations refusées renvoient `423` et `X-Renop-Error-Code: resource_locked`, les lectures refusées `404`.
+Une version verrouillée empêche l'archivage, l'abandon définitif et la suppression du paquet entier, mais permet
+la publication d'autres versions. La reconfiguration et la suppression du dépôt sont bloquées tant qu'il contient des verrous.

@@ -24,6 +24,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/cargo"
 	"renop/internal/service/index"
 	"renop/internal/service/proxy"
 	"renop/internal/utils"
@@ -105,6 +106,9 @@ func HandleGet(c fiber.Ctx, state *core.AppState, repo *config.Repository, stora
 		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
 	}
 	path = sanitized
+	if handled, err := cargoHandler.HandleReadLocks(c, state, repo, storagePath, path); handled {
+		return err
+	}
 
 	localFilePath := filepath.Join(storagePath, repoName, path)
 	if !utils.IsSubPath(storagePath, localFilePath) {
@@ -122,6 +126,10 @@ func HandleGet(c fiber.Ctx, state *core.AppState, repo *config.Repository, stora
 
 	isIndexed := exists
 	anyPersist, baseMaxTTL := CheckIndexAndCacheConfig(repoName, path, repo)
+	locked := c.Locals(cargo.LockedArtifactPathLocal) == path
+	if locked {
+		anyPersist, baseMaxTTL = true, 0
+	}
 
 	if isDir {
 		if handled, err := TryHTMLFallback(state, c); handled {
@@ -169,6 +177,9 @@ func HandleGet(c fiber.Ctx, state *core.AppState, repo *config.Repository, stora
 	if isIndexed && exists {
 		return serveLocalFile(c, state, localFilePath, pathStr, contentDisposition, info.Size, isDir, etagHeader, lastModifiedHeader)
 	}
+	if locked {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
 
 	handled, err := handleChecksumFallback(c, localFilePath, state)
 	if handled {
@@ -202,6 +213,9 @@ func HandleHead(c fiber.Ctx, state *core.AppState, repo *config.Repository, stor
 		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
 	}
 	path = sanitized
+	if handled, err := cargoHandler.HandleReadLocks(c, state, repo, storagePath, path); handled {
+		return err
+	}
 
 	localFilePath := filepath.Join(storagePath, repoName, path)
 	if !utils.IsSubPath(storagePath, localFilePath) {
@@ -219,6 +233,10 @@ func HandleHead(c fiber.Ctx, state *core.AppState, repo *config.Repository, stor
 
 	isIndexed := exists
 	anyPersist, baseMaxTTL := CheckIndexAndCacheConfig(repoName, path, repo)
+	locked := c.Locals(cargo.LockedArtifactPathLocal) == path
+	if locked {
+		anyPersist, baseMaxTTL = true, 0
+	}
 
 	isIndexed, info, isDir = LoadMetadataAndCheckTTL(state, localFilePath, pathStr, isIndexed, exists, isDir, info, anyPersist, baseMaxTTL)
 
@@ -240,6 +258,9 @@ func HandleHead(c fiber.Ctx, state *core.AppState, repo *config.Repository, stor
 		return c.Status(fiber.StatusOK).SendString("")
 	}
 
+	if locked {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
 	if len(repo.Mirrors) > 0 {
 		existsOnMirror, headers, err := proxy.ProxyHead(state, repo, path)
 		if err == nil && existsOnMirror {
