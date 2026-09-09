@@ -62,6 +62,9 @@ nbdist/
 # Generated frontend bundles, including precompressed HTTP sidecars
 internal/service/frontend/renop-html/dist/
 
+# Generated embedded mail data; build.mjs creates and verifies it before Go runs.
+internal/mail/data/
+
 ### Windows ###
 # Windows thumbnail cache files
 Thumbs.db

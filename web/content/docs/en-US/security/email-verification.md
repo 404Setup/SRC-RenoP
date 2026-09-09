@@ -11,7 +11,7 @@ description: Verify a private account email using a delivered code or GitHub
 
 Edit the private email in **Account security**. When email delivery is enabled, saving queues a verification message for the new address. Enter its eight-digit code to apply the change. The current address continues to work until verification succeeds. When delivery is disabled, saving applies the address directly.
 
-The configured email blacklist or whitelist applies to both methods, including when delivery is disabled. Rules match an exact mailbox or domain; subdomains are separate. Unicode and Punycode spellings of the same internationalized domain match the same rule. An address already owned or still reserved by a retired account cannot be claimed.
+The configured email blacklist or whitelist applies to both methods, including when delivery is disabled. Rules match a complete mailbox, an exact @domain provider, or a .suffix including subdomains. Blacklist mode can also use the built-in temporary-email list; whitelist mode ignores that list. Unicode and Punycode spellings of the same internationalized domain match the same rule. An address already owned or still reserved by a retired account cannot be claimed.
 
 ## Login aliases
 

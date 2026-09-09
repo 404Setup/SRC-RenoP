@@ -24,6 +24,7 @@ mail:
   account_rate: {limit: 50, interval: {value: 1, unit: minute}}
   calibration: {value: 5, unit: minute}
   list_mode: blacklist
+  use_disposable_blacklist: false
   addresses: []
   accounts:
     - id: primary
@@ -61,9 +62,17 @@ Disabling email or an account pauses sending. Existing messages retain their exp
 `account_rate` includes manual and automatic attempts per sending account; its interval also accepts seconds.
 Both rate limits and their interval values must be positive. The defaults are one manual request per two minutes and 50 attempts per account per minute.
 
-`list_mode` is `blacklist` or `whitelist`. Entries in `addresses` are exact mailboxes or `@example.com` domains.
-Domain matching does not include subdomains. The policy is checked both before queueing and immediately before sending.
-Internationalized domains are normalized for matching, including equivalent Unicode and Punycode spellings and a trailing domain dot.
+`list_mode` is `blacklist` or `whitelist`. The policy is checked before queueing and immediately before sending. Internationalized domains use the same matching for Unicode and Punycode spellings; a trailing domain dot is ignored.
+
+| Rule | Matches |
+|---|---|
+| `person@example.com` | That complete mailbox |
+| `@example.com` | That exact provider domain, without subdomains |
+| `.com` or `.example.com` | The complete DNS suffix, including its base domain and subdomains |
+
+Set `use_disposable_blacklist: true` to supplement blacklist rules with the built-in temporary-email list. It is disabled by default and ignored in whitelist mode. The bundled snapshot combines 75,627 domains from [disposable/disposable-email-domains](https://github.com/disposable/disposable-email-domains) and [disposable-email-domains/disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains), without country or owner restrictions. Listed domains and their subdomains are blocked; lookups do not contact an external service.
+
+The list is a release snapshot, not an exhaustive directory of every newly created provider. Custom rules can supplement it. Builds automatically generate the ignored `internal/mail/data/` from revisions and checksums pinned in `scripts/update-disposable-domains.mjs`; verified local data is reused offline. Source licenses are in `THIRD_PARTY_NOTICES.md`.
 
 ## Providers and Endpoints
 

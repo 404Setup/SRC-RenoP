@@ -24,6 +24,7 @@ mail:
   account_rate: {limit: 50, interval: {value: 1, unit: minute}}
   calibration: {value: 5, unit: minute}
   list_mode: blacklist
+  use_disposable_blacklist: false
   addresses: []
   accounts:
     - id: primary
@@ -61,9 +62,17 @@ mail:
 `account_rate` 按邮件账号统计系统及手动发件尝试，周期还支持秒。
 两种限额及其周期数值必须大于 0。默认每个 IP 每两分钟一次手动请求，每个账号每分钟 50 次发件尝试。
 
-`list_mode` 为 `blacklist` 或 `whitelist`。`addresses` 接受完整邮箱地址或 `@example.com` 域名规则。
-域名规则不包含子域名。入队前和实际发送前均会检查名单策略。
-匹配前会统一国际化域名，等价的 Unicode、Punycode 写法以及域名末尾的点按同一域名处理。
+`list_mode` 可选 `blacklist` 或 `whitelist`。策略在入队前和发送前检查。国际化域名的 Unicode 与 Punycode 写法等价，末尾的域名点号会被忽略。
+
+| 规则 | 匹配范围 |
+|---|---|
+| `person@example.com` | 该完整邮箱 |
+| `@example.com` | 该精确提供商域名，不包含子域名 |
+| `.com` 或 `.example.com` | 完整 DNS 后缀，包含基础域名及子域名 |
+
+设置 `use_disposable_blacklist: true` 可在黑名单规则之外启用内置临时邮箱名单。默认关闭，白名单模式忽略此选项。当前快照合并了 [disposable/disposable-email-domains](https://github.com/disposable/disposable-email-domains) 和 [disposable-email-domains/disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains) 的 75,627 个域名，不按国家或提供者筛选。名单中的域名及其子域名都会被拦截，匹配时不访问外部服务。
+
+该名单是随版本发布的快照，无法穷尽不断出现的新提供商，可通过自定义规则补充。构建会按照 `scripts/update-disposable-domains.mjs` 中固定的版本和校验值自动生成被 Git 忽略的 `internal/mail/data/`，已有且校验通过的数据可离线复用。来源许可证见 `THIRD_PARTY_NOTICES.md`。
 
 ## 服务商与入口
 

@@ -146,6 +146,8 @@ if (protoOnly) {
     process.exit(0);
 }
 
+await import('../../../../scripts/update-disposable-domains.mjs');
+
 if (existsSync(outDir)) {
     rmSync(outDir, {recursive: true, force: true});
 }

@@ -9,6 +9,8 @@
  */
 
 export default Object.freeze({
+    "mail.disposableBlacklist": "内蔵の使い捨てメール拒否リストを使用",
+    "mail.disposableBlacklistHint": "拒否リストモードでのみ有効です。登録済みの一時メールドメインとサブドメインを、オンライン照会なしで拒否します。",
     "users.banIP": "記録済みのログイン IP もブロック",
     "users.banIPHint": "同じアドレスを使う他のユーザーもアクセスできなくなります。チェックを外すかアカウントの利用停止を解除すると、このアカウントの IP 制限を削除します。",
     "users.banIPCount": "このアカウントは現在 {count} 個の IP アドレスを制限しています。",
@@ -448,7 +450,7 @@ export default Object.freeze({
     "mail.calibrationHint": "空欄、0、負数でリモート照会を無効にし、ローカル集計を使用します。",
     "mail.manual_rateHint": "同じ IP のすべての手動送信に共通する正の上限値です。",
     "mail.account_rateHint": "自動送信と手動送信の両方を含みます。値は正数にしてください。",
-    "mail.addressesHint": "完全なアドレスまたは @ドメインを指定します。ドメインは完全一致です。",
+    "mail.addressesHint": "完全なメール、完全一致のプロバイダードメイン @domain、またはドメインとサブドメインに一致する接尾辞 .suffix を指定します。",
     "mail.routingHint": "有効なアカウントが 1 つなら全シーンに使用します。複数ならシーンまたは既定アカウントを指定します。",
     "mail.presetHint": "プロバイダーやプリセットの変更で接続先と料金設定が置き換わります。",
     "mail.mailboxHint": "委任アクセスは me を使用できます。Graph アプリケーション権限はユーザー ID またはアドレスが必要です。",

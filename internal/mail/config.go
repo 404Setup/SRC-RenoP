@@ -107,19 +107,20 @@ type Account struct {
 
 // Config controls the single durable sending queue.
 type Config struct {
-	EncryptionKey string    `json:"-" yaml:"encryption_key"`
-	Enabled       bool      `json:"enabled" yaml:"enabled"`
-	PublicURL     string    `json:"public_url" yaml:"public_url"`
-	SiteName      string    `json:"site_name" yaml:"site_name"`
-	TemplateStyle string    `json:"template_style" yaml:"template_style"`
-	Locale        string    `json:"locale" yaml:"locale"`
-	Delay         Interval  `json:"delay" yaml:"delay"`
-	ManualRate    Rate      `json:"manual_rate" yaml:"manual_rate"`
-	AccountRate   Rate      `json:"account_rate" yaml:"account_rate"`
-	Calibration   Interval  `json:"calibration" yaml:"calibration"`
-	ListMode      string    `json:"list_mode" yaml:"list_mode"`
-	Addresses     []string  `json:"addresses" yaml:"addresses"`
-	Accounts      []Account `json:"accounts" yaml:"accounts"`
+	EncryptionKey          string    `json:"-" yaml:"encryption_key"`
+	Enabled                bool      `json:"enabled" yaml:"enabled"`
+	PublicURL              string    `json:"public_url" yaml:"public_url"`
+	SiteName               string    `json:"site_name" yaml:"site_name"`
+	TemplateStyle          string    `json:"template_style" yaml:"template_style"`
+	Locale                 string    `json:"locale" yaml:"locale"`
+	Delay                  Interval  `json:"delay" yaml:"delay"`
+	ManualRate             Rate      `json:"manual_rate" yaml:"manual_rate"`
+	AccountRate            Rate      `json:"account_rate" yaml:"account_rate"`
+	Calibration            Interval  `json:"calibration" yaml:"calibration"`
+	ListMode               string    `json:"list_mode" yaml:"list_mode"`
+	Addresses              []string  `json:"addresses" yaml:"addresses"`
+	UseDisposableBlacklist bool      `json:"use_disposable_blacklist" yaml:"use_disposable_blacklist"`
+	Accounts               []Account `json:"accounts" yaml:"accounts"`
 }
 
 // DefaultConfig keeps sending disabled until an administrator configures an account.
@@ -227,8 +228,9 @@ func (c Config) Validate() error {
 		return errors.New("invalid mail configuration")
 	}
 	for _, value := range c.Addresses {
-		if strings.HasPrefix(value, "@") {
-			if !validDomain(canonicalRecipientRule(value)[1:]) {
+		value = canonicalRecipientRule(value)
+		if strings.HasPrefix(value, "@") || strings.HasPrefix(value, ".") {
+			if !validDomain(value[1:]) || value[0] == '@' && !strings.Contains(value[1:], ".") {
 				return errors.New("invalid email domain")
 			}
 		} else if _, err := Address(value); err != nil {
@@ -257,7 +259,7 @@ func (c Config) Validate() error {
 }
 
 func validDomain(value string) bool {
-	if len(value) < 3 || len(value) > 253 || !strings.Contains(value, ".") {
+	if len(value) < 1 || len(value) > 253 {
 		return false
 	}
 	for _, label := range strings.Split(value, ".") {
@@ -321,7 +323,7 @@ func (a Account) Validate() error {
 	return nil
 }
 
-// Allows applies an exact-address or @domain recipient list before enqueue and sending.
+// Allows applies mailbox, provider, and suffix rules before enqueue and sending.
 func (c Config) Allows(address string) bool {
 	address, err := Address(address)
 	if err != nil {
@@ -332,7 +334,8 @@ func (c Config) Allows(address string) bool {
 	found := false
 	for _, value := range c.Addresses {
 		value = canonicalRecipientRule(value)
-		if strings.EqualFold(value, address) || strings.EqualFold(value, "@"+domain) {
+		if value == address || value == "@"+domain ||
+			strings.HasPrefix(value, ".") && (domain == value[1:] || strings.HasSuffix(domain, value)) {
 			found = true
 			break
 		}
@@ -340,11 +343,15 @@ func (c Config) Allows(address string) bool {
 	if c.ListMode == "whitelist" {
 		return found
 	}
-	return !found
+	return !found && !(c.UseDisposableBlacklist && isDisposableDomain(domain))
 }
 
 func canonicalRecipientRule(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
 	separator := strings.LastIndexByte(value, '@')
+	if strings.HasPrefix(value, ".") {
+		separator = 0
+	}
 	if separator < 0 {
 		return value
 	}

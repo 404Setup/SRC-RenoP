@@ -21,6 +21,7 @@ import (
 	"net/http/httptest"
 	netmail "net/mail"
 	"net/textproto"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -367,6 +368,53 @@ func TestMailConfigurationAndRouting(t *testing.T) {
 	require.False(t, cfg.Allows("other@xn--exmple-cua.com."))
 	cfg.ListMode = "whitelist"
 	require.True(t, cfg.Allows("other@xn--exmple-cua.com"))
+}
+
+func TestRecipientRuleTypesAndDisposableSnapshot(t *testing.T) {
+	cfg := DefaultConfig()
+	for _, test := range []struct{ rule, match, other string }{
+		{"person@example.com", "PERSON@example.com", "other@example.com"},
+		{"@example.com", "other@example.com", "other@sub.example.com"},
+		{".com", "other@example.com", "other@example.net"},
+		{".example.com", "other@sub.example.com", "other@evil-example.com"},
+		{".co.uk", "other@example.co.uk", "other@example.co.uk.evil.test"},
+		{" .РФ ", "other@example.xn--p1ai", "other@example.ru"},
+	} {
+		cfg.Addresses = []string{test.rule}
+		require.NoError(t, cfg.Validate(), test.rule)
+		cfg.ListMode = "blacklist"
+		require.False(t, cfg.Allows(test.match), test.rule)
+		require.True(t, cfg.Allows(test.other), test.rule)
+		cfg.ListMode = "whitelist"
+		require.True(t, cfg.Allows(test.match), test.rule)
+		require.False(t, cfg.Allows(test.other), test.rule)
+	}
+	for _, invalid := range []string{".", "..com", ".*.com", ".bad..name", "@localhost", ".-com", ".com/path"} {
+		cfg.Addresses = []string{invalid}
+		require.Error(t, cfg.Validate(), invalid)
+	}
+	cfg = DefaultConfig()
+	require.True(t, cfg.Allows("user@mailinator.com"), "the optional list is disabled by default")
+	cfg.UseDisposableBlacklist = true
+	for _, domain := range []string{"mailinator.com", "10minutemail.com", "guerrillamail.com", "yopmail.com"} {
+		require.False(t, cfg.Allows("user@"+domain), domain)
+		require.False(t, cfg.Allows("user@sub."+domain), domain)
+	}
+	for _, domain := range []string{"gmail.com", "outlook.com", "qq.com", "not-mailinator.com", "mailinator.com.example.com"} {
+		require.True(t, cfg.Allows("user@"+domain), domain)
+	}
+	cfg.ListMode, cfg.Addresses = "whitelist", []string{"@mailinator.com"}
+	require.True(t, cfg.Allows("user@mailinator.com"), "whitelists do not apply the built-in blacklist")
+	domains := disposableDomains()
+	require.Greater(t, len(domains), 70000)
+	require.True(t, slices.IsSorted(domains))
+	for i, domain := range domains {
+		require.True(t, validDomain(domain) && strings.Contains(domain, "."), domain)
+		require.Equal(t, domain, canonicalRecipientRule("@" + domain)[1:])
+		if i > 0 {
+			require.NotEqual(t, domains[i-1], domain)
+		}
+	}
 }
 
 func TestMailQuotaPricingAndRefund(t *testing.T) {

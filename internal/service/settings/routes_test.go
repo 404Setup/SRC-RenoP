@@ -195,6 +195,8 @@ func TestMailSettingsWriteOnlySecretsValidationAndQueuedTest(t *testing.T) {
 	var settings mailSettingsResponse
 	require.NoError(t, json.Unmarshal(body, &settings))
 	require.Contains(t, settings.SecretsConfigured["primary"], "api_key")
+	settings.UseDisposableBlacklist = true
+	settings.Addresses = []string{".invalid"}
 	put := func(value mailSettingsRequest) *http.Response {
 		t.Helper()
 		raw, err := json.Marshal(value)
@@ -209,6 +211,9 @@ func TestMailSettingsWriteOnlySecretsValidationAndQueuedTest(t *testing.T) {
 	require.Equal(t, 200, put(mailSettingsRequest{Config: settings.Config}).StatusCode)
 	require.Equal(t, account.APIKey, state.Inner.Config.Load().Mail.Accounts[0].APIKey)
 	require.Equal(t, cfg.Mail.EncryptionKey, state.Inner.Config.Load().Mail.EncryptionKey)
+	require.True(t, state.Inner.Config.Load().Mail.UseDisposableBlacklist)
+	require.False(t, state.Inner.Config.Load().Mail.Allows("user@sub.example.invalid"))
+	require.False(t, state.Inner.Config.Load().Mail.Allows("user@mailinator.com"))
 	invalid := settings.Config.Clone()
 	invalid.ManualRate.Limit = 0
 	require.Equal(t, 400, put(mailSettingsRequest{Config: invalid}).StatusCode)

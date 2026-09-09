@@ -34,3 +34,30 @@ test('email provider presets preserve account policy and do not share mutable pr
     applyPreset(account, preset);
     assert.equal(account.balance_micros, null);
 });
+
+test('built-in disposable filtering preserves its choice and is disabled in whitelist mode', () => {
+    let selectChange, toggleChange, tagsChange, disabled, changed = 0;
+    const toggle = {toggleAttribute: (name, value) => { assert.equal(name, 'disabled'); disabled = value; }};
+    const context = {t: key => key,
+        createToggleRow: (_label, _hint, checked, update) => {
+            assert.equal(checked, true); toggleChange = update; return {querySelector: () => toggle};
+        },
+        makeCustomSelect: (_options, _current, update) => { selectChange = update; return {dataset: {}, querySelector: () => null}; },
+        createFieldRow: () => ({}), makeTagListInput: options => { tagsChange = options.onChange; return {}; },
+    };
+    const policy = source.match(/^export function renderMailRecipientPolicy\([\s\S]*?^}/m)?.[0];
+    const render = vm.runInNewContext(policy.replace('export ', '') + '; renderMailRecipientPolicy', context);
+    const data = {list_mode: 'blacklist', use_disposable_blacklist: true};
+    render({append() {}}, data, () => changed++);
+    assert.equal(disabled, false);
+    selectChange('whitelist');
+    assert.equal(disabled, true);
+    assert.equal(data.use_disposable_blacklist, true);
+    selectChange('blacklist');
+    assert.equal(disabled, false);
+    toggleChange(false);
+    assert.equal(data.use_disposable_blacklist, false);
+    tagsChange(['person@example.com', '@example.com', '.com']);
+    assert.deepEqual(data.addresses, ['person@example.com', '@example.com', '.com']);
+    assert.equal(changed, 4);
+});

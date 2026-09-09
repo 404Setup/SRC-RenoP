@@ -9,6 +9,8 @@
  */
 
 export default Object.freeze({
+    "mail.disposableBlacklist": "내장 임시 이메일 차단 목록 사용",
+    "mail.disposableBlacklistHint": "차단 목록 모드에서만 적용됩니다. 온라인 조회 없이 알려진 임시 이메일 도메인과 하위 도메인을 차단합니다.",
     "users.banIP": "기록된 로그인 IP도 차단",
     "users.banIPHint": "같은 주소를 사용하는 다른 사용자도 차단됩니다. 선택을 해제하거나 계정 차단을 해제하면 이 계정의 IP 제한이 제거됩니다.",
     "users.banIPCount": "이 계정은 현재 IP 주소 {count}개를 제한하고 있습니다.",
@@ -448,7 +450,7 @@ export default Object.freeze({
     "mail.calibrationHint": "비어 있거나 0 또는 음수이면 원격 조회를 끄고 로컬 집계를 사용합니다.",
     "mail.manual_rateHint": "같은 IP의 모든 수동 요청에 적용되는 양수 한도입니다.",
     "mail.account_rateHint": "자동 및 수동 메일을 모두 포함합니다. 값은 양수여야 합니다.",
-    "mail.addressesHint": "전체 주소 또는 @도메인을 사용합니다. 도메인은 정확히 일치해야 합니다.",
+    "mail.addressesHint": "전체 이메일, 정확한 제공자 도메인 @domain, 또는 도메인과 하위 도메인에 일치하는 접미사 .suffix를 입력하세요.",
     "mail.routingHint": "활성 계정이 하나면 모든 상황에 사용합니다. 여러 개면 상황이나 기본 계정을 지정하세요.",
     "mail.presetHint": "공급자나 프리셋을 변경하면 엔드포인트와 기본 요금이 바뀝니다.",
     "mail.mailboxHint": "위임 계정은 me를 사용할 수 있습니다. Graph 앱 권한에는 사용자 ID나 주소가 필요합니다.",

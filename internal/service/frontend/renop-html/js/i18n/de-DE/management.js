@@ -9,6 +9,8 @@
  */
 
 export default Object.freeze({
+    "mail.disposableBlacklist": "Integrierte Sperrliste für Wegwerf-E-Mails verwenden",
+    "mail.disposableBlacklistHint": "Nur im Sperrlistenmodus aktiv. Sperrt bekannte Wegwerf-Domains und ihre Subdomains ohne Online-Abfragen.",
     "users.banIP": "Auch gespeicherte Anmelde-IP-Adressen sperren",
     "users.banIPHint": "Andere Nutzer derselben Adressen werden ebenfalls gesperrt. Deaktivieren dieser Option oder Entsperren des Kontos entfernt dessen IP-Sperren.",
     "users.banIPCount": "Dieses Konto sperrt derzeit {count} IP-Adressen.",
@@ -448,7 +450,7 @@ export default Object.freeze({
     "mail.calibrationHint": "Leer, null oder negativ deaktiviert Remote-Abfragen; die lokale Abrechnung bleibt aktiv.",
     "mail.manual_rateHint": "Positive gemeinsame Grenze für manuelle Anfragen derselben IP.",
     "mail.account_rateHint": "Gilt für automatische und manuelle E-Mails. Werte müssen positiv sein.",
-    "mail.addressesHint": "Exakte Adresse oder @domain verwenden. Domains werden exakt abgeglichen.",
+    "mail.addressesHint": "Vollständige E-Mail, @domain für eine exakte Domain oder .suffix für die Domain und ihre Subdomains verwenden.",
     "mail.routingHint": "Ein aktives Konto bedient alle Anlässe. Bei mehreren Konten Anlässe oder ein Standardkonto zuweisen.",
     "mail.presetHint": "Ein Anbieter- oder Vorlagenwechsel ersetzt Endpunkt und Preisvorgaben.",
     "mail.mailboxHint": "Für delegierten Zugriff me verwenden; Graph-Anwendungszugriff benötigt Benutzer-ID oder Adresse.",

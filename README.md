@@ -61,7 +61,7 @@ See [Quickstart](https://renop.mvnc.one/docs/getting-started/quickstart) for rep
 
 ## Building from source
 
-Use the [404Setup Go fork](https://github.com/404Setup/go/releases) matching [go.mod](go.mod), PowerShell 7, Node.js 24,
+Use the [404Setup Go fork](https://github.com/404Setup/go/releases) matching [go.mod](go.mod), PowerShell 7, Node.js 24.14+,
 the pnpm version pinned in [package.json](package.json), `protoc`, and `protoc-gen-go`.
 
 ```powershell

@@ -9,6 +9,8 @@
  */
 
 export default Object.freeze({
+    "mail.disposableBlacklist": "Use built-in disposable email blacklist",
+    "mail.disposableBlacklistHint": "Applies only in blacklist mode. Blocks known temporary email domains and their subdomains without online lookups.",
     "users.banIP": "Also ban recorded login IPs",
     "users.banIPHint": "Other users sharing these addresses are also blocked. Turning this off or unbanning removes this account's IP restrictions.",
     "users.banIPCount": "This account currently restricts {count} IP addresses.",
@@ -448,7 +450,7 @@ export default Object.freeze({
     "mail.calibrationHint": "Empty, zero, or negative disables remote requests and keeps local accounting.",
     "mail.manual_rateHint": "All manual requests from one IP share this positive limit.",
     "mail.account_rateHint": "Includes automatic and manual email attempts. Values must be positive.",
-    "mail.addressesHint": "Use an exact address or @domain. Domain entries match only that domain.",
+    "mail.addressesHint": "Use a full email, @domain for one exact provider domain, or .suffix for a domain and its subdomains.",
     "mail.routingHint": "One enabled account handles all scenes. With several, choose explicit scenes or one fallback account.",
     "mail.presetHint": "Changing a provider or preset replaces its endpoint and pricing defaults.",
     "mail.mailboxHint": "Use me for a delegated account; Graph application access requires a user ID or address.",

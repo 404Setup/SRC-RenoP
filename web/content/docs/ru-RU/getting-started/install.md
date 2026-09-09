@@ -65,7 +65,7 @@ Get-FileHash -Algorithm SHA256 .\renop-windows-amd64v3.br
 Требования:
 
 - **Go**: fork [404Setup/go](https://github.com/404Setup/go/releases), Go 1.28+
-- **Frontend**: Node.js 18+ и pnpm
+- **Frontend**: Node.js 24.14+ и pnpm
 - **Сценарии**: PowerShell 7 (`pwsh`)
 - **Protobuf**: `protoc` и `protoc-gen-go`
 

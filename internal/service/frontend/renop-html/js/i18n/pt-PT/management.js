@@ -9,6 +9,8 @@
  */
 
 export default Object.freeze({
+    "mail.disposableBlacklist": "Usar a lista negra integrada de e-mails temporários",
+    "mail.disposableBlacklistHint": "Só se aplica no modo de lista negra. Bloqueia os domínios temporários incluídos e os seus subdomínios sem consultas em linha.",
     "users.banIP": "Bloquear também os IP de início de sessão registados",
     "users.banIPHint": "Outros utilizadores que partilhem estes endereços também são bloqueados. Desmarcar esta opção ou reativar a conta remove as suas restrições de IP.",
     "users.banIPCount": "Esta conta restringe atualmente {count} endereços IP.",
@@ -448,7 +450,7 @@ export default Object.freeze({
     "mail.calibrationHint": "Vazio, zero ou negativo desativa consultas remotas e mantém a contagem local.",
     "mail.manual_rateHint": "Limite positivo para todos os pedidos manuais de um IP.",
     "mail.account_rateHint": "Inclui tentativas automáticas e manuais. Os valores devem ser positivos.",
-    "mail.addressesHint": "Use um endereço exato ou @domínio. O domínio tem de coincidir exatamente.",
+    "mail.addressesHint": "Use um e-mail completo, @domínio para um domínio exato ou .sufixo para o domínio e os seus subdomínios.",
     "mail.routingHint": "Uma conta ativa cobre tudo. Com várias, atribua cenários ou uma conta predefinida.",
     "mail.presetHint": "Mudar o fornecedor ou predefinição substitui o ponto de acesso e os preços.",
     "mail.mailboxHint": "Use me no acesso delegado; uma aplicação Graph exige ID de utilizador ou endereço.",

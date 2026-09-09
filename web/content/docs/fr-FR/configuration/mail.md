@@ -24,6 +24,7 @@ mail:
   account_rate: {limit: 50, interval: {value: 1, unit: minute}}
   calibration: {value: 5, unit: minute}
   list_mode: blacklist
+  use_disposable_blacklist: false
   addresses: []
   accounts:
     - id: primary
@@ -61,9 +62,17 @@ Désactiver le service ou un compte suspend l’envoi, sans prolonger l’expira
 `account_rate` inclut les tentatives automatiques et manuelles par compte ; sa période accepte aussi les secondes.
 Limites et durées doivent être positives. Valeurs par défaut : une demande manuelle par IP toutes les deux minutes et 50 tentatives par compte par minute.
 
-`list_mode` vaut `blacklist` ou `whitelist`. Les entrées `addresses` sont des adresses exactes ou des domaines `@example.com`.
-Les domaines n’incluent pas leurs sous-domaines. La politique est vérifiée avant la mise en file et avant l’envoi.
-Les domaines internationalisés sont normalisés pour la comparaison, y compris les formes Unicode et Punycode équivalentes et le point final du domaine.
+`list_mode` accepte `blacklist` ou `whitelist`. La politique est vérifiée avant la mise en file et juste avant l’envoi. Les domaines internationalisés correspondent de la même manière en Unicode et Punycode ; le point final du domaine est ignoré.
+
+| Règle | Correspondance |
+|---|---|
+| `person@example.com` | Cette adresse complète |
+| `@example.com` | Ce domaine exact de fournisseur, sans sous-domaines |
+| `.com` ou `.example.com` | Le suffixe DNS complet, domaine de base et sous-domaines compris |
+
+Activez `use_disposable_blacklist: true` pour compléter les règles de liste noire avec la liste intégrée de messageries temporaires. L’option est désactivée par défaut et ignorée en mode liste blanche. L’instantané combine 75 627 domaines de [disposable/disposable-email-domains](https://github.com/disposable/disposable-email-domains) et [disposable-email-domains/disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains), sans restriction de pays ni de propriétaire. Les domaines inclus et leurs sous-domaines sont bloqués sans contacter de service externe.
+
+Il s’agit d’un instantané publié avec la version, pas d’un répertoire exhaustif de chaque nouveau fournisseur. Les règles personnalisées peuvent le compléter. La compilation génère automatiquement le répertoire ignoré `internal/mail/data/` à partir des révisions et empreintes fixées dans `scripts/update-disposable-domains.mjs` ; les données locales vérifiées sont réutilisées hors ligne. Les licences figurent dans `THIRD_PARTY_NOTICES.md`.
 
 ## Fournisseurs et points d’accès
 

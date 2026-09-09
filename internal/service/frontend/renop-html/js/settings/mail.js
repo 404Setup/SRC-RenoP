@@ -45,6 +45,26 @@ export function applyMailPreset(account, preset) {
     Object.assign(account, structuredClone(preset.account), identity, {preset: preset.id});
 }
 
+/** Render recipient rules and keep the built-in list inactive in whitelist mode. */
+export function renderMailRecipientPolicy(fields, data, changed) {
+    const builtIn = createToggleRow(t('mail.disposableBlacklist'), t('mail.disposableBlacklistHint'),
+        data.use_disposable_blacklist === true, value => { data.use_disposable_blacklist = value; changed(); });
+    const toggle = builtIn.querySelector('renop-toggle');
+    const mode = makeCustomSelect(['blacklist', 'whitelist'].map(value => ({value, label: t(`mail.${value}`)})), data.list_mode, value => {
+        data.list_mode = value;
+        toggle.toggleAttribute('disabled', value !== 'blacklist');
+        changed();
+    });
+    mode.dataset.mailSelect = 'list_mode';
+    mode.querySelector('button')?.setAttribute('aria-label', t('mail.list_mode'));
+    toggle.toggleAttribute('disabled', data.list_mode !== 'blacklist');
+    fields.append(createFieldRow(t('mail.list_mode'), '', mode), builtIn,
+        createFieldRow(t('mail.addresses'), t('mail.addressesHint'), makeTagListInput({
+            items: data.addresses || [], placeholder: 'name@example.com, @example.com, .com',
+            onChange: values => { data.addresses = values; changed(); },
+        })));
+}
+
 /** Render global queue policy, provider accounts, previews, and delivery history. */
 export function renderMailSettings(container, data, changed) {
     const wrap = el('div', {class: 'cfg-layout', id: 'settings-mail'});
@@ -121,11 +141,7 @@ export function renderMailSettings(container, data, changed) {
         input(fields, data[key], 'limit', {type: 'number', min: 1, max: 1000000, label: key, hint: t(`mail.${key}Hint`)});
         interval(fields, data[key].interval, key + 'Interval', units);
     }
-    select(fields, data, 'list_mode', ['blacklist', 'whitelist']);
-    fields.appendChild(createFieldRow(t('mail.addresses'), t('mail.addressesHint'), makeTagListInput({
-        items: data.addresses || [], placeholder: 'name@example.com, @example.com',
-        onChange: values => { data.addresses = values; changed(); },
-    })));
+    renderMailRecipientPolicy(fields, data, changed);
 
     const accountsSection = createSection(createIcon('user'), t('mail.accounts'), t('mail.routingHint'), {defaultCollapsed: true});
     const accountsFields = accountsSection.querySelector('.cfg-fields');

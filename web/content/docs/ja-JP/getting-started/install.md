@@ -65,7 +65,7 @@ Windows SCM、systemd、OpenRC、LaunchDaemons、rc.d に対応します。
 必要な toolchain:
 
 - **Go**: [404Setup/go](https://github.com/404Setup/go/releases) fork、Go 1.28+
-- **Frontend**: Node.js 18+ と pnpm
+- **Frontend**: Node.js 24.14+ と pnpm
 - **Script**: PowerShell 7 (`pwsh`)
 - **Protobuf**: `protoc` と `protoc-gen-go`
 

@@ -9,6 +9,8 @@
  */
 
 export default Object.freeze({
+    "mail.disposableBlacklist": "使用內建臨時信箱黑名單",
+    "mail.disposableBlacklistHint": "僅在黑名單模式生效。封鎖已收錄的臨時信箱網域及子網域，不進行線上查詢。",
     "users.banIP": "同時封禁已記錄的登入 IP",
     "users.banIPHint": "共用這些位址的其他使用者也會被阻止存取。取消勾選或解除帳號封禁將移除此帳號的 IP 限制。",
     "users.banIPCount": "此帳號目前限制了 {count} 個 IP 位址。",
@@ -448,7 +450,7 @@ export default Object.freeze({
     "mail.calibrationHint": "留空、0 或負數停用遠端取得，使用本機計數與扣費。",
     "mail.manual_rateHint": "同一 IP 的全部手動寄件共用此正數上限。",
     "mail.account_rateHint": "包含系統與手動郵件，限額與週期必須大於 0。",
-    "mail.addressesHint": "填寫完整信箱或 @網域；網域規則只符合該網域。",
+    "mail.addressesHint": "可填寫完整信箱、精確提供者網域 @domain，或匹配網域及其子網域的後綴 .suffix。",
     "mail.routingHint": "僅啟用一個帳號時用於所有情境；多個帳號需分配情境或指定一個預設帳號。",
     "mail.presetHint": "切換服務商或預設會同步替換入口與計費預設。",
     "mail.mailboxHint": "委派帳號可填 me；Graph 應用程式權限需填寫使用者 ID 或信箱。",

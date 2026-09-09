@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-This document provides copyright and license notices for third-party software used by **RenoP**.
+This document provides copyright and license notices for third-party software and data used by **RenoP**.
 
 RenoP itself is licensed under the [Mozilla Public License 2.0](LICENSE). Third-party components remain under their own
 licenses. This file is intended to satisfy attribution and notice obligations when RenoP is distributed in source or
@@ -156,6 +156,18 @@ marketing site and documentation, not the server binary.
 | `fflate`                                                 | 0.8.3   | MIT                | Browser-side legacy ZIP generation; copyright (c) 2026 Arjun Barrett                                      |
 
 ---
+
+### D. Disposable email domain data
+
+RenoP embeds a normalized, sorted union of the following lists. Revisions and source checksums are pinned in
+`scripts/update-disposable-domains.mjs`. Builds automatically generate `internal/mail/data/`, which is excluded from Git.
+
+| Dataset                                                                                                                   | Revision                                   | SPDX    | Copyright / notices                                                                     |
+|---------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|---------|-----------------------------------------------------------------------------------------|
+| [disposable/disposable-email-domains](https://github.com/disposable/disposable-email-domains)                             | `e4f846fdc7470c8ad127b54867ce2790bd4f9a45` | MIT     | Copyright (c) 2017 Andrei Simionescu; Copyright (c) 2017 Stefan Meinecke, greenSec GmbH |
+| [disposable-email-domains/disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains) | `8d5b14f53dff80842e841ee0ae14de2962cee66c` | CC0-1.0 | CC0 1.0 Universal public domain dedication                                              |
+
+The applicable MIT and CC0 texts are reproduced below; the copyright notices above apply to the embedded data.
 
 ## Special license notes
 
@@ -541,6 +553,23 @@ Full text: [LICENSE](LICENSE) (RenoP’s project license is the same SPDX identi
 or <https://mozilla.org/MPL/2.0/>.
 
 ---
+
+### CC0 1.0 Universal
+
+CC0 1.0 Universal (CC0 1.0)
+Public Domain Dedication
+
+No Copyright
+
+The person who associated a work with this deed has dedicated
+the work to the public domain by waiving all of his or her rights
+to the work worldwide under copyright law, including all related
+and neighboring rights, to the extent allowed by law.
+
+You can copy, modify, distribute and perform the work, even
+for commercial purposes, all without asking permission.
+
+Details: https://creativecommons.org/publicdomain/zero/1.0/legalcode
 
 ## Maintaining this file
 

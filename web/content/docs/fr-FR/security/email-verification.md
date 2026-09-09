@@ -11,7 +11,7 @@ description: Vérifier l’adresse privée du compte par code e-mail ou via GitH
 
 Modifiez l’adresse privée dans **Sécurité du compte**. Lorsque l’envoi d’e-mails est activé, l’enregistrement place un message de vérification en file pour la nouvelle adresse. Saisissez son code à huit chiffres pour appliquer le changement. L’adresse actuelle reste utilisable jusqu’à la réussite de la vérification. Lorsque l’envoi est désactivé, l’adresse est enregistrée directement.
 
-La liste noire ou blanche configurée s’applique aux deux méthodes, même lorsque l’envoi est désactivé. Les règles correspondent à une adresse exacte ou à un domaine, sans ses sous-domaines. Les formes Unicode et Punycode d’un même domaine internationalisé correspondent à la même règle. Une adresse appartenant à un autre compte ou encore réservée par un compte fermé ne peut pas être utilisée.
+La liste noire ou blanche configurée s’applique aux deux méthodes, même lorsque l’envoi est désactivé. Les règles acceptent une adresse complète, un @domaine exact ou un .suffixe incluant les sous-domaines. Le mode liste noire peut utiliser la liste intégrée des e-mails temporaires ; le mode liste blanche l’ignore. Les formes Unicode et Punycode d’un même domaine internationalisé correspondent à la même règle. Une adresse appartenant à un autre compte ou encore réservée par un compte fermé ne peut pas être utilisée.
 
 ## Alias de connexion
 

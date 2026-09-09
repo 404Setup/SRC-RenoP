@@ -9,6 +9,8 @@
  */
 
 export default Object.freeze({
+    "mail.disposableBlacklist": "使用内置临时邮箱黑名单",
+    "mail.disposableBlacklistHint": "仅在黑名单模式生效。拦截已收录的临时邮箱域名及子域名，不进行在线查询。",
     "users.banIP": "同时封禁已记录的登录 IP",
     "users.banIPHint": "共用这些地址的其他用户也会被阻止访问。取消勾选或解封账号将移除此账号的 IP 限制。",
     "users.banIPCount": "此账号目前限制了 {count} 个 IP 地址。",
@@ -448,7 +450,7 @@ export default Object.freeze({
     "mail.calibrationHint": "留空、0 或负数禁用远端拉取，使用本地计数和扣费。",
     "mail.manual_rateHint": "同一 IP 的全部手动发件共用此正数上限。",
     "mail.account_rateHint": "包含系统与手动邮件，限额与周期必须大于 0。",
-    "mail.addressesHint": "填写完整邮箱或 @域名；域名规则只匹配该域名。",
+    "mail.addressesHint": "可填写完整邮箱、精确提供商域名 @domain，或匹配域名及其子域名的后缀 .suffix。",
     "mail.routingHint": "仅启用一个账号时用于所有场景；多个账号需分配场景或指定一个默认账号。",
     "mail.presetHint": "切换服务商或预设会同步替换入口和计费预设。",
     "mail.mailboxHint": "委托账号可填 me；Graph 应用权限需填写用户 ID 或邮箱。",

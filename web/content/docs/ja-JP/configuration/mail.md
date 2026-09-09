@@ -24,6 +24,7 @@ mail:
   account_rate: {limit: 50, interval: {value: 1, unit: minute}}
   calibration: {value: 5, unit: minute}
   list_mode: blacklist
+  use_disposable_blacklist: false
   addresses: []
   accounts:
     - id: primary
@@ -61,9 +62,17 @@ mail:
 `account_rate` は送信アカウントごとの自動・手動の試行を含み、期間には秒も指定できます。
 上限と期間の値は正数です。既定値は IP ごとに 2 分間で手動要求 1 回、アカウントごとに 1 分間で送信試行 50 回です。
 
-`list_mode` は `blacklist` または `whitelist` です。`addresses` には完全なメールアドレスか `@example.com` を指定します。
-ドメインはサブドメインを含みません。キューへの追加前と送信直前にポリシーを確認します。
-国際化ドメインは一致判定の前に正規化され、同等のUnicode表記とPunycode表記、およびドメイン末尾のドットを同一に扱います。
+`list_mode` は `blacklist` または `whitelist` です。キュー追加前と送信直前に確認します。国際化ドメインの Unicode 表記と Punycode 表記は同じように一致し、末尾のドットは無視します。
+
+| ルール | 一致する範囲 |
+|---|---|
+| `person@example.com` | 完全なメールアドレス |
+| `@example.com` | 完全一致のプロバイダードメイン。サブドメインは除外 |
+| `.com` または `.example.com` | 基本ドメインとサブドメインを含む DNS 接尾辞 |
+
+`use_disposable_blacklist: true` で、拒否ルールに内蔵の一時メールリストを追加できます。既定では無効で、許可リストモードでは無視します。現在のスナップショットは [disposable/disposable-email-domains](https://github.com/disposable/disposable-email-domains) と [disposable-email-domains/disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains) の75,627ドメインを統合し、国や所有者で絞り込みません。登録ドメインとそのサブドメインを、外部サービスに接続せず拒否します。
+
+リストはリリース時点のスナップショットで、新しいプロバイダーをすべて網羅するものではありません。カスタムルールで補完できます。ビルド時に `scripts/update-disposable-domains.mjs` で固定したリビジョンとチェックサムから、Git 管理対象外の `internal/mail/data/` を自動生成します。検証済みのローカルデータはオフラインで再利用できます。ライセンスは `THIRD_PARTY_NOTICES.md` を参照してください。
 
 ## プロバイダーと接続先
 
