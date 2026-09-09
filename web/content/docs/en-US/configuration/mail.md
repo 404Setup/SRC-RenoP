@@ -71,7 +71,7 @@ Both rate limits and their interval values must be positive. The defaults are on
 
 Set `use_disposable_blacklist: true` to supplement blacklist rules with the built-in temporary-email list. It is disabled by default and ignored in whitelist mode. The bundled snapshot combines 75,627 domains from [disposable/disposable-email-domains](https://github.com/disposable/disposable-email-domains) and [disposable-email-domains/disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains), without country or owner restrictions. Listed domains and their subdomains are blocked; lookups do not contact an external service.
 
-The list is a release snapshot, not an exhaustive directory of every newly created provider. Custom rules can supplement it. Builds automatically generate the ignored `internal/mail/data/` from revisions and checksums pinned in `scripts/update-disposable-domains.mjs`; verified local data is reused offline. Source licenses are in `THIRD_PARTY_NOTICES.md`.
+The list is a release snapshot, not an exhaustive directory of every newly created provider. Custom rules can supplement it. Builds automatically generate the ignored `internal/mail/data/` from revisions and checksums pinned in `scripts/update-disposable-domains.ps1`; verified local data is reused offline. Source licenses are in `THIRD_PARTY_NOTICES.md`.
 
 ## Providers and Endpoints
 

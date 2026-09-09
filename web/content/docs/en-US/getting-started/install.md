@@ -70,7 +70,7 @@ See [System Service Management](../deployment/daemon.md) for details.
 To compile RenoP from source, ensure you have the following prerequisites:
 
 - **Go Compiler**: Must use the custom [404Setup/go](https://github.com/404Setup/go/releases) fork.
-- **Frontend Toolchain**: Node.js 24.14+ and pnpm.
+- **Frontend Toolchain**: Node.js 24+ and pnpm.
 - **Scripting Environment**: PowerShell 7 (`pwsh`).
 - **Protobuf**: `protoc` and `protoc-gen-go`.
 

@@ -160,7 +160,7 @@ marketing site and documentation, not the server binary.
 ### D. Disposable email domain data
 
 RenoP embeds a normalized, sorted union of the following lists. Revisions and source checksums are pinned in
-`scripts/update-disposable-domains.mjs`. Builds automatically generate `internal/mail/data/`, which is excluded from Git.
+`scripts/update-disposable-domains.ps1`. Builds automatically generate `internal/mail/data/`, which is excluded from Git.
 
 | Dataset                                                                                                                   | Revision                                   | SPDX    | Copyright / notices                                                                     |
 |---------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|---------|-----------------------------------------------------------------------------------------|

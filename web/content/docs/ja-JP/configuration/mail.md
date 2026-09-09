@@ -71,7 +71,7 @@ mail:
 
 `use_disposable_blacklist: true` で、拒否ルールに内蔵の一時メールリストを追加できます。既定では無効で、許可リストモードでは無視します。現在のスナップショットは [disposable/disposable-email-domains](https://github.com/disposable/disposable-email-domains) と [disposable-email-domains/disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains) の75,627ドメインを統合し、国や所有者で絞り込みません。登録ドメインとそのサブドメインを、外部サービスに接続せず拒否します。
 
-リストはリリース時点のスナップショットで、新しいプロバイダーをすべて網羅するものではありません。カスタムルールで補完できます。ビルド時に `scripts/update-disposable-domains.mjs` で固定したリビジョンとチェックサムから、Git 管理対象外の `internal/mail/data/` を自動生成します。検証済みのローカルデータはオフラインで再利用できます。ライセンスは `THIRD_PARTY_NOTICES.md` を参照してください。
+リストはリリース時点のスナップショットで、新しいプロバイダーをすべて網羅するものではありません。カスタムルールで補完できます。ビルド時に `scripts/update-disposable-domains.ps1` で固定したリビジョンとチェックサムから、Git 管理対象外の `internal/mail/data/` を自動生成します。検証済みのローカルデータはオフラインで再利用できます。ライセンスは `THIRD_PARTY_NOTICES.md` を参照してください。
 
 ## プロバイダーと接続先
 

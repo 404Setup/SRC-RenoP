@@ -14,7 +14,7 @@ import (
 	"sync"
 )
 
-//go:generate node ../../scripts/update-disposable-domains.mjs
+//go:generate pwsh -NoProfile -File ../../scripts/update-disposable-domains.ps1
 //go:embed data/disposable_domains.txt
 var disposableDomainData string
 

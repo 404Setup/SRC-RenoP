@@ -71,7 +71,7 @@ mail:
 
 设置 `use_disposable_blacklist: true` 可在黑名单规则之外启用内置临时邮箱名单。默认关闭，白名单模式忽略此选项。当前快照合并了 [disposable/disposable-email-domains](https://github.com/disposable/disposable-email-domains) 和 [disposable-email-domains/disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains) 的 75,627 个域名，不按国家或提供者筛选。名单中的域名及其子域名都会被拦截，匹配时不访问外部服务。
 
-该名单是随版本发布的快照，无法穷尽不断出现的新提供商，可通过自定义规则补充。构建会按照 `scripts/update-disposable-domains.mjs` 中固定的版本和校验值自动生成被 Git 忽略的 `internal/mail/data/`，已有且校验通过的数据可离线复用。来源许可证见 `THIRD_PARTY_NOTICES.md`。
+该名单是随版本发布的快照，无法穷尽不断出现的新提供商，可通过自定义规则补充。构建会按照 `scripts/update-disposable-domains.ps1` 中固定的版本和校验值自动生成被 Git 忽略的 `internal/mail/data/`，已有且校验通过的数据可离线复用。来源许可证见 `THIRD_PARTY_NOTICES.md`。
 
 ## 服务商与入口
 

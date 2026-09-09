@@ -71,7 +71,7 @@ Limites et durées doivent être positives. Valeurs par défaut : une demande ma
 
 Activez `use_disposable_blacklist: true` pour compléter les règles de liste noire avec la liste intégrée de messageries temporaires. L’option est désactivée par défaut et ignorée en mode liste blanche. L’instantané combine 75 627 domaines de [disposable/disposable-email-domains](https://github.com/disposable/disposable-email-domains) et [disposable-email-domains/disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains), sans restriction de pays ni de propriétaire. Les domaines inclus et leurs sous-domaines sont bloqués sans contacter de service externe.
 
-Il s’agit d’un instantané publié avec la version, pas d’un répertoire exhaustif de chaque nouveau fournisseur. Les règles personnalisées peuvent le compléter. La compilation génère automatiquement le répertoire ignoré `internal/mail/data/` à partir des révisions et empreintes fixées dans `scripts/update-disposable-domains.mjs` ; les données locales vérifiées sont réutilisées hors ligne. Les licences figurent dans `THIRD_PARTY_NOTICES.md`.
+Il s’agit d’un instantané publié avec la version, pas d’un répertoire exhaustif de chaque nouveau fournisseur. Les règles personnalisées peuvent le compléter. La compilation génère automatiquement le répertoire ignoré `internal/mail/data/` à partir des révisions et empreintes fixées dans `scripts/update-disposable-domains.ps1` ; les données locales vérifiées sont réutilisées hors ligne. Les licences figurent dans `THIRD_PARTY_NOTICES.md`.
 
 ## Fournisseurs et points d’accès
 

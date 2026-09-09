@@ -146,7 +146,11 @@ if (protoOnly) {
     process.exit(0);
 }
 
-await import('../../../../scripts/update-disposable-domains.mjs');
+const mailData = spawnSync('pwsh', ['-NoProfile', '-File', join(repoRoot, 'scripts/update-disposable-domains.ps1')], {
+    cwd: repoRoot, stdio: 'inherit', windowsHide: true,
+});
+if (mailData.error) throw mailData.error;
+if (mailData.status !== 0) throw new Error(`mail data generation failed with exit code ${mailData.status ?? 'unknown'}`);
 
 if (existsSync(outDir)) {
     rmSync(outDir, {recursive: true, force: true});

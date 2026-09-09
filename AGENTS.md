@@ -51,7 +51,7 @@ Service paths in this table are relative to `internal/service/`; all other paths
 | Global teams, ownership, public resources             | `superteam/`, `review/`, `internal/database/super_team_resources.go`                                            |
 | Publication/creation review and notifications         | `review/`, `reviewnotify/`, `internal/database/review*.go`                                                      |
 | Quota, statistics, global/activity logs, messages, periodic work     | `publicationquota/`, `statistics/`, `audit/`, `message/`, `tasks/`                                              |
-| Email transports, templates, durable queue, accounting | `internal/mail/`, `mailqueue/`, `internal/database/mail*.go`, `settings/mail.go`; disposable domain data in `internal/mail/data/`, refreshed by `scripts/update-disposable-domains.mjs` |
+| Email transports, templates, durable queue, accounting | `internal/mail/`, `mailqueue/`, `internal/database/mail*.go`, `settings/mail.go`; disposable domain data in `internal/mail/data/`, refreshed by `scripts/update-disposable-domains.ps1` |
 | Outbound networking                                   | `proxy/`, `outboundproxy/`                                                                                      |
 | Updates, services, Caddy                              | `updater/`, `internal/daemon/`, `internal/caddy/`, `internal/version/`                                          |
 | Shared bounds, secret encryption, renames, memory tuning, test cleanup | `internal/utils/` (AES-GCM in `secretcipher/`), `internal/testutil/` |
@@ -236,8 +236,8 @@ Set `RENOP_TEST_BROWSER_CDP` to its debugging origin; `RENOP_TEST_BROWSER_URL` a
 `RENOP_TEST_SELECT_SELECTOR` select the loaded page and control. It changes and restores one draft selection.
 
 `build.ps1` generates both Go schemas and builds the frontend (i18n, JS protobuf, bundles, precompression).
-Full frontend builds also prepare the ignored `internal/mail/data/` before Go compilation, including CI builds.
-`scripts/update-disposable-domains.mjs` pins source revisions and checksums, reuses verified local data, and fails on
+Full frontend builds use PowerShell 7 to prepare the ignored `internal/mail/data/` before Go compilation, including CI builds.
+`scripts/update-disposable-domains.ps1` pins source revisions and checksums, reuses verified local data, and fails on
 download or integrity errors. Keep generated mail data out of Git; update source pins and notices when refreshing it.
 `go generate ./...` also installs/builds the frontend; do not stack it with an equivalent completed frontend build.
 Generation requires `protoc`/`protoc-gen-go`; frontend precompression also requires Go.

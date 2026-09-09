@@ -66,7 +66,7 @@ rc.d。详细说明请参考 [系统服务管理](../deployment/daemon.md)。
 如需从源码编译 RenoP，需要准备以下环境：
 
 - **Go 编译器**：请使用我们维护的 [404Setup/go](https://github.com/404Setup/go/releases) 分支（不可使用 Go 官方标准发行版）。
-- **前端工具**：Node.js 24.14+ 与 pnpm。
+- **前端工具**：Node.js 24+ 与 pnpm。
 - **脚本环境**：PowerShell 7 (`pwsh`)。
 - **Protobuf**：`protoc` 与 `protoc-gen-go`（用于更新 API 协议定义）。
 

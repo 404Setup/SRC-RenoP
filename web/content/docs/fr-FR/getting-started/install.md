@@ -66,7 +66,7 @@ Windows SCM, systemd, OpenRC, LaunchDaemons et rc.d sont pris en charge. Voir
 Prérequis :
 
 - **Go** : fork [404Setup/go](https://github.com/404Setup/go/releases), Go 1.28 ou plus récent ;
-- **Frontend** : Node.js 24.14+ et pnpm ;
+- **Frontend** : Node.js 24+ et pnpm ;
 - **Scripts** : PowerShell 7 (`pwsh`) ;
 - **Protobuf** : `protoc` et `protoc-gen-go`.
 
