@@ -43,9 +43,9 @@ func accountEmailSessionTx(tx *Tx, username, session string) (*core.MFAState, er
 }
 
 // QueueAccountEmailChange stores the verification and its email atomically without replacing the current address.
-func (db *DB) QueueAccountEmailChange(username, session string, job *mail.Job, codeHash, key, ip string, rate mail.Rate) error {
+func (db *DB) QueueAccountEmailChange(username, session string, job *mail.Job, codeHash, key, ip string, rate mail.Rate, alias ...bool) error {
 	if job == nil || job.Scene != "email_verify" || !validSelectorHash(codeHash) || job.TicketHash == "" ||
-		ip == "" || job.ExpiresAt-job.CreatedAt > (10*time.Minute).Milliseconds() {
+		ip == "" || job.ExpiresAt-job.CreatedAt > (10*time.Minute).Milliseconds() || len(alias) > 1 {
 		return core.ErrEmailCodeInvalid
 	}
 	email, valid := core.NormalizeEmail(job.Message.To)
@@ -93,10 +93,14 @@ func (db *DB) QueueAccountEmailChange(username, session string, job *mail.Job, c
 	if !created {
 		return core.ErrEmailCodeInvalid
 	}
+	isAlias := 0
+	if len(alias) > 0 && alias[0] {
+		isAlias = 1
+	}
 	_, err = tx.Exec(`INSERT INTO user_email_changes
-		(user_id, email, code_hash, snapshot, session_hash, attempts, created_at, expires_at)
-		VALUES (?, ?, ?, ?, ?, 0, ?, ?)`, account.UserID, email, codeHash, account.Snapshot,
-		fmt.Sprintf("%x", sha256.Sum256([]byte(session))), job.CreatedAt, job.ExpiresAt)
+		(user_id, email, code_hash, snapshot, session_hash, attempts, created_at, expires_at, is_alias)
+		VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)`, account.UserID, email, codeHash, account.Snapshot,
+		fmt.Sprintf("%x", sha256.Sum256([]byte(session))), job.CreatedAt, job.ExpiresAt, isAlias)
 	if err != nil {
 		return err
 	}
@@ -126,10 +130,10 @@ func (db *DB) ConfirmAccountEmailChange(username, session, email, codeHash strin
 	}
 	var expected, snapshot, sessionHash, target string
 	var expiresAt int64
-	var attempts int
-	err = tx.QueryRow(`SELECT email, code_hash, snapshot, session_hash, attempts, expires_at
+	var attempts, isAlias int
+	err = tx.QueryRow(`SELECT email, code_hash, snapshot, session_hash, attempts, expires_at, is_alias
 		FROM user_email_changes WHERE user_id = ?`, account.UserID).
-		Scan(&target, &expected, &snapshot, &sessionHash, &attempts, &expiresAt)
+		Scan(&target, &expected, &snapshot, &sessionHash, &attempts, &expiresAt, &isAlias)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, core.ErrEmailCodeInvalid
 	}
@@ -149,7 +153,14 @@ func (db *DB) ConfirmAccountEmailChange(username, session, email, codeHash strin
 		}
 		return nil, core.ErrEmailCodeInvalid
 	}
-	if err = updateAccountEmailTx(tx, account.UserID, email, now); err != nil {
+	if isAlias != 0 {
+		if _, err := reserveAccountEmailsTx(tx, account.UserID, []core.ProviderEmail{{Email: email, Verified: true}}, true); err != nil {
+			return nil, err
+		}
+		if err := touchAccountSecurityTx(tx, account.UserID, now); err != nil {
+			return nil, err
+		}
+	} else if err = updateAccountEmailTx(tx, account.UserID, email, now); err != nil {
 		return nil, err
 	}
 	if _, err = tx.Exec(`DELETE FROM user_email_changes WHERE user_id = ?`, account.UserID); err != nil {
@@ -162,7 +173,7 @@ func (db *DB) ConfirmAccountEmailChange(username, session, email, codeHash strin
 }
 
 // UpdateAccountEmailFromSession updates an address only while its initiating credentials remain current.
-func (db *DB) UpdateAccountEmailFromSession(username, session, email, snapshot string, now int64) (*core.AccountSecurity, error) {
+func (db *DB) UpdateAccountEmailFromSession(username, session, email, snapshot string, now int64, providerEmails ...core.ProviderEmail) (*core.AccountSecurity, error) {
 	email, valid := core.NormalizeEmail(email)
 	if !valid || email == "" || !validSelectorHash(snapshot) || now <= 0 {
 		return nil, core.ErrEmailCodeInvalid
@@ -179,6 +190,9 @@ func (db *DB) UpdateAccountEmailFromSession(username, session, email, snapshot s
 	}
 	if account.Snapshot != snapshot {
 		return nil, core.ErrEmailCodeInvalid
+	}
+	if _, err := reserveAccountEmailsTx(tx, account.UserID, providerEmails, true); err != nil {
+		return nil, err
 	}
 	if err = updateAccountEmailTx(tx, account.UserID, email, now); err != nil {
 		return nil, err

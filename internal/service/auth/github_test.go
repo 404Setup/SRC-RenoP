@@ -39,7 +39,7 @@ func TestGitHubOAuthExistingAccountAndSingleUseSession(t *testing.T) {
 			_ = json.NewEncoder(writer).Encode(map[string]string{
 				"access_token": "provider-token",
 				"token_type":   "bearer",
-				"scope":        "read:user,read:org",
+				"scope":        "read:user,read:org,user:email",
 			})
 		case "/api/user":
 			assert.Equal(t, "Bearer provider-token", request.Header.Get("Authorization"))
@@ -50,6 +50,8 @@ func TestGitHubOAuthExistingAccountAndSingleUseSession(t *testing.T) {
 			_ = json.NewEncoder(writer).Encode([]map[string]any{{
 				"id": int64(84), "login": "Example-Org",
 			}})
+		case "/api/user/emails":
+			_ = json.NewEncoder(writer).Encode([]map[string]any{})
 		default:
 			http.NotFound(writer, request)
 		}
@@ -186,7 +188,8 @@ func TestGitHubOAuthExistingAccountAndSingleUseSession(t *testing.T) {
 }
 
 func TestGitHubOAuthScopeAndReturnPathValidation(t *testing.T) {
-	assert.True(t, githubScopesAuthorized("read:user, read:org"))
+	assert.True(t, githubScopesAuthorized("read:user, read:org, user:email"))
+	assert.False(t, githubScopesAuthorized("read:user, read:org"))
 	assert.True(t, githubScopesAuthorized("user admin:org"))
 	assert.False(t, githubScopesAuthorized("read:user"))
 	assert.False(t, githubScopesAuthorized("read:org"))

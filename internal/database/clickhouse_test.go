@@ -17,6 +17,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestClickHouseInsertKeysCoverEveryValuesRow(t *testing.T) {
+	keys, err := clickHouseInsertKeys("user_email_addresses", `INSERT INTO user_email_addresses
+		(email, user_id, retained) VALUES (?, concat('owner,', ?), 1), ('second@example.test', ?, ?), (?, ?, 0)`,
+		[]any{"first@example.test", "one", "two", 1, "third@example.test", "three"})
+	require.NoError(t, err)
+	require.Equal(t, []string{encodeClickHouseKey([]any{"first@example.test"}),
+		encodeClickHouseKey([]any{"second@example.test"}), encodeClickHouseKey([]any{"third@example.test"})}, keys)
+}
+
 func TestClickHouseDialectUsesNativeMutationSyntax(t *testing.T) {
 	dialect := &ClickHouseDialect{}
 	assert.Equal(t, "clickhouse", dialect.Name())

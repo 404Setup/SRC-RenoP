@@ -26,6 +26,7 @@ import (
 
 type privateEmailRequest struct {
 	Email string `json:"email"`
+	Alias bool   `json:"alias"`
 }
 
 type passwordLoginRequest struct {
@@ -42,6 +43,7 @@ func setupAccountSecurityRoutes(auth fiber.Router, state *core.AppState) {
 	auth.Get("/profile/security", func(c fiber.Ctx) error { return getAccountSecurity(c, state) })
 	auth.Put("/profile/email", func(c fiber.Ctx) error { return putPrivateEmail(c, state) })
 	auth.Post("/profile/email/confirm", func(c fiber.Ctx) error { return confirmProfileEmailVerification(c, state) })
+	auth.Delete("/profile/email/alias", func(c fiber.Ctx) error { return deleteEmailAlias(c, state) })
 	auth.Put("/profile/password-login", func(c fiber.Ctx) error { return putPasswordLogin(c, state) })
 	auth.Post("/profile/recovery-codes", func(c fiber.Ctx) error { return postRecoveryCodes(c, state) })
 	auth.Post("/recovery/password", func(c fiber.Ctx) error { return postPasswordRecovery(c, state) })
@@ -106,8 +108,11 @@ func putPrivateEmail(c fiber.Ctx, state *core.AppState) error {
 	if !cfg.Mail.Allows(email) {
 		return passwordResetError(c, 400, "mail_recipient_blocked")
 	}
+	if request.Alias && !cfg.Mail.Enabled {
+		return passwordResetError(c, 409, "ACCOUNT_EMAIL_PROOF_REQUIRED")
+	}
 	if cfg.Mail.Enabled {
-		return queueProfileEmailVerification(c, state, user.Username, email)
+		return queueProfileEmailVerification(c, state, user.Username, email, request.Alias)
 	}
 	account, err := state.GetDB().GetMFAState(user.Username)
 	if err != nil {
@@ -123,6 +128,24 @@ func putPrivateEmail(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update private email")
 	}
 	recordPrivateEmailChange(c, state, user.Username)
+	return c.JSON(accountSecurityWithConfig(state, security))
+}
+
+func deleteEmailAlias(c fiber.Ctx, state *core.AppState) error {
+	setPrivateResponseHeaders(c)
+	username, session, err := recentMFASettingsSession(c, state)
+	if err != nil {
+		return mfaError(c, err)
+	}
+	var request privateEmailRequest
+	if err := readMFARequest(c, &request); err != nil {
+		return err
+	}
+	security, err := state.GetDB().DeleteAccountEmailAlias(username, session, request.Email, time.Now().UnixMilli())
+	if err != nil {
+		return emailVerificationError(c, err)
+	}
+	recordPrivateEmailChange(c, state, username)
 	return c.JSON(accountSecurityWithConfig(state, security))
 }
 

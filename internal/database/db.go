@@ -255,6 +255,9 @@ func (db *DB) initializePersistentMigrations() error {
 	if err := db.initializeUserIdentities(); err != nil {
 		return fmt.Errorf("failed to initialize stable user identities: %w", err)
 	}
+	if err := db.migrateAccountEmails(); err != nil {
+		return fmt.Errorf("initialize account email ownership: %w", err)
+	}
 	if err := db.migrateLegacyAPITokens(); err != nil {
 		return fmt.Errorf("failed to migrate legacy API tokens: %w", err)
 	}

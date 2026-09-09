@@ -136,7 +136,7 @@ func startGitHubOAuth(c fiber.Ctx, state *core.AppState, provider githubOAuthPro
 	if profile != nil {
 		record.UserID = profile.UserID
 	}
-	if c.Query("intent") == "email" {
+	if profile != nil || c.Query("intent") == "email" {
 		session, _ := c.Locals("current_session_id").(string)
 		if profile == nil || session == "" || c.Cookies(sessionCookieName) != session {
 			return oauthResultRedirect(c, returnTo, "session_changed")
@@ -145,7 +145,9 @@ func startGitHubOAuth(c fiber.Ctx, state *core.AppState, provider githubOAuthPro
 		if err != nil {
 			return oauthResultRedirect(c, returnTo, "email_failed")
 		}
-		record.Intent = "email"
+		if c.Query("intent") == "email" {
+			record.Intent = "email"
+		}
 		record.SessionHash = fmt.Sprintf("%x", sha256.Sum256([]byte(session)))
 		record.Snapshot = account.Snapshot
 	}
@@ -225,25 +227,38 @@ func finishGitHubOAuth(c fiber.Ctx, state *core.AppState, opChan chan<- token.To
 		log.Printf("GitHub OAuth identity lookup failed: %v", err)
 		return oauthResultRedirect(c, record.ReturnTo, "identity_failed")
 	}
+	identity.PrimaryEmail, identity.Emails, err = fetchGitHubEmailAddresses(ctx, client, provider, tokenResponse.AccessToken)
+	if err != nil {
+		if code := providerEmailErrorCode(err); code != "" {
+			return oauthResultRedirect(c, record.ReturnTo, code)
+		}
+		return oauthResultRedirect(c, record.ReturnTo, "email_failed")
+	}
 	authorizedAt := time.Now().UnixMilli()
 	for index := range principals {
 		principals[index].AuthorizedAt = authorizedAt
 	}
 	if record.UserID != "" {
 		currentProfile, err := currentSessionProfile(c, state)
-		if err != nil || currentProfile == nil || currentProfile.UserID != record.UserID {
+		session, _ := c.Locals("current_session_id").(string)
+		if err != nil || currentProfile == nil || currentProfile.UserID != record.UserID || session == "" ||
+			c.Cookies(sessionCookieName) != session || registrationHash(session) != record.SessionHash {
 			return oauthResultRedirect(c, record.ReturnTo, "session_changed")
 		}
-		err = state.GetDB().StoreGitHubIdentity(record.UserID, identity.ID, identity.Login,
-			principals, authorizedAt)
+		err = state.GetDB().LinkGitHubIdentity(currentProfile.Username, session, record.Snapshot, identity.ID, identity.Login,
+			principals, authorizedAt, identity.Emails...)
 		if errors.Is(err, core.ErrGitHubIdentityLinked) {
 			return oauthResultRedirect(c, record.ReturnTo, "identity_linked")
+		}
+		if code := providerEmailErrorCode(err); code != "" {
+			return oauthResultRedirect(c, record.ReturnTo, code)
 		}
 		if err != nil {
 			log.Printf("Failed to link GitHub identity: %v", err)
 			return oauthResultRedirect(c, record.ReturnTo, "identity_failed")
 		}
 		username, operator, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
+		state.InvalidateAccountAuthCache(true, currentProfile.Username)
 		audit.Log(state, &core.AuditLogEntry{
 			Username: username, Operator: operator, Action: audit.ActionProfileUpdate,
 			Details: "Connected GitHub account", AuthMethod: authMethod, SessionID: sessionID, IP: ip,
@@ -251,8 +266,11 @@ func finishGitHubOAuth(c fiber.Ctx, state *core.AppState, opChan chan<- token.To
 		return oauthResultRedirect(c, record.ReturnTo, "linked")
 	}
 	user, err := resolveGitHubLogin(state, identity, principals, authorizedAt)
+	if code := providerEmailErrorCode(err); code != "" {
+		return oauthResultRedirect(c, record.ReturnTo, code)
+	}
 	if errors.Is(err, core.ErrGitHubIdentityNotFound) {
-		return beginGitHubRegistration(c, state, record, ctx, client, provider, tokenResponse.AccessToken, identity, principals)
+		return beginGitHubRegistration(c, state, record, identity, principals)
 	}
 	if errors.Is(err, core.ErrGitHubIdentityLinked) {
 		return oauthResultRedirect(c, record.ReturnTo, "identity_linked")

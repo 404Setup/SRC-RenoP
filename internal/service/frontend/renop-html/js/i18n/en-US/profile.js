@@ -9,6 +9,14 @@
  */
 
 export default Object.freeze({
+    "profile.emailAliases": "Other login emails",
+    "profile.emailAliasesHint": "Provider emails stay private and can be used to sign in or recover your account. Disconnecting a provider keeps its emails; a later provider sign-in can add removed addresses again.",
+    "profile.addEmailAlias": "Add a verified email",
+    "profile.emailAliasMailDisabled": "Enable email delivery to verify another address, or verify it with your provider and refresh the connection.",
+    "profile.removeEmailAlias": "Remove {email}",
+    "profile.providerEmailUnverified": "Verify the email with your provider, or add and verify it here before connecting. When registering, use the provider email.",
+    "profile.emailAliasLimit": "An account can have at most 128 login email addresses.",
+    "profile.primaryEmailRequired": "Change the primary email before removing this address.",
     "profile.back": "Back",
     "profile.publicDescription": "Public account profile",
     "profile.usernameLabel": "Username",
@@ -174,7 +182,7 @@ export default Object.freeze({
     "profile.githubOnlyLogin": "Keep another primary sign-in method before removing or disabling the current one. A Passkey used as a second factor cannot replace a primary sign-in method.",
     "profile.accountSecurityTitle": "Account Security",
     "profile.accountSecurityDesc": "Manage your private login email, password login, and one-time recovery codes.",
-    "profile.privateEmailLabel": "Email",
+    "profile.privateEmailLabel": "Primary email",
     "profile.privateEmailPlaceholder": "name@example.com",
     "profile.privateEmailHint": "This email is never shown publicly and can be used to sign in or recover your account.",
     "profile.savePrivateEmail": "Save email",

@@ -23,7 +23,14 @@ import (
 )
 
 func fetchGitHubVerifiedEmail(ctx context.Context, client *http.Client, provider githubOAuthProvider, accessToken string) (string, error) {
-	fallback := ""
+	primary, _, err := fetchGitHubEmailAddresses(ctx, client, provider, accessToken)
+	return primary, err
+}
+
+func fetchGitHubEmailAddresses(ctx context.Context, client *http.Client, provider githubOAuthProvider, accessToken string) (string, []core.ProviderEmail, error) {
+	primary, fallback := "", ""
+	emails := []core.ProviderEmail{}
+	seen := make(map[string]bool)
 	for page := 1; page <= 10; page++ {
 		var addresses []struct {
 			Email    string `json:"email"`
@@ -33,29 +40,39 @@ func fetchGitHubVerifiedEmail(ctx context.Context, client *http.Client, provider
 		link, err := getGitHubAPI(ctx, client, strings.TrimRight(provider.APIURL, "/")+
 			"/user/emails?per_page=100&page="+strconv.Itoa(page), accessToken, &addresses)
 		if err != nil {
-			return "", err
+			return "", nil, err
 		}
 		if len(addresses) > 100 {
-			return "", errors.New("GitHub email list exceeds the page limit")
+			return "", nil, errors.New("GitHub email list exceeds the page limit")
 		}
 		for _, address := range addresses {
 			email, valid := core.NormalizeEmail(address.Email)
-			if !address.Verified || !valid || email == "" || strings.HasSuffix(email, "@users.noreply.github.com") ||
+			if !valid || email == "" || strings.HasSuffix(email, "@users.noreply.github.com") ||
 				strings.HasSuffix(email, "@noreply.github.com") {
 				continue
 			}
-			if address.Primary {
-				return email, nil
+			if !seen[email] {
+				if len(emails) >= core.MaxAccountEmails {
+					return "", nil, core.ErrAccountEmailLimit
+				}
+				emails = append(emails, core.ProviderEmail{Email: email, Verified: address.Verified})
+				seen[email] = true
 			}
-			if fallback == "" {
+			if address.Primary && address.Verified {
+				primary = email
+			}
+			if fallback == "" && address.Verified {
 				fallback = email
 			}
 		}
 		if len(addresses) < 100 || !strings.Contains(link, `rel="next"`) {
-			return fallback, nil
+			if primary == "" {
+				primary = fallback
+			}
+			return primary, emails, nil
 		}
 	}
-	return "", errors.New("GitHub email list exceeds the supported limit")
+	return "", nil, errors.New("GitHub email list exceeds the supported limit")
 }
 
 func finishGitHubEmailVerification(c fiber.Ctx, state *core.AppState, record core.TransientAuthState,
@@ -76,7 +93,10 @@ func finishGitHubEmailVerification(c fiber.Ctx, state *core.AppState, record cor
 	if !state.Inner.Config.Load().Mail.Allows(email) {
 		return oauthResultRedirect(c, record.ReturnTo, "email_blocked")
 	}
-	_, err = state.GetDB().UpdateAccountEmailFromSession(profile.Username, session, email, record.Snapshot, time.Now().UnixMilli())
+	_, err = state.GetDB().UpdateAccountEmailFromSession(profile.Username, session, email, record.Snapshot, time.Now().UnixMilli(), core.ProviderEmail{Email: email, Verified: true})
+	if code := providerEmailErrorCode(err); code != "" {
+		return oauthResultRedirect(c, record.ReturnTo, code)
+	}
 	if errors.Is(err, core.ErrEmailAlreadyExists) {
 		return oauthResultRedirect(c, record.ReturnTo, "email_conflict")
 	}

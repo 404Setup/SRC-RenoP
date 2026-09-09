@@ -43,7 +43,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	suffix := uuid.NewString()[:8]
 	username := "dbcheck-" + suffix
 	now := time.Now().UnixMilli()
-	results := make([]DriverCheckResult, 0, 17)
+	results := make([]DriverCheckResult, 0, 18)
 	run := func(name string, check func() error) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -97,6 +97,9 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		stored, err = db.GetSession("driver-check-session-" + suffix)
 		if err != nil || stored != nil {
 			return errorsOrMissing(err, "suspended account session revocation")
+		}
+		if err := db.SaveSession(session, "late-driver-session-"+suffix); !errors.Is(err, core.ErrAccountBanned) {
+			return errorsOrMissing(err, "suspended account session issuance")
 		}
 		if err := db.SetAccountBan(username, nil); err != nil {
 			return err
@@ -1274,6 +1277,107 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		}
 		if _, err := db.UpdateAccountEmail(receiver, request.Email, now+10); !errors.Is(err, core.ErrEmailAlreadyExists) {
 			return errorsOrMissing(err, "OAuth release preserves retired email hold")
+		}
+		return nil
+	}); err != nil {
+		return results, err
+	}
+	if err := run("provider email ownership", func() error {
+		owner, receiver := "alias_"+suffix, "email_"+suffix
+		for _, name := range []string{owner, receiver} {
+			if err := db.SaveToken(&core.AccessToken{Name: name, EncryptedSecret: "driver-password", Permissions: []string{"base"}}); err != nil {
+				return err
+			}
+			session := &core.Session{PublicID: name, Username: name, CreatedAt: now}
+			session.LastActive.Store(now)
+			if err := db.SaveSession(session, name); err != nil {
+				return err
+			}
+		}
+		primary, alias := owner+"@example.test", "provider-"+suffix+"@example.test"
+		if _, err := db.UpdateAccountEmail(owner, primary, now); err != nil {
+			return err
+		}
+		identity := core.OAuthIdentity{ProviderID: "email-contract", Subject: suffix, Authority: strings.Repeat("c", 64),
+			Emails: []core.ProviderEmail{{Email: primary, Verified: true}, {Email: alias, Verified: true}}}
+		state, err := db.GetMFAState(owner)
+		if err != nil {
+			return err
+		}
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+		if _, err := tx.Exec(`INSERT INTO user_email_addresses (email, user_id, retained) VALUES (?, ?, 1), (?, ?, 1)`,
+			"rollback1-"+alias, state.UserID, "rollback2-"+alias, state.UserID); err != nil {
+			return err
+		}
+		if err := tx.Rollback(); err != nil {
+			return err
+		}
+		var rollbackRows int
+		if err := db.QueryRow(`SELECT COUNT(*) FROM user_email_addresses WHERE email IN (?, ?)`, "rollback1-"+alias, "rollback2-"+alias).Scan(&rollbackRows); err != nil || rollbackRows != 0 {
+			return errorsOrMissing(err, "complete batch rollback")
+		}
+		link := func(name string, proof core.OAuthIdentity) error {
+			state, err := db.GetMFAState(name)
+			if err != nil {
+				return err
+			}
+			return db.LinkOAuthIdentity(name, name, state.Snapshot, proof, now+1)
+		}
+		if err := link(owner, identity); err != nil {
+			return err
+		}
+		account, err := db.GetTokenByEmail(strings.ToUpper(alias))
+		if err != nil || account == nil || account.Name != owner {
+			return errorsOrMissing(err, "provider email login identifier")
+		}
+		other := identity
+		other.Subject += "-other"
+		if err := link(receiver, other); !errors.Is(err, core.ErrEmailAlreadyExists) {
+			return errorsOrMissing(err, "cross-provider email conflict")
+		}
+		if _, err := db.UpdateAccountEmail(owner, "new-"+primary, now+2); err != nil {
+			return err
+		}
+		profile, err := db.GetUserProfile(owner)
+		if err != nil {
+			return err
+		}
+		if _, err := db.Exec(`DELETE FROM user_email_addresses WHERE user_id = ? AND retained = 0`, profile.UserID); err != nil {
+			return err
+		}
+		if err := db.migrateAccountEmails(); err != nil {
+			return err
+		}
+		account, err = db.GetTokenByEmail("new-" + primary)
+		if err != nil || account == nil || account.Name != owner {
+			return errorsOrMissing(err, "legacy email migration")
+		}
+		if err := db.RetireAccount(owner, now+3); err != nil {
+			return err
+		}
+		if err := link(receiver, identity); !errors.Is(err, core.ErrEmailAlreadyExists) {
+			return errorsOrMissing(err, "retired provider email hold")
+		}
+		if err := db.ReleaseRetiredAccountEmail(owner, now+3+core.AccountEmailHoldMillis); err != nil {
+			return err
+		}
+		if err := link(receiver, identity); err != nil {
+			return err
+		}
+		security, err := db.GetAccountSecurity(receiver)
+		if err != nil || len(security.EmailAliases) != 2 {
+			return errorsOrMissing(err, "provider-only email aliases")
+		}
+		if _, err := db.DeleteAccountEmailAlias(receiver, receiver, alias, now+4); err != nil {
+			return err
+		}
+		account, err = db.GetTokenByEmail(alias)
+		if err != nil || account != nil {
+			return errorsOrMissing(err, "removed email identifier")
 		}
 		return nil
 	}); err != nil {

@@ -9,6 +9,14 @@
  */
 
 export default Object.freeze({
+    "profile.emailAliases": "Outros e-mails de início de sessão",
+    "profile.emailAliasesHint": "Os e-mails dos fornecedores são privados e permitem iniciar sessão ou recuperar a conta. Desligar um fornecedor mantém os seus e-mails; um início de sessão posterior pode voltar a adicionar os endereços removidos.",
+    "profile.addEmailAlias": "Adicionar e verificar um e-mail",
+    "profile.emailAliasMailDisabled": "Ative o envio de e-mails para verificar outro endereço ou verifique-o no fornecedor e atualize a ligação.",
+    "profile.removeEmailAlias": "Remover {email}",
+    "profile.providerEmailUnverified": "Verifique o e-mail no fornecedor ou adicione-o e verifique-o aqui antes de ligar a conta. Ao registar-se, use o e-mail do fornecedor.",
+    "profile.emailAliasLimit": "Uma conta pode guardar até 128 e-mails de início de sessão.",
+    "profile.primaryEmailRequired": "Altere o e-mail principal antes de remover este endereço.",
     "profile.back": "Voltar",
     "profile.publicDescription": "Perfil público da conta",
     "profile.usernameLabel": "Nome de utilizador",
@@ -174,7 +182,7 @@ export default Object.freeze({
     "profile.githubOnlyLogin": "Mantenha outro método principal de início de sessão antes de remover ou desativar o atual. Uma Passkey usada como segundo fator não substitui um método principal.",
     "profile.accountSecurityTitle": "Segurança da conta",
     "profile.accountSecurityDesc": "Gira o e-mail privado, o início por palavra-passe e os códigos de recuperação de utilização única.",
-    "profile.privateEmailLabel": "E-mail",
+    "profile.privateEmailLabel": "E-mail principal",
     "profile.privateEmailPlaceholder": "nome@example.com",
     "profile.privateEmailHint": "Nunca é apresentado publicamente e pode ser usado para iniciar sessão ou recuperar a conta.",
     "profile.savePrivateEmail": "Guardar e-mail",

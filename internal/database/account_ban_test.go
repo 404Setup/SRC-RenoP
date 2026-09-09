@@ -216,3 +216,26 @@ func TestAccountBanRejectsProtectedRolesAndPromotion(t *testing.T) {
 		})
 	}
 }
+
+func TestAccountBanRejectsNewSessionsEvenWithACurrentSnapshot(t *testing.T) {
+	db, err := InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "banned-session.db")})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "alice", Permissions: []string{"base"}}))
+	now := time.Now().UnixMilli()
+	require.NoError(t, db.SetAccountBan("alice", &core.AccountBan{Reason: "Abuse", CreatedAt: now}))
+	state, err := db.GetMFAState("alice")
+	require.NoError(t, err)
+	session := &core.Session{PublicID: "late-session", Username: "alice", CreatedAt: now, AuthenticationSnapshot: state.Snapshot}
+	session.LastActive.Store(now)
+	require.ErrorIs(t, db.SaveSession(session, "late-session-secret"), core.ErrAccountBanned)
+	stored, err := db.GetSession("late-session-secret")
+	require.NoError(t, err)
+	require.Nil(t, stored)
+	require.NoError(t, db.SetAccountBan("alice", nil))
+	require.NoError(t, db.UpdateToken("alice", func(account *core.AccessToken) { expired := now - 1; account.ExpiresAt = &expired }))
+	state, err = db.GetMFAState("alice")
+	require.NoError(t, err)
+	session.AuthenticationSnapshot = state.Snapshot
+	require.ErrorIs(t, db.SaveSession(session, "expired-session-secret"), core.ErrMFAInvalid)
+}

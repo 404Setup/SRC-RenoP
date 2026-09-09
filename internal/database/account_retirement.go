@@ -158,6 +158,9 @@ func (db *DB) ReleaseRetiredAccountEmail(username string, releasedAt int64) erro
 	if deletedAt <= 0 {
 		return core.ErrAccountNotRetired
 	}
+	if _, err := tx.Exec(`DELETE FROM user_email_addresses WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("release retired account email ownership: %w", err)
+	}
 	if _, err := tx.Exec(`UPDATE user_account_security SET email = NULL, password_login_enabled = 0, updated_at = ?
 		WHERE user_id = ?`, releasedAt, userID); err != nil {
 		return fmt.Errorf("release retired account email: %w", err)

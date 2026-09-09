@@ -10,7 +10,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"net/http"
 	"net/url"
 	"strconv"
 	"time"
@@ -23,20 +22,19 @@ import (
 )
 
 func beginGitHubRegistration(c fiber.Ctx, state *core.AppState, record core.TransientAuthState,
-	ctx context.Context, client *http.Client, provider githubOAuthProvider, accessToken string,
 	identity githubAPIIdentity, principals []core.GitHubPrincipal) error {
 	if !state.Inner.Config.Load().Registration.Enabled {
 		return oauthResultRedirect(c, record.ReturnTo, "registration_disabled")
 	}
-	email, err := fetchGitHubVerifiedEmail(ctx, client, provider, accessToken)
-	if err != nil || email == "" {
+	email := identity.PrimaryEmail
+	if email == "" {
 		return oauthResultRedirect(c, record.ReturnTo, "email_missing")
 	}
 	capability, err := newOAuthState()
 	if err != nil {
 		return oauthResultRedirect(c, record.ReturnTo, "identity_failed")
 	}
-	profile := core.RegistrationProfile{GitHubID: identity.ID, GitHubLogin: identity.Login, Principals: principals}
+	profile := core.RegistrationProfile{GitHubID: identity.ID, GitHubLogin: identity.Login, Principals: principals, GitHubEmails: identity.Emails}
 	if value, ok := core.NormalizeUsername(identity.Login); ok {
 		profile.Username = value
 	}

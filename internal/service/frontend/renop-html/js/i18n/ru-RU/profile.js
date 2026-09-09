@@ -9,6 +9,14 @@
  */
 
 export default Object.freeze({
+    "profile.emailAliases": "Другие адреса для входа",
+    "profile.emailAliasesHint": "Адреса провайдеров остаются закрытыми и подходят для входа или восстановления аккаунта. Отключение провайдера не удаляет адреса; следующий вход через него может добавить удалённые адреса снова.",
+    "profile.addEmailAlias": "Добавить и подтвердить адрес",
+    "profile.emailAliasMailDisabled": "Включите отправку писем для подтверждения другого адреса либо подтвердите его у провайдера и обновите подключение.",
+    "profile.removeEmailAlias": "Удалить {email}",
+    "profile.providerEmailUnverified": "Подтвердите адрес у провайдера или добавьте и подтвердите его здесь перед подключением. При регистрации используйте адрес провайдера.",
+    "profile.emailAliasLimit": "В аккаунте можно сохранить не более 128 адресов для входа.",
+    "profile.primaryEmailRequired": "Смените основной адрес перед удалением этого адреса.",
     "profile.back": "Назад",
     "profile.publicDescription": "Публичный профиль учетной записи",
     "profile.usernameLabel": "Имя пользователя",
@@ -174,7 +182,7 @@ export default Object.freeze({
     "profile.githubOnlyLogin": "Перед удалением или отключением текущего способа входа сохраните другой основной способ. Passkey, используемый как второй фактор, не заменяет основной способ входа.",
     "profile.accountSecurityTitle": "Безопасность аккаунта",
     "profile.accountSecurityDesc": "Управление приватной почтой, входом по паролю и одноразовыми кодами восстановления.",
-    "profile.privateEmailLabel": "Электронная почта",
+    "profile.privateEmailLabel": "Основная электронная почта",
     "profile.privateEmailPlaceholder": "name@example.com",
     "profile.privateEmailHint": "Не отображается публично и может использоваться для входа или восстановления.",
     "profile.savePrivateEmail": "Сохранить почту",

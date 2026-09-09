@@ -9,6 +9,14 @@
  */
 
 export default Object.freeze({
+    "profile.emailAliases": "Autres adresses de connexion",
+    "profile.emailAliasesHint": "Les adresses des fournisseurs restent privées et servent à la connexion ou à la récupération du compte. Déconnecter un fournisseur conserve ses adresses ; une connexion ultérieure peut réajouter les adresses supprimées.",
+    "profile.addEmailAlias": "Ajouter et vérifier une adresse",
+    "profile.emailAliasMailDisabled": "Activez l’envoi d’e-mails pour vérifier une autre adresse, ou vérifiez-la auprès du fournisseur puis actualisez la connexion.",
+    "profile.removeEmailAlias": "Supprimer {email}",
+    "profile.providerEmailUnverified": "Vérifiez l’adresse auprès du fournisseur ou ajoutez-la et vérifiez-la ici avant la connexion. À l’inscription, utilisez l’adresse du fournisseur.",
+    "profile.emailAliasLimit": "Un compte peut conserver au maximum 128 adresses de connexion.",
+    "profile.primaryEmailRequired": "Changez l’adresse principale avant de supprimer celle-ci.",
     "profile.back": "Retour",
     "profile.publicDescription": "Profil public du compte",
     "profile.usernameLabel": "Nom d’utilisateur",
@@ -174,7 +182,7 @@ export default Object.freeze({
     "profile.githubOnlyLogin": "Conservez une autre méthode principale de connexion avant de supprimer ou de désactiver celle-ci. Une Passkey utilisée comme second facteur ne remplace pas une méthode principale.",
     "profile.accountSecurityTitle": "Sécurité du compte",
     "profile.accountSecurityDesc": "Gérez l’e-mail privé, la connexion par mot de passe et les codes de récupération à usage unique.",
-    "profile.privateEmailLabel": "Adresse e-mail",
+    "profile.privateEmailLabel": "Adresse e-mail principale",
     "profile.privateEmailPlaceholder": "nom@example.com",
     "profile.privateEmailHint": "Il n’est jamais affiché publiquement et permet de se connecter ou de récupérer le compte.",
     "profile.savePrivateEmail": "Enregistrer l’e-mail",

@@ -47,6 +47,7 @@ type RegistrationProfile struct {
 	Nickname           string            `json:"nickname"`
 	GitHubID           int64             `json:"github_id,omitempty"`
 	GitHubLogin        string            `json:"github_login,omitempty"`
+	GitHubEmails       []ProviderEmail   `json:"github_emails,omitempty"`
 	Principals         []GitHubPrincipal `json:"principals,omitempty"`
 }
 

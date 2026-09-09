@@ -13,6 +13,26 @@ Edit the private email in **Account security**. When email delivery is enabled, 
 
 The configured email blacklist or whitelist applies to both methods, including when delivery is disabled. Rules match an exact mailbox or domain; subdomains are separate. Unicode and Punycode spellings of the same internationalized domain match the same rule. An address already owned or still reserved by a retired account cannot be claimed.
 
+## Login aliases
+
+Primary and secondary email addresses share one account ownership record. A provider binding fails if the identity or any returned contact address belongs to another account, including an address reserved after retirement. Binding, email reservations, and account-security changes commit together; failure leaves the existing account unchanged. Emails never merge accounts.
+
+**Other login emails** lists private secondary addresses. They identify the same account for password or Passkey login, email password reset, and offline-code recovery; existing password and second-factor policies still apply. Notifications continue to use the primary email. Each account can retain up to 128 addresses, including its primary email.
+
+A provider must verify a returned address, or that address must already belong to the signed-in account. Otherwise, verify it with the provider or use **Add a verified email** before connecting. Adding an address requires RenoP email delivery and the existing code dialog. Provider registration with an unverified email must confirm that provider address; confirming a different address is insufficient. GitHub no-reply addresses are excluded.
+
+Disconnecting a provider keeps its email aliases. Removing an alias releases that address; a later provider authorization may add it again. The primary address cannot be removed as an alias. Bans preserve all addresses, and retirement reserves all of them for 14 days, even when there is no primary address. Administrator early release applies to the entire retained address set.
+
+| Method | Path | Request or response |
+|---|---|---|
+| GET | `/api/auth/profile/security` | Adds `email_aliases` alongside `email` |
+| PUT | `/api/auth/profile/email` | `{"email":"alias@example.com","alias":true}`; `202` with a verification receipt |
+| DELETE | `/api/auth/profile/email/alias` | `{"email":"alias@example.com"}`; updated account security |
+
+Alias confirmation uses the existing confirmation endpoint; its purpose is saved with the challenge and cannot be changed by the confirmation request. Alias removal requires a browser sign-in from the last five minutes. Errors use `ACCOUNT_EMAIL_PROOF_REQUIRED`, `ACCOUNT_EMAIL_LIMIT`, or `ACCOUNT_EMAIL_PRIMARY` with `409`; an older removal session receives `MFA_REAUTH_REQUIRED`.
+
+Upgrades backfill existing primary email ownership. Previously linked providers acquire aliases on their next authorization because older installations did not retain those addresses. Session persistence rechecks bans and account expiry inside the account transaction before issuing a new browser session.
+
 ## Verification API
 
 These operations require the current browser cookie. JSON bodies require `Content-Type: application/json` and are limited to 4,096 bytes.

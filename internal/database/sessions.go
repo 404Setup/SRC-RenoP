@@ -84,6 +84,16 @@ func (db *DB) SaveSession(session *core.Session, sessionToken string) error {
 	if err := lockAccountByUsernameTx(tx, session.Username); err != nil {
 		return err
 	}
+	account, err := tokenByNameTx(tx, strings.ToLower(session.Username))
+	if err != nil {
+		return err
+	}
+	if account != nil && account.Ban.IsActive(time.Now().UnixMilli()) {
+		return core.ErrAccountBanned
+	}
+	if account != nil && account.ExpiresAt != nil && *account.ExpiresAt <= time.Now().UnixMilli() {
+		return core.ErrMFAInvalid
+	}
 	if session.AuthenticationSnapshot != "" {
 		current, err := mfaStateQuery(tx.QueryRow, session.Username)
 		if err != nil {

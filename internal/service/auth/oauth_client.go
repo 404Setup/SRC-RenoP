@@ -133,9 +133,19 @@ func oauthString(value json.RawMessage, path string, numeric bool) string {
 	return ""
 }
 
+func oauthEmailProof(raw json.RawMessage, p config.OAuthProviderConfig) (core.ProviderEmail, error) {
+	value := oauthString(raw, p.Claims.Email, false)
+	email, valid := core.NormalizeEmail(value)
+	if value != "" && (!valid || email == "") {
+		return core.ProviderEmail{}, errors.New("OAuth provider returned an invalid email address")
+	}
+	return core.ProviderEmail{Email: email, Verified: email != "" && string(oauthClaim(raw, p.Claims.EmailVerified)) == "true"}, nil
+}
+
 func fetchOAuthUserInfo(ctx context.Context, client *http.Client, p config.OAuthProviderConfig, tokens oauthTokens, nonce string) (oauthUserInfo, error) {
 	issuer := p.Issuer
 	subject := ""
+	var tokenEmail core.ProviderEmail
 	if issuer != "" {
 		claims, err := verifyOAuthIDToken(ctx, client, p, tokens, nonce)
 		if err != nil {
@@ -146,6 +156,14 @@ func fetchOAuthUserInfo(ctx context.Context, client *http.Client, p config.OAuth
 			issuer = p.Issuer
 		}
 		subject, _ = claims.GetSubject()
+		rawClaims, err := json.Marshal(claims)
+		if err != nil {
+			return oauthUserInfo{}, err
+		}
+		tokenEmail, err = oauthEmailProof(rawClaims, p)
+		if err != nil {
+			return oauthUserInfo{}, err
+		}
 	}
 	endpoint := p.UserInfoURL
 	if p.Type == "stackexchange" {
@@ -174,9 +192,20 @@ func fetchOAuthUserInfo(ctx context.Context, client *http.Client, p config.OAuth
 	}
 	info := oauthUserInfo{Identity: core.OAuthIdentity{ProviderID: p.ID, Subject: id, Authority: p.Authority(issuer)},
 		Username: oauthString(raw, p.Claims.Username, false), Name: oauthString(raw, p.Claims.Name, false),
-		Email: oauthString(raw, p.Claims.Email, false), AvatarURL: oauthString(raw, p.Claims.Avatar, false)}
-	info.Email, _ = core.NormalizeEmail(info.Email)
-	info.EmailVerified = info.Email != "" && string(oauthClaim(raw, p.Claims.EmailVerified)) == "true"
+		AvatarURL: oauthString(raw, p.Claims.Avatar, false)}
+	profileEmail, err := oauthEmailProof(raw, p)
+	if err != nil {
+		return oauthUserInfo{}, err
+	}
+	if profileEmail.Email == "" {
+		profileEmail = tokenEmail
+	}
+	info.Email, info.EmailVerified = profileEmail.Email, profileEmail.Verified
+	for _, proof := range []core.ProviderEmail{profileEmail, tokenEmail} {
+		if proof.Email != "" {
+			info.Identity.Emails = append(info.Identity.Emails, proof)
+		}
+	}
 	if p.Type == "gitlab" && p.UserInfoURL == "https://gitlab.com/oauth/userinfo" {
 		info.Identity.Namespaces = gitlabOwnedNamespaces(raw)
 	}

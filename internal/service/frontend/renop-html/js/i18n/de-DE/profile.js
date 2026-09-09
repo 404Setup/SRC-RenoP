@@ -9,6 +9,14 @@
  */
 
 export default Object.freeze({
+    "profile.emailAliases": "Weitere Anmeldeadressen",
+    "profile.emailAliasesHint": "Anbieteradressen bleiben privat und können zur Anmeldung oder Kontowiederherstellung verwendet werden. Beim Trennen eines Anbieters bleiben sie erhalten; eine spätere Anmeldung kann entfernte Adressen wieder hinzufügen.",
+    "profile.addEmailAlias": "E-Mail hinzufügen und bestätigen",
+    "profile.emailAliasMailDisabled": "Aktivieren Sie den E-Mail-Versand, um eine weitere Adresse zu bestätigen, oder bestätigen Sie sie beim Anbieter und aktualisieren Sie die Verbindung.",
+    "profile.removeEmailAlias": "{email} entfernen",
+    "profile.providerEmailUnverified": "Bestätigen Sie die Adresse beim Anbieter oder fügen Sie sie hier zur Bestätigung hinzu, bevor Sie ihn verbinden. Verwenden Sie zur Registrierung die Anbieteradresse.",
+    "profile.emailAliasLimit": "Ein Konto kann höchstens 128 Anmeldeadressen speichern.",
+    "profile.primaryEmailRequired": "Ändern Sie zuerst die primäre E-Mail-Adresse.",
     "profile.back": "Zurück",
     "profile.publicDescription": "Öffentliches Kontoprofil",
     "profile.usernameLabel": "Benutzername",
@@ -174,7 +182,7 @@ export default Object.freeze({
     "profile.githubOnlyLogin": "Behalten Sie eine weitere primäre Anmeldemethode bei, bevor Sie die aktuelle entfernen oder deaktivieren. Ein Passkey als zweiter Faktor ersetzt keine primäre Anmeldemethode.",
     "profile.accountSecurityTitle": "Kontosicherheit",
     "profile.accountSecurityDesc": "Verwalten Sie private Anmelde-E-Mail, Passwortanmeldung und einmalige Wiederherstellungscodes.",
-    "profile.privateEmailLabel": "E-Mail",
+    "profile.privateEmailLabel": "Primäre E-Mail",
     "profile.privateEmailPlaceholder": "name@example.com",
     "profile.privateEmailHint": "Diese E-Mail wird nie öffentlich angezeigt und kann zur Anmeldung oder Wiederherstellung verwendet werden.",
     "profile.savePrivateEmail": "E-Mail speichern",

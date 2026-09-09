@@ -34,6 +34,7 @@ func TestOAuthRegistrationAndMFALogin(t *testing.T) {
 	challenge := ""
 	avatarURL := ""
 	var verifiedEmail any = "true"
+	providerEmail := "confirmed@example.com"
 	var changeAvatarConfig atomic.Bool
 	var replaceOAuthDuringAvatar func()
 	avatarData := avatarPNG(t, 256, 256)
@@ -51,7 +52,7 @@ func TestOAuthRegistrationAndMFALogin(t *testing.T) {
 		case "/userinfo":
 			require.Equal(t, "Bearer provider-secret", r.Header.Get("Authorization"))
 			_ = json.NewEncoder(w).Encode(map[string]any{"user": map[string]any{"id": int64(9007199254740993), "username": "external",
-				"name": "Provider Name", "email": "suggested@example.com", "verified": verifiedEmail, "avatar": avatarURL}})
+				"name": "Provider Name", "email": providerEmail, "verified": verifiedEmail, "avatar": avatarURL}})
 		case "/avatar":
 			require.Equal(t, "Bearer provider-secret", r.Header.Get("Authorization"))
 			if changeAvatarConfig.Load() {
@@ -109,9 +110,12 @@ func TestOAuthRegistrationAndMFALogin(t *testing.T) {
 	require.NoError(t, err)
 	require.NotContains(t, pending.ProfileJSON, "provider-secret")
 	require.Contains(t, pending.ProfileJSON, "avatar_token")
-	request := map[string]any{"provider": "demo", "username": "external", "nickname": "Provider Name", "password": "Password2026!", "email": "suggested@example.com", "import_avatar": true}
+	request := map[string]any{"provider": "demo", "username": "external", "nickname": "Provider Name", "password": "Password2026!", "email": providerEmail, "import_avatar": true}
 	response = registrationRequest(t, app, "/api/auth/registration", request, cookie)
 	require.Equal(t, 400, response.StatusCode)
+	response = registrationRequest(t, app, "/api/auth/registration/code", map[string]any{"provider": "demo", "email": "different@example.com"}, cookie)
+	require.Equal(t, 409, response.StatusCode)
+	require.Equal(t, "ACCOUNT_EMAIL_PROOF_REQUIRED", response.Header.Get("X-Renop-Error-Code"))
 	request["email"] = "confirmed@example.com"
 	response = registrationRequest(t, app, "/api/auth/registration/code", map[string]any{"provider": "demo", "email": request["email"]}, cookie)
 	require.Equal(t, 202, response.StatusCode)
@@ -161,8 +165,16 @@ func TestOAuthRegistrationAndMFALogin(t *testing.T) {
 	require.True(t, statuses.Providers[0].CanVerifyEmail)
 	require.True(t, statuses.Providers[0].CanImportAvatar)
 	require.Contains(t, profileFlow("link").Header.Get("Location"), "oauth=linked")
+	require.NoError(t, state.GetDB().SaveToken(&core.AccessToken{Name: "otherowner", EncryptedSecret: "password", Permissions: []string{"base"}}))
+	_, err = state.GetDB().UpdateAccountEmail("otherowner", "taken@example.com", time.Now().UnixMilli())
+	require.NoError(t, err)
+	providerEmail = "taken@example.com"
+	verifiedEmail = true
+	require.Contains(t, profileFlow("link").Header.Get("Location"), "oauth=email_conflict")
+	providerEmail, verifiedEmail = "confirmed@example.com", "true"
 	require.Contains(t, profileFlow("email").Header.Get("Location"), "oauth=email_missing")
 	verifiedEmail = true
+	providerEmail = "suggested@example.com"
 	require.Contains(t, profileFlow("email").Header.Get("Location"), "oauth=email_updated")
 	security, err := state.GetDB().GetAccountSecurity("external")
 	require.NoError(t, err)

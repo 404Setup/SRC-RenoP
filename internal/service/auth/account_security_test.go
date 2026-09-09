@@ -147,6 +147,15 @@ func TestPrivateEmailPasswordPolicyAndRecoveryRoutes(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, emailToken)
 	assert.Equal(t, "alice", emailToken.Name)
+	mfa, err := db.GetMFAState("alice")
+	require.NoError(t, err)
+	_, err = db.UpdateAccountEmailFromSession("alice", sessionToken, "alice@example.com", mfa.Snapshot, time.Now().UnixMilli(),
+		core.ProviderEmail{Email: "alias@example.com", Verified: true})
+	require.NoError(t, err)
+	aliasUser, err := AuthenticateUser(state, &core.LoginRequest{Name: "Alias@Example.com", Secret: "initial-password"}, operations)
+	require.NoError(t, err)
+	require.NotNil(t, aliasUser)
+	require.Equal(t, "alice", aliasUser.Username)
 	publicResponse, err := app.Test(httptest.NewRequest(http.MethodGet, "/users/alice/profile", nil))
 	require.NoError(t, err)
 	publicBody := new(bytes.Buffer)
@@ -155,6 +164,8 @@ func TestPrivateEmailPasswordPolicyAndRecoveryRoutes(t *testing.T) {
 	require.NoError(t, publicResponse.Body.Close())
 	assert.NotContains(t, publicBody.String(), "alice@example.com")
 	assert.NotContains(t, publicBody.String(), "\"email\"")
+	assert.NotContains(t, publicBody.String(), "alias@example.com")
+	assert.NotContains(t, publicBody.String(), "email_aliases")
 
 	response = accountSecurityRequest(t, app, http.MethodPut, "/auth/profile/password-login",
 		map[string]any{"enabled": false}, sessionToken)
@@ -181,7 +192,7 @@ func TestPrivateEmailPasswordPolicyAndRecoveryRoutes(t *testing.T) {
 	require.Len(t, generated.Codes, core.RecoveryCodeCount)
 
 	recoveryBody := map[string]any{
-		"identifier":   "alice@example.com",
+		"identifier":   "alias@example.com",
 		"codes":        generated.Codes[:core.RecoveryCodesRequired],
 		"new_password": "recovered-password",
 	}

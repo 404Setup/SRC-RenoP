@@ -27,10 +27,6 @@ func resolveGitHubLogin(state *core.AppState, identity githubAPIIdentity,
 	if linked == nil {
 		return nil, core.ErrGitHubIdentityNotFound
 	}
-	if err := state.GetDB().StoreGitHubIdentity(linked.UserID, identity.ID, identity.Login,
-		principals, authorizedAt); err != nil {
-		return nil, err
-	}
 	accessToken := state.GetTokenByName(linked.Username)
 	if accessToken == nil {
 		return nil, errors.New("linked RenoP account is unavailable")
@@ -38,5 +34,13 @@ func resolveGitHubLogin(state *core.AppState, identity githubAPIIdentity,
 	if err := accountAccessError(accessToken); err != nil {
 		return nil, err
 	}
+	if err := state.GetDB().RefreshGitHubIdentity(linked.UserID, identity.ID, identity.Login,
+		principals, authorizedAt, identity.Emails...); err != nil {
+		if errors.Is(err, core.ErrGitHubIdentityNotFound) {
+			return nil, core.ErrMFAInvalid
+		}
+		return nil, err
+	}
+	state.InvalidateAccountAuthCache(true, linked.Username)
 	return buildSynthUser(accessToken), nil
 }

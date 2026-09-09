@@ -53,6 +53,7 @@ export async function initializeOAuth() {
             identity_linked: ['oauth.alreadyLinked', 'error'],
             account_banned: ['login.accountBanned', 'error'], account_deleted: ['login.accountDeleted', 'error'],
             email_updated: ['profile.privateEmailSaved', 'success'], email_conflict: ['profile.privateEmailConflict', 'error'],
+            email_unverified: ['profile.providerEmailUnverified', 'error'], email_limit: ['profile.emailAliasLimit', 'error'],
             email_blocked: ['mail.recipientBlocked', 'error'], email_missing: ['oauth.emailMissing', 'error'],
             avatar_updated: ['profile.avatarUpdated', 'success'], avatar_failed: ['oauth.avatarFailed', 'error'],
             registration_disabled: ['registration.disabled', 'error'], registration_ip_limited: ['registration.ipLimited', 'error'],

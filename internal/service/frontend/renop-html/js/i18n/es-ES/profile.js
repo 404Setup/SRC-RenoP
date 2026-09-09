@@ -9,6 +9,14 @@
  */
 
 export default Object.freeze({
+    "profile.emailAliases": "Otros correos de acceso",
+    "profile.emailAliasesHint": "Los correos de los proveedores son privados y sirven para acceder o recuperar la cuenta. Desconectar un proveedor conserva sus correos; un acceso posterior puede volver a añadir las direcciones eliminadas.",
+    "profile.addEmailAlias": "Añadir y verificar un correo",
+    "profile.emailAliasMailDisabled": "Activa el envío de correo para verificar otra dirección o verifícala en el proveedor y actualiza la conexión.",
+    "profile.removeEmailAlias": "Eliminar {email}",
+    "profile.providerEmailUnverified": "Verifica el correo en el proveedor o añádelo y verifícalo aquí antes de conectarlo. Al registrarte, usa el correo del proveedor.",
+    "profile.emailAliasLimit": "Una cuenta puede guardar un máximo de 128 correos de acceso.",
+    "profile.primaryEmailRequired": "Cambia el correo principal antes de eliminar esta dirección.",
     "profile.back": "Volver",
     "profile.publicDescription": "Perfil público de la cuenta",
     "profile.usernameLabel": "Nombre de usuario",
@@ -174,7 +182,7 @@ export default Object.freeze({
     "profile.githubOnlyLogin": "Conserve otro método principal de inicio de sesión antes de eliminar o desactivar el actual. Una Passkey usada como segundo factor no sustituye a un método principal.",
     "profile.accountSecurityTitle": "Seguridad de la cuenta",
     "profile.accountSecurityDesc": "Gestiona el correo privado, el acceso con contraseña y los códigos de recuperación de un solo uso.",
-    "profile.privateEmailLabel": "Correo electrónico",
+    "profile.privateEmailLabel": "Correo principal",
     "profile.privateEmailPlaceholder": "nombre@example.com",
     "profile.privateEmailHint": "Nunca se muestra públicamente y sirve para iniciar sesión o recuperar la cuenta.",
     "profile.savePrivateEmail": "Guardar correo",

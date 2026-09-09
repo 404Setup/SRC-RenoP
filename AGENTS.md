@@ -38,7 +38,7 @@ Service paths in this table are relative to `internal/service/`; all other paths
 | HTTP routing, search, middleware, public API          | `internal/api/`, `internal/middleware/`, relevant service `routes.go`                                           |
 | SQL, migrations, transactions, persistence caches     | `internal/database/`; dialect logic in `clickhouse*.go`                                                         |
 | Memory, Redis, Valkey cache backends                  | `internal/cache/`, `internal/core/cache.go`, `internal/database/cache.go`; configuration in `settings/cache.go` |
-| Login, sessions, Passkey, TOTP, OAuth, API tokens, profiles | `auth/`; second factors in `mfa*.go`; email verification in `email_verification.go`, `github_email.go`; provider flows in `github_*.go`, `oauth_*.go`; OAuth configuration in `internal/config/oauth.go` |
+| Login, sessions, Passkey, TOTP, OAuth, API tokens, profiles | `auth/`; second factors in `mfa*.go`; email ownership in `internal/database/account_emails.go`, verification in `email_verification.go`, `github_email.go`; provider flows in `github_*.go`, `oauth_*.go`; OAuth configuration in `internal/config/oauth.go` |
 | Registration, retirement, recovery, avatars           | `auth/`, `internal/database/`, matching `registration*`, `account_retirement*`, `recovery_codes*`, `password_reset*`, `avatar*` files; registration policy in `internal/config/registration.go` and `settings/registration.go` |
 | Account and IP suspensions                             | `token/routes.go`, `internal/database/account_ban.go`, `internal/database/account_ip_ban.go`; request enforcement in `internal/middleware/anomaly.go` |
 | Cargo registry and documentation                      | `cargo/`, `cargodocs/`                                                                                          |
@@ -69,7 +69,7 @@ Check `packages/renop-ui/package.json` exports before building another shared co
 |---------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
 | History, sign-in page, protected routes, HTTP failures, offline state | `js/main.js`, `js/login-route.js`, `js/auth.js`, `css/account-pages.css`, `js/protected-route.js`, `js/api.js`, `js/response-errors.js`, `js/backend-availability.js` |
 | Identity, profile photos/links, provider connections, profile cache | `js/user-profiles.js`, `js/profile.js`, `js/profile-avatar.js`, `js/profile-links.js`, `js/oauth.js`, `js/components/user-avatar.js` |
-| Account security / recovery / retirement / tokens / administration | `js/account-security.js`, `js/fido-utils.js`, `js/mfa-login.js`, `js/profile-email-verification.js`, `js/account-recovery.js`, `js/password-recovery.js`, `js/login-route.js`, `js/account-retirement.js`, `js/api-tokens.js`, `js/users/` |
+| Account security / recovery / retirement / tokens / administration | `js/account-security.js`, `js/account-emails.js`, `js/fido-utils.js`, `js/mfa-login.js`, `js/profile-email-verification.js`, `js/account-recovery.js`, `js/password-recovery.js`, `js/login-route.js`, `js/account-retirement.js`, `js/api-tokens.js`, `js/users/` |
 | Email accounts, provider presets, billing, delivery     | `js/settings/mail.js`; JSON settings are integrated by `js/settings.js`                                                                                   |
 | Reviews / messages / administrator composer             | `js/reviews.js`, `js/review-messages.js`, `js/messages.js`, `js/notification-composer.js`                                                                |
 | Teams and quota                                         | `js/super-teams.js`, `js/super-team-resources.js`, `js/publication-quota.js`                                                                             |
@@ -91,8 +91,11 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   Enforce live account, repository, package/team, and scoped-token permissions server-side. API tokens intersect current
   owner permissions; cookie-only sessions gate browser-only operations. Basic/password authentication is protocol-only.
   Moderator roles do not imply write or manager authority. Never expose secrets or private profile/team fields publicly.
-  OAuth subjects are scoped to the provider configuration authority; never merge accounts by email. Preserve PKCE,
-  OIDC signature/issuer/audience/nonce verification, browser-bound state, and mandatory email proof during provider registration.
+  OAuth subjects are scoped to the provider configuration authority; never merge accounts by email.
+  Primary and provider email addresses share immutable account ownership; binding and email reservations commit
+  together. Unverified provider addresses require existing ownership or email proof; retained aliases survive unlinking.
+  Preserve PKCE, OIDC signature/issuer/audience/nonce verification, browser-bound state, and mandatory email proof
+  during provider registration.
   Browser session issuance enforces live second-factor policy and credential snapshots. Secondary Passkeys cannot count
   as primary login methods; MFA accounts use API tokens for package clients. Startup persists the private authenticator
   encryption key before serving requests; preserve it across configuration updates.

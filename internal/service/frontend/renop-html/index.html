@@ -1031,7 +1031,7 @@
                                 <form action="javascript:void(0);" class="profile-security-email-form"
                                       id="profile-private-email-form">
                                     <label data-i18n="profile.privateEmailLabel"
-                                           for="profile-private-email">Email</label>
+                                           for="profile-private-email">Primary email</label>
                                     <div class="profile-security-inline">
                                         <input autocomplete="email" class="profile-input" data-i18n-placeholder="profile.privateEmailPlaceholder"
                                                id="profile-private-email" maxlength="254" placeholder="name@example.com"
@@ -1046,6 +1046,19 @@
                                     <button class="pill-btn pill-btn--soft profile-action-btn" data-i18n="profile.githubVerifyEmail" id="profile-github-verify-email"
                                             type="button" hidden>Use verified GitHub email</button>
                                 </form>
+                                <section class="profile-security-email-form" aria-labelledby="profile-email-aliases-title">
+                                    <strong id="profile-email-aliases-title" data-i18n="profile.emailAliases">Other login emails</strong>
+                                    <p class="profile-security-hint" data-i18n="profile.emailAliasesHint">Provider emails remain private login and recovery addresses until you remove them. A provider can add its addresses again when you sign in.</p>
+                                    <ul class="profile-email-aliases" id="profile-email-aliases"></ul>
+                                    <form id="profile-email-alias-form">
+                                        <label for="profile-email-alias" data-i18n="profile.addEmailAlias">Add a verified email</label>
+                                        <div class="profile-security-inline">
+                                            <input class="profile-input" id="profile-email-alias" type="email" required maxlength="254" autocomplete="email">
+                                            <button class="pill-btn pill-btn--primary profile-action-btn" type="submit" data-i18n="profile.verifyPrivateEmail">Verify email</button>
+                                        </div>
+                                        <p class="profile-security-hint" id="profile-email-alias-mail-disabled" data-i18n="profile.emailAliasMailDisabled" hidden>Enable email delivery to verify another address, or verify it with your provider and refresh the connection.</p>
+                                    </form>
+                                </section>
                                 <div class="profile-security-control">
                                     <div>
                                         <strong data-i18n="profile.passwordLoginTitle">Password login</strong>

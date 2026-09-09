@@ -13,6 +13,26 @@ Modifiez l’adresse privée dans **Sécurité du compte**. Lorsque l’envoi d�
 
 La liste noire ou blanche configurée s’applique aux deux méthodes, même lorsque l’envoi est désactivé. Les règles correspondent à une adresse exacte ou à un domaine, sans ses sous-domaines. Les formes Unicode et Punycode d’un même domaine internationalisé correspondent à la même règle. Une adresse appartenant à un autre compte ou encore réservée par un compte fermé ne peut pas être utilisée.
 
+## Alias de connexion
+
+Les adresses principales et secondaires partagent un registre unique de propriété. La liaison échoue si l’identité externe ou l’une de ses adresses de contact appartient à un autre compte, y compris pendant la rétention après fermeture. Liaison, réservation des adresses et changements de sécurité sont validés ensemble ; un échec ne modifie pas le compte existant. Les adresses ne fusionnent jamais des comptes.
+
+**Autres adresses de connexion** affiche les adresses secondaires privées. Elles identifient le même compte pour la connexion par mot de passe ou Passkey, la réinitialisation par e-mail et les codes de récupération hors ligne ; les politiques de mot de passe et de second facteur restent applicables. Les notifications utilisent toujours l’adresse principale. Un compte peut conserver 128 adresses au maximum, adresse principale comprise.
+
+Une adresse fournie doit être vérifiée par le fournisseur ou déjà appartenir au compte connecté. Sinon, vérifiez-la auprès du fournisseur ou utilisez **Ajouter et vérifier une adresse** avant la liaison. L’ajout nécessite l’envoi d’e-mails RenoP et le dialogue de code existant. Lors d’une inscription avec une adresse externe non vérifiée, il faut confirmer cette adresse ; confirmer une autre adresse ne suffit pas. Les adresses GitHub no-reply sont exclues.
+
+Déconnecter un fournisseur conserve ses alias. Supprimer un alias libère l’adresse ; une autorisation ultérieure peut la réajouter. L’adresse principale ne peut pas être supprimée comme alias. Une suspension conserve toutes les adresses, et la fermeture les réserve toutes pendant 14 jours, même sans adresse principale. La libération anticipée par un administrateur concerne l’ensemble des adresses conservées.
+
+| Méthode | Chemin | Requête ou réponse |
+|---|---|---|
+| GET | `/api/auth/profile/security` | Ajoute `email_aliases` à côté de `email` |
+| PUT | `/api/auth/profile/email` | `{"email":"alias@example.com","alias":true}` ; `202` avec un reçu de vérification |
+| DELETE | `/api/auth/profile/email/alias` | `{"email":"alias@example.com"}` ; sécurité du compte mise à jour |
+
+La confirmation utilise l’endpoint existant ; son but est enregistré avec le défi et ne peut pas être changé dans la requête de confirmation. La suppression exige une connexion navigateur datant de moins de cinq minutes. Les erreurs `ACCOUNT_EMAIL_PROOF_REQUIRED`, `ACCOUNT_EMAIL_LIMIT` et `ACCOUNT_EMAIL_PRIMARY` renvoient `409` ; une session trop ancienne reçoit `MFA_REAUTH_REQUIRED`.
+
+La mise à niveau renseigne la propriété des adresses principales existantes. Les anciennes liaisons acquièrent leurs alias à la prochaine autorisation, car ces adresses n’étaient pas conservées auparavant. La persistance revérifie suspension et expiration du compte dans sa transaction avant de créer une nouvelle session de navigateur.
+
 ## API de vérification
 
 Ces opérations exigent le cookie du navigateur actuel. Les corps JSON doivent utiliser `Content-Type: application/json` et sont limités à 4 096 octets.

@@ -69,20 +69,65 @@ func (db *DB) GetGitHubIdentityByProviderID(githubUserID int64) (*core.GitHubIde
 
 // StoreGitHubIdentity links an identity and atomically replaces its authorized principal snapshot.
 func (db *DB) StoreGitHubIdentity(userID string, githubUserID int64, githubLogin string,
-	principals []core.GitHubPrincipal, authorizedAt int64) error {
+	principals []core.GitHubPrincipal, authorizedAt int64, emails ...core.ProviderEmail) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin GitHub identity update: %w", err)
 	}
 	defer tx.Rollback()
-	if err := storeGitHubIdentityTx(tx, userID, githubUserID, githubLogin, principals, authorizedAt); err != nil {
+	if err := storeGitHubIdentityTx(tx, userID, githubUserID, githubLogin, principals, authorizedAt, emails...); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// LinkGitHubIdentity attaches a provider only while the initiating browser credentials remain current.
+func (db *DB) LinkGitHubIdentity(username, session, snapshot string, githubUserID int64, githubLogin string,
+	principals []core.GitHubPrincipal, authorizedAt int64, emails ...core.ProviderEmail) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	account, err := accountEmailSessionTx(tx, strings.ToLower(username), session)
+	if err != nil {
+		return err
+	}
+	if snapshot == "" || account.Snapshot != snapshot {
+		return core.ErrMFAInvalid
+	}
+	if err := storeGitHubIdentityTx(tx, account.UserID, githubUserID, githubLogin, principals, authorizedAt, emails...); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// RefreshGitHubIdentity refreshes an existing binding without restoring a concurrently removed identity.
+func (db *DB) RefreshGitHubIdentity(userID string, githubUserID int64, githubLogin string,
+	principals []core.GitHubPrincipal, authorizedAt int64, emails ...core.ProviderEmail) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := lockAccountLoginMethodsTx(tx, userID); err != nil {
+		return err
+	}
+	var bound int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM github_identities WHERE user_id = ? AND github_user_id = ?`, userID, githubUserID).Scan(&bound); err != nil {
+		return err
+	}
+	if bound != 1 {
+		return core.ErrGitHubIdentityNotFound
+	}
+	if err := storeGitHubIdentityTx(tx, userID, githubUserID, githubLogin, principals, authorizedAt, emails...); err != nil {
 		return err
 	}
 	return tx.Commit()
 }
 
 func storeGitHubIdentityTx(tx *Tx, userID string, githubUserID int64, githubLogin string,
-	principals []core.GitHubPrincipal, authorizedAt int64) error {
+	principals []core.GitHubPrincipal, authorizedAt int64, emails ...core.ProviderEmail) error {
 	userID = SanitizeInputString(strings.TrimSpace(userID), 36)
 	githubLogin = strings.ToLower(SanitizeInputString(strings.TrimSpace(githubLogin), 39))
 	if userID == "" || githubUserID <= 0 || githubLogin == "" || authorizedAt <= 0 ||
@@ -118,11 +163,23 @@ func storeGitHubIdentityTx(tx *Tx, userID string, githubUserID int64, githubLogi
 	if err == nil && linkedGitHubID != githubUserID {
 		return core.ErrGitHubIdentityLinked
 	}
+	changed, err := reserveAccountEmailsTx(tx, userID, emails, true)
+	if err != nil {
+		return err
+	}
+	if changed {
+		if err := touchAccountSecurityTx(tx, userID, authorizedAt); err != nil {
+			return err
+		}
+	}
 
 	if linkedUserID == "" {
 		if _, err := tx.Exec(`INSERT INTO github_identities
 			(github_user_id, user_id, github_login, authorized_at) VALUES (?, ?, ?, ?)`,
 			githubUserID, userID, githubLogin, authorizedAt); err != nil {
+			if uniqueConstraintError(err) {
+				return core.ErrGitHubIdentityLinked
+			}
 			return fmt.Errorf("create GitHub identity: %w", err)
 		}
 	} else if _, err := tx.Exec(`UPDATE github_identities SET github_login = ?, authorized_at = ?

@@ -9,6 +9,14 @@
  */
 
 export default Object.freeze({
+    "profile.emailAliases": "その他のログイン用メール",
+    "profile.emailAliasesHint": "プロバイダーのメールは非公開で、ログインやアカウント復旧に使用できます。連携を解除してもメールは残ります。後でプロバイダーからログインすると、削除したアドレスが再追加される場合があります。",
+    "profile.addEmailAlias": "メールを追加して確認",
+    "profile.emailAliasMailDisabled": "メール配信を有効にして別のアドレスを確認するか、プロバイダーで確認してから連携を更新してください。",
+    "profile.removeEmailAlias": "{email} を削除",
+    "profile.providerEmailUnverified": "連携前にプロバイダーでメールを確認するか、ここで追加して確認してください。登録時はプロバイダーのメールを使用してください。",
+    "profile.emailAliasLimit": "1つのアカウントに保存できるログイン用メールは最大128件です。",
+    "profile.primaryEmailRequired": "このアドレスを削除する前にメインのメールを変更してください。",
     "profile.back": "戻る",
     "profile.publicDescription": "公開アカウントプロフィール",
     "profile.usernameLabel": "ユーザー名",
@@ -174,7 +182,7 @@ export default Object.freeze({
     "profile.githubOnlyLogin": "現在のログイン方法を削除または無効にする前に、別の主要なログイン方法を確保してください。第二要素の Passkey は主要なログイン方法の代わりにはなりません。",
     "profile.accountSecurityTitle": "アカウントのセキュリティ",
     "profile.accountSecurityDesc": "非公開ログインメール、パスワードログイン、使い捨て復旧コードを管理します。",
-    "profile.privateEmailLabel": "メールアドレス",
+    "profile.privateEmailLabel": "メインのメールアドレス",
     "profile.privateEmailPlaceholder": "name@example.com",
     "profile.privateEmailHint": "公開されず、ログインまたはアカウント復旧に使用できます。",
     "profile.savePrivateEmail": "メールを保存",

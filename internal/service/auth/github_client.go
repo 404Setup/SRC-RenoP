@@ -59,9 +59,11 @@ type githubTokenResponse struct {
 }
 
 type githubAPIIdentity struct {
-	ID    int64  `json:"id"`
-	Login string `json:"login"`
-	Name  string `json:"name"`
+	Emails       []core.ProviderEmail `json:"-"`
+	PrimaryEmail string               `json:"-"`
+	ID           int64                `json:"id"`
+	Login        string               `json:"login"`
+	Name         string               `json:"name"`
 }
 
 func oauthHTTPClient(cfg *config.Config) (*http.Client, error) {
@@ -158,10 +160,11 @@ func githubScopesAuthorized(scopeValue string) bool {
 	}
 	_, fullUser := scopes["user"]
 	_, readUser := scopes["read:user"]
+	_, readEmail := scopes["user:email"]
 	_, readOrg := scopes["read:org"]
 	_, writeOrg := scopes["write:org"]
 	_, adminOrg := scopes["admin:org"]
-	return (fullUser || readUser) && (readOrg || writeOrg || adminOrg)
+	return (fullUser || readUser && readEmail) && (readOrg || writeOrg || adminOrg)
 }
 
 func unicodeSpace(character rune) bool {

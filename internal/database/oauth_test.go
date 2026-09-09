@@ -73,7 +73,7 @@ func TestOAuthIdentityBoundaries(t *testing.T) {
 	after, err = db.GetMFAState("alice")
 	require.NoError(t, err)
 	require.NoError(t, db.DeleteOAuthIdentity("alice", "alice", "google", now+3))
-	require.NoError(t, db.RefreshOAuthIdentity(after.UserID, identity, now+4))
+	require.ErrorIs(t, db.RefreshOAuthIdentity(after.UserID, identity, now+4), core.ErrOAuthIdentityNotFound)
 	refreshed, err = db.GetOAuthIdentity(identity)
 	require.NoError(t, err)
 	require.Nil(t, refreshed, "refresh must not resurrect an unlinked identity")

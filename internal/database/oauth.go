@@ -59,15 +59,6 @@ func (db *DB) GetOAuthIdentity(identity core.OAuthIdentity) (*core.OAuthIdentity
 		JOIN user_profiles p ON p.user_id = i.user_id WHERE i.identity_hash = ?`, identity.Key()))
 }
 
-func touchOAuthSecurityTx(tx *Tx, userID string, now int64) error {
-	if err := ensureAccountSecurityTx(tx, userID, now); err != nil {
-		return err
-	}
-	_, err := tx.Exec(`UPDATE user_account_security SET updated_at = CASE WHEN updated_at >= ? THEN updated_at + 1 ELSE ? END
-		WHERE user_id = ?`, now, now, userID)
-	return err
-}
-
 func storeOAuthIdentityTx(tx *Tx, userID string, identity core.OAuthIdentity, now int64) error {
 	if !identity.Valid() || userID == "" || now <= 0 {
 		return core.ErrRegistrationInvalid
@@ -90,7 +81,13 @@ func storeOAuthIdentityTx(tx *Tx, userID string, identity core.OAuthIdentity, no
 	if linkedKey != "" && linkedKey != identity.Key() {
 		return core.ErrOAuthIdentityLinked
 	}
+	if _, err := reserveAccountEmailsTx(tx, userID, identity.Emails, true); err != nil {
+		return err
+	}
 	if linkedUser != "" {
+		if err := touchAccountSecurityTx(tx, userID, now); err != nil {
+			return err
+		}
 		return refreshOAuthIdentityTx(tx, userID, identity, now)
 	}
 	var count int
@@ -111,7 +108,7 @@ func storeOAuthIdentityTx(tx *Tx, userID string, identity core.OAuthIdentity, no
 		}
 		return err
 	}
-	return touchOAuthSecurityTx(tx, userID, now)
+	return touchAccountSecurityTx(tx, userID, now)
 }
 
 func refreshOAuthIdentityTx(tx *Tx, userID string, identity core.OAuthIdentity, now int64) error {
@@ -136,6 +133,22 @@ func (db *DB) RefreshOAuthIdentity(userID string, identity core.OAuthIdentity, n
 	defer tx.Rollback()
 	if err = lockAccountLoginMethodsTx(tx, userID); err != nil {
 		return err
+	}
+	var bound int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM oauth_identities WHERE identity_hash = ? AND user_id = ?`, identity.Key(), userID).Scan(&bound); err != nil {
+		return err
+	}
+	if bound != 1 {
+		return core.ErrOAuthIdentityNotFound
+	}
+	changed, err := reserveAccountEmailsTx(tx, userID, identity.Emails, true)
+	if err != nil {
+		return err
+	}
+	if changed {
+		if err := touchAccountSecurityTx(tx, userID, now); err != nil {
+			return err
+		}
 	}
 	if err = refreshOAuthIdentityTx(tx, userID, identity, now); err != nil {
 		return err
@@ -204,7 +217,7 @@ func (db *DB) DeleteOAuthIdentity(username, session, provider string, now int64)
 	if _, err = tx.Exec(`DELETE FROM oauth_identities WHERE user_id = ? AND provider_id = ?`, account.UserID, provider); err != nil {
 		return err
 	}
-	if err = touchOAuthSecurityTx(tx, account.UserID, now); err != nil {
+	if err = touchAccountSecurityTx(tx, account.UserID, now); err != nil {
 		return err
 	}
 	return tx.Commit()

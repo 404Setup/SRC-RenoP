@@ -23,14 +23,15 @@ var (
 
 // OAuthIdentity binds a provider's stable subject and configuration authority to an immutable account.
 type OAuthIdentity struct {
-	ProviderID   string   `json:"provider"`
-	Subject      string   `json:"subject"`
-	Authority    string   `json:"authority"`
-	UserID       string   `json:"-"`
-	Username     string   `json:"-"`
-	Login        string   `json:"login"`
-	Namespaces   []string `json:"namespaces,omitempty"`
-	AuthorizedAt int64    `json:"authorized_at"`
+	Emails       []ProviderEmail `json:"emails,omitempty"`
+	ProviderID   string          `json:"provider"`
+	Subject      string          `json:"subject"`
+	Authority    string          `json:"authority"`
+	UserID       string          `json:"-"`
+	Username     string          `json:"-"`
+	Login        string          `json:"login"`
+	Namespaces   []string        `json:"namespaces,omitempty"`
+	AuthorizedAt int64           `json:"authorized_at"`
 }
 
 // Key hashes the case-sensitive identity within its configured authority; display names never identify accounts.
@@ -52,6 +53,14 @@ func (i OAuthIdentity) Valid() bool {
 	}
 	if len(i.Namespaces) > 1001 {
 		return false
+	}
+	if len(i.Emails) > MaxAccountEmails {
+		return false
+	}
+	for _, email := range i.Emails {
+		if normalized, valid := NormalizeEmail(email.Email); !valid || normalized == "" || normalized != email.Email {
+			return false
+		}
 	}
 	for _, namespace := range i.Namespaces {
 		if namespace == "" || len(namespace) > 63 || strings.ContainsAny(namespace, "\x00\r\n/.") {

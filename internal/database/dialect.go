@@ -90,6 +90,10 @@ func initAccountSecurityTables(db *sql.DB, mysql bool) error {
 			password_login_enabled INT NOT NULL DEFAULT 1,
 			updated_at BIGINT NOT NULL DEFAULT 0
 		);`,
+		`CREATE TABLE IF NOT EXISTS user_email_addresses (
+			email VARCHAR(254) PRIMARY KEY, user_id VARCHAR(36) NOT NULL,
+			retained INT NOT NULL DEFAULT 0
+		);`,
 		`CREATE TABLE IF NOT EXISTS user_password_resets (
             email VARCHAR(254) PRIMARY KEY, user_id VARCHAR(36) NOT NULL,
             code_hash CHAR(64) NOT NULL, credential_hash CHAR(64) NOT NULL,
@@ -106,7 +110,8 @@ func initAccountSecurityTables(db *sql.DB, mysql bool) error {
 		`CREATE TABLE IF NOT EXISTS user_email_changes (
 			user_id VARCHAR(36) PRIMARY KEY, email VARCHAR(254) NOT NULL,
 			code_hash CHAR(64) NOT NULL, snapshot CHAR(64) NOT NULL, session_hash CHAR(64) NOT NULL,
-			attempts INT NOT NULL, created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL
+			attempts INT NOT NULL, created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL,
+			is_alias INT NOT NULL DEFAULT 0
 		);`,
 		`CREATE TABLE IF NOT EXISTS user_recovery_codes (
 			user_id VARCHAR(36) NOT NULL,
@@ -420,6 +425,7 @@ var sharedIndexMigrations = []SchemaMigration{
 	{Name: "idx_audit_logs_trigger_time", Query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_trigger_time ON audit_logs(trigger_source, created_at);"},
 	{Name: "idx_sessions_username", Query: "CREATE INDEX IF NOT EXISTS idx_sessions_username ON sessions(username);"},
 	{Name: "idx_account_ip_bans_ip", Query: "CREATE INDEX IF NOT EXISTS idx_account_ip_bans_ip ON account_ip_bans(ip);"},
+	{Name: "idx_user_email_addresses_owner", Query: "CREATE INDEX IF NOT EXISTS idx_user_email_addresses_owner ON user_email_addresses(user_id);"},
 	{Name: "idx_sessions_last_active", Query: "CREATE INDEX IF NOT EXISTS idx_sessions_last_active ON sessions(last_active);"},
 	{Name: "idx_sessions_user_public", Query: "CREATE INDEX IF NOT EXISTS idx_sessions_user_public ON sessions(username, public_id);"},
 	{Name: "idx_tokens_expires_at", Query: "CREATE INDEX IF NOT EXISTS idx_tokens_expires_at ON tokens(expires_at) WHERE expires_at IS NOT NULL;"},
@@ -543,6 +549,7 @@ var sharedColumnMigrations = []SchemaMigration{
 	{Name: "user_api_tokens.disabled", Query: "ALTER TABLE user_api_tokens ADD COLUMN disabled INT NOT NULL DEFAULT 0;"},
 	{Name: "tokens.ban_reason", Query: "ALTER TABLE tokens ADD COLUMN ban_reason VARCHAR(2048) NOT NULL DEFAULT '';"},
 	{Name: "tokens.banned_at", Query: "ALTER TABLE tokens ADD COLUMN banned_at BIGINT NOT NULL DEFAULT 0;"},
+	{Name: "user_email_changes.is_alias", Query: "ALTER TABLE user_email_changes ADD COLUMN is_alias INT NOT NULL DEFAULT 0;"},
 	{Name: "tokens.banned_until", Query: "ALTER TABLE tokens ADD COLUMN banned_until BIGINT NULL;"},
 	{Name: "tokens.deleted_at", Query: "ALTER TABLE tokens ADD COLUMN deleted_at BIGINT NOT NULL DEFAULT 0;"},
 	{Name: "tokens.email_released_at", Query: "ALTER TABLE tokens ADD COLUMN email_released_at BIGINT NOT NULL DEFAULT 0;"},

@@ -121,9 +121,10 @@ type StateDB interface {
 	ConsumeMFACode(username, revision string, step, now int64) error
 	PasswordLoginEnabled(username string) (bool, error)
 	UpdateAccountEmail(username, email string, updatedAt int64) (*AccountSecurity, error)
-	QueueAccountEmailChange(username, session string, job *mail.Job, codeHash, key, ip string, rate mail.Rate) error
+	QueueAccountEmailChange(username, session string, job *mail.Job, codeHash, key, ip string, rate mail.Rate, alias ...bool) error
+	DeleteAccountEmailAlias(username, session, email string, now int64) (*AccountSecurity, error)
 	ConfirmAccountEmailChange(username, session, email, codeHash string, now int64) (*AccountSecurity, error)
-	UpdateAccountEmailFromSession(username, session, email, snapshot string, now int64) (*AccountSecurity, error)
+	UpdateAccountEmailFromSession(username, session, email, snapshot string, now int64, providerEmails ...ProviderEmail) (*AccountSecurity, error)
 	SetPasswordLoginEnabled(username string, enabled bool, updatedAt int64) (*AccountSecurity, error)
 	SetAccountPassword(username, passwordHash string, updatedAt int64) error
 	ReplaceRecoveryCodes(username string, codes []RecoveryCodeHash) error
@@ -144,7 +145,9 @@ type StateDB interface {
 	LinkOAuthIdentity(username, session, snapshot string, identity OAuthIdentity, now int64) error
 	DeleteOAuthIdentity(username, session, provider string, now int64) error
 	GetGitHubIdentityByProviderID(githubUserID int64) (*GitHubIdentity, error)
-	StoreGitHubIdentity(userID string, githubUserID int64, githubLogin string, principals []GitHubPrincipal, authorizedAt int64) error
+	StoreGitHubIdentity(userID string, githubUserID int64, githubLogin string, principals []GitHubPrincipal, authorizedAt int64, emails ...ProviderEmail) error
+	LinkGitHubIdentity(username, session, snapshot string, githubUserID int64, githubLogin string, principals []GitHubPrincipal, authorizedAt int64, emails ...ProviderEmail) error
+	RefreshGitHubIdentity(userID string, githubUserID int64, githubLogin string, principals []GitHubPrincipal, authorizedAt int64, emails ...ProviderEmail) error
 	DeleteGitHubIdentity(username string) error
 	HasRecentGitHubPrincipal(username, login string, authorizedAfter int64) (bool, error)
 	FindGPGPublicKeys(identifier string) ([]*GPGPublicKey, error)

@@ -460,7 +460,7 @@ func TestPostgresDriverContract(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
 	results, err := database.RunDriverCheck(context.Background(), db)
 	require.NoError(t, err)
-	require.Len(t, results, 17)
+	require.Len(t, results, 18)
 }
 
 func TestPostgresAccountRetirementCannotRestoreConcurrentCredentials(t *testing.T) {

@@ -646,7 +646,7 @@ func (db *DB) deleteToken(name string, retire bool, retiredAt int64) error {
 	emailReleasedAt := int64(0)
 	if retire {
 		var retainedEmail int
-		if err := tx.QueryRow(`SELECT COUNT(*) FROM user_account_security WHERE user_id = ? AND email IS NOT NULL`,
+		if err := tx.QueryRow(`SELECT COUNT(*) FROM user_email_addresses WHERE user_id = ?`,
 			userID).Scan(&retainedEmail); err != nil {
 			return fmt.Errorf("inspect retained account email for token (%s): %w", lowerName, err)
 		}
@@ -659,6 +659,11 @@ func (db *DB) deleteToken(name string, retire bool, retiredAt int64) error {
 		}
 	} else if _, err := tx.Exec(`DELETE FROM user_account_security WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete private account security for token (%s): %w", lowerName, err)
+	}
+	if !retire {
+		if _, err := tx.Exec(`DELETE FROM user_email_addresses WHERE user_id = ?`, userID); err != nil {
+			return fmt.Errorf("delete account email ownership: %w", err)
+		}
 	}
 
 	if _, err := tx.Exec(`DELETE FROM fido_devices WHERE username = ?`, lowerName); err != nil {

@@ -9,6 +9,14 @@
  */
 
 export default Object.freeze({
+    "profile.emailAliases": "다른 로그인 이메일",
+    "profile.emailAliasesHint": "제공자 이메일은 비공개이며 로그인과 계정 복구에 사용할 수 있습니다. 연결을 해제해도 이메일은 유지됩니다. 나중에 제공자로 로그인하면 삭제한 주소가 다시 추가될 수 있습니다.",
+    "profile.addEmailAlias": "이메일 추가 및 확인",
+    "profile.emailAliasMailDisabled": "메일 전송을 활성화하여 다른 주소를 확인하거나 제공자에서 확인한 뒤 연결을 새로 고치세요.",
+    "profile.removeEmailAlias": "{email} 삭제",
+    "profile.providerEmailUnverified": "연결하기 전에 제공자에서 이메일을 확인하거나 여기서 추가하고 확인하세요. 가입할 때는 제공자의 이메일을 사용하세요.",
+    "profile.emailAliasLimit": "계정 하나에 로그인 이메일을 최대 128개까지 저장할 수 있습니다.",
+    "profile.primaryEmailRequired": "이 주소를 삭제하기 전에 기본 이메일을 변경하세요.",
     "profile.back": "뒤로",
     "profile.publicDescription": "공개 계정 프로필",
     "profile.usernameLabel": "사용자 이름",
@@ -174,7 +182,7 @@ export default Object.freeze({
     "profile.githubOnlyLogin": "현재 로그인 방법을 삭제하거나 비활성화하기 전에 다른 기본 로그인 방법을 유지하세요. 두 번째 인증 수단으로 사용하는 Passkey는 기본 로그인 방법을 대신할 수 없습니다.",
     "profile.accountSecurityTitle": "계정 보안",
     "profile.accountSecurityDesc": "비공개 로그인 이메일, 비밀번호 로그인 및 일회용 복구 코드를 관리합니다.",
-    "profile.privateEmailLabel": "이메일",
+    "profile.privateEmailLabel": "기본 이메일",
     "profile.privateEmailPlaceholder": "name@example.com",
     "profile.privateEmailHint": "공개되지 않으며 로그인 또는 계정 복구에 사용할 수 있습니다.",
     "profile.savePrivateEmail": "이메일 저장",

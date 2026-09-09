@@ -197,8 +197,12 @@ func finishOAuth(c fiber.Ctx, state *core.AppState) error {
 		return result("configuration_changed")
 	}
 	if err = state.GetDB().RefreshOAuthIdentity(linked.UserID, info.Identity, time.Now().UnixMilli()); err != nil {
+		if code := providerEmailErrorCode(err); code != "" {
+			return result(code)
+		}
 		return result("session_changed")
 	}
+	state.InvalidateAccountAuthCache(true, linked.Username)
 	mfa, err := state.GetDB().GetMFAState(linked.Username)
 	if errors.Is(err, core.ErrAccountDeleted) {
 		return result("account_deleted")
@@ -255,7 +259,10 @@ func finishOAuthProfile(c fiber.Ctx, state *core.AppState, record core.Transient
 		if !state.Inner.Config.Load().Mail.Allows(info.Email) {
 			return result("email_blocked")
 		}
-		_, err = state.GetDB().UpdateAccountEmailFromSession(profile.Username, session, info.Email, record.Snapshot, time.Now().UnixMilli())
+		_, err = state.GetDB().UpdateAccountEmailFromSession(profile.Username, session, info.Email, record.Snapshot, time.Now().UnixMilli(), core.ProviderEmail{Email: info.Email, Verified: true})
+		if code := providerEmailErrorCode(err); code != "" {
+			return result(code)
+		}
 		if errors.Is(err, core.ErrEmailAlreadyExists) {
 			return result("email_conflict")
 		}
@@ -269,8 +276,12 @@ func finishOAuthProfile(c fiber.Ctx, state *core.AppState, record core.Transient
 		if errors.Is(err, core.ErrOAuthIdentityLinked) {
 			return result("identity_linked")
 		}
+		if code := providerEmailErrorCode(err); code != "" {
+			return result(code)
+		}
 		return result("session_changed")
 	}
+	state.InvalidateAccountAuthCache(true, profile.Username)
 	username, operator, method, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{Username: username, Operator: operator, Action: audit.ActionProfileUpdate,
 		Details: "Connected OAuth provider " + p.ID, AuthMethod: method, SessionID: sessionID, IP: ip})

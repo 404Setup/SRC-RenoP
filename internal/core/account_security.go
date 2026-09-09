@@ -24,11 +24,16 @@ const (
 	RecoveryCodesRequired = 4
 	// MaxEmailLength follows the practical RFC mailbox length limit.
 	MaxEmailLength = 254
+	// MaxAccountEmails bounds primary and secondary login addresses per account.
+	MaxAccountEmails = 128
 )
 
 var (
 	// ErrEmailAlreadyExists indicates that a private login email belongs to another account.
-	ErrEmailAlreadyExists = errors.New("email address is already in use")
+	ErrEmailAlreadyExists        = errors.New("email address is already in use")
+	ErrEmailVerificationRequired = errors.New("provider email requires ownership verification")
+	ErrAccountEmailLimit         = errors.New("account email limit reached")
+	ErrPrimaryEmail              = errors.New("primary email cannot be removed as an alias")
 	// ErrLastLoginMethod indicates that an operation would remove the account's final usable login method.
 	ErrLastLoginMethod = errors.New("account must retain another login method")
 	// ErrPasswordNotConfigured indicates that password login cannot be enabled without a password hash.
@@ -41,19 +46,26 @@ var (
 
 // AccountSecurity is the private authentication state visible only to its account owner.
 type AccountSecurity struct {
-	TOTPEnabled               bool   `json:"totp_enabled"`
-	PasskeySecondFactor       bool   `json:"passkey_second_factor"`
-	Email                     string `json:"email"`
-	EmailVerificationRequired bool   `json:"email_verification_required"`
-	RecoveryGeneratedAt       int64  `json:"recovery_generated_at,omitempty"`
-	RecoveryCodeCount         int    `json:"recovery_code_count"`
-	RecoveryCodesRemaining    int    `json:"recovery_codes_remaining"`
-	FidoDeviceCount           int    `json:"fido_device_count"`
-	PasswordLoginEnabled      bool   `json:"password_login_enabled"`
-	PasswordConfigured        bool   `json:"password_configured"`
-	GitHubLinked              bool   `json:"github_linked"`
-	OAuthIdentityCount        int    `json:"oauth_identity_count"`
-	CanDisablePasswordLogin   bool   `json:"can_disable_password_login"`
+	EmailAliases              []string `json:"email_aliases"`
+	TOTPEnabled               bool     `json:"totp_enabled"`
+	PasskeySecondFactor       bool     `json:"passkey_second_factor"`
+	Email                     string   `json:"email"`
+	EmailVerificationRequired bool     `json:"email_verification_required"`
+	RecoveryGeneratedAt       int64    `json:"recovery_generated_at,omitempty"`
+	RecoveryCodeCount         int      `json:"recovery_code_count"`
+	RecoveryCodesRemaining    int      `json:"recovery_codes_remaining"`
+	FidoDeviceCount           int      `json:"fido_device_count"`
+	PasswordLoginEnabled      bool     `json:"password_login_enabled"`
+	PasswordConfigured        bool     `json:"password_configured"`
+	GitHubLinked              bool     `json:"github_linked"`
+	OAuthIdentityCount        int      `json:"oauth_identity_count"`
+	CanDisablePasswordLogin   bool     `json:"can_disable_password_login"`
+}
+
+// ProviderEmail is an address asserted by a freshly authenticated provider.
+type ProviderEmail struct {
+	Email    string `json:"email"`
+	Verified bool   `json:"verified"`
 }
 
 // RecoveryCodeHash is one irreversible recovery-code verifier prepared for persistence.

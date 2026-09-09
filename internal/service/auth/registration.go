@@ -89,7 +89,8 @@ func registrationError(c fiber.Ctx, err error) error {
 		return passwordResetError(c, 409, "registration_username_conflict")
 	case errors.Is(err, core.ErrGitHubIdentityLinked), errors.Is(err, core.ErrOAuthIdentityLinked):
 		return passwordResetError(c, 409, "registration_identity_linked")
-	case errors.Is(err, core.ErrEmailAlreadyExists), errors.Is(err, mail.ErrRateLimited), errors.Is(err, mail.ErrQueueFull),
+	case errors.Is(err, core.ErrEmailAlreadyExists), errors.Is(err, core.ErrEmailVerificationRequired),
+		errors.Is(err, core.ErrAccountEmailLimit), errors.Is(err, mail.ErrRateLimited), errors.Is(err, mail.ErrQueueFull),
 		errors.Is(err, mailqueue.ErrNoAccount), errors.Is(err, mailqueue.ErrRecipientBlocked):
 		return emailVerificationError(c, err)
 	default:

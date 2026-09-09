@@ -48,6 +48,12 @@ func accountSecurityWithConfig(state *core.AppState, security *core.AccountSecur
 
 func emailVerificationError(c fiber.Ctx, err error) error {
 	switch {
+	case errors.Is(err, core.ErrEmailVerificationRequired):
+		return passwordResetError(c, 409, "ACCOUNT_EMAIL_PROOF_REQUIRED")
+	case errors.Is(err, core.ErrAccountEmailLimit):
+		return passwordResetError(c, 409, "ACCOUNT_EMAIL_LIMIT")
+	case errors.Is(err, core.ErrPrimaryEmail):
+		return passwordResetError(c, 409, "ACCOUNT_EMAIL_PRIMARY")
 	case errors.Is(err, core.ErrEmailAlreadyExists):
 		return passwordResetError(c, 409, "ACCOUNT_EMAIL_CONFLICT")
 	case errors.Is(err, core.ErrEmailCodeInvalid):
@@ -67,7 +73,20 @@ func emailVerificationError(c fiber.Ctx, err error) error {
 	}
 }
 
-func queueProfileEmailVerification(c fiber.Ctx, state *core.AppState, username, email string) error {
+func providerEmailErrorCode(err error) string {
+	switch {
+	case errors.Is(err, core.ErrEmailAlreadyExists):
+		return "email_conflict"
+	case errors.Is(err, core.ErrEmailVerificationRequired):
+		return "email_unverified"
+	case errors.Is(err, core.ErrAccountEmailLimit):
+		return "email_limit"
+	default:
+		return ""
+	}
+}
+
+func queueProfileEmailVerification(c fiber.Ctx, state *core.AppState, username, email string, alias bool) error {
 	cfg := state.Inner.Config.Load()
 	code, err := newEmailVerificationCode()
 	if err != nil {
@@ -82,7 +101,7 @@ func queueProfileEmailVerification(c fiber.Ctx, state *core.AppState, username, 
 	if err == nil {
 		err = state.GetDB().QueueAccountEmailChange(username, session, job,
 			emailVerificationHash(cfg.Mail.EncryptionKey, "email_change", session+"\x00"+email, code),
-			cfg.Mail.EncryptionKey, ip, cfg.Mail.ManualRate)
+			cfg.Mail.EncryptionKey, ip, cfg.Mail.ManualRate, alias)
 	}
 	if err != nil {
 		return emailVerificationError(c, err)

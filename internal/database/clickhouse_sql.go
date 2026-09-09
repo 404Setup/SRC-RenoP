@@ -40,58 +40,67 @@ func clickHouseInsertKeys(table, query string, args []any) ([]string, error) {
 	columns := splitTopLevelSQLList(remainder[columnStart+1 : columnEnd])
 	valueSource := strings.TrimSpace(remainder[columnEnd+1:])
 	upperSource := strings.ToUpper(valueSource)
-	var expressions []string
+	var expressionRows [][]string
 	switch {
 	case strings.HasPrefix(upperSource, "VALUES"):
-		valueStart := strings.Index(valueSource, "(")
-		if valueStart < 0 {
-			return nil, fmt.Errorf("ClickHouse INSERT values for %s are invalid", table)
+		for _, group := range splitTopLevelSQLList(strings.TrimSpace(valueSource[len("VALUES"):])) {
+			valueStart := strings.Index(group, "(")
+			if valueStart < 0 {
+				return nil, fmt.Errorf("ClickHouse INSERT values for %s are invalid", table)
+			}
+			valueEnd := matchingSQLParenthesis(group, valueStart)
+			if valueEnd < 0 {
+				return nil, fmt.Errorf("ClickHouse INSERT values for %s are invalid", table)
+			}
+			expressionRows = append(expressionRows, splitTopLevelSQLList(group[valueStart+1:valueEnd]))
 		}
-		valueEnd := matchingSQLParenthesis(valueSource, valueStart)
-		if valueEnd < 0 {
-			return nil, fmt.Errorf("ClickHouse INSERT values for %s are invalid", table)
-		}
-		expressions = splitTopLevelSQLList(valueSource[valueStart+1 : valueEnd])
 	case strings.HasPrefix(upperSource, "SELECT"):
 		selectValues := strings.TrimSpace(valueSource[len("SELECT"):])
 		if where := findTopLevelSQLKeyword(selectValues, "WHERE"); where >= 0 {
 			selectValues = strings.TrimSpace(selectValues[:where])
 		}
-		expressions = splitTopLevelSQLList(selectValues)
+		expressionRows = append(expressionRows, splitTopLevelSQLList(selectValues))
 	default:
 		return nil, fmt.Errorf("ClickHouse INSERT into %s uses an unsupported source", table)
 	}
-	if len(columns) != len(expressions) {
-		return nil, fmt.Errorf("ClickHouse INSERT into %s has %d columns and %d values", table, len(columns), len(expressions))
+	if len(expressionRows) == 0 {
+		return nil, fmt.Errorf("ClickHouse INSERT into %s has no values", table)
 	}
-	values := make(map[string]any, len(schema.keyColumns))
+	keys := make([]string, 0, len(expressionRows))
 	argumentIndex := 0
-	for index, expression := range expressions {
-		placeholderCount := countSQLPlaceholders(expression)
-		column := strings.Trim(strings.TrimSpace(columns[index]), "`\"")
+	for _, expressions := range expressionRows {
+		if len(columns) != len(expressions) {
+			return nil, fmt.Errorf("ClickHouse INSERT into %s has %d columns and %d values", table, len(columns), len(expressions))
+		}
+		values := make(map[string]any, len(schema.keyColumns))
+		for index, expression := range expressions {
+			placeholderCount := countSQLPlaceholders(expression)
+			column := strings.Trim(strings.TrimSpace(columns[index]), "`\"")
+			for _, keyColumn := range schema.keyColumns {
+				if column != keyColumn {
+					continue
+				}
+				if strings.TrimSpace(expression) == "?" && argumentIndex < len(args) {
+					values[keyColumn] = args[argumentIndex]
+				} else if placeholderCount == 0 {
+					values[keyColumn] = parseSimpleSQLLiteral(expression)
+				} else {
+					return nil, fmt.Errorf("ClickHouse transaction key %s.%s uses an unsupported expression", table, keyColumn)
+				}
+			}
+			argumentIndex += placeholderCount
+		}
+		keyValues := make([]any, 0, len(schema.keyColumns))
 		for _, keyColumn := range schema.keyColumns {
-			if column != keyColumn {
-				continue
+			value, exists := values[keyColumn]
+			if !exists {
+				return nil, fmt.Errorf("ClickHouse INSERT into %s omits transaction key column %s", table, keyColumn)
 			}
-			if strings.TrimSpace(expression) == "?" && argumentIndex < len(args) {
-				values[keyColumn] = args[argumentIndex]
-			} else if placeholderCount == 0 {
-				values[keyColumn] = parseSimpleSQLLiteral(expression)
-			} else {
-				return nil, fmt.Errorf("ClickHouse transaction key %s.%s uses an unsupported expression", table, keyColumn)
-			}
+			keyValues = append(keyValues, value)
 		}
-		argumentIndex += placeholderCount
+		keys = append(keys, encodeClickHouseKey(keyValues))
 	}
-	keyValues := make([]any, 0, len(schema.keyColumns))
-	for _, keyColumn := range schema.keyColumns {
-		value, exists := values[keyColumn]
-		if !exists {
-			return nil, fmt.Errorf("ClickHouse INSERT into %s omits transaction key column %s", table, keyColumn)
-		}
-		keyValues = append(keyValues, value)
-	}
-	return []string{encodeClickHouseKey(keyValues)}, nil
+	return keys, nil
 }
 
 func clickHouseSchema(table string) (clickHouseTableSchema, bool) {

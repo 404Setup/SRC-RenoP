@@ -14,6 +14,7 @@ import {RenopDialog, runButtonAction} from './components.js';
 import {responseErrorMessage} from './response-errors.js';
 import {navigateToLogin} from './login-route.js';
 import {verifyProfileEmail} from './profile-email-verification.js';
+import {renderAccountEmailAliases} from './account-emails.js';
 import {writeClipboardText} from './clipboard.js';
 import {t} from './i18n.js';
 import {formatTimestamp} from './time.js';
@@ -47,6 +48,7 @@ function renderAccountSecurity(security) {
     if (!section || !emailInput || !toggle || !passwordHint || !recoveryStatus || !recoveryButton) return;
     $(section).prop('hidden', false);
     $(emailInput).val(security.email || '');
+    renderAccountEmailAliases(security, renderAccountSecurity, showMFASettingsError);
     $('#profile-private-email-hint').text(t(security.email_verification_required
         ? 'profile.privateEmailVerificationHint' : 'profile.privateEmailHint'));
     $(toggle).prop('checked', security.password_login_enabled === true);

@@ -44,6 +44,15 @@ func ensureAccountSecurityTx(tx *Tx, userID string, updatedAt int64) error {
 	return err
 }
 
+func touchAccountSecurityTx(tx *Tx, userID string, now int64) error {
+	if err := ensureAccountSecurityTx(tx, userID, now); err != nil {
+		return err
+	}
+	_, err := tx.Exec(`UPDATE user_account_security SET updated_at = CASE WHEN updated_at >= ? THEN updated_at + 1 ELSE ? END
+		WHERE user_id = ?`, now, now, userID)
+	return err
+}
+
 func lockAccountByUsernameTx(tx *Tx, username string) error {
 	var userID string
 	err := tx.QueryRow(`SELECT user_id FROM user_profiles WHERE username = ?`, strings.ToLower(username)).Scan(&userID)
@@ -159,7 +168,7 @@ func (db *DB) GetTokenByEmail(email string) (*core.AccessToken, error) {
 		token.password_hash, token.tokens_json, token.created_at, token.description,
 		token.expires_at, token.permissions_json, token.ban_reason, token.banned_at, token.banned_until,
 		token.deleted_at, token.email_released_at, token.audit_purged_at
-		FROM user_account_security security
+		FROM user_email_addresses security
 		JOIN user_profiles profile ON profile.user_id = security.user_id
 		JOIN tokens token ON token.name = profile.username
 		WHERE security.email = ?`, email)
@@ -234,7 +243,8 @@ func (db *DB) GetAccountSecurity(username string) (*core.AccountSecurity, error)
 		security.PasswordConfigured = passwordConfigured != 0
 		security.GitHubLinked = githubLinked != 0
 		security.CanDisablePasswordLogin = (security.FidoDeviceCount > 0 && !mfa.Passkey) || security.GitHubLinked || security.OAuthIdentityCount > 0
-		return security, nil
+		security.EmailAliases, err = db.accountEmailAliases(mfa.UserID, security.Email)
+		return security, err
 	}
 	err = db.QueryRow(`SELECT COALESCE(security.email, ''),
 		COALESCE(security.password_login_enabled, 1),
@@ -264,7 +274,8 @@ func (db *DB) GetAccountSecurity(username string) (*core.AccountSecurity, error)
 	security.PasswordConfigured = passwordConfigured != 0
 	security.GitHubLinked = githubLinked != 0
 	security.CanDisablePasswordLogin = (security.FidoDeviceCount > 0 && !mfa.Passkey) || security.GitHubLinked || security.OAuthIdentityCount > 0
-	return security, nil
+	security.EmailAliases, err = db.accountEmailAliases(mfa.UserID, security.Email)
+	return security, err
 }
 
 // PasswordLoginEnabled returns the lightweight password-login policy used on authentication hot paths.
@@ -316,14 +327,12 @@ func (db *DB) UpdateAccountEmail(username, email string, updatedAt int64) (*core
 }
 
 func updateAccountEmailTx(tx *Tx, userID, email string, updatedAt int64) error {
+	if _, err := tx.Exec(`DELETE FROM user_email_addresses WHERE user_id = ? AND retained = 0 AND email <> ?`, userID, email); err != nil {
+		return err
+	}
 	if email != "" {
-		var ownerID string
-		err := tx.QueryRow(`SELECT user_id FROM user_account_security WHERE email = ?`, email).Scan(&ownerID)
-		if err == nil && ownerID != userID {
-			return core.ErrEmailAlreadyExists
-		}
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("inspect private email ownership: %w", err)
+		if _, err := reserveAccountEmailsTx(tx, userID, []core.ProviderEmail{{Email: email, Verified: true}}, false); err != nil {
+			return err
 		}
 	}
 	if err := ensureAccountSecurityTx(tx, userID, updatedAt); err != nil {

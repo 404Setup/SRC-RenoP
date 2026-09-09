@@ -262,6 +262,11 @@ func (db *DB) QueueProviderRegistrationEmail(idHash, ipHash, codeHash string, jo
 	if err != nil || profile.OAuth == nil || profile.EmailVerified {
 		return core.ErrRegistrationInvalid
 	}
+	for _, proof := range profile.OAuth.Emails {
+		if !proof.Verified && proof.Email != email {
+			return core.ErrEmailVerificationRequired
+		}
+	}
 	if err = registrationRateTx(tx, ipHash, cfg, job.CreatedAt, false); err != nil {
 		return err
 	}
@@ -349,7 +354,7 @@ func (db *DB) RegisterAccount(request core.AccountRegistration, cfg config.Regis
 		return nil, err
 	}
 	if profile.GitHubID > 0 {
-		if err = storeGitHubIdentityTx(tx, userID, profile.GitHubID, profile.GitHubLogin, profile.Principals, now); err != nil {
+		if err = storeGitHubIdentityTx(tx, userID, profile.GitHubID, profile.GitHubLogin, profile.Principals, now, profile.GitHubEmails...); err != nil {
 			return nil, err
 		}
 	}

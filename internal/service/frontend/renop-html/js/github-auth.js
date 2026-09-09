@@ -53,6 +53,8 @@ function showGitHubOAuthResult() {
         account_deleted: ['login.accountDeleted', 'error'],
         email_updated: ['profile.privateEmailSaved', 'success'],
         email_conflict: ['profile.privateEmailConflict', 'error'],
+        email_unverified: ['profile.providerEmailUnverified', 'error'],
+        email_limit: ['profile.emailAliasLimit', 'error'],
         email_blocked: ['mail.recipientBlocked', 'error'],
         email_missing: ['profile.githubEmailMissing', 'error'],
         registration_disabled: ['registration.disabled', 'error'],

@@ -123,6 +123,34 @@ func TestProfileEmailVerificationPreservesAddressUntilConfirmed(t *testing.T) {
 	require.Equal(t, "offline@example.com", security.Email)
 }
 
+func TestProfileEmailAliasRequiresProofAndKeepsPrimary(t *testing.T) {
+	app, _, db, cfg := newEmailVerificationApp(t)
+	response := accountSecurityRequest(t, app, "PUT", "/api/auth/profile/email", map[string]any{"email": "alias@example.com", "alias": true}, "original-session")
+	require.Equal(t, 202, response.StatusCode)
+	var receipt mailqueue.Receipt
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&receipt))
+	require.NoError(t, response.Body.Close())
+	job, err := db.GetMailJob(receipt.ID, cfg.Mail.EncryptionKey)
+	require.NoError(t, err)
+	code := regexp.MustCompile(`(?m)^\d{8}$`).FindString(job.Message.Text)
+	response = accountSecurityRequest(t, app, "POST", "/api/auth/profile/email/confirm", map[string]string{"email": "alias@example.com", "code": code}, "original-session")
+	require.Equal(t, 200, response.StatusCode)
+	var security core.AccountSecurity
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&security))
+	require.NoError(t, response.Body.Close())
+	require.Equal(t, "old@example.com", security.Email)
+	require.Equal(t, []string{"alias@example.com"}, security.EmailAliases)
+	response = accountSecurityRequest(t, app, "DELETE", "/api/auth/profile/email/alias", map[string]string{"email": "old@example.com"}, "original-session")
+	require.Equal(t, 409, response.StatusCode)
+	require.Equal(t, "ACCOUNT_EMAIL_PRIMARY", response.Header.Get("X-Renop-Error-Code"))
+	require.NoError(t, response.Body.Close())
+	response = accountSecurityRequest(t, app, "DELETE", "/api/auth/profile/email/alias", map[string]string{"email": "alias@example.com"}, "original-session")
+	require.Equal(t, 200, response.StatusCode)
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&security))
+	require.NoError(t, response.Body.Close())
+	require.Empty(t, security.EmailAliases)
+}
+
 func TestGitHubEmailVerificationBindsSessionAndUsesVerifiedContact(t *testing.T) {
 	app, state, db, cfg := newEmailVerificationApp(t)
 	providerServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

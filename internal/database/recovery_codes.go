@@ -40,7 +40,7 @@ func (db *DB) accountIdentity(identifier string) (userID, username string, err e
 			return "", "", core.ErrRecoveryCodesInvalid
 		}
 		err = db.QueryRow(`SELECT p.user_id, p.username FROM user_profiles p
-			JOIN user_account_security security ON security.user_id = p.user_id
+			JOIN user_email_addresses security ON security.user_id = p.user_id
 			WHERE security.email = ?`, email).Scan(&userID, &username)
 	} else {
 		normalizedUsername, valid := core.NormalizeUsername(identifier)

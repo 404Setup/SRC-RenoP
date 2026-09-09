@@ -9,6 +9,14 @@
  */
 
 export default Object.freeze({
+    "profile.emailAliases": "其他登录邮箱",
+    "profile.emailAliasesHint": "第三方邮箱不会公开，可用于登录或恢复账号。解除第三方绑定不会移除邮箱；之后通过第三方登录时，已移除的地址可能被再次添加。",
+    "profile.addEmailAlias": "添加并验证邮箱",
+    "profile.emailAliasMailDisabled": "启用邮件服务后可验证其他地址，也可先在第三方验证，再刷新绑定。",
+    "profile.removeEmailAlias": "移除 {email}",
+    "profile.providerEmailUnverified": "请先在第三方验证该邮箱，或在此添加并验证后再绑定。注册时请使用第三方提供的邮箱。",
+    "profile.emailAliasLimit": "每个账号最多保存 128 个登录邮箱。",
+    "profile.primaryEmailRequired": "请先更改主邮箱，再移除此地址。",
     "profile.back": "返回",
     "profile.publicDescription": "公开账户资料",
     "profile.usernameLabel": "用户名",
@@ -174,7 +182,7 @@ export default Object.freeze({
     "profile.githubOnlyLogin": "移除或禁用当前登录方式前，请保留另一种主要登录方式。用于二次验证的 Passkey 不能替代主要登录方式。",
     "profile.accountSecurityTitle": "账号安全",
     "profile.accountSecurityDesc": "管理私有登录邮箱、密码登录和一次性恢复代码。",
-    "profile.privateEmailLabel": "邮箱",
+    "profile.privateEmailLabel": "主邮箱",
     "profile.privateEmailPlaceholder": "name@example.com",
     "profile.privateEmailHint": "该邮箱不会公开显示，可用于登录或恢复账号。",
     "profile.savePrivateEmail": "保存邮箱",

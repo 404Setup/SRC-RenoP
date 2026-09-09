@@ -80,7 +80,7 @@ func (db *DB) QueueEmailPasswordReset(job *mail.Job, codeHash, key, ip string, r
 
 // passwordResetIdentityTx binds email verification to the live identity, password, and security revision.
 func passwordResetIdentityTx(tx *Tx, email string) (userID, username, credentialHash string, updatedAt int64, err error) {
-	err = tx.QueryRow(`SELECT user_id FROM user_account_security WHERE email = ?`, email).Scan(&userID)
+	err = tx.QueryRow(`SELECT user_id FROM user_email_addresses WHERE email = ?`, email).Scan(&userID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", "", "", 0, nil
 	}
@@ -94,9 +94,10 @@ func passwordResetIdentityTx(tx *Tx, email string) (userID, username, credential
 	}
 	var passwordHash string
 	err = tx.QueryRow(`SELECT profile.username, token.encrypted_secret, security.updated_at
-        FROM user_account_security security JOIN user_profiles profile ON profile.user_id = security.user_id
+        FROM user_email_addresses address JOIN user_account_security security ON security.user_id = address.user_id
+        JOIN user_profiles profile ON profile.user_id = security.user_id
         JOIN tokens token ON token.name = profile.username
-        WHERE security.user_id = ? AND security.email = ? AND token.deleted_at = 0`, userID, email).
+        WHERE address.user_id = ? AND address.email = ? AND token.deleted_at = 0`, userID, email).
 		Scan(&username, &passwordHash, &updatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", "", "", 0, nil
