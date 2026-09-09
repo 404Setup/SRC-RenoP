@@ -11,7 +11,8 @@
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {morphElementHeight} from '@renop/ui/height-anim';
-import {apiRequest} from './api.js';
+import {apiRequest, fetchProto} from './api.js';
+import {FileDetails} from './proto/index.js';
 import {showAlert, showConfirm} from './alert.js';
 import {createIcon, RenopDialog, runButtonAction} from './components.js';
 import {t} from './i18n.js';
@@ -21,15 +22,16 @@ import {createSuperTeamBindingField} from './super-team-selector.js';
 import {formatTimestamp} from './time.js';
 import {exitProtectedRouteOnDenial} from './protected-route.js';
 
-const routeRoot = '/account/reviews';
+const routeRoot = '/account/tickets';
 const pageSize = 15;
 const resourceTypes = Object.freeze([
-    'docker_image', 'npm_package', 'cargo_package', 'maven_artifact', 'maven_domain'
+    'docker_image', 'npm_package', 'cargo_package', 'maven_artifact', 'maven_domain',
+    'user', 'superteam', 'support'
 ]);
 let loadGeneration = 0;
 let pageOffset = 0;
 let activeView = 'reviewer';
-let activeStatus = 'pending';
+let activeStatus = 'unprocessed';
 const activeTypes = new Set();
 
 /**
@@ -47,8 +49,8 @@ function requestReview(url, options = {}) {
  * @param {string} [pathname=window.location.pathname] - Candidate path.
  * @returns {boolean} Whether the path belongs to the review center.
  */
-export function reviewRouteFromPath(pathname = window.location.pathname) {
-    return (String(pathname || '/').replace(/\/+$/, '') || '/') === routeRoot;
+export function ticketRouteFromPath(pathname = window.location.pathname) {
+    return [routeRoot, '/account/reviews'].includes(String(pathname || '/').replace(/\/+$/, '') || '/');
 }
 
 /**
@@ -56,7 +58,7 @@ export function reviewRouteFromPath(pathname = window.location.pathname) {
  * @param {'reviewer'|'requested'} [view='reviewer'] - Initial task perspective.
  * @returns {void}
  */
-export function openReviewCenter(view = 'reviewer') {
+export function openTicketCenter(view = 'reviewer') {
     activeView = view === 'requested' ? 'requested' : 'reviewer';
     pageOffset = 0;
     if (window.location.pathname !== routeRoot || window.location.search || window.location.hash) {
@@ -130,7 +132,7 @@ export function openSuperTeamTransferDialog({
                             showAlert(t('review.selectTeam'), 'error');
                             return;
                         }
-                        const response = await requestReview('/api/reviews/super-team-transfers', {
+                        const response = await requestReview('/api/tickets/super-team-transfers', {
                             method: 'POST', headers: {'Content-Type': 'application/json'},
                             body: JSON.stringify({
                                 resource_type: resourceType,
@@ -186,11 +188,14 @@ function loadingState() {
 
 /** @param {string} status - Stable task status. @returns {string} Localized status. */
 function statusLabel(status) {
-    return t(`review.status.${status}`);
+    return t(`ticket.status.${status}`);
 }
 
 /** @param {object} task - Review task. @returns {string} Localized transfer direction. */
 function directionLabel(task) {
+    if (['feedback', 'suggestion', 'report'].includes(task.kind)) {
+        return t(`ticket.kind.${task.kind}`);
+    }
     if (task.kind === 'maven_restore') return t('maven.restorePublication');
     if (task.kind === 'publication') {
         if (task.resource_version === '@create') {
@@ -216,7 +221,7 @@ function directionLabel(task) {
  * @returns {Promise<void>} Completion.
  */
 async function submitDecision(task, decision, reason = '', reasonCode = '') {
-    const response = await requestReview(`/api/reviews/${encodeURIComponent(task.id)}/decision`, {
+    const response = await requestReview(`/api/tickets/${encodeURIComponent(task.id)}/decision`, {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({decision, reason, reason_code: reasonCode})
     });
@@ -234,6 +239,7 @@ async function submitDecision(task, decision, reason = '', reasonCode = '') {
     showAlert(t(task.kind === 'maven_restore'
         ? decision === 'approved' ? 'maven.restoreApproved' : 'maven.restoreRejected'
         : resultKey), 'success');
+    document.getElementById('ticket-detail-dialog')?.close(true);
     await loadTasks();
 }
 
@@ -294,7 +300,7 @@ function openRejectDialog(task) {
  * @returns {Promise<Uint8Array>} File bytes.
  */
 async function downloadReviewFile(task, file) {
-    const url = `/api/reviews/${encodeURIComponent(task.id)}/files/${encodeURIComponent(file.id)}`;
+    const url = `/api/tickets/${encodeURIComponent(task.id)}/files/${encodeURIComponent(file.id)}`;
     let lastError = null;
     for (let attempt = 0; attempt < 3; attempt += 1) {
         try {
@@ -376,7 +382,7 @@ function saveReviewBlob(blob, filename) {
 function triggerCriticalReviewDownloads(task, files) {
     for (const file of files) {
         const anchor = el('a', {
-            href: `/api/reviews/${encodeURIComponent(task.id)}/files/${encodeURIComponent(file.id)}`,
+            href: `/api/tickets/${encodeURIComponent(task.id)}/files/${encodeURIComponent(file.id)}`,
             download: file.name || 'artifact'
         });
         document.body.appendChild(anchor);
@@ -391,7 +397,7 @@ function triggerCriticalReviewDownloads(task, files) {
  * @returns {Promise<void>} Completion.
  */
 async function downloadPublicationBundle(task) {
-    const response = await requestReview(`/api/reviews/${encodeURIComponent(task.id)}/files`);
+    const response = await requestReview(`/api/tickets/${encodeURIComponent(task.id)}/files`);
     if (!response.ok) throw await localizedResponseError(response, 'review.downloadFailed', {}, REVIEW_ERROR_KEYS);
     const payload = await response.json();
     const files = Array.isArray(payload?.files) ? payload.files : [];
@@ -412,10 +418,153 @@ async function downloadPublicationBundle(task) {
         `${safeName}-${task.resource_version || 'review'}.zip`);
 }
 
-/** @param {object} task - Review task. @returns {HTMLElement} Task card. */
-function taskCard(task) {
+/** @param {string} type - Stored resource type. @returns {string} Localized label. */
+function resourceLabel(type) {
+    const aliases = {docker: 'docker_image', npm: 'npm_package', cargo: 'cargo_package',
+        maven: 'maven_artifact', 'maven-domain': 'maven_domain'};
+    return ['user', 'superteam', 'support'].includes(type)
+        ? t(`ticket.type.${type}`) : t(`review.type.${aliases[type] || type}`);
+}
+
+/** @param {string} id - Ticket ID. @param {object} action - Transition payload. @returns {Promise<void>} Completion. */
+async function transitionTicket(id, action) {
+    const response = await requestReview(`/api/tickets/${encodeURIComponent(id)}/action`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(action)
+    });
+    if (!response.ok) throw await localizedResponseError(response, 'review.operationFailed', {}, REVIEW_ERROR_KEYS);
+    await loadTasks();
+}
+
+/** @param {string} id - Ticket ID. @returns {Promise<void>} Detail loaded. */
+async function openTicket(id) {
+    const body = el('div', {class: 'ticket-detail'});
+    const refresh = async () => {
+        const response = await requestReview(`/api/tickets/${encodeURIComponent(id)}`);
+        if (!response.ok) throw await localizedResponseError(response, 'review.loadFailed', {}, REVIEW_ERROR_KEYS);
+        const task = await response.json();
+        body.replaceChildren(taskCard(task, refresh));
+    };
+    try {
+        await refresh();
+        void RenopDialog.show({id: 'ticket-detail-dialog', maxWidth: '820px', title: t('review.title'), body});
+    } catch (error) {
+        showAlert(caughtErrorMessage(error, 'review.loadFailed'), 'error');
+    }
+}
+
+/** @param {object} task - Claimed ticket. @param {string} action - Resolution step. @param {Function} onChanged - Refresh detail. @returns {void} */
+function openResolutionDialog(task, action, onChanged) {
+    const response = el('textarea', {class: 'profile-input', rows: '6', maxlength: '4096', required: true}, task.response || '');
+    let outcome = task.kind === 'report' ? task.outcome === 'upheld' ? 'upheld' : 'dismissed' : 'resolved';
+    const choices = task.kind === 'report' && action !== 'close'
+        ? makeCustomSelect(['dismissed', 'upheld'].map(value => ({value, label: t(`ticket.outcome.${value}`)})),
+            outcome, value => { outcome = value; }) : null;
+    void RenopDialog.show({
+        id: 'ticket-resolution-dialog', maxWidth: '600px', title: t(`ticket.action.${action}`),
+        body: el('div', {class: 'review-reject-form'},
+            choices ? el('label', {class: 'review-reject-field'}, el('span', {}, t('ticket.outcome')), choices) : null,
+            el('label', {class: 'review-reject-field'}, el('span', {}, t('ticket.response')), response),
+            el('p', {class: 'review-transfer-copy'}, t('ticket.responsePrivacy'))),
+        footer: [
+            {text: t('common.cancel'), className: 'action-btn', onClick: (event, dialog) => dialog.close(false)},
+            {text: t(`ticket.action.${action}`), className: 'action-btn primary-btn',
+                onClick: (event, dialog) => runButtonAction(event.currentTarget, async () => {
+                    if (!response.reportValidity()) return;
+                    try {
+                        await transitionTicket(task.id, {action, outcome, response: response.value.trim()});
+                        dialog.close(true);
+                        await onChanged();
+                    } catch (error) {
+                        showAlert(caughtErrorMessage(error, 'review.operationFailed'), 'error');
+                    }
+                })}
+        ]
+    });
+}
+
+/** @param {object|null} target - Optional report resource. @returns {Promise<void>} Composer loaded. */
+export async function openTicketComposer(target = null) {
+    try {
+        let repository = target?.repository || '';
+        let kind = target ? 'report' : 'feedback';
+        let scope = null;
+        if (!target) {
+            const {response, data} = await fetchProto('/api/repositories/details', FileDetails);
+            if (!response.ok) throw await localizedResponseError(response, 'review.loadFailed', {}, REVIEW_ERROR_KEYS);
+            scope = makeCustomSelect([{value: '', label: t('ticket.globalScope')},
+                ...(data?.files || []).map(repo => ({value: repo.name, label: repo.name}))], repository,
+            value => { repository = value; });
+        }
+        const title = el('input', {type: 'text', class: 'profile-input', maxlength: '160', required: true});
+        const description = el('textarea', {class: 'profile-input', rows: '7', maxlength: '8000', required: true});
+        const kindSelect = target ? null : makeCustomSelect(['feedback', 'suggestion'].map(value => ({
+            value, label: t(`ticket.kind.${value}`)
+        })), kind, value => { kind = value; });
+        void RenopDialog.show({
+            id: 'ticket-compose-dialog', maxWidth: '640px', title: t(target ? 'ticket.report' : 'ticket.create'),
+            body: el('div', {class: 'review-reject-form'},
+                target ? el('p', {class: 'review-transfer-resource'}, target.name,
+                    target.version ? ` · ${target.version}` : '') : null,
+                kindSelect ? el('label', {class: 'review-reject-field'}, el('span', {}, t('ticket.kind')), kindSelect) : null,
+                scope ? el('label', {class: 'review-reject-field'}, el('span', {}, t('ticket.scope')), scope) : null,
+                el('label', {class: 'review-reject-field'}, el('span', {}, t('ticket.subject')), title),
+                el('label', {class: 'review-reject-field'}, el('span', {}, t('ticket.body')), description),
+                el('p', {class: 'review-transfer-copy'}, t(target ? 'ticket.reportPrivacy' : 'ticket.createHint'))),
+            footer: [
+                {text: t('common.cancel'), className: 'action-btn', onClick: (event, dialog) => dialog.close(false)},
+                {text: t('review.submitRequest'), className: 'action-btn primary-btn',
+                    onClick: (event, dialog) => runButtonAction(event.currentTarget, async () => {
+                        if (!title.reportValidity() || !description.reportValidity()) return;
+                        try {
+                            const response = await requestReview('/api/tickets', {
+                                method: 'POST', headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({kind, repository, title: title.value.trim(), body: description.value.trim(), target})
+                            });
+                            if (!response.ok) throw await localizedResponseError(response, 'review.operationFailed', {}, REVIEW_ERROR_KEYS);
+                            dialog.close(true);
+                            showAlert(t('ticket.created'), 'success');
+                            activeStatus = 'all';
+                            openTicketCenter('requested');
+                        } catch (error) {
+                            showAlert(caughtErrorMessage(error, 'review.operationFailed'), 'error');
+                        }
+                    })}
+            ]
+        });
+    } catch (error) {
+        showAlert(caughtErrorMessage(error, 'review.loadFailed'), 'error');
+    }
+}
+
+/** @param {object} task - Ticket. @param {Function|null} onChanged - Detail refresh callback. @returns {HTMLElement} Ticket card. */
+function taskCard(task, onChanged = null) {
     const actions = el('div', {class: 'review-card-actions'});
-    if (task.kind === 'publication' && task.status === 'pending') {
+    const allowed = new Set(onChanged ? task.actions || [] : []);
+    if (!onChanged) actions.appendChild(el('button', {
+        type: 'button', class: 'pill-btn pill-btn--primary pill-btn--sm',
+        onclick: event => runButtonAction(event.currentTarget, () => openTicket(task.id))
+    }, t('ticket.open')));
+    for (const action of ['claim', 'force_claim', 'release', 'escalate', 'process', 'complete', 'close']) {
+        if (!allowed.has(action)) continue;
+        actions.appendChild(el('button', {
+            type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm', onclick: event => {
+                if (['process', 'complete', 'close'].includes(action)) {
+                    openResolutionDialog(task, action, onChanged);
+                    return;
+                }
+                void runButtonAction(event.currentTarget, async () => {
+                    if (action !== 'claim' && !await showConfirm(t(`ticket.confirm.${action}`))) return;
+                    try {
+                        await transitionTicket(task.id, {action: action === 'force_claim' ? 'claim' : action, force: action === 'force_claim'});
+                        await onChanged();
+                    } catch (error) {
+                        showAlert(caughtErrorMessage(error, 'review.operationFailed'), 'error');
+                    }
+                });
+            }
+        }, t(`ticket.action.${action}`)));
+    }
+    if (onChanged && task.kind === 'publication' && task.status === 'pending') {
         actions.appendChild(el('button', {
             type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm', onclick: event => {
                 void runButtonAction(event.currentTarget, async () => {
@@ -428,7 +577,7 @@ function taskCard(task) {
             }
         }, createIcon('download'), el('span', {}, t('review.downloadBundle'))));
     }
-    if (task.status === 'pending' && activeView === 'reviewer') {
+    if (allowed.has('decision')) {
         actions.append(
             el('button', {
                 type: 'button', class: 'pill-btn pill-btn--primary pill-btn--sm', onclick: async event => {
@@ -452,18 +601,20 @@ function taskCard(task) {
                 type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm', onclick: () => openRejectDialog(task)
             }, createIcon('close'), el('span', {}, t('review.reject')))
         );
-    } else if (task.kind !== 'publication' && task.status === 'pending' && activeView === 'requested') {
+    }
+    if (allowed.has('cancel')) {
         actions.appendChild(el('button', {
             type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm', onclick: async event => {
                 if (!await showConfirm(t('review.cancelConfirm'))) return;
                 await runButtonAction(event.currentTarget, async () => {
                     try {
-                        const response = await requestReview(`/api/reviews/${encodeURIComponent(task.id)}`, {method: 'DELETE'});
+                        const response = await requestReview(`/api/tickets/${encodeURIComponent(task.id)}`, {method: 'DELETE'});
                         if (!response.ok) {
                             throw await localizedResponseError(response, 'review.operationFailed', {}, REVIEW_ERROR_KEYS);
                         }
                         showAlert(t('review.cancelled'), 'success');
                         await loadTasks();
+                        await onChanged();
                     } catch (error) {
                         showAlert(caughtErrorMessage(error, 'review.operationFailed'), 'error');
                     }
@@ -475,17 +626,26 @@ function taskCard(task) {
         el('div', {class: 'review-card-icon'}, createIcon(task.kind === 'publication' ? 'filePackage' : 'refresh')),
         el('div', {class: 'review-card-main'},
             el('div', {class: 'review-card-heading'},
-                el('strong', {}, task.resource_name),
-                el('span', {class: `review-status is-${task.status}`}, statusLabel(task.status))
+                el('strong', {}, task.title || task.resource_name),
+                el('span', {class: `review-status is-${task.ticket_status}`}, statusLabel(task.ticket_status))
             ),
-            el('span', {class: 'review-card-type'}, t(`review.type.${task.resource_type}`),
+            el('span', {class: 'review-card-type'}, resourceLabel(task.resource_type),
                 task.repository ? ` · ${task.repository}` : ''),
             el('p', {}, directionLabel(task)),
+            task.kind === 'report' ? el('p', {}, task.resource_name,
+                task.resource_version ? ` · ${task.resource_version}` : '') : null,
+            onChanged && task.body ? el('p', {class: 'ticket-body'}, task.body) : null,
+            onChanged && task.response ? el('div', {class: 'ticket-response'},
+                el('strong', {}, t(`ticket.outcome.${task.outcome}`)), el('p', {class: 'ticket-body'}, task.response)) : null,
+            task.admin_only ? el('p', {}, t('ticket.adminOnly')) : null,
             el('div', {class: 'review-card-meta'},
                 el('span', {}, t('review.requestedBy', {name: task.requested_by})),
                 el('time', {}, formatTimestamp(task.created_at, {fallback: t('common.unknown')})),
                 task.decided_by ? el('span', {}, t('review.decidedBy', {name: task.decided_by})) : null,
-                task.status === 'rejected' && task.decision_reason
+                task.assignee ? el('span', {}, t('ticket.assignee', {name: task.assignee})) : null,
+                task.escalated_by ? el('span', {}, t('ticket.escalatedBy', {name: task.escalated_by})) : null,
+                task.escalations ? el('span', {}, t('ticket.escalations', {count: task.escalations})) : null,
+                task.kind !== 'report' && task.status === 'rejected' && task.decision_reason
                     ? el('span', {}, task.decision_reason.startsWith('preset:')
                         ? t(`review.rejectPreset.${task.decision_reason.slice(7)}`)
                         : task.decision_reason.startsWith('custom:')
@@ -508,8 +668,8 @@ function toolbar() {
         void loadTasks();
     });
     const statusSelect = makeCustomSelect([
-        'pending', 'approved', 'rejected', 'cancelled', 'all'
-    ].map(value => ({value, label: t(`review.status.${value}`)})), activeStatus, value => {
+        'unprocessed', 'in_progress', 'processed', 'closed', 'completed', 'all'
+    ].map(value => ({value, label: statusLabel(value)})), activeStatus, value => {
         activeStatus = value;
         pageOffset = 0;
         void loadTasks();
@@ -525,11 +685,14 @@ function toolbar() {
                 pageOffset = 0;
                 void loadTasks();
             }
-        }, t(`review.type.${type}`));
+        }, resourceLabel(type));
         filters.appendChild(button);
     }
     return el('div', {class: 'review-toolbar'},
-        el('div', {class: 'review-toolbar-selects'}, viewSelect, statusSelect), filters);
+        el('div', {class: 'review-toolbar-selects'}, viewSelect, statusSelect,
+            el('button', {type: 'button', class: 'action-btn primary-btn',
+                onclick: event => runButtonAction(event.currentTarget, () => openTicketComposer())
+            }, t('ticket.create'))), filters);
 }
 
 /** @param {number} total - Total matching tasks. @returns {HTMLElement|null} Pager. */
@@ -567,9 +730,13 @@ async function loadTasks({refreshToolbar = false} = {}) {
     const query = new URLSearchParams({
         view: activeView, status: activeStatus, limit: String(pageSize), offset: String(pageOffset)
     });
-    if (activeTypes.size > 0) query.set('types', [...activeTypes].join(','));
+    if (activeTypes.size > 0) {
+        const aliases = {docker_image: 'docker', npm_package: 'npm', cargo_package: 'cargo',
+            maven_artifact: 'maven', maven_domain: 'maven-domain'};
+        query.set('types', [...activeTypes].flatMap(type => aliases[type] ? [type, aliases[type]] : [type]).join(','));
+    }
     try {
-        const response = await requestReview(`/api/reviews?${query}`);
+        const response = await requestReview(`/api/tickets?${query}`);
         if (exitProtectedRouteOnDenial(response)) return;
         if (!response.ok) throw await localizedResponseError(response, 'review.loadFailed', {}, REVIEW_ERROR_KEYS);
         const payload = await response.json();
@@ -582,7 +749,7 @@ async function loadTasks({refreshToolbar = false} = {}) {
             return;
         }
         const list = tasks.length
-            ? el('div', {class: 'review-list'}, ...tasks.map(taskCard))
+            ? el('div', {class: 'review-list'}, ...tasks.map(task => taskCard(task)))
             : el('div', {class: 'review-state review-empty'}, createIcon('success'),
                 el('strong', {}, t('review.empty')), el('span', {}, t('review.emptyHint')));
         await replaceContent(list, pager(total));
@@ -595,7 +762,8 @@ async function loadTasks({refreshToolbar = false} = {}) {
 }
 
 /** Render the routed review center. */
-export async function loadReviewCenterPage() {
-    if (!reviewRouteFromPath()) return;
+export async function loadTicketCenterPage() {
+    if (!ticketRouteFromPath()) return;
+    if (window.location.pathname !== routeRoot) window.history.replaceState(null, '', routeRoot);
     await loadTasks({refreshToolbar: true});
 }

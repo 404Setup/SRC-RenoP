@@ -38,24 +38,24 @@ function repositorySource(...parts) {
 test('ownership transfers use one routed review center outside the message system', () => {
     const html = frontendSource('index.html');
     const main = frontendSource('js', 'main.js');
-    const reviews = frontendSource('js', 'reviews.js');
-    assert.match(html, /data-account-action="reviews"/);
-    assert.match(html, /id="tab-content-reviews"/);
-    assert.match(main, /reviewRouteFromPath/);
-    assert.match(main, /loadReviewCenterPage/);
-    assert.match(reviews, /routeRoot = '\/account\/reviews'/);
+    const reviews = frontendSource('js', 'tickets.js');
+    assert.match(html, /data-account-action="tickets"/);
+    assert.match(html, /id="tab-content-tickets"/);
+    assert.match(main, /ticketRouteFromPath/);
+    assert.match(main, /loadTicketCenterPage/);
+    assert.match(reviews, /routeRoot = '\/account\/tickets'/);
     assert.match(reviews, /morphElementHeight/);
     assert.match(reviews, /ensureReviewShell\(refreshToolbar\)/);
     assert.match(reviews, /replaceContent\(loadingState\(\)\)/);
     assert.match(reviews, /nodes\.filter\(node => node !== null/);
     assert.match(reviews, /requestReview[\s\S]*?logoutOnForbidden: false/);
     assert.match(reviews, /view: activeView/);
-    assert.match(reviews, /types', \[\.\.\.activeTypes\]\.join\(','\)/);
+    assert.match(reviews, /query\.set\('types', \[\.\.\.activeTypes\]\.flatMap/);
     assert.doesNotMatch(reviews, /messages\.js|registerMessage|notification/);
 });
 
 test('all package engines and Maven domains share the transfer request dialog', () => {
-    const reviews = frontendSource('js', 'reviews.js');
+    const reviews = frontendSource('js', 'tickets.js');
     for (const file of ['docker.js', 'npm.js', 'cargo.js', 'maven.js']) {
         const source = frontendSource('js', 'browser', file);
         assert.match(source, /openSuperTeamTransferDialog/);
@@ -73,7 +73,7 @@ test('review decisions are durable, administrator-aware, and compare-and-set', (
     const schema = repositorySource('internal', 'database', 'review_schema.go');
     const clickhouse = repositorySource('internal', 'database', 'clickhouse_schema.go');
     const database = repositorySource('internal', 'database', 'review.go');
-    const routes = repositorySource('internal', 'service', 'review', 'routes.go');
+    const routes = repositorySource('internal', 'service', 'ticket', 'routes.go');
     assert.match(schema, /CREATE TABLE IF NOT EXISTS review_tasks/);
     assert.match(schema, /CREATE TABLE IF NOT EXISTS review_task_files/);
     assert.match(schema, /CREATE TABLE IF NOT EXISTS review_task_payloads/);
@@ -90,7 +90,7 @@ test('review decisions are durable, administrator-aware, and compare-and-set', (
 });
 
 test('publication reviews use bounded parallel downloads and preset rejection reasons', () => {
-    const reviews = frontendSource('js', 'reviews.js');
+    const reviews = frontendSource('js', 'tickets.js');
     const chunked = frontendSource('js', 'chunked-upload.js');
     const upload = frontendSource('js', 'browser', 'upload.js');
     const storage = repositorySource('internal', 'service', 'storage', 'publication_review.go');
@@ -133,11 +133,11 @@ test('review layouts remain bounded on narrow viewports', () => {
 test('reviewed package creation uses the application router and keeps Docker actions separated', () => {
     const docker = frontendSource('js', 'browser', 'docker.js');
     const npm = frontendSource('js', 'browser', 'npm.js');
-    const reviews = frontendSource('js', 'reviews.js');
+    const reviews = frontendSource('js', 'tickets.js');
     const creation = repositorySource('internal', 'database', 'review_creation.go');
     const styles = frontendSource('css', 'browser', 'docker.css');
-    assert.match(docker, /openReviewCenter\('requested'\)/);
-    assert.match(npm, /openReviewCenter\('requested'\)/);
+    assert.match(docker, /openTicketCenter\('requested'\)/);
+    assert.match(npm, /openTicketCenter\('requested'\)/);
     assert.doesNotMatch(docker, /activeNavigate\?\.\('\/account\/reviews'\)/);
     assert.doesNotMatch(npm, /activeNavigate\?\.\('\/account\/reviews'\)/);
     assert.match(reviews, /task\.resource_version === '@create'/);
@@ -152,17 +152,17 @@ test('reviewed package creation uses the application router and keeps Docker act
     assert.match(styles, /\.docker-page-actions\s*\{[\s\S]*?gap:\s*0\.65rem/);
 });
 
-test('review notifications are localized and decision actors are administrator-only', () => {
+test('ticket notifications are localized and requester views hide staff identities', () => {
     const main = frontendSource('js', 'main.js');
-    const renderer = frontendSource('js', 'review-messages.js');
-    const routes = repositorySource('internal', 'service', 'review', 'routes.go');
-    const notifications = repositorySource('internal', 'service', 'reviewnotify', 'notifications.go');
-    assert.match(main, /import '\.\/review-messages\.js'/);
+    const renderer = frontendSource('js', 'ticket-messages.js');
+    const access = repositorySource('internal', 'database', 'ticket_access.go');
+    const notifications = repositorySource('internal', 'service', 'ticketnotify', 'notifications.go');
+    assert.match(main, /import '\.\/ticket-messages\.js'/);
     assert.match(renderer, /registerMessageRenderer\('review_pending'/);
     assert.match(renderer, /registerMessageRenderer\('review_result'/);
     assert.doesNotMatch(renderer, /decided_by|DecidedBy/);
-    assert.match(routes, /redactReviewDecisionActor/);
-    assert.match(routes, /if !administrator/);
+    assert.match(access, /if requester \|\| !staff/);
+    assert.match(access, /task\.DecidedByID, task\.DecidedBy, task\.AssigneeID/);
     assert.match(notifications, /DeleteMessagesByDedupeKey/);
     assert.match(notifications, /NotifyPendingTransition/);
     assert.match(notifications, /review:pending:/);

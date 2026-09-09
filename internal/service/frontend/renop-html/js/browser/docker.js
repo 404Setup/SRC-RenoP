@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {createTicketReportButton} from '../ticket-report.js';
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {createPaginatedCollection} from '@renop/ui/pagination';
@@ -27,7 +28,7 @@ import {t} from '../i18n.js';
 import {createSuperTeamBindingField} from '../super-team-selector.js';
 import {setSafeMarkdown} from '../markdown.js';
 import {getRepositoryFormat} from '../repository-formats.js';
-import {openReviewCenter, openSuperTeamTransferDialog} from '../reviews.js';
+import {openTicketCenter, openSuperTeamTransferDialog} from '../tickets.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {createPackageDetailTabs} from './package-detail-tabs.js';
 import {decodePathSegment, encodePathSegment, encodeRelativePath, formatBytes} from './utils.js';
@@ -510,7 +511,7 @@ function openCreateImageDialog(repoName) {
                             dialog.close(true);
                             if (response.status === 202 || image.pending === true) {
                                 showAlert(t('docker.imageCreationQueued'), 'success');
-                                openReviewCenter('requested');
+                                openTicketCenter('requested');
                                 return;
                             }
                             showAlert(t('docker.imageCreated'), 'success');
@@ -785,6 +786,8 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             )
             : null;
         const headerActions = el('div', {class: 'docker-page-actions'}, lockButton(), deprecateBtn, transferBtn, deleteImgBtn);
+        headerActions.appendChild(createTicketReportButton({format: 'docker', repository: repoName, name: imageName},
+            image.mirrored || permissionLevel >= 4 || resourceReadLocked(image)));
         if (image.super_team_prefix) {
             metaRow.appendChild(el('div', {class: 'docker-meta-chip'},
                 createIcon('identity', {class: 'icon-svg'}),
@@ -925,6 +928,8 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                         }, createIcon('eye', {class: 'icon-svg'}))
                     );
                     const manageLock = lockButton(tObj.digest, tObj.locks);
+                    actionsWrap.appendChild(createTicketReportButton({format: 'docker', repository: repoName,
+                        name: imageName, version: tObj.digest}, image.mirrored || tObj.mirrored || permissionLevel >= 4 || resourceReadLocked(image, tObj)));
                     if (manageLock) actionsWrap.append(manageLock);
                 }
 

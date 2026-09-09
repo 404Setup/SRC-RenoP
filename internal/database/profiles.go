@@ -46,6 +46,41 @@ func (db *DB) GetUserProfileByID(userID string) (*core.UserProfile, error) {
 	return db.getUserProfile(`p.user_id = ?`, userID)
 }
 
+// GetAccountNamesByIDs resolves a bounded identity batch, including banned but not retired accounts.
+func (db *DB) GetAccountNamesByIDs(userIDs []string) ([]string, error) {
+	if db == nil || db.SQLDB == nil {
+		return nil, core.ErrDatabaseUnavailable
+	}
+	if len(userIDs) == 0 {
+		return nil, nil
+	}
+	if len(userIDs) > 100 {
+		return nil, core.ErrUserProfileNotFound
+	}
+	args := make([]any, len(userIDs))
+	for i, id := range userIDs {
+		if _, err := uuid.Parse(id); err != nil {
+			return nil, core.ErrUserProfileNotFound
+		}
+		args[i] = id
+	}
+	rows, err := db.Query(`SELECT p.username FROM user_profiles p JOIN tokens t ON t.name = p.username
+		WHERE t.deleted_at = 0 AND p.user_id IN (`+strings.TrimSuffix(strings.Repeat("?,", len(args)), ",")+`) ORDER BY p.username`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var names []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		names = append(names, name)
+	}
+	return names, rows.Err()
+}
+
 func (db *DB) getUserProfile(whereClause, value string) (*core.UserProfile, error) {
 	var generation uint64
 	if db.profileCache != nil {

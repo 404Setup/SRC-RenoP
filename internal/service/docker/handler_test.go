@@ -34,6 +34,7 @@ import (
 	"renop/internal/service/index"
 	"renop/internal/service/statistics"
 	"renop/internal/testutil"
+	"renop/internal/testutil/tickettest"
 )
 
 type memoryDockerStore struct {
@@ -706,6 +707,7 @@ func TestDockerPublicationReviewDefersManifestAndTags(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("save Docker moderator: %v", err)
 	}
+	reviewTask = tickettest.ClaimTicket(t, state.GetDB(), reviewTask, "moderator")
 	decided, err := ApprovePublicationReview(state, reviewTask, store, "moderator",
 		reviewTask.UpdatedAt+core.PublicationReviewSettleMillis+1)
 	if err != nil {
@@ -753,6 +755,7 @@ func TestDockerPublicationReviewDefersManifestAndTags(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load missing-blob review: %v", err)
 	}
+	missingTask = tickettest.ClaimTicket(t, state.GetDB(), missingTask, "moderator")
 	_, err = ApprovePublicationReview(state, missingTask, store, "moderator",
 		missingTask.UpdatedAt+core.PublicationReviewSettleMillis+1)
 	if !errors.Is(err, core.ErrReviewResourceConflict) {

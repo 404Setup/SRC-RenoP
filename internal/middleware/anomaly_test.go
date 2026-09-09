@@ -111,7 +111,7 @@ func TestIPLimiterBoundsFreshEntries(t *testing.T) {
 func TestFrontendShellAndAssetPathClassification(t *testing.T) {
 	for _, requestPath := range []string{
 		"/", "/index.html", "/assets/app.js", "/js/main.js", "/css/app.css", "/svg/logo.svg",
-		"/user/alice", "/user/alice/edit", "/user/alice/npm", "/account/reviews", "/account/login", "/account/recovery", "/account/forgot-password",
+		"/user/alice", "/user/alice/edit", "/user/alice/npm", "/account/tickets", "/account/reviews", "/account/login", "/account/recovery", "/account/forgot-password",
 		"/account/teams", "/account/teams/core", "/account/maven-domains", "/account/maven-domains/com.example",
 	} {
 		if !isFrontendShellOrAssetPath(requestPath) {
@@ -119,8 +119,8 @@ func TestFrontendShellAndAssetPathClassification(t *testing.T) {
 		}
 	}
 	for _, requestPath := range []string{
-		"/api/reviews", "/v2/example/manifests/latest", "/repository/file.jar", "/account/unknown", "/account/login/extra", "/account/recovery/extra",
-		"/account/reviews/extra", "/account/teams/core/extra", "/user/alice/unknown", "/user/alice/edit/extra",
+		"/api/tickets", "/v2/example/manifests/latest", "/repository/file.jar", "/account/unknown", "/account/login/extra", "/account/recovery/extra",
+		"/account/tickets/extra", "/account/reviews/extra", "/account/teams/core/extra", "/user/alice/unknown", "/user/alice/edit/extra",
 	} {
 		if isFrontendShellOrAssetPath(requestPath) {
 			t.Errorf("isFrontendShellOrAssetPath(%q) = true, want false", requestPath)

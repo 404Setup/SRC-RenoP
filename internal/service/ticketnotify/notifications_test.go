@@ -8,7 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-package reviewnotify
+package ticketnotify
 
 import (
 	"path/filepath"
@@ -53,6 +53,18 @@ func messagesFor(t *testing.T, state *core.AppState, username string) []*core.Us
 	return messages
 }
 
+func claimNotificationTicket(t *testing.T, state *core.AppState, id, actor string) string {
+	t.Helper()
+	now := time.Now().UnixMilli()
+	secret := "notification-ticket-" + actor
+	session := &core.Session{PublicID: secret, Username: actor, CreatedAt: now}
+	session.LastActive.Store(now)
+	require.NoError(t, state.GetDB().SaveSession(session, secret))
+	_, err := state.GetDB().TransitionTicket(id, actor, secret, core.TicketAction{Action: "claim"}, now)
+	require.NoError(t, err)
+	return secret
+}
+
 func TestPublicationReviewNotificationsDedupeClearAndHideReviewer(t *testing.T) {
 	state := setupNotificationState(t)
 	now := time.Now().UnixMilli() - core.PublicationReviewSettleMillis - 1000
@@ -68,12 +80,13 @@ func TestPublicationReviewNotificationsDedupeClearAndHideReviewer(t *testing.T) 
 	for _, recipient := range []string{"moderator", "manager"} {
 		messages := messagesFor(t, state, recipient)
 		require.Len(t, messages, 1, recipient)
-		assert.Equal(t, "review_pending", messages[0].Kind)
+		assert.Equal(t, "ticket_pending", messages[0].Kind)
 		assert.NotContains(t, string(messages[0].Payload), "manager")
 	}
 	assert.Empty(t, messagesFor(t, state, "requester"))
 	assert.Empty(t, messagesFor(t, state, "unrelated"))
 
+	claimNotificationTicket(t, state, result.TaskID, "moderator")
 	task, err := state.GetDB().DecideReviewTask(result.TaskID, "moderator",
 		core.ReviewStatusRejected, "preset:quality", now+core.PublicationReviewSettleMillis+1)
 	require.NoError(t, err)
@@ -82,7 +95,7 @@ func TestPublicationReviewNotificationsDedupeClearAndHideReviewer(t *testing.T) 
 	assert.Empty(t, messagesFor(t, state, "manager"))
 	requesterMessages := messagesFor(t, state, "requester")
 	require.Len(t, requesterMessages, 1)
-	assert.Equal(t, "review_result", requesterMessages[0].Kind)
+	assert.Equal(t, "ticket_result", requesterMessages[0].Kind)
 	assert.Contains(t, string(requesterMessages[0].Payload), `"status":"rejected"`)
 	assert.Contains(t, string(requesterMessages[0].Payload), `"decision_reason":"preset:quality"`)
 	assert.NotContains(t, strings.ToLower(string(requesterMessages[0].Payload)), "moderator")
@@ -144,11 +157,60 @@ func TestTeamPackageCreationNotificationMovesToRepositoryModerators(t *testing.T
 	assert.Len(t, messagesFor(t, state, "manager"), 1)
 	assert.Empty(t, messagesFor(t, state, "moderator"))
 
+	claimNotificationTicket(t, state, result.TaskID, "unrelated")
 	advanced, err := db.AdvancePackageCreationReview(
 		result.TaskID, "unrelated", now+core.PublicationReviewSettleMillis+4)
 	require.NoError(t, err)
 	require.NoError(t, NotifyPendingTransition(state, advanced))
 	assert.Empty(t, messagesFor(t, state, "unrelated"))
 	assert.Len(t, messagesFor(t, state, "manager"), 1)
+	assert.Len(t, messagesFor(t, state, "moderator"), 1)
+}
+
+func TestTicketReportNotificationsHidePartiesAndNotifyTargetsOnlyWhenUpheld(t *testing.T) {
+	state := setupNotificationState(t)
+	db := state.GetDB()
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "handler", Permissions: []string{"manager"}}))
+	now := time.Now().UnixMilli()
+	session := &core.Session{PublicID: "reporter", Username: "requester", CreatedAt: now}
+	session.LastActive.Store(now)
+	require.NoError(t, db.SaveSession(session, "reporter-secret"))
+	task, err := db.CreateTicket(core.TicketRequest{Kind: core.TicketKindReport, Title: "Reporter private subject",
+		Body: "Reporter private account details", Target: core.ResourceLockTarget{Format: "user", Name: "manager"}},
+		"requester", "reporter-secret", now)
+	require.NoError(t, err)
+	require.NoError(t, NotifyPending(state, task))
+	assert.Empty(t, messagesFor(t, state, "manager"))
+	assert.Len(t, messagesFor(t, state, "handler"), 1)
+	secret := claimNotificationTicket(t, state, task.ID, "handler")
+	task, err = db.TransitionTicket(task.ID, "handler", secret,
+		core.TicketAction{Action: "process", Outcome: "upheld", Response: "Private handling notes"}, now+1)
+	require.NoError(t, err)
+	require.NoError(t, NotifyDecision(state, task))
+	assert.Empty(t, messagesFor(t, state, "manager"))
+	task, err = db.TransitionTicket(task.ID, "handler", secret,
+		core.TicketAction{Action: "complete", Outcome: "upheld", Response: "The report was upheld."}, now+2)
+	require.NoError(t, err)
+	require.NoError(t, NotifyDecision(state, task))
+	require.NoError(t, NotifyDecision(state, task))
+	reporterMessages := messagesFor(t, state, "requester")
+	require.Len(t, reporterMessages, 1)
+	assert.Empty(t, reporterMessages[0].Sender)
+	assert.NotContains(t, string(reporterMessages[0].Payload), "handler")
+	targetMessages := messagesFor(t, state, "manager")
+	require.Len(t, targetMessages, 1)
+	assert.Equal(t, "ticket_report_outcome", targetMessages[0].Kind)
+	assert.Empty(t, targetMessages[0].Sender)
+	for _, secret := range []string{task.ID, "requester", "Reporter", "Private", "handler", "task_id"} {
+		assert.NotContains(t, string(targetMessages[0].Payload), secret)
+	}
+	assert.Contains(t, string(targetMessages[0].Payload), `"outcome":"upheld"`)
+	task.Outcome, task.Status = "dismissed", core.ReviewStatusRejected
+	require.NoError(t, NotifyDecision(state, task))
+	assert.Len(t, messagesFor(t, state, "manager"), 1)
+	feedback, err := db.CreateTicket(core.TicketRequest{Kind: core.TicketKindFeedback, Repository: "releases",
+		Title: "Feedback", Body: "Please improve this repository."}, "requester", "reporter-secret", now+3)
+	require.NoError(t, err)
+	require.NoError(t, NotifyPending(state, feedback))
 	assert.Len(t, messagesFor(t, state, "moderator"), 1)
 }

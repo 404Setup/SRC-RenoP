@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {createTicketReportButton} from './ticket-report.js';
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {morphElementHeight} from '@renop/ui/height-anim';
@@ -665,6 +666,7 @@ function teamDetailContent(details, prefix, {publicView = false, quotaStatus = n
     const canOwn = !publicView && !locked && (details.administrator || actorLevel >= 4);
     const canManage = !publicView && !locked && (details.administrator || actorLevel >= 3);
     const actions = el('div', {class: 'super-team-detail-actions'});
+    actions.appendChild(createTicketReportButton({format: 'superteam', name: team.prefix || prefix}, actorLevel >= 4));
     if (!publicView && !locked && actorLevel > 0 && actorLevel < 4) actions.appendChild(el('button', {
         type: 'button', class: 'pill-btn pill-btn--ghost-danger pill-btn--sm',
         onclick: () => openLeaveTeamDialog(details)

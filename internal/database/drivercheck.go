@@ -34,6 +34,18 @@ type DriverCheckResult struct {
 	Duration time.Duration `json:"duration"`
 }
 
+func claimDriverTicket(db *DB, id, actor string) error {
+	now := time.Now().UnixMilli()
+	secret := "driver-ticket-" + uuid.NewString()
+	session := &core.Session{PublicID: secret, Username: actor, CreatedAt: now}
+	session.LastActive.Store(now)
+	if err := db.SaveSession(session, secret); err != nil {
+		return err
+	}
+	_, claimErr := db.TransitionTicket(id, actor, secret, core.TicketAction{Action: "claim"}, now)
+	return errors.Join(claimErr, db.DeleteSession(secret))
+}
+
 // RunDriverCheck exercises the cross-driver account, transaction, package,
 // review, and statistics contract against an isolated database.
 func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
@@ -43,7 +55,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	suffix := uuid.NewString()[:8]
 	username := "dbcheck-" + suffix
 	now := time.Now().UnixMilli()
-	results := make([]DriverCheckResult, 0, 19)
+	results := make([]DriverCheckResult, 0, 20)
 	run := func(name string, check func() error) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -569,6 +581,9 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		if err != nil {
 			return err
 		}
+		if err := claimDriverTicket(db, restoreTask.ID, claimReviewer); err != nil {
+			return err
+		}
 		if _, err := db.DecideReviewTask(restoreTask.ID, claimReviewer, core.ReviewStatusApproved, "", now+4); err != nil {
 			return err
 		}
@@ -658,6 +673,9 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		if err != nil || requestedTotal != 1 || len(requestedTasks) != 1 || requestedTasks[0].ID != task.ID {
 			return errorsOrMissing(err, "requester task listing")
 		}
+		if err := claimDriverTicket(db, task.ID, memberUsername); err != nil {
+			return err
+		}
 		if _, err := db.DecideReviewTask(task.ID, memberUsername,
 			core.ReviewStatusApproved, "", now+6); err != nil {
 			return err
@@ -712,6 +730,9 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		if err != nil || dockerCreation == nil || !dockerCreation.Pending {
 			return errorsOrMissing(err, "Docker creation review")
 		}
+		if err := claimDriverTicket(db, dockerCreation.TaskID, username); err != nil {
+			return err
+		}
 		if _, err := db.ApproveDockerImageCreationReview(
 			dockerCreation.TaskID, username, dockerRepository, "review-created", "", false,
 			now+8, now+8+core.PublicationReviewSettleMillis+1); err != nil {
@@ -732,6 +753,9 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		})
 		if err != nil || npmCreation == nil || !npmCreation.Pending {
 			return errorsOrMissing(err, "npm creation review")
+		}
+		if err := claimDriverTicket(db, npmCreation.TaskID, username); err != nil {
+			return err
 		}
 		if _, err := db.ApproveNPMPackageCreationReview(
 			npmCreation.TaskID, username, npmRepository, "review-created", "", false,
@@ -766,11 +790,17 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		if err != nil || teamCreation == nil || !teamCreation.Pending {
 			return errorsOrMissing(err, "team npm creation review")
 		}
+		if err := claimDriverTicket(db, teamCreation.TaskID, username); err != nil {
+			return err
+		}
 		advanced, err := db.AdvancePackageCreationReview(
 			teamCreation.TaskID, username, now+10+core.PublicationReviewSettleMillis+1)
 		if err != nil || advanced == nil || advanced.Status != core.ReviewStatusPending ||
 			advanced.ReviewTeamPrefix != "" || advanced.TargetTeamPrefix != globalTeamPrefix {
 			return errorsOrMissing(err, "team npm creation review advancement")
+		}
+		if err := claimDriverTicket(db, teamCreation.TaskID, username); err != nil {
+			return err
 		}
 		if _, err := db.ApproveNPMPackageCreationReview(
 			teamCreation.TaskID, username, npmRepository, teamPackageName, globalTeamPrefix, false,
@@ -791,6 +821,9 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		})
 		if err != nil || dockerPublication == nil || !dockerPublication.Pending {
 			return errorsOrMissing(err, "Docker publication review creation")
+		}
+		if err := claimDriverTicket(db, dockerPublication.TaskID, username); err != nil {
+			return err
 		}
 		approvedDocker, err := db.ApproveDockerPublicationReview(
 			dockerPublication.TaskID, username, &core.DockerManifest{
@@ -834,6 +867,9 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		if err != nil || moderatedTotal != 1 || len(moderatedTasks) != 1 ||
 			moderatedTasks[0].ID != publication.TaskID {
 			return errorsOrMissing(err, "publication reviewer task listing")
+		}
+		if err := claimDriverTicket(db, publication.TaskID, username); err != nil {
+			return err
 		}
 		if _, err := db.DecideReviewTask(publication.TaskID, username,
 			core.ReviewStatusApproved, "", now+core.PublicationReviewSettleMillis+23); err != nil {
@@ -1471,6 +1507,11 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 			return errorsOrMissing(err, "removed email identifier")
 		}
 		return nil
+	}); err != nil {
+		return results, err
+	}
+	if err := run("ticket assignment and report privacy", func() error {
+		return checkTickets(db, suffix, now)
 	}); err != nil {
 		return results, err
 	}

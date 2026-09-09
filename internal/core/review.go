@@ -83,28 +83,30 @@ type PublicationReviewResult struct {
 
 // ReviewTask is one independently paginated, single-decision workflow record.
 type ReviewTask struct {
-	ID               string `json:"id"`
-	Kind             string `json:"kind"`
-	ResourceType     string `json:"resource_type"`
-	Repository       string `json:"repository,omitempty"`
-	ResourceKey      string `json:"resource_key"`
-	ResourceName     string `json:"resource_name"`
-	ResourceVersion  string `json:"resource_version,omitempty"`
-	SourceTeamPrefix string `json:"source_team_prefix,omitempty"`
-	TargetTeamPrefix string `json:"target_team_prefix,omitempty"`
-	ReviewTeamPrefix string `json:"review_team_prefix"`
-	RequestedByID    string `json:"-"`
-	RequestedBy      string `json:"requested_by"`
-	Status           string `json:"status"`
-	DecisionReason   string `json:"decision_reason,omitempty"`
-	DecidedByID      string `json:"-"`
-	DecidedBy        string `json:"decided_by,omitempty"`
-	CreatedAt        int64  `json:"created_at"`
-	UpdatedAt        int64  `json:"updated_at"`
-	DecidedAt        int64  `json:"decided_at,omitempty"`
-	FileCount        int    `json:"file_count,omitempty"`
-	TotalSize        int64  `json:"total_size,omitempty"`
-	ActiveKey        string `json:"-"`
+	TicketState
+	Actions          []string `json:"actions,omitempty"`
+	ID               string   `json:"id"`
+	Kind             string   `json:"kind"`
+	ResourceType     string   `json:"resource_type"`
+	Repository       string   `json:"repository,omitempty"`
+	ResourceKey      string   `json:"resource_key"`
+	ResourceName     string   `json:"resource_name"`
+	ResourceVersion  string   `json:"resource_version,omitempty"`
+	SourceTeamPrefix string   `json:"source_team_prefix,omitempty"`
+	TargetTeamPrefix string   `json:"target_team_prefix,omitempty"`
+	ReviewTeamPrefix string   `json:"review_team_prefix"`
+	RequestedByID    string   `json:"-"`
+	RequestedBy      string   `json:"requested_by"`
+	Status           string   `json:"status"`
+	DecisionReason   string   `json:"decision_reason,omitempty"`
+	DecidedByID      string   `json:"-"`
+	DecidedBy        string   `json:"decided_by,omitempty"`
+	CreatedAt        int64    `json:"created_at"`
+	UpdatedAt        int64    `json:"updated_at"`
+	DecidedAt        int64    `json:"decided_at,omitempty"`
+	FileCount        int      `json:"file_count,omitempty"`
+	TotalSize        int64    `json:"total_size,omitempty"`
+	ActiveKey        string   `json:"-"`
 }
 
 // SuperTeamTransferRequest identifies a project or publishing domain and its requested owner.
@@ -117,6 +119,7 @@ type SuperTeamTransferRequest struct {
 
 // ReviewTaskListOptions controls bounded reviewer or requester task pages.
 type ReviewTaskListOptions struct {
+	TicketStatus          string
 	Username              string
 	RequestedView         bool
 	Administrator         bool

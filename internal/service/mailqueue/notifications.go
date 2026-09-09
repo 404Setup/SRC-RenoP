@@ -84,9 +84,9 @@ func (w *worker) notifications(control mail.Control, now time.Time) error {
 	for _, message := range messages {
 		scene := "notification"
 		switch message.Kind {
-		case "review_pending":
+		case "review_pending", "ticket_pending":
 			scene = "pending_reviews"
-		case "review_result":
+		case "review_result", "ticket_result":
 			scene = "review_status"
 		default:
 			if strings.Contains(message.Kind, "invitation") {

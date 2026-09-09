@@ -42,6 +42,7 @@ func SetupFrontendRoutes(app fiber.Router, state *core.AppState) {
 	app.Get("/domain/:domain", func(c fiber.Ctx) error { return ServeIndex(c, state) })
 	app.Get("/team/:prefix", func(c fiber.Ctx) error { return ServeIndex(c, state) })
 	app.Get("/account/reviews", func(c fiber.Ctx) error { return ServeIndex(c, state) })
+	app.Get("/account/tickets", func(c fiber.Ctx) error { return ServeIndex(c, state) })
 	app.Get("/account/teams", func(c fiber.Ctx) error { return ServeIndex(c, state) })
 	app.Get("/account/teams/:prefix", func(c fiber.Ctx) error { return ServeIndex(c, state) })
 	app.Get("/account/maven-domains", func(c fiber.Ctx) error { return ServeIndex(c, state) })

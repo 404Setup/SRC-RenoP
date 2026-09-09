@@ -24,7 +24,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
-	"renop/internal/service/reviewnotify"
+	"renop/internal/service/ticketnotify"
 )
 
 type npmPublicationReviewPayload struct {
@@ -122,7 +122,7 @@ func QueuePackageCreationReview(state *core.AppState, repo *config.Repository, p
 		}}, Payload: payload, CreatedAt: createdAt,
 	})
 	if err == nil {
-		reviewnotify.DeliverPending(state, result)
+		ticketnotify.DeliverPending(state, result)
 	}
 	return result, err
 }
@@ -229,7 +229,7 @@ func QueuePublicationReview(state *core.AppState, repo *config.Repository, pkg *
 		Payload: payload, CreatedAt: version.CreatedAt,
 	})
 	if err == nil {
-		reviewnotify.DeliverPending(state, result)
+		ticketnotify.DeliverPending(state, result)
 	}
 	return result, err
 }

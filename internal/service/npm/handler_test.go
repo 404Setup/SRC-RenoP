@@ -35,6 +35,7 @@ import (
 	"renop/internal/database"
 	"renop/internal/service/index"
 	"renop/internal/testutil"
+	"renop/internal/testutil/tickettest"
 )
 
 type memoryStore struct {
@@ -341,6 +342,7 @@ func TestNPMPackageCreationPolicyRequiresReviewBeforeReservation(t *testing.T) {
 	}))
 	task, err := state.GetDB().GetReviewTask(queued.ReviewID)
 	require.NoError(t, err)
+	task = tickettest.ClaimTicket(t, state.GetDB(), task, "moderator")
 	decided, err := ApprovePackageCreationReview(
 		state, task, "moderator", task.UpdatedAt+core.PublicationReviewSettleMillis+1)
 	require.NoError(t, err)
@@ -542,6 +544,7 @@ func TestNPMPublicationReviewDefersVersionsAndNewPackagePolicy(t *testing.T) {
 		Name: "moderator", CreatedAt: time.Now().Format(time.RFC3339),
 		Permissions: []string{"base", "canmoderate:npm"},
 	}))
+	task = tickettest.ClaimTicket(t, state.GetDB(), task, "moderator")
 	_, err = state.GetDB().DecideReviewTask(reviewID, "moderator", core.ReviewStatusApproved, "",
 		task.UpdatedAt+core.PublicationReviewSettleMillis+1)
 	if err != nil {

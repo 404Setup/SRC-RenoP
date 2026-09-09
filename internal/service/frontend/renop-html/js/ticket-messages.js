@@ -12,7 +12,8 @@ import {t} from './i18n.js';
 import {registerMessageRenderer} from './messages.js';
 
 const resourceTypes = new Set([
-    'docker_image', 'npm_package', 'cargo_package', 'maven_artifact', 'maven_domain'
+    'docker_image', 'npm_package', 'cargo_package', 'maven_artifact', 'maven_domain',
+    'docker', 'npm', 'cargo', 'maven', 'maven-domain', 'user', 'superteam', 'support'
 ]);
 
 /**
@@ -33,14 +34,17 @@ function reviewPayload(message) {
     const resourceType = String(payload.resource_type || '');
     const resourceName = String(payload.resource_name || '');
     const status = String(payload.status || '');
+    const outcome = String(payload.outcome || '');
     if (!resourceTypes.has(resourceType) || !resourceName || resourceName.length > 512 ||
-        /[\0\r\n]/.test(resourceName) || status && !['approved', 'rejected', 'cancelled'].includes(status)) {
+        /[\0\r\n]/.test(resourceName) || status && !['approved', 'rejected', 'cancelled'].includes(status) ||
+        outcome && !['upheld', 'dismissed', 'resolved', 'closed'].includes(outcome)) {
         return null;
     }
     return {
         resourceType,
         resourceName,
         status,
+        outcome,
         reason: String(payload.decision_reason || '').slice(0, 512)
     };
 }
@@ -56,6 +60,9 @@ function decisionReason(reason) {
 function renderPendingReview(message) {
     const payload = reviewPayload(message);
     if (!payload) return {};
+    if (message.kind === 'ticket_pending') return {
+        title: `${t('review.title')} · ${t('ticket.status.unprocessed')}`, body: payload.resourceName
+    };
     return {
         title: t('review.message.pendingTitle'),
         body: t('review.message.pendingBody', {
@@ -67,7 +74,11 @@ function renderPendingReview(message) {
 /** @param {object} message - Review-result message. @returns {{title?: string, body?: string}} Presentation. */
 function renderReviewResult(message) {
     const payload = reviewPayload(message);
-    if (!payload || !payload.status) return {};
+    if (!payload) return {};
+    if (payload.outcome) return {
+        title: t(`ticket.outcome.${payload.outcome}`), body: payload.resourceName
+    };
+    if (!payload.status) return {};
     let body = t('review.message.resultBody', {
         type: t(`review.type.${payload.resourceType}`), resource: payload.resourceName,
         status: t(`review.status.${payload.status}`)
@@ -79,3 +90,6 @@ function renderReviewResult(message) {
 
 registerMessageRenderer('review_pending', renderPendingReview);
 registerMessageRenderer('review_result', renderReviewResult);
+registerMessageRenderer('ticket_pending', renderPendingReview);
+registerMessageRenderer('ticket_result', renderReviewResult);
+registerMessageRenderer('ticket_report_outcome', renderReviewResult);

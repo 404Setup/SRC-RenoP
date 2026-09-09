@@ -8,12 +8,13 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-// Package reviewnotify delivers deduplicated review lifecycle notifications.
-package reviewnotify
+// Package ticketnotify delivers deduplicated review lifecycle notifications.
+package ticketnotify
 
 import (
 	"errors"
 	"log"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -26,7 +27,7 @@ import (
 )
 
 type reviewMessagePayload struct {
-	TaskID          string `json:"task_id"`
+	TaskID          string `json:"task_id,omitempty"`
 	Kind            string `json:"kind"`
 	ResourceType    string `json:"resource_type"`
 	Repository      string `json:"repository,omitempty"`
@@ -34,6 +35,7 @@ type reviewMessagePayload struct {
 	ResourceVersion string `json:"resource_version,omitempty"`
 	Status          string `json:"status,omitempty"`
 	DecisionReason  string `json:"decision_reason,omitempty"`
+	Outcome         string `json:"outcome,omitempty"`
 }
 
 func pendingDedupeKey(taskID string) string {
@@ -45,7 +47,7 @@ func resultDedupeKey(taskID, status string) string {
 }
 
 func activeReviewAccount(token *core.AccessToken, now int64) (*config.User, bool) {
-	if token == nil || token.DeletedAt > 0 || strings.TrimSpace(token.Name) == "" ||
+	if token == nil || token.DeletedAt > 0 || token.Ban.IsActive(now) || strings.TrimSpace(token.Name) == "" ||
 		token.ExpiresAt != nil && now >= *token.ExpiresAt {
 		return nil, false
 	}
@@ -65,21 +67,26 @@ func reviewRecipients(state *core.AppState, task *core.ReviewTask) ([]string, er
 	now := time.Now().UnixMilli()
 	unique := make(map[string]struct{}, len(tokens))
 	activeAccounts := make(map[string]struct{}, len(tokens))
+	targets, err := reportTargetNames(state, task)
+	if err != nil {
+		return nil, err
+	}
 	for _, token := range tokens {
 		user, active := activeReviewAccount(token, now)
 		if !active {
 			continue
 		}
 		activeAccounts[user.Username] = struct{}{}
-		if strings.EqualFold(user.Username, task.RequestedBy) {
+		if strings.EqualFold(user.Username, task.RequestedBy) || slices.Contains(targets, user.Username) ||
+			task.AdminOnly && strings.EqualFold(user.Username, task.EscalatedBy) {
 			continue
 		}
-		if user.IsManager() || ((task.Kind == core.ReviewKindPublication || task.Kind == core.ReviewKindMavenRestore) && task.ReviewTeamPrefix == "" &&
+		if user.IsManager() || (!task.AdminOnly && task.ReviewTeamPrefix == "" &&
 			user.CheckModeratePermission(task.Repository)) {
 			unique[user.Username] = struct{}{}
 		}
 	}
-	if task.ReviewTeamPrefix != "" {
+	if task.ReviewTeamPrefix != "" && !task.AdminOnly {
 		teamReviewers, err := state.GetDB().ListSuperTeamReviewerNames(task.ReviewTeamPrefix)
 		if err != nil {
 			return nil, err
@@ -118,6 +125,7 @@ func payloadBytes(task *core.ReviewTask, includeDecision bool) ([]byte, error) {
 	if includeDecision {
 		payload.Status = task.Status
 		payload.DecisionReason = task.DecisionReason
+		payload.Outcome = task.Outcome
 	}
 	return json.Marshal(&payload)
 }
@@ -157,8 +165,8 @@ func NotifyPending(state *core.AppState, task *core.ReviewTask) error {
 	}
 	for _, recipient := range recipients {
 		_, deliveryErr := message.DeliverOnce(state, &core.UserMessage{
-			Recipient: recipient, Sender: task.RequestedBy, Kind: "review_pending", Severity: "warning",
-			Title: "Review requested", Body: "A review requires your attention.", Payload: payload,
+			Recipient: recipient, Kind: "ticket_pending", Severity: "warning",
+			Title: "Ticket awaiting attention", Body: "Open tickets to view the request.", Payload: payload,
 			DedupeKey: pendingDedupeKey(task.ID), CreatedAt: createdAt,
 		})
 		result = errors.Join(result, deliveryErr)
@@ -190,11 +198,49 @@ func NotifyDecision(state *core.AppState, task *core.ReviewTask) error {
 		severity = "warning"
 	}
 	_, deliveryErr := message.DeliverOnce(state, &core.UserMessage{
-		Recipient: profile.Username, Kind: "review_result", Severity: severity,
-		Title: "Review completed", Body: "Your review request has been updated.", Payload: payload,
+		Recipient: profile.Username, Kind: "ticket_result", Severity: severity,
+		Title: "Ticket completed", Body: "Open tickets to view the result.", Payload: payload,
 		DedupeKey: resultDedupeKey(task.ID, task.Status), CreatedAt: max(task.DecidedAt, time.Now().UnixMilli()),
 	})
-	return errors.Join(deleteErr, deliveryErr)
+	return errors.Join(deleteErr, deliveryErr, notifyReportTargets(state, task))
+}
+
+func reportTargetNames(state *core.AppState, task *core.ReviewTask) ([]string, error) {
+	if task.Kind != core.TicketKindReport {
+		return nil, nil
+	}
+	var ids []string
+	if len(task.TargetUserIDs) > 4000 || json.Unmarshal([]byte(task.TargetUserIDs), &ids) != nil || len(ids) > 100 {
+		return nil, core.ErrReviewInvalidRequest
+	}
+	return state.GetDB().GetAccountNamesByIDs(ids)
+}
+
+func notifyReportTargets(state *core.AppState, task *core.ReviewTask) error {
+	if task.Kind != core.TicketKindReport || task.Status != core.ReviewStatusApproved || task.Outcome != "upheld" {
+		return nil
+	}
+	names, err := reportTargetNames(state, task)
+	if err != nil {
+		return err
+	}
+	// Target notices omit the ticket capability, reporter, subject, description, and staff reply.
+	payload, err := json.Marshal(&reviewMessagePayload{Kind: core.TicketKindReport,
+		ResourceType: task.ResourceType, Repository: task.Repository, ResourceName: task.ResourceName,
+		ResourceVersion: task.ResourceVersion, Outcome: "upheld"})
+	if err != nil {
+		return err
+	}
+	var result error
+	for _, name := range names {
+		_, err := message.DeliverOnce(state, &core.UserMessage{
+			Recipient: name, Kind: "ticket_report_outcome", Severity: "warning",
+			Title: "Report upheld", Body: "A report concerning your resource has been upheld.", Payload: payload,
+			DedupeKey: "ticket:target:" + task.ID, CreatedAt: max(task.DecidedAt, time.Now().UnixMilli()),
+		})
+		result = errors.Join(result, err)
+	}
+	return result
 }
 
 // ClearPending removes reviewer notices when a requester cancels before a decision.

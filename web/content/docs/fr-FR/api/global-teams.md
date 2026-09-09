@@ -36,7 +36,7 @@ La même liaison s’applique aux crates Cargo, aux artefacts Maven et aux domai
 est le niveau le plus élevé entre l’autorisation explicite et le rôle d’équipe mappé. Les membres ne sont jamais copiés
 dans les tables de membres des paquets. Une équipe liée ne peut être supprimée avant le transfert de toutes ses
 ressources.
-Un propriétaire L4 demande le transfert dans `/account/reviews` ; un gestionnaire T3/T4 ou administrateur système le
+Un propriétaire L4 demande le transfert dans `/account/tickets` ; un gestionnaire T3/T4 ou administrateur système le
 décide une seule fois.
 
 ## Limites

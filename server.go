@@ -38,12 +38,12 @@ import (
 	"renop/internal/service/message"
 	"renop/internal/service/npm"
 	"renop/internal/service/publicationquota"
-	"renop/internal/service/review"
 	"renop/internal/service/settings"
 	"renop/internal/service/statistics"
 	"renop/internal/service/status"
 	"renop/internal/service/storage"
 	"renop/internal/service/superteam"
+	"renop/internal/service/ticket"
 	"renop/internal/service/token"
 	"renop/internal/service/updater"
 	"renop/internal/service/upload"
@@ -161,7 +161,7 @@ func startServer() {
 	message.SetupRoutes(apiGroup, state)
 	statistics.SetupRoutes(apiGroup, state)
 	superteam.SetupRoutes(apiGroup, state)
-	review.SetupRoutes(apiGroup, state)
+	ticket.SetupRoutes(apiGroup, state)
 	publicationquota.SetupRoutes(apiGroup, state)
 	maven.SetupRoutes(apiGroup, state)
 	npm.SetupRoutes(apiGroup, state, storage.NewPackageStore())

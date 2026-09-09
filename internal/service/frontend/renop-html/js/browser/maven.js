@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {createTicketReportButton} from '../ticket-report.js';
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {bindAnimatedDetails} from '@renop/ui/disclosure';
@@ -19,7 +20,7 @@ import {createIcon, createSkeleton, createUserIdentity, RenopDialog, runButtonAc
 import {t} from '../i18n.js';
 import {createSuperTeamBindingField} from '../super-team-selector.js';
 import {SUPER_TEAM_ERROR_KEYS} from '../super-team-errors.js';
-import {openReviewCenter, openSuperTeamTransferDialog} from '../reviews.js';
+import {openTicketCenter, openSuperTeamTransferDialog} from '../tickets.js';
 import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {createSuperTeamPublicLink} from '../profile-links.js';
@@ -29,7 +30,7 @@ import {
     createPackageDeprecationNotice
 } from '../package-deprecation.js';
 import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '../response-errors.js';
-import {createResourceLockButton, createResourceLockNotices, resourceWriteLocked} from '../resource-locks.js';
+import {createResourceLockButton, createResourceLockNotices, resourceReadLocked, resourceWriteLocked} from '../resource-locks.js';
 import {exitProtectedRouteOnDenial} from '../protected-route.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
 import {copyWithFeedback} from './copy-feedback.js';
@@ -267,6 +268,15 @@ function domainLockButton(details, refresh) {
         }),
         onSuccess: refresh,
     });
+}
+
+/** Build the domain's report and authorized moderation actions. */
+function domainActions(details, refresh) {
+    if (!cachedIsLoggedIn) return null;
+    const domain = details.domain;
+    return el('div', {class: 'maven-domain-actions'},
+        createTicketReportButton({format: 'maven-domain', name: domain.domain},
+            Number(domain.permission_level) >= 4 || resourceReadLocked(domain)), domainLockButton(details, refresh));
 }
 
 /** Describe the domain's current publication state. */
@@ -1127,7 +1137,7 @@ async function renderManagedDomain(container, domainName) {
         const claimPending = domain.claim_status === 'pending';
         const canRedeem = !closed && domain.member && Number(domain.permission_level) === 4 && Number(domain.health?.locked_at) > 0;
         const status = mavenDomainStatus(domain);
-        const actions = el('div', {class: 'maven-domain-actions'}, domainLockButton(details, () => {
+        const actions = el('div', {class: 'maven-domain-actions'}, domainActions(details, () => {
             if (sequence === domainCenterSequence && container === domainCenterBody) return refresh();
         }));
         if (canRedeem) {
@@ -1321,7 +1331,7 @@ async function renderPublicMavenDomain(container, domainName) {
             el('div', {class: 'maven-hero-heading'},
                 el('div', {}, el('span', {class: 'maven-kicker'}, t('maven.domainKicker')),
                     el('h2', {}, createIcon('network'), el('span', {}, domain.domain))),
-                domainLockButton(details, () => {
+                domainActions(details, () => {
                     if (sequence === publicDomainSequence && container === publicDomainBody) return renderPublicMavenDomain(container, domainName);
                 })),
             el('div', {class: 'maven-stats'},
@@ -1423,7 +1433,7 @@ async function renderDomain(container, repository, domainName, sequence) {
             el('div', {class: 'maven-hero-heading'},
                 el('div', {}, el('span', {class: 'maven-kicker'}, t('maven.domainKicker')),
                     el('h2', {}, createIcon('network'), el('span', {}, domain.domain))),
-                domainLockButton(details, () => {
+                domainActions(details, () => {
                     if (sequence === mavenLoadSequence) return renderDomain(container, repository, domainName, sequence);
                 })
             ),
@@ -1604,6 +1614,9 @@ function mavenVersionEntry(version, {
 }) {
     const actions = el('div', {class: 'maven-version-actions'});
     const pendingReview = version.review_status === 'pending';
+    actions.appendChild(createTicketReportButton({format: 'maven', repository,
+        name: `${groupID}:${artifactID}`, version: version.version}, pendingReview || artifact.mirrored || version.mirrored ||
+        Number(artifact.permission_level) >= 4 || resourceReadLocked(artifact, version)));
     if (manageLock && !pendingReview) actions.appendChild(manageLock(version));
     if (canManageVersions && !resourceWriteLocked(version) && !pendingReview) {
         actions.appendChild(el('button', {
@@ -1698,7 +1711,7 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
         if (details.can_request_restore) artifactActions.appendChild(el('button', {
             type: 'button', class: 'pill-btn pill-btn--soft',
             onclick: event => runButtonAction(event.currentTarget, async () => {
-                const response = await apiRequest('/api/reviews/maven-restorations', {
+                const response = await apiRequest('/api/tickets/maven-restorations', {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({resource_type: 'maven_artifact', repository, resource_key: `${groupID}:${artifactID}`})
                 });
@@ -1707,10 +1720,12 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
                     return;
                 }
                 showAlert(t('maven.restoreRequested'), 'success');
-                openReviewCenter('requested');
+                openTicketCenter('requested');
             }).catch(error => showAlert(caughtErrorMessage(error, 'review.operationFailed'), 'error'))
         }, createIcon('refresh'), el('span', {}, t('maven.restorePublication'))));
         if (manageLock) artifactActions.appendChild(manageLock());
+        artifactActions.appendChild(createTicketReportButton({format: 'maven', repository, name: `${groupID}:${artifactID}`},
+            artifact.mirrored || Number(artifact.permission_level) >= 4 || resourceReadLocked(artifact)));
         if (canDeprecate && !artifact.mirrored && !isDeprecated) {
             artifactActions.appendChild(createDeprecatePackageButton(
                 () => apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/package/deprecate?${query}`, {

@@ -148,7 +148,7 @@ After release, a new claimant must prove ownership and obtain administrator appr
 Historical artifacts, including previously uncatalogued indexed files, retain downloads but remain write-locked after
 reclamation. New artifact names can publish after the domain claim is approved.
 The current domain owner requests publication access from the old artifact page through
-`POST /api/reviews/maven-restorations`. A repository moderator or system administrator must approve it.
+`POST /api/tickets/maven-restorations`. A repository moderator or system administrator must approve it.
 Approval rechecks the current claim and owner, restores only that artifact, and binds it to the domain's current team.
 Mirrored and permanently deprecated artifacts cannot be restored. See [Review API](reviews.md).
 

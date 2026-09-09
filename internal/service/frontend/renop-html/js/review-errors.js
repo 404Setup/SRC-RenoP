@@ -9,6 +9,9 @@
  */
 
 export const REVIEW_ERROR_KEYS = Object.freeze({
+    ticket_claim_required: 'ticket.claimRequired',
+    ticket_occupied: 'ticket.occupied',
+    ticket_escalation_limit: 'ticket.escalationLimit',
     authentication_required: 'review.authenticationRequired',
     invalid_request: 'review.invalidRequest',
     resource_changed: 'review.resourceChanged',

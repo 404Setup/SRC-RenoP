@@ -33,6 +33,7 @@ import (
 	"renop/internal/service/docker"
 	"renop/internal/service/index"
 	"renop/internal/testutil"
+	"renop/internal/testutil/tickettest"
 )
 
 func saveDockerAPITestAccount(t *testing.T, db core.StateDB, name, secret string,
@@ -383,6 +384,7 @@ func TestDockerImageCreationPolicyRequiresReviewBeforeReservation(t *testing.T) 
 	}))
 	task, err := state.GetDB().GetReviewTask(queued.ReviewID)
 	require.NoError(t, err)
+	task = tickettest.ClaimTicket(t, state.GetDB(), task, "moderator")
 	decided, err := docker.ApproveImageCreationReview(context.Background(), state, task, "moderator",
 		task.UpdatedAt+core.PublicationReviewSettleMillis+1)
 	require.NoError(t, err)
@@ -427,6 +429,7 @@ func TestDockerImageCreationApprovalRechecksUpstreamName(t *testing.T) {
 	}))
 	task, err := state.GetDB().GetReviewTask(queued.ReviewID)
 	require.NoError(t, err)
+	task = tickettest.ClaimTicket(t, state.GetDB(), task, "moderator")
 	_, err = docker.ApproveImageCreationReview(context.Background(), state, task, "moderator",
 		task.UpdatedAt+core.PublicationReviewSettleMillis+1)
 	require.ErrorIs(t, err, core.ErrReviewResourceConflict)
@@ -482,6 +485,7 @@ func TestCreateDockerImageRequiresMatchingGlobalTeamNamespace(t *testing.T) {
 	image, err := db.GetDockerImage("docker-pub", "platform/bob")
 	require.NoError(t, err)
 	assert.Nil(t, image)
+	pending = tickettest.ClaimTicket(t, db, pending, "admin")
 	approved, err := docker.ApproveImageCreationReview(context.Background(), state, pending, "admin",
 		pending.UpdatedAt+core.PublicationReviewSettleMillis+1)
 	require.NoError(t, err)

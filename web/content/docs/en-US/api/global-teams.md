@@ -35,7 +35,7 @@ until final approval. This sequencing prevents either permission boundary from b
 The same binding is available to Cargo crates, Maven artifacts, and Maven publishing domains. Effective access is the
 higher of the explicit package permission and the mapped team role. Team members are never copied into package member
 tables. A bound team cannot be deleted until every project and publishing domain has been transferred or removed.
-An L4 owner requests transfer in `/account/reviews`; a T3/T4 team manager or system administrator decides it once.
+An L4 owner requests transfer in `/account/tickets`; a T3/T4 team manager or system administrator decides it once.
 
 ## Limits
 

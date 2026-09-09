@@ -53,6 +53,9 @@ func (db *DB) approvePackageCreationReview(id, reviewer, resourceType, repositor
 	if err != nil {
 		return nil, core.ErrReviewPermissionDenied
 	}
+	if err := requireTicketAssigneeTx(tx, task, reviewerID); err != nil {
+		return nil, err
+	}
 	reviewerUser, err := reviewUserTx(tx, reviewerID)
 	if err != nil {
 		return nil, core.ErrReviewPermissionDenied
@@ -145,6 +148,9 @@ func (db *DB) AdvancePackageCreationReview(id, actor string, advancedAt int64) (
 	if err != nil {
 		return nil, core.ErrReviewPermissionDenied
 	}
+	if err := requireTicketAssigneeTx(tx, task, actorID); err != nil {
+		return nil, err
+	}
 	reviewer, err := reviewUserTx(tx, actorID)
 	if err != nil {
 		return nil, core.ErrReviewPermissionDenied
@@ -181,10 +187,16 @@ func (db *DB) AdvancePackageCreationReview(id, actor string, advancedAt int64) (
 	if err != nil || changed != 1 {
 		return nil, core.ErrReviewTaskConflict
 	}
+	if _, err := tx.Exec(`UPDATE ticket_state SET status = ?, assignee_id = '', assignee_admin = 0,
+		changed_at = ?, revision = revision + 1 WHERE task_id = ?`, core.TicketUnprocessed, advancedAt, task.ID); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit package creation review advancement: %w", err)
 	}
 	task.ReviewTeamPrefix = ""
+	task.AssigneeID, task.Assignee = "", ""
+	task.TicketState.Status = core.TicketUnprocessed
 	task.UpdatedAt = advancedAt
 	return task, nil
 }

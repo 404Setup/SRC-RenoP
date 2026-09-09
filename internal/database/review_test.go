@@ -42,6 +42,12 @@ func setupReviewTeam(t *testing.T) (*core.SuperTeam, *database.DB, int64) {
 	return team, db, now
 }
 
+func claimReviewTicket(t *testing.T, db *database.DB, id, actor string) {
+	t.Helper()
+	_, err := db.TransitionTicket(id, actor, ticketSession(t, db, actor), core.TicketAction{Action: "claim"}, time.Now().UnixMilli())
+	require.NoError(t, err)
+}
+
 func TestPublicationReviewFilesAreBoundedScopedAndSingleDecision(t *testing.T) {
 	_, db, now := setupReviewTeam(t)
 	require.NoError(t, db.SaveToken(&core.AccessToken{
@@ -105,6 +111,7 @@ func TestPublicationReviewFilesAreBoundedScopedAndSingleDecision(t *testing.T) {
 	assert.Equal(t, task.ID, moderatorTasks[0].ID)
 	_, err = db.DecideReviewTask(task.ID, "outsider", core.ReviewStatusApproved, "", now+6000)
 	require.ErrorIs(t, err, core.ErrReviewPermissionDenied)
+	claimReviewTicket(t, db, task.ID, "moderator")
 	_, err = db.DecideReviewTask(task.ID, "moderator", core.ReviewStatusApproved, "", now+200)
 	require.ErrorIs(t, err, core.ErrReviewPublicationActive)
 	approved, err := db.DecideReviewTask(task.ID, "moderator", core.ReviewStatusApproved, "", now+6000)
@@ -170,6 +177,7 @@ func TestTeamPackageCreationReviewRequiresT2AndPreservesApprovedPayload(t *testi
 	result, err := db.CreateOrUpdatePublicationReview(request)
 	require.NoError(t, err)
 	require.True(t, result.Pending)
+	claimReviewTicket(t, db, result.TaskID, "bob")
 	advanced, err := db.AdvancePackageCreationReview(
 		result.TaskID, "bob", now+core.PublicationReviewSettleMillis+1)
 	require.NoError(t, err)
@@ -234,14 +242,15 @@ func TestSuperTeamTransferReviewIsSingleDecisionAndReversible(t *testing.T) {
 	}
 	results := make(chan decisionResult, 2)
 	var wait sync.WaitGroup
-	for _, reviewer := range []string{"alice", "bob"} {
+	claimReviewTicket(t, db, task.ID, "bob")
+	for range 2 {
 		wait.Add(1)
-		go func(username string) {
+		go func() {
 			defer wait.Done()
 			decided, decisionErr := db.DecideReviewTask(
-				task.ID, username, core.ReviewStatusApproved, "", now+11)
+				task.ID, "bob", core.ReviewStatusApproved, "", now+11)
 			results <- decisionResult{task: decided, err: decisionErr}
-		}(reviewer)
+		}()
 	}
 	wait.Wait()
 	close(results)
@@ -268,6 +277,7 @@ func TestSuperTeamTransferReviewIsSingleDecisionAndReversible(t *testing.T) {
 		ResourceType: core.ReviewResourceDockerImage, Repository: "containers", ResourceKey: "personal",
 	}, "charlie", false, now+12)
 	require.NoError(t, err)
+	claimReviewTicket(t, db, outTask.ID, "bob")
 	_, err = db.DecideReviewTask(outTask.ID, "bob", core.ReviewStatusApproved, "", now+13)
 	require.NoError(t, err)
 	image, err = db.GetDockerImage("containers", "personal")
@@ -301,6 +311,7 @@ func TestSuperTeamTransferReviewCoversFormatsCancellationAndStaleResources(t *te
 	for index, request := range requests {
 		task, createErr := db.CreateSuperTeamTransferReview(request, "charlie", false, now+int64(10+index))
 		require.NoError(t, createErr)
+		claimReviewTicket(t, db, task.ID, "bob")
 		_, decideErr := db.DecideReviewTask(task.ID, "bob", core.ReviewStatusApproved, "", now+int64(20+index))
 		require.NoError(t, decideErr)
 	}
@@ -333,6 +344,7 @@ func TestSuperTeamTransferReviewCoversFormatsCancellationAndStaleResources(t *te
 	_, err = db.Exec(`UPDATE npm_packages SET super_team_prefix = ? WHERE repository = ? AND package_name = ?`,
 		"platform", "npm", "personal")
 	require.NoError(t, err)
+	claimReviewTicket(t, db, staleTask.ID, "bob")
 	stale, err := db.DecideReviewTask(staleTask.ID, "bob", core.ReviewStatusApproved, "", now+34)
 	require.ErrorIs(t, err, core.ErrReviewResourceConflict)
 	require.NotNil(t, stale)
@@ -358,6 +370,7 @@ func TestSuperTeamTransferReviewAllowsRequesterWithManagerRole(t *testing.T) {
 	require.NoError(t, err)
 	_, err = db.DecideReviewTask(task.ID, "bob", core.ReviewStatusRejected, "", now+5)
 	require.ErrorIs(t, err, core.ErrReviewInvalidRequest)
+	claimReviewTicket(t, db, task.ID, "alice")
 	_, err = db.DecideReviewTask(task.ID, "alice", core.ReviewStatusApproved, "ignored", now+6)
 	require.NoError(t, err)
 }
@@ -382,6 +395,7 @@ func TestSystemAdministratorReviewsTransfersWithoutTeamMembership(t *testing.T) 
 	require.Equal(t, 1, total)
 	require.Len(t, tasks, 1)
 	assert.Equal(t, task.ID, tasks[0].ID)
+	claimReviewTicket(t, db, task.ID, "admin")
 	_, err = db.DecideReviewTask(task.ID, "admin", core.ReviewStatusApproved, "", now+5)
 	require.NoError(t, err)
 }
@@ -426,6 +440,7 @@ func TestSuperTeamTransferReviewRechecksRequesterAuthority(t *testing.T) {
 		ResourceKey: "admin-transfer", TargetTeamPrefix: "platform",
 	}, "repository-manager", true, now+5)
 	require.NoError(t, err)
+	claimReviewTicket(t, db, adminTask.ID, "bob")
 	_, err = db.DecideReviewTask(adminTask.ID, "bob", core.ReviewStatusApproved, "", now+6)
 	require.NoError(t, err)
 
@@ -439,6 +454,7 @@ func TestSuperTeamTransferReviewRechecksRequesterAuthority(t *testing.T) {
 	require.NoError(t, db.SaveToken(&core.AccessToken{
 		Name: "repository-manager", CreatedAt: time.Now().Format(time.RFC3339), Permissions: []string{"base"},
 	}))
+	claimReviewTicket(t, db, revokedTask.ID, "bob")
 	cancelled, err := db.DecideReviewTask(
 		revokedTask.ID, "bob", core.ReviewStatusApproved, "", now+9)
 	require.ErrorIs(t, err, core.ErrReviewResourceConflict)
@@ -453,6 +469,7 @@ func TestSuperTeamTransferReviewRechecksRequesterAuthority(t *testing.T) {
 	}, "charlie", false, now+11)
 	require.NoError(t, err)
 	require.NoError(t, db.RemoveSuperTeamMember("platform", "alice", "charlie", false, now+12))
+	claimReviewTicket(t, db, leftTask.ID, "bob")
 	cancelled, err = db.DecideReviewTask(leftTask.ID, "bob", core.ReviewStatusApproved, "", now+13)
 	require.ErrorIs(t, err, core.ErrReviewResourceConflict)
 	require.NotNil(t, cancelled)
@@ -468,6 +485,7 @@ func TestReviewDecisionKeepsTaskPendingAfterOperationalFailure(t *testing.T) {
 		ResourceKey: "operational-failure", TargetTeamPrefix: "platform",
 	}, "charlie", false, now+4)
 	require.NoError(t, err)
+	claimReviewTicket(t, db, task.ID, "bob")
 	_, err = db.Exec(`DROP TABLE docker_images`)
 	require.NoError(t, err)
 	_, err = db.DecideReviewTask(task.ID, "bob", core.ReviewStatusApproved, "", now+5)

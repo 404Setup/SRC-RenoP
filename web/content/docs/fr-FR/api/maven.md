@@ -144,7 +144,7 @@ Après libération, un nouveau demandeur doit prouver la propriété et obtenir 
 
 Les anciens paquets, y compris les fichiers indexés auparavant absents du catalogue, restent téléchargeables mais non modifiables après la revendication.
 Les nouveaux noms de paquets peuvent être publiés après l’approbation du domaine.
-Le propriétaire actuel demande l’accès depuis la page de l’ancien paquet via `POST /api/reviews/maven-restorations`.
+Le propriétaire actuel demande l’accès depuis la page de l’ancien paquet via `POST /api/tickets/maven-restorations`.
 Un modérateur du dépôt ou un administrateur système doit approuver la demande.
 L’approbation revérifie la revendication et le propriétaire, rétablit uniquement ce paquet et l’associe à l’équipe actuelle du domaine.
 Les miroirs et les paquets définitivement abandonnés ne peuvent pas être rétablis. Voir l’[API de revue](reviews.md).

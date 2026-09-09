@@ -39,7 +39,7 @@ test('protected route denial sends expired sessions to sign-in and forbidden pag
 });
 
 test('protected account loaders abandon denied pages without logging out valid sessions', () => {
-    for (const relativePath of ['js/reviews.js', 'js/super-teams.js', 'js/browser/maven.js']) {
+    for (const relativePath of ['js/tickets.js', 'js/super-teams.js', 'js/browser/maven.js']) {
         const moduleSource = source(relativePath);
         assert.match(moduleSource, /exitProtectedRouteOnDenial/,
             `${relativePath} does not apply the protected route boundary`);

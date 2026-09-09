@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {createTicketReportButton} from '../ticket-report.js';
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {bindAnimatedDetails} from '@renop/ui/disclosure';
@@ -27,7 +28,7 @@ import {t} from '../i18n.js';
 import {createSuperTeamBindingField} from '../super-team-selector.js';
 import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
 import {npmResponseError} from '../npm-errors.js';
-import {openReviewCenter, openSuperTeamTransferDialog} from '../reviews.js';
+import {openTicketCenter, openSuperTeamTransferDialog} from '../tickets.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {createSuperTeamPublicLink} from '../profile-links.js';
 import {
@@ -455,7 +456,7 @@ function showCreatePackageDialog() {
                     dialog.close(true);
                     if (pkg.pending === true) {
                         showAlert(t('npm.packageCreationQueued'), 'success');
-                        openReviewCenter('requested');
+                        openTicketCenter('requested');
                         return;
                     }
                     showAlert(t('npm.packageCreated'), 'success');
@@ -504,6 +505,8 @@ function packageHero(pkg) {
     const canChange = !pkg.deprecated && !resourceWriteLocked(pkg);
     const canRewrite = canChange && !packageDetails.versions?.some(version => resourceWriteLocked(version));
     if (packageDetails.moderator) actions.appendChild(npmResourceLockButton(pkg));
+    actions.appendChild(createTicketReportButton({format: 'npm', repository: activeRepository, name: pkg.name},
+        pkg.mirrored || Number(pkg.permission_level) >= 4 || resourceReadLocked(pkg)));
     if (canDeprecate && !pkg.mirrored && canRewrite) {
         actions.appendChild(createDeprecatePackageButton(
             () => apiRequest(npmAPI('packages/deprecate', pkg.name), {method: 'PUT'}),
@@ -587,6 +590,9 @@ function npmVersionItem(version, tagsByVersion, canDelete) {
         )
     );
     const actions = el('div', {class: 'npm-version-actions'});
+    actions.appendChild(createTicketReportButton({format: 'npm', repository: activeRepository,
+        name: packageDetails.package.name, version: version.version}, pendingReview || version.unpublished || version.mirrored ||
+        packageDetails.package.mirrored || Number(packageDetails.package.permission_level) >= 4 || resourceReadLocked(packageDetails.package, version)));
     if (packageDetails.moderator && !pendingReview) actions.appendChild(npmResourceLockButton(packageDetails.package, version));
     if (!version.unpublished && !pendingReview) {
         if (!resourceReadLocked(packageDetails.package, version)) actions.appendChild(el('a', {

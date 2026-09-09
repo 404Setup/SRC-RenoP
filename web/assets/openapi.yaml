@@ -100,8 +100,8 @@ tags:
     description: Engine-independent global teams, immutable namespace prefixes, T1-T4 membership, invitations, and account limits.
   - name: publication-quotas
     description: Periodic file, byte, and completed-publication limits for accounts and global teams.
-  - name: reviews
-    description: Session-only, independently paginated review tasks with single-decision ownership transfers.
+  - name: tickets
+    description: Cookie-session feedback, suggestions, reports, and approval workflows with atomic assignment and private outcomes.
 
 # ---------------------------------------------------------------------------
 # Security
@@ -1788,10 +1788,10 @@ components:
       required: [ id, kind, resource_type, resource_key, resource_name, review_team_prefix, requested_by, status, created_at ]
       properties:
         id: { type: string, format: uuid }
-        kind: { type: string, enum: [ super_team_transfer, publication ] }
+        kind: { type: string, enum: [ super_team_transfer, publication, maven_restore, feedback, suggestion, report ] }
         resource_type:
           type: string
-          enum: [ docker_image, npm_package, cargo_package, maven_artifact, maven_domain ]
+          enum: [ docker_image, npm_package, cargo_package, maven_artifact, maven_domain, support, user, superteam, maven-domain, maven, cargo, npm, docker ]
         repository:
           type: string
           description: Empty for process-wide Maven publishing domains.
@@ -1819,7 +1819,21 @@ components:
           description: Preset publication reasons use `preset:<code>`; custom reasons use `custom:<text>`; transfers retain their reason text.
         decided_by:
           type: string
-          description: Present only for system administrators; requester and moderator responses omit reviewer identity.
+          description: Visible only to authorized handling staff; always omitted for the requester. Reported targets cannot read the ticket.
+        ticket_status: { type: string, enum: [ unprocessed, in_progress, processed, closed, completed ] }
+        title: { type: string, maxLength: 160 }
+        body: { type: string, maxLength: 8000 }
+        assignee: { type: string, description: Current handler; omitted for the requester. }
+        escalated_by: { type: string, description: Last escalating handler; omitted for the requester. }
+        admin_only: { type: boolean }
+        escalations: { type: integer, minimum: 0, maximum: 3 }
+        outcome: { type: string, enum: [ resolved, upheld, dismissed, closed ] }
+        response: { type: string, maxLength: 4096 }
+        changed_at: { type: integer, format: int64 }
+        actions:
+          type: array
+          description: Controls currently permitted by live authority, assignment, and lifecycle.
+          items: { type: string }
         created_at: { type: integer, format: int64 }
         updated_at: { type: integer, format: int64 }
         decided_at: { type: integer, format: int64 }
@@ -4790,16 +4804,58 @@ paths:
         "400": { $ref: "#/components/responses/PlainBadRequest" }
         "403": { $ref: "#/components/responses/PlainForbidden" }
 
-  # ========== Independent reviews ==========
-  /api/reviews:
+  # ========== Tickets and approval workflows ==========
+  /api/tickets:
+    post:
+      tags: [ tickets ]
+      summary: Submit feedback, a suggestion, or a report
+      operationId: createTicket
+      security:
+        - sessionCookie: [ ]
+      description: >
+        Requires the active renop_session browser cookie. At most 16 pending and 24 new support requests per account
+        per 24 hours; all workflows share a global pending limit of 4096. JSON is limited to 48 KiB.
+        Reports must concern another account or a visible non-owned resource, match repository format and read access,
+        and cannot duplicate a pending report from the same requester. Target owners are recorded by immutable IDs.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ kind, title, body ]
+              properties:
+                kind: { type: string, enum: [ feedback, suggestion, report ] }
+                title: { type: string, minLength: 1, maxLength: 160 }
+                body: { type: string, minLength: 1, maxLength: 8000 }
+                repository: { type: string, maxLength: 64 }
+                target:
+                  type: object
+                  description: Required for reports; global targets omit repository.
+                  required: [ format, name ]
+                  properties:
+                    format: { type: string, enum: [ user, superteam, maven-domain, maven, cargo, npm, docker ] }
+                    repository: { type: string }
+                    name: { type: string }
+                    version: { type: string }
+      responses:
+        "201":
+          description: Ticket created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReviewTask" }
+        "400": { description: Invalid request or body limit exceeded. }
+        "403": { description: Cookie or target access denied. }
+        "409": { description: Duplicate pending report. }
+        "429": { description: Pending or daily request limit exceeded. }
     get:
-      tags: [ reviews ]
-      summary: List review tasks
+      tags: [ tickets ]
+      summary: List tickets
       description: >
         Returns a bounded reviewer or requester page. Team transfers and T2 package-creation requests are visible to
-        current T3/T4 team managers. Publication reviews are visible to repository-scoped moderators and system
-        administrators only after any required team approval. This route accepts a browser session only; Basic
-        credentials and Bearer API tokens are denied.
+        current T3/T4 team managers. Repository moderators can inspect every status in scope, including team-stage
+        workflows, while system administrators cover every scope. Reported targets cannot inspect their reports.
+        Requires an active browser session cookie; Basic credentials and Bearer API tokens are denied.
       operationId: listReviewTasks
       security:
         - sessionCookie: [ ]
@@ -4809,7 +4865,7 @@ paths:
           schema: { type: string, enum: [ reviewer, requested ], default: reviewer }
         - name: status
           in: query
-          schema: { type: string, enum: [ pending, approved, rejected, cancelled, all ], default: pending }
+          schema: { type: string, enum: [ unprocessed, in_progress, processed, closed, completed, all ], default: unprocessed }
         - name: types
           in: query
           description: Optional comma-separated resource-type filter.
@@ -4817,10 +4873,9 @@ paths:
           explode: false
           schema:
             type: array
-            maxItems: 5
             items:
               type: string
-              enum: [ docker_image, npm_package, cargo_package, maven_artifact, maven_domain ]
+              enum: [ docker_image, npm_package, cargo_package, maven_artifact, maven_domain, support, user, superteam, maven-domain, maven, cargo, npm, docker ]
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
         - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
       responses:
@@ -4832,9 +4887,9 @@ paths:
         "400": { description: Invalid view, status, type, or page boundary. }
         "401": { description: A browser session is required. }
 
-  /api/reviews/super-team-transfers:
+  /api/tickets/super-team-transfers:
     post:
-      tags: [ reviews ]
+      tags: [ tickets ]
       summary: Request a global-team ownership transfer
       description: >
         The caller must own the project or domain at L4, or hold current repository/system administration authority.
@@ -4862,13 +4917,13 @@ paths:
         "403": { description: The caller does not own or administer the resource, or is not a member of the target team. }
         "409": { description: This resource already has a pending transfer, ownership changed, or transfer-out is restricted. }
 
-  /api/reviews/{id}/decision:
+  /api/tickets/{id}/decision:
     post:
-      tags: [ reviews ]
+      tags: [ tickets ]
       summary: Decide one pending review
       description: >
-        A T3/T4 manager decides team transfers and T2 package-creation requests. If repository creation review is also
-        enabled, team approval keeps the same task pending, clears `review_team_prefix`, and forwards it to repository
+        The current actor must first claim the ticket. A T3/T4 manager decides team transfers and T2 package-creation requests. If repository creation review is also
+        enabled, team approval keeps the same task pending, releases assignment, clears `review_team_prefix`, and forwards it to repository
         moderators; it does not reserve the name. A repository moderator or system administrator decides that second
         stage after the five-second settling window. Publication rejection uses a preset reason or bounded custom
         reason. Compare-and-set transitions prevent concurrent decisions from applying twice.
@@ -4905,9 +4960,9 @@ paths:
         "404": { description: Review task not found. }
         "409": { description: Another reviewer decided the task, the resource changed, or files are still arriving. }
 
-  /api/reviews/{id}/files:
+  /api/tickets/{id}/files:
     get:
-      tags: [ reviews ]
+      tags: [ tickets ]
       summary: List publication review files
       description: Returns the bounded repository-relative file list to the requester, assigned repository moderator, or system administrator.
       operationId: listReviewFiles
@@ -4933,9 +4988,9 @@ paths:
         "403": { description: The caller cannot inspect this publication. }
         "404": { description: Review task not found. }
 
-  /api/reviews/{id}/files/{file_id}:
+  /api/tickets/{id}/files/{file_id}:
     get:
-      tags: [ reviews ]
+      tags: [ tickets ]
       summary: Download one hidden publication review file
       operationId: downloadReviewFile
       security:
@@ -4952,11 +5007,27 @@ paths:
         "403": { description: The caller cannot inspect this publication. }
         "404": { description: Review task or file not found. }
 
-  /api/reviews/{id}:
+  /api/tickets/{id}:
+    get:
+      tags: [ tickets ]
+      summary: Read an authorized ticket with current actions
+      operationId: getTicket
+      security:
+        - sessionCookie: [ ]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Ticket detail; requester responses omit handler identity and report targets are denied.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReviewTask" }
+        "403": { description: Caller cannot inspect this ticket. }
+        "404": { description: Ticket not found. }
     delete:
-      tags: [ reviews ]
+      tags: [ tickets ]
       summary: Cancel a pending review request
-      description: Only the original requester may cancel a pending ownership-transfer task. Publication reviews cannot be cancelled through this route.
+      description: Only the requester may cancel a pending support, ownership-transfer, or Maven-restoration request. Publication tasks cannot be cancelled through this route.
       operationId: cancelReviewTask
       security:
         - sessionCookie: [ ]
@@ -4971,6 +5042,74 @@ paths:
         "403": { description: The caller did not request this task. }
         "404": { description: Review task not found. }
         "409": { description: The task is no longer pending. }
+
+  /api/tickets/{id}/action:
+    post:
+      tags: [ tickets ]
+      summary: Claim, release, escalate, or resolve a ticket
+      operationId: transitionTicket
+      security:
+        - sessionCookie: [ ]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      description: >
+        Assignment is atomic. Only the assignee may process the ticket. A system administrator may forcibly claim
+        a moderator's ticket but cannot displace another administrator. Escalation releases assignment and requires
+        a different administrator for the next claim. After three escalations, the next assignee must finish;
+        release, escalation, and forced takeover are disabled. Support resolution requires a response.
+        Completing an upheld report notifies its target without reporter identity or ticket access; recording an
+        outcome does not itself apply a ban or resource lock. JSON is limited to 24 KiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ action ]
+              properties:
+                action: { type: string, enum: [ claim, release, escalate, process, complete, close ] }
+                force: { type: boolean, default: false, description: Allowed only for claim. }
+                outcome: { type: string, enum: [ resolved, upheld, dismissed ] }
+                response: { type: string, maxLength: 4096 }
+      responses:
+        "200":
+          description: Updated ticket.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReviewTask" }
+        "400": { description: Invalid action, outcome, or response. }
+        "403": { description: Live authority or session cookie denied. }
+        "404": { description: Ticket not found. }
+        "409": { description: Claim required, occupied ticket, completed task, or escalation limit reached. }
+
+  /api/tickets/maven-restorations:
+    post:
+      tags: [ tickets ]
+      summary: Request publication access to a reclaimed Maven artifact
+      operationId: createMavenRestorationTicket
+      security:
+        - sessionCookie: [ ]
+      description: Requires the current publishing-domain L4 owner's cookie; moderator approval rechecks the claim and independent locks atomically.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ resource_type, repository, resource_key ]
+              properties:
+                resource_type: { type: string, enum: [ maven_artifact ] }
+                repository: { type: string }
+                resource_key: { type: string, description: "groupId:artifactId" }
+      responses:
+        "201":
+          description: Restoration ticket created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReviewTask" }
+        "400": { description: Invalid resource. }
+        "403": { description: Caller is not the current L4 owner or lacks the browser cookie. }
+        "409": { description: Duplicate request or changed resource. }
 
   # ========== Maven domain registry ==========
   /api/maven/domains:

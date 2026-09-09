@@ -34,28 +34,51 @@ const reviewTaskSelectColumns = `r.id, r.kind, r.resource_type, r.repository, r.
 	r.resource_name, r.source_team_prefix, r.target_team_prefix, r.review_team_prefix,
 	COALESCE(requester.username, r.requested_by_name), r.requested_by_id, r.status,
 	r.decision_reason, COALESCE(decider.username, r.decided_by_name), r.decided_by_id,
-	r.created_at, r.decided_at`
+	r.created_at, r.decided_at, ` + ticketStateColumns
+
+const ticketStatusExpression = `CASE WHEN r.status = 'cancelled' THEN 'closed'
+	WHEN r.status != 'pending' THEN 'completed' ELSE COALESCE(NULLIF(ts.status, ''), 'unprocessed') END`
+
+const ticketStateColumns = ticketStatusExpression + `, COALESCE(ts.title, ''), COALESCE(ts.body, ''),
+	COALESCE(ts.assignee_id, ''), COALESCE(assignee.username, ''), COALESCE(ts.assignee_admin, 0),
+	COALESCE(ts.admin_only, 0), COALESCE(ts.escalations, 0), COALESCE(ts.escalated_by_id, ''),
+	COALESCE(escalator.username, ''), COALESCE(ts.revision, 0), COALESCE(ts.target_user_ids, ''),
+	COALESCE(ts.outcome, ''), COALESCE(ts.response, ''), COALESCE(ts.changed_at, 0)`
 
 const reviewTaskProfileJoins = ` LEFT JOIN user_profiles requester ON requester.user_id = r.requested_by_id
-	LEFT JOIN user_profiles decider ON decider.user_id = r.decided_by_id`
+	LEFT JOIN user_profiles decider ON decider.user_id = r.decided_by_id
+	LEFT JOIN ticket_state ts ON ts.task_id = r.id
+	LEFT JOIN user_profiles assignee ON assignee.user_id = ts.assignee_id
+	LEFT JOIN user_profiles escalator ON escalator.user_id = ts.escalated_by_id`
 
 func scanReviewTask(scanner row) (*core.ReviewTask, error) {
 	task := &core.ReviewTask{}
 	storedResourceKey := ""
+	var assigneeAdmin, adminOnly int
 	if err := scanner.Scan(&task.ID, &task.Kind, &task.ResourceType, &task.Repository, &storedResourceKey,
 		&task.ResourceName, &task.SourceTeamPrefix, &task.TargetTeamPrefix, &task.ReviewTeamPrefix,
 		&task.RequestedBy, &task.RequestedByID, &task.Status, &task.DecisionReason,
-		&task.DecidedBy, &task.DecidedByID, &task.CreatedAt, &task.DecidedAt); err != nil {
+		&task.DecidedBy, &task.DecidedByID, &task.CreatedAt, &task.DecidedAt,
+		&task.TicketState.Status, &task.Title, &task.Body, &task.AssigneeID, &task.Assignee, &assigneeAdmin,
+		&adminOnly, &task.Escalations, &task.EscalatedByID, &task.EscalatedBy, &task.Revision,
+		&task.TargetUserIDs, &task.Outcome, &task.Response, &task.ChangedAt); err != nil {
 		return nil, err
 	}
+	task.AssigneeAdmin, task.AdminOnly = assigneeAdmin != 0, adminOnly != 0
 	task.ResourceKey = storedResourceKey
-	if task.Kind == core.ReviewKindPublication {
+	if task.Kind == core.ReviewKindPublication || task.Kind == core.TicketKindReport {
 		resourceKey, version, valid := decodePublicationReviewKey(storedResourceKey)
 		if !valid {
 			return nil, errors.New("publication review key is invalid")
 		}
 		task.ResourceKey = resourceKey
 		task.ResourceVersion = version
+		if task.Kind == core.TicketKindReport {
+			if !strings.HasPrefix(version, "v:") {
+				return nil, errors.New("report version key is invalid")
+			}
+			task.ResourceVersion = strings.TrimPrefix(version, "v:")
+		}
 	}
 	task.UpdatedAt = task.CreatedAt
 	return task, nil
@@ -419,6 +442,18 @@ func (db *DB) ListReviewTasks(options core.ReviewTaskListOptions) ([]*core.Revie
 		return nil, 0, core.ErrReviewPermissionDenied
 	}
 	status := strings.ToLower(strings.TrimSpace(options.Status))
+	if options.TicketStatus != "" {
+		if !core.ValidTicketStatus(options.TicketStatus) {
+			return nil, 0, core.ErrReviewInvalidRequest
+		}
+		status = "all"
+		user, err := db.liveTicketUser(userID)
+		if err != nil {
+			return nil, 0, err
+		}
+		options.Administrator = user.IsManager()
+		options.ModerateAll, options.ModeratedRepositories = user.ModerationScope()
+	}
 	if status == "" {
 		status = core.ReviewStatusPending
 	}
@@ -430,6 +465,10 @@ func (db *DB) ListReviewTasks(options core.ReviewTaskListOptions) ([]*core.Revie
 	seen := make(map[string]struct{}, len(options.ResourceTypes))
 	for _, candidate := range options.ResourceTypes {
 		resourceType, valid := normalizeReviewResourceType(candidate)
+		if options.TicketStatus != "" && (candidate == "support" || candidate == "user" || candidate == "superteam" ||
+			candidate == "cargo" || candidate == "npm" || candidate == "docker" || candidate == "maven" || candidate == "maven-domain") {
+			resourceType, valid = candidate, true
+		}
 		if !valid {
 			continue
 		}
@@ -470,7 +509,14 @@ func (db *DB) ListReviewTasks(options core.ReviewTaskListOptions) ([]*core.Revie
 			seenRepositories[repository] = struct{}{}
 			moderated = append(moderated, repository)
 		}
-		if options.ModerateAll {
+		if options.TicketStatus != "" && options.ModerateAll {
+			reviewerClauses = append(reviewerClauses, "1 = 1")
+		} else if options.TicketStatus != "" && len(moderated) > 0 {
+			reviewerClauses = append(reviewerClauses, "r.repository IN ("+strings.TrimSuffix(strings.Repeat("?,", len(moderated)), ",")+")")
+			for _, repository := range moderated {
+				args = append(args, repository)
+			}
+		} else if options.ModerateAll {
 			reviewerClauses = append(reviewerClauses, "(r.kind IN (?, ?) AND r.review_team_prefix = '')")
 			args = append(args, core.ReviewKindPublication, core.ReviewKindMavenRestore)
 		} else if len(moderated) > 0 {
@@ -482,6 +528,14 @@ func (db *DB) ListReviewTasks(options core.ReviewTaskListOptions) ([]*core.Revie
 			}
 		}
 		where = append(where, "("+strings.Join(reviewerClauses, " OR ")+")")
+	}
+	if options.TicketStatus != "" {
+		where = append(where, `(r.kind != ? OR COALESCE(ts.target_user_ids, '') NOT LIKE ?)`)
+		args = append(args, core.TicketKindReport, `%"`+userID+`"%`)
+		if options.TicketStatus != "all" {
+			where = append(where, ticketStatusExpression+" = ?")
+			args = append(args, options.TicketStatus)
+		}
 	}
 	if status != "all" {
 		where = append(where, "r.status = ?")
@@ -521,6 +575,11 @@ func (db *DB) ListReviewTasks(options core.ReviewTaskListOptions) ([]*core.Revie
 	}
 	if err := db.hydrateReviewTaskSummaries(tasks); err != nil {
 		return nil, 0, err
+	}
+	if options.TicketStatus != "" {
+		if err := db.presentTickets(tasks, userID, options.RequestedView); err != nil {
+			return nil, 0, err
+		}
 	}
 	return tasks, total, nil
 }
@@ -748,6 +807,12 @@ func (db *DB) DecideReviewTask(id, actor, decision, reason string, decidedAt int
 	}
 	if task.Status != core.ReviewStatusPending {
 		return nil, core.ErrReviewTaskConflict
+	}
+	if supportTicket(task) {
+		return nil, core.ErrReviewInvalidRequest
+	}
+	if err := requireTicketAssigneeTx(tx, task, actorID); err != nil {
+		return nil, err
 	}
 	reviewer, err := reviewUserTx(tx, actorID)
 	if err != nil {

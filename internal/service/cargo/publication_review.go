@@ -21,7 +21,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
-	"renop/internal/service/reviewnotify"
+	"renop/internal/service/ticketnotify"
 	"renop/internal/utils"
 )
 
@@ -123,7 +123,7 @@ func QueuePublicationReview(state *core.AppState, repo *config.Repository, pkg *
 		Payload: payload, CreatedAt: version.CreatedAt,
 	})
 	if err == nil {
-		reviewnotify.DeliverPending(state, result)
+		ticketnotify.DeliverPending(state, result)
 	}
 	return result, err
 }

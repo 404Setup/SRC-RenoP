@@ -20,24 +20,26 @@ test('Maven version locks hide deletion while retaining staff lock controls and 
         },
         t: key => key, formatDate: value => value, formatBytes: value => value,
         createIcon: name => ({icon: name}), createResourceLockNotices: locks => ({locks}),
+        createTicketReportButton: () => ({reportButton: true}),
         mavenVersionFiles: version => ({files: version.files}),
     });
     const locks = readFileSync(new URL('../js/resource-locks.js', import.meta.url), 'utf8');
     const maven = readFileSync(new URL('../js/browser/maven.js', import.meta.url), 'utf8');
-    vm.runInContext(locks.match(/export function resourceWriteLocked\([^]*?\n}/)[0].replace('export ', '') + '\n' +
+    vm.runInContext(['resourceWriteLocked', 'resourceReadLocked'].map(name =>
+        locks.match(new RegExp(`export function ${name}\\([^]*?\\n}`))[0].replace('export ', '')).join('\n') + '\n' +
         maven.match(/function mavenVersionEntry\([^]*?\n}(?=\r?\n)/)[0], context);
     const locked = {version: '2.0', locks: [{mode: 'read', reason: 'trojan'}], files: [{name: 'demo.jar'}]};
     const options = {canManageVersions: true, manageLock: () => ({lockButton: true}), artifact: {}};
     const row = context.mavenVersionEntry(locked, options);
-    assert.equal(actions.at(-1).children.length, 1);
-    assert.equal(actions.at(-1).children[0].lockButton, true);
+    assert.equal(actions.at(-1).children.length, 2);
+    assert.equal(actions.at(-1).children[1].lockButton, true);
     assert.equal(row.children.at(-1).files, locked.files);
     context.mavenVersionEntry({version: '1.0'}, options);
-    assert.equal(actions.at(-1).children.length, 2);
+    assert.equal(actions.at(-1).children.length, 3);
     context.mavenVersionEntry(locked, {...options, manageLock: null});
-    assert.equal(actions.at(-1).children.length, 0);
+    assert.equal(actions.at(-1).children.length, 1);
     context.mavenVersionEntry({version: '3.0', review_status: 'pending'}, options);
-    assert.equal(actions.at(-1).children.length, 0);
+    assert.equal(actions.at(-1).children.length, 1);
 });
 
 test('lock controls submit only a manual restriction and retain the dialog on failure', async () => {
@@ -121,6 +123,7 @@ test('team and domain locks retain members and staff actions while hiding mutati
         t: key => key, roleLabel: level => `T${level}`, permissionLabel: level => `L${level}`,
         createIcon: name => ({icon: name}), createResourceLockNotices: locks => ({locks}),
         createResourceLockButton: () => ({tag: 'button', staffLock: true}),
+        createTicketReportButton: () => ({reportButton: true}),
         createUserIdentity: name => ({name}), createPublicProfileLinks: () => null,
         createSuperTeamResourcesSection: () => null,
         createPublicationQuotaPanel: (_status, options) => ({quotaEditable: options.editable}),
@@ -141,7 +144,7 @@ test('team and domain locks retain members and staff actions while hiding mutati
     assert.equal(content[2].quotaEditable, false);
     assert.equal(nodes.filter(node => node.tag === 'select').length, 0);
     assert.equal(nodes.filter(node => node.tag === 'button').length, 1); // Back navigation.
-    assert.equal(nodes.find(node => node.class === 'super-team-detail-actions').children[0].staffLock, true);
+    assert.equal(nodes.find(node => node.class === 'super-team-detail-actions').children[1].staffLock, true);
     nodes.length = 0;
     context.teamPanel({domain: {domain: 'com.example', permission_level: 4, locks: [restriction]},
         members, administrator: true}, () => {});

@@ -47,6 +47,9 @@ func (db *DB) ApproveDockerPublicationReview(id, reviewer string, manifest *core
 	if err != nil {
 		return nil, core.ErrReviewPermissionDenied
 	}
+	if err := requireTicketAssigneeTx(tx, task, reviewerID); err != nil {
+		return nil, err
+	}
 	reviewerUser, err := reviewUserTx(tx, reviewerID)
 	if err != nil || !reviewerUser.CheckModeratePermission(task.Repository) {
 		return nil, core.ErrReviewPermissionDenied

@@ -324,6 +324,7 @@ func isStandardCredentialRequest(c fiber.Ctx, state *core.AppState) bool {
 
 func isSessionOnlyAPIPath(path string) bool {
 	for _, prefix := range []string{
+		"/api/tickets",
 		"/api/auth/logout",
 		"/api/auth/profile/security",
 		"/api/auth/profile/mfa",
@@ -662,8 +663,6 @@ func requiredAPITokenScope(c fiber.Ctx, state *core.AppState) apiTokenRequiremen
 		return superTeamAPITokenRequirement(c)
 	case strings.HasPrefix(path, "/api/publication-quota"):
 		return publicationQuotaAPITokenRequirement(c)
-	case strings.HasPrefix(path, "/api/reviews"):
-		return requireAPITokenScope(APITokenScopeTeamManage)
 	case strings.HasPrefix(path, "/api/maven"):
 		return mavenAPITokenRequirement(c)
 	case strings.HasPrefix(path, "/api/cargo") || strings.HasPrefix(path, "/api/docker") ||

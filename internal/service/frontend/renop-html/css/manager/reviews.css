@@ -294,3 +294,36 @@ html.dark .review-status.is-pending {
         transition: none;
     }
 }
+
+.ticket-detail .review-card {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+#ticket-resolution-dialog .modal-content,
+#ticket-compose-dialog .modal-content {
+    background: var(--card-bg);
+}
+
+.ticket-detail .review-card-icon {
+    display: none;
+}
+
+.ticket-detail .review-card-actions {
+    flex-wrap: wrap;
+}
+
+.ticket-body {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.ticket-response {
+    padding: 0.8rem;
+    border-left: 3px solid var(--accent-color);
+    background: var(--card-bg);
+}
+
+.review-status.is-in_progress,
+.review-status.is-processed {
+    color: var(--accent-color);
+}

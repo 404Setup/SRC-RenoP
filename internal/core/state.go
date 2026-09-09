@@ -98,6 +98,7 @@ type StateDB interface {
 	GetUserProfile(username string) (*UserProfile, error)
 	GetUserProfileByID(userID string) (*UserProfile, error)
 	GetUserProfiles(usernames []string) (map[string]*UserProfile, error)
+	GetAccountNamesByIDs(userIDs []string) ([]string, error)
 	GetUserAvatar(username string) (*UserAvatar, error)
 	PutUserAvatar(username string, avatar *UserAvatar) error
 	DeleteUserAvatar(username string) error
@@ -239,6 +240,9 @@ type StateDB interface {
 	CreateSuperTeamTransferReview(request SuperTeamTransferRequest, actor string, administrator bool, createdAt int64) (*ReviewTask, error)
 	CreateOrUpdatePublicationReview(request PublicationReviewRequest) (*PublicationReviewResult, error)
 	ListReviewTasks(options ReviewTaskListOptions) ([]*ReviewTask, int, error)
+	TransitionTicket(id, actor, session string, action TicketAction, at int64) (*ReviewTask, error)
+	CreateTicket(request TicketRequest, actor, session string, at int64) (*ReviewTask, error)
+	GetTicket(id, actor string) (*ReviewTask, error)
 	GetReviewTask(id string) (*ReviewTask, error)
 	ListReviewTaskFiles(id string) ([]*ReviewFile, error)
 	GetReviewTaskPayload(id string) ([]byte, error)

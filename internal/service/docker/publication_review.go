@@ -25,7 +25,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
-	"renop/internal/service/reviewnotify"
+	"renop/internal/service/ticketnotify"
 )
 
 var dockerTagPattern = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$`)
@@ -146,7 +146,7 @@ func QueueImageCreationReview(state *core.AppState, repo *config.Repository, ima
 		}}, Payload: payload, CreatedAt: createdAt,
 	})
 	if err == nil {
-		reviewnotify.DeliverPending(state, result)
+		ticketnotify.DeliverPending(state, result)
 	}
 	return result, err
 }
@@ -208,7 +208,7 @@ func QueuePublicationReview(state *core.AppState, repo *config.Repository, image
 		Payload: payload, CreatedAt: createdAt,
 	})
 	if err == nil {
-		reviewnotify.DeliverPending(state, result)
+		ticketnotify.DeliverPending(state, result)
 	}
 	return result, err
 }

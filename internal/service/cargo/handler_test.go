@@ -37,6 +37,7 @@ import (
 	"renop/internal/service/auth"
 	"renop/internal/service/index"
 	"renop/internal/testutil"
+	"renop/internal/testutil/tickettest"
 )
 
 type memoryStore struct {
@@ -395,6 +396,7 @@ func TestCargoPublicationReviewDefersSparseIndexAndCatalog(t *testing.T) {
 	require.NoError(t, db.SaveToken(&core.AccessToken{
 		Name: "moderator", Permissions: []string{"base", "canmoderate:cargo"},
 	}))
+	task = tickettest.ClaimTicket(t, db, task, "moderator")
 	_, err = db.DecideReviewTask(reviewID, "moderator", core.ReviewStatusApproved, "",
 		task.UpdatedAt+core.PublicationReviewSettleMillis+1)
 	if err != nil {

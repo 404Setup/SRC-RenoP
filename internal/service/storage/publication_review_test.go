@@ -23,6 +23,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/index"
+	"renop/internal/testutil/tickettest"
 )
 
 func TestProcessUploadedFileAppliesReviewForChunkedAndDirectCallers(t *testing.T) {
@@ -91,6 +92,7 @@ func TestPublicationReviewBlocksRestoreApprovalAndRejection(t *testing.T) {
 		Name: "moderator", CreatedAt: time.Now().Format(time.RFC3339),
 		Permissions: []string{"base", "canmoderate:releases"},
 	}))
+	tickettest.ClaimTicket(t, db, &core.ReviewTask{ID: result.TaskID}, "moderator")
 	_, err = db.DecideReviewTask(result.TaskID, "moderator", core.ReviewStatusApproved, "",
 		now+core.PublicationReviewSettleMillis+1)
 	require.NoError(t, err)

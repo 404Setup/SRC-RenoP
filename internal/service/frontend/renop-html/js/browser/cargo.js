@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {createTicketReportButton} from '../ticket-report.js';
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {morphElementHeight} from '@renop/ui/height-anim';
@@ -24,7 +25,7 @@ import {
 } from '../components.js';
 import {t} from '../i18n.js';
 import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
-import {openSuperTeamTransferDialog} from '../reviews.js';
+import {openSuperTeamTransferDialog} from '../tickets.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '../response-errors.js';
 import {copyWithFeedback} from './copy-feedback.js';
@@ -801,6 +802,9 @@ function buildCargoVersionsSection() {
             );
             row.appendChild(meta);
             const actions = el('div', {class: 'cargo-row-actions'});
+            actions.appendChild(createTicketReportButton({format: 'cargo', repository: activeRepository,
+                name: packageRecord.name, version: version.version}, pendingReview || packageRecord.mirrored || version.mirrored ||
+                Number(packageRecord.permission_level) >= 4 || resourceReadLocked(packageRecord, version)));
             if (version.has_docs === true && !resourceReadLocked(packageRecord, version)) {
                 const docLink = el('a', {
                     class: 'pill-btn pill-btn--soft pill-btn--sm',
@@ -1111,6 +1115,8 @@ function buildCargoPackageHero() {
     hero.appendChild(el('p', {class: 'cargo-package-description'}, descriptionText));
 
     const actions = el('div', {class: 'cargo-page-actions'});
+    actions.appendChild(createTicketReportButton({format: 'cargo', repository: activeRepository, name: packageName},
+        packageRecord.mirrored || Number(packageRecord.permission_level) >= 4 || resourceReadLocked(packageRecord)));
     const downloadBtn = el('a', {class: 'pill-btn pill-btn--primary pill-btn--sm'});
     const downloadIcon = createIcon('download');
     const downloadLabel = el('span', {});

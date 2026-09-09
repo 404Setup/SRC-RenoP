@@ -9,6 +9,7 @@
  */
 
 import {apiRequest, fetchProto, postProto, putProto} from './api.js';
+import {createTicketReportButton} from './ticket-report.js';
 import {showAlert} from './alert.js';
 import {t, translateKnownError} from './i18n.js';
 import {el} from '@renop/ui/dom';
@@ -920,6 +921,7 @@ function renderPublicProfile(profile) {
     const publicAvatar = el('div', {class: 'profile-public-avatar', 'aria-hidden': 'true'});
     renderProfileAvatar(publicAvatar, profile, {length: 1});
     const actions = el('div', {class: 'profile-public-actions'});
+    actions.appendChild(createTicketReportButton({format: 'user', name: profile.username}, profile.own_profile));
     if (profile.own_profile) {
         actions.appendChild(el('button', {
             type: 'button',

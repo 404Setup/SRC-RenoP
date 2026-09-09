@@ -58,5 +58,8 @@ func initReviewTables(db *sql.DB, mysql bool) error {
 		task_id CHAR(36) PRIMARY KEY,
 		payload_json ` + payloadType + ` NOT NULL
 	);`)
-	return err
+	if err != nil {
+		return err
+	}
+	return initTicketTable(db)
 }

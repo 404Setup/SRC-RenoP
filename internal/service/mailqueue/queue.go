@@ -139,6 +139,10 @@ func Prepare(cfg mail.Config, request Request) (*mail.Job, Receipt, error) {
 		if request.Username != "" {
 			request.Data.URL = cfg.PublicURL + "/user/" + url.PathEscape(request.Username) + "/edit"
 		}
+		switch request.Scene {
+		case "review_status", "review_requested", "pending_reviews":
+			request.Data.URL = cfg.PublicURL + "/account/tickets"
+		}
 	}
 	message, err := cfg.Render(request.Scene, request.Data)
 	if err != nil {

@@ -301,6 +301,12 @@ func clickHouseSchemas() []clickHouseTableSchema {
 			"`decided_by_id` String DEFAULT ''", "`decided_by_name` String DEFAULT ''", "`created_at` Int64",
 			"`decided_at` Int64 DEFAULT 0", "`active_key` Nullable(String)",
 		}},
+		{name: "ticket_state", keyColumns: []string{"task_id"}, columns: []string{
+			"`task_id` String", "`status` String DEFAULT 'unprocessed'", "`title` String DEFAULT ''", "`body` String",
+			"`assignee_id` String DEFAULT ''", "`assignee_admin` Int64 DEFAULT 0", "`admin_only` Int64 DEFAULT 0",
+			"`escalations` Int64 DEFAULT 0", "`escalated_by_id` String DEFAULT ''", "`revision` Int64 DEFAULT 0",
+			"`target_user_ids` String", "`outcome` String DEFAULT ''", "`response` String", "`changed_at` Int64 DEFAULT 0",
+		}},
 		{name: "review_task_files", keyColumns: []string{"task_id", "file_id"}, columns: []string{
 			"`task_id` String", "`file_id` String", "`path` String", "`size` Int64 DEFAULT 0",
 			"`critical` Int64 DEFAULT 0", "`added_at` Int64",

@@ -8,7 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-package review
+package ticket
 
 import (
 	"bytes"
@@ -17,6 +17,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -48,6 +49,7 @@ func setupReviewApp(t *testing.T) (*fiber.App, *core.AppState, *config.User, *st
 		require.NoError(t, db.SaveToken(&core.AccessToken{
 			Name: username, CreatedAt: time.Now().Format(time.RFC3339),
 		}))
+		saveRouteTicketSession(t, db, username)
 	}
 	now := time.Now().UnixMilli()
 	require.NoError(t, db.CreateSuperTeam(&core.SuperTeam{
@@ -107,7 +109,7 @@ func TestMavenRestorationRequestRequiresCookieAndModeratorApproval(t *testing.T)
 	require.NoError(t, db.SaveSession(session, "charlie-session"))
 	request := func(cookie bool, expected int) *core.ReviewTask {
 		t.Helper()
-		req := httptest.NewRequest(http.MethodPost, "/api/reviews/maven-restorations", bytes.NewBufferString(`{"resource_type":"maven_artifact","repository":"releases","resource_key":"com.restore:demo"}`))
+		req := httptest.NewRequest(http.MethodPost, "/api/tickets/maven-restorations", bytes.NewBufferString(`{"resource_type":"maven_artifact","repository":"releases","resource_key":"com.restore:demo"}`))
 		req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 		if cookie {
 			req.AddCookie(&http.Cookie{Name: "renop_session", Value: "charlie-session"})
@@ -131,7 +133,9 @@ func TestMavenRestorationRequestRequiresCookieAndModeratorApproval(t *testing.T)
 	require.Equal(t, core.ReviewKindMavenRestore, task.Kind)
 	request(true, http.StatusConflict)
 	*current = config.User{Username: "admin", Roles: []string{"manager"}}
-	req := httptest.NewRequest(http.MethodPost, "/api/reviews/"+task.ID+"/decision", bytes.NewBufferString(`{"decision":"approved"}`))
+	claimRouteTicket(t, app, state, current, task.ID)
+	req := httptest.NewRequest(http.MethodPost, "/api/tickets/"+task.ID+"/decision", bytes.NewBufferString(`{"decision":"approved"}`))
+	req.AddCookie(&http.Cookie{Name: "renop_session", Value: "admin-session"})
 	req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 	response, err := app.Test(req)
 	require.NoError(t, err)
@@ -143,7 +147,23 @@ func TestMavenRestorationRequestRequiresCookieAndModeratorApproval(t *testing.T)
 	require.Len(t, details.Versions, 1)
 }
 
-func reviewRequest(t *testing.T, app *fiber.App, method, path string, body any) *http.Response {
+func saveRouteTicketSession(t *testing.T, db core.StateDB, actor string) {
+	t.Helper()
+	now := time.Now().UnixMilli()
+	session := &core.Session{PublicID: actor + "-session", Username: actor, CreatedAt: now}
+	session.LastActive.Store(now)
+	require.NoError(t, db.SaveSession(session, actor+"-session"))
+}
+
+func claimRouteTicket(t *testing.T, app *fiber.App, state *core.AppState, current *config.User, id string) {
+	t.Helper()
+	saveRouteTicketSession(t, state.GetDB(), current.Username)
+	response := reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+id+"/action", core.TicketAction{Action: "claim"})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+}
+
+func reviewRequest(t *testing.T, app *fiber.App, current *config.User, method, path string, body any) *http.Response {
 	t.Helper()
 	var payload []byte
 	if body != nil {
@@ -152,6 +172,7 @@ func reviewRequest(t *testing.T, app *fiber.App, method, path string, body any) 
 		require.NoError(t, err)
 	}
 	request := httptest.NewRequest(method, path, bytes.NewReader(payload))
+	request.AddCookie(&http.Cookie{Name: "renop_session", Value: current.Username + "-session"})
 	if body != nil {
 		request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 	}
@@ -160,9 +181,85 @@ func reviewRequest(t *testing.T, app *fiber.App, method, path string, body any) 
 	return response
 }
 
+func TestSupportTicketHTTPBoundariesAndReportPrivacy(t *testing.T) {
+	app, state, current, kind := setupReviewApp(t)
+	db := state.GetDB()
+	for name, roles := range map[string][]string{"alice": {"manager"}, "bob": {"canmoderate:*"}, "dana": {"manager"}} {
+		require.NoError(t, db.UpdateToken(name, func(token *core.AccessToken) { token.Permissions = roles }))
+	}
+	request := core.TicketRequest{Kind: core.TicketKindReport, Title: "Report", Body: "Please investigate.",
+		Target: core.ResourceLockTarget{Format: "user", Name: "alice"}}
+	check := func(method, path string, body any, expected int) []byte {
+		t.Helper()
+		response := reviewRequest(t, app, current, method, path, body)
+		defer response.Body.Close()
+		data, err := io.ReadAll(response.Body)
+		require.NoError(t, err)
+		require.Equal(t, expected, response.StatusCode, "%s", data)
+		return data
+	}
+	noCookie := httptest.NewRequest(http.MethodGet, "/api/tickets", nil)
+	response, err := app.Test(noCookie)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusForbidden, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	*kind = "api_token"
+	check(http.MethodPost, "/api/tickets", request, http.StatusForbidden)
+	*kind = "session"
+	bad := request
+	bad.Body = strings.Repeat("x", 8001)
+	check(http.MethodPost, "/api/tickets", bad, http.StatusBadRequest)
+	bad.Body = strings.Repeat("x", 50<<10)
+	check(http.MethodPost, "/api/tickets", bad, http.StatusBadRequest)
+	bad = request
+	bad.Target = core.ResourceLockTarget{Format: "cargo", Repository: "releases", Name: "demo"}
+	check(http.MethodPost, "/api/tickets", bad, http.StatusForbidden)
+	check(http.MethodPost, "/api/tickets", core.TicketRequest{Kind: core.TicketKindFeedback,
+		Title: "Feedback", Body: "Help", Repository: "missing"}, http.StatusForbidden)
+	var task core.ReviewTask
+	require.NoError(t, json.Unmarshal(check(http.MethodPost, "/api/tickets", request, http.StatusCreated), &task))
+	select {
+	case entry := <-state.Inner.AuditLogChan:
+		require.NotEqual(t, "charlie", entry.Username)
+		require.NotEqual(t, "charlie", entry.Operator)
+		require.Empty(t, entry.SessionID)
+		require.Empty(t, entry.IP)
+	default:
+		t.Fatal("report creation audit missing")
+	}
+	check(http.MethodPost, "/api/tickets", request, http.StatusConflict)
+	*current = config.User{Username: "alice", Roles: []string{"manager"}}
+	check(http.MethodGet, "/api/tickets/"+task.ID, nil, http.StatusForbidden)
+	check(http.MethodPost, "/api/tickets/"+task.ID+"/action", core.TicketAction{Action: "claim"}, http.StatusForbidden)
+	*current = config.User{Username: "bob", Roles: []string{"canmoderate:*"}}
+	path := "/api/tickets/" + task.ID + "/action"
+	check(http.MethodPost, path, core.TicketAction{Action: "complete", Outcome: "upheld", Response: "Investigated."}, http.StatusConflict)
+	check(http.MethodPost, path, core.TicketAction{Action: "claim"}, http.StatusOK)
+	check(http.MethodPost, path, core.TicketAction{Action: "complete", Outcome: "upheld"}, http.StatusBadRequest)
+	check(http.MethodPost, path, core.TicketAction{Action: "complete", Outcome: "upheld", Response: "Investigated."}, http.StatusOK)
+	for len(state.Inner.AuditLogChan) > 0 {
+		entry := <-state.Inner.AuditLogChan
+		require.Empty(t, entry.Username)
+		require.Equal(t, "system", entry.Operator)
+		require.Empty(t, entry.SessionID)
+		require.Empty(t, entry.IP)
+	}
+	*current = config.User{Username: "dana", Roles: []string{"manager"}}
+	var staff core.ReviewTask
+	require.NoError(t, json.Unmarshal(check(http.MethodGet, "/api/tickets/"+task.ID, nil, http.StatusOK), &staff))
+	require.Equal(t, "bob", staff.DecidedBy)
+	*current = config.User{Username: "charlie", Roles: []string{"base"}}
+	data := check(http.MethodGet, "/api/tickets/"+task.ID, nil, http.StatusOK)
+	require.NotContains(t, string(data), "bob")
+	check(http.MethodDelete, "/api/tickets/"+task.ID, nil, http.StatusConflict)
+	require.NoError(t, json.Unmarshal(check(http.MethodPost, "/api/tickets", core.TicketRequest{
+		Kind: core.TicketKindSuggestion, Title: "Suggestion", Body: "Improve search."}, http.StatusCreated), &task))
+	check(http.MethodDelete, "/api/tickets/"+task.ID, nil, http.StatusOK)
+}
+
 func TestReviewRoutesCreateListAndSingleDecision(t *testing.T) {
 	app, state, current, _ := setupReviewApp(t)
-	response := reviewRequest(t, app, http.MethodPost, "/api/reviews/super-team-transfers",
+	response := reviewRequest(t, app, current, http.MethodPost, "/api/tickets/super-team-transfers",
 		core.SuperTeamTransferRequest{
 			ResourceType: core.ReviewResourceDockerImage, Repository: "containers",
 			ResourceKey: "personal", TargetTeamPrefix: "platform",
@@ -175,8 +272,8 @@ func TestReviewRoutesCreateListAndSingleDecision(t *testing.T) {
 	assert.Equal(t, "platform", task.ReviewTeamPrefix)
 
 	*current = config.User{Username: "bob", Roles: []string{"base"}}
-	response = reviewRequest(t, app, http.MethodGet,
-		"/api/reviews?view=reviewer&status=pending&types=docker_image&limit=10&offset=0", nil)
+	response = reviewRequest(t, app, current, http.MethodGet,
+		"/api/tickets?view=reviewer&status=unprocessed&types=docker_image&limit=10&offset=0", nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var page struct {
 		Tasks []*core.ReviewTask `json:"tasks"`
@@ -188,14 +285,20 @@ func TestReviewRoutesCreateListAndSingleDecision(t *testing.T) {
 	assert.Equal(t, 1, page.Total)
 
 	*current = config.User{Username: "dana", Roles: []string{"base"}}
-	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+task.ID+"/decision",
+	response = reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+task.ID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusApproved})
 	require.Equal(t, http.StatusForbidden, response.StatusCode)
 	assert.Equal(t, "review_permission", response.Header.Get("X-Renop-Error-Code"))
 	require.NoError(t, response.Body.Close())
 
 	*current = config.User{Username: "bob", Roles: []string{"base"}}
-	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+task.ID+"/decision",
+	response = reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+task.ID+"/decision",
+		decisionRequest{Decision: core.ReviewStatusApproved})
+	require.Equal(t, http.StatusConflict, response.StatusCode)
+	require.Equal(t, "ticket_claim_required", response.Header.Get("X-Renop-Error-Code"))
+	require.NoError(t, response.Body.Close())
+	claimRouteTicket(t, app, state, current, task.ID)
+	response = reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+task.ID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusApproved})
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, response.Body.Close())
@@ -204,16 +307,16 @@ func TestReviewRoutesCreateListAndSingleDecision(t *testing.T) {
 	assert.Equal(t, "platform", image.SuperTeamPrefix)
 
 	*current = config.User{Username: "alice", Roles: []string{"base"}}
-	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+task.ID+"/decision",
+	response = reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+task.ID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusRejected, Reason: "Already handled"})
 	require.Equal(t, http.StatusConflict, response.StatusCode)
 	assert.Equal(t, "review_decided", response.Header.Get("X-Renop-Error-Code"))
 	require.NoError(t, response.Body.Close())
 }
 
-func TestReviewDecisionActorIsVisibleOnlyToSystemAdministrators(t *testing.T) {
+func TestTicketDecisionActorIsVisibleToStaffButNotRequester(t *testing.T) {
 	app, state, current, _ := setupReviewApp(t)
-	response := reviewRequest(t, app, http.MethodPost, "/api/reviews/super-team-transfers",
+	response := reviewRequest(t, app, current, http.MethodPost, "/api/tickets/super-team-transfers",
 		core.SuperTeamTransferRequest{
 			ResourceType: core.ReviewResourceDockerImage, Repository: "containers",
 			ResourceKey: "personal", TargetTeamPrefix: "platform",
@@ -224,17 +327,18 @@ func TestReviewDecisionActorIsVisibleOnlyToSystemAdministrators(t *testing.T) {
 	require.NoError(t, response.Body.Close())
 
 	*current = config.User{Username: "bob", Roles: []string{"base"}}
-	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+task.ID+"/decision",
+	claimRouteTicket(t, app, state, current, task.ID)
+	response = reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+task.ID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusApproved})
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var decided core.ReviewTask
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&decided))
 	require.NoError(t, response.Body.Close())
-	assert.Empty(t, decided.DecidedBy)
+	assert.Equal(t, "bob", decided.DecidedBy)
 
 	*current = config.User{Username: "charlie", Roles: []string{"base"}}
-	response = reviewRequest(t, app, http.MethodGet,
-		"/api/reviews?view=requested&status=all&limit=10&offset=0", nil)
+	response = reviewRequest(t, app, current, http.MethodGet,
+		"/api/tickets?view=requested&status=all&limit=10&offset=0", nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var requestedPage struct {
 		Tasks []*core.ReviewTask `json:"tasks"`
@@ -248,8 +352,8 @@ func TestReviewDecisionActorIsVisibleOnlyToSystemAdministrators(t *testing.T) {
 		Name: "dana", Permissions: []string{"base", "manager"},
 	}))
 	*current = config.User{Username: "dana", Roles: []string{"base", "manager"}}
-	response = reviewRequest(t, app, http.MethodGet,
-		"/api/reviews?view=reviewer&status=all&limit=10&offset=0", nil)
+	response = reviewRequest(t, app, current, http.MethodGet,
+		"/api/tickets?view=reviewer&status=all&limit=10&offset=0", nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var administratorPage struct {
 		Tasks []*core.ReviewTask `json:"tasks"`
@@ -283,15 +387,15 @@ func TestTeamPackageCreationReviewAdvancesToRepositoryModerator(t *testing.T) {
 	assert.Equal(t, "platform", task.TargetTeamPrefix)
 
 	*current = config.User{Username: "dana", Roles: []string{"base", "canmoderate:npm"}}
-	response := reviewRequest(t, app, http.MethodGet, "/api/reviews/"+task.ID+"/files", nil)
-	require.Equal(t, http.StatusForbidden, response.StatusCode)
+	response := reviewRequest(t, app, current, http.MethodGet, "/api/tickets/"+task.ID+"/files", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, response.Body.Close())
-	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+task.ID+"/decision",
+	response = reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+task.ID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusApproved})
 	require.Equal(t, http.StatusForbidden, response.StatusCode)
 	require.NoError(t, response.Body.Close())
-	response = reviewRequest(t, app, http.MethodGet,
-		"/api/reviews?view=reviewer&status=pending&types=npm_package&limit=10&offset=0", nil)
+	response = reviewRequest(t, app, current, http.MethodGet,
+		"/api/tickets?view=reviewer&status=unprocessed&types=npm_package&limit=10&offset=0", nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var page struct {
 		Tasks []*core.ReviewTask `json:"tasks"`
@@ -299,17 +403,19 @@ func TestTeamPackageCreationReviewAdvancesToRepositoryModerator(t *testing.T) {
 	}
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&page))
 	require.NoError(t, response.Body.Close())
-	assert.Zero(t, page.Total)
+	require.Equal(t, 1, page.Total)
+	require.Empty(t, page.Tasks[0].Actions)
 
 	*current = config.User{Username: "bob", Roles: []string{"base"}}
-	response = reviewRequest(t, app, http.MethodGet,
-		"/api/reviews?view=reviewer&status=pending&types=npm_package&limit=10&offset=0", nil)
+	response = reviewRequest(t, app, current, http.MethodGet,
+		"/api/tickets?view=reviewer&status=unprocessed&types=npm_package&limit=10&offset=0", nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&page))
 	require.NoError(t, response.Body.Close())
 	require.Len(t, page.Tasks, 1)
 	assert.Equal(t, "platform", page.Tasks[0].ReviewTeamPrefix)
-	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+task.ID+"/decision",
+	claimRouteTicket(t, app, state, current, task.ID)
+	response = reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+task.ID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusApproved})
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var advanced core.ReviewTask
@@ -321,34 +427,35 @@ func TestTeamPackageCreationReviewAdvancesToRepositoryModerator(t *testing.T) {
 	pkg, err := state.GetDB().GetNPMPackage("npm", "@platform/team-tool")
 	require.NoError(t, err)
 	assert.Nil(t, pkg)
-	response = reviewRequest(t, app, http.MethodGet,
-		"/api/reviews?view=reviewer&status=pending&types=npm_package&limit=10&offset=0", nil)
+	response = reviewRequest(t, app, current, http.MethodGet,
+		"/api/tickets?view=reviewer&status=unprocessed&types=npm_package&limit=10&offset=0", nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	page.Tasks = nil
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&page))
 	require.NoError(t, response.Body.Close())
 	assert.Zero(t, page.Total)
-	response = reviewRequest(t, app, http.MethodGet, "/api/reviews/"+task.ID+"/files", nil)
+	response = reviewRequest(t, app, current, http.MethodGet, "/api/tickets/"+task.ID+"/files", nil)
 	require.Equal(t, http.StatusForbidden, response.StatusCode)
 	require.NoError(t, response.Body.Close())
 
 	*current = config.User{Username: "dana", Roles: []string{"base", "canmoderate:npm"}}
-	response = reviewRequest(t, app, http.MethodGet,
-		"/api/reviews?view=reviewer&status=pending&types=npm_package&limit=10&offset=0", nil)
+	response = reviewRequest(t, app, current, http.MethodGet,
+		"/api/tickets?view=reviewer&status=unprocessed&types=npm_package&limit=10&offset=0", nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	page.Tasks = nil
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&page))
 	require.NoError(t, response.Body.Close())
 	require.Len(t, page.Tasks, 1)
 	assert.Empty(t, page.Tasks[0].ReviewTeamPrefix)
-	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+task.ID+"/decision",
+	claimRouteTicket(t, app, state, current, task.ID)
+	response = reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+task.ID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusApproved})
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var approved core.ReviewTask
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&approved))
 	require.NoError(t, response.Body.Close())
 	assert.Equal(t, core.ReviewStatusApproved, approved.Status)
-	assert.Empty(t, approved.DecidedBy)
+	assert.Equal(t, "dana", approved.DecidedBy)
 	pkg, err = state.GetDB().GetNPMPackage("npm", "@platform/team-tool")
 	require.NoError(t, err)
 	require.NotNil(t, pkg)
@@ -357,19 +464,19 @@ func TestTeamPackageCreationReviewAdvancesToRepositoryModerator(t *testing.T) {
 }
 
 func TestReviewRoutesRejectInvalidFiltersAndEmptyRejectionReasons(t *testing.T) {
-	app, _, current, _ := setupReviewApp(t)
-	response := reviewRequest(t, app, http.MethodGet,
-		"/api/reviews?view=reviewer&status=unknown&limit=10&offset=0", nil)
+	app, state, current, _ := setupReviewApp(t)
+	response := reviewRequest(t, app, current, http.MethodGet,
+		"/api/tickets?view=reviewer&status=unknown&limit=10&offset=0", nil)
 	require.Equal(t, http.StatusBadRequest, response.StatusCode)
 	assert.Equal(t, "invalid_request", response.Header.Get("X-Renop-Error-Code"))
 	require.NoError(t, response.Body.Close())
 
-	response = reviewRequest(t, app, http.MethodGet,
-		"/api/reviews?view=reviewer&types=unknown&limit=10&offset=0", nil)
+	response = reviewRequest(t, app, current, http.MethodGet,
+		"/api/tickets?view=reviewer&types=unknown&limit=10&offset=0", nil)
 	require.Equal(t, http.StatusBadRequest, response.StatusCode)
 	require.NoError(t, response.Body.Close())
 
-	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/super-team-transfers",
+	response = reviewRequest(t, app, current, http.MethodPost, "/api/tickets/super-team-transfers",
 		core.SuperTeamTransferRequest{
 			ResourceType: core.ReviewResourceDockerImage, Repository: "containers",
 			ResourceKey: "personal", TargetTeamPrefix: "platform",
@@ -380,7 +487,8 @@ func TestReviewRoutesRejectInvalidFiltersAndEmptyRejectionReasons(t *testing.T) 
 	require.NoError(t, response.Body.Close())
 
 	*current = config.User{Username: "bob", Roles: []string{"base"}}
-	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+task.ID+"/decision",
+	claimRouteTicket(t, app, state, current, task.ID)
+	response = reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+task.ID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusRejected})
 	require.Equal(t, http.StatusBadRequest, response.StatusCode)
 	assert.Equal(t, "invalid_request", response.Header.Get("X-Renop-Error-Code"))
@@ -388,11 +496,11 @@ func TestReviewRoutesRejectInvalidFiltersAndEmptyRejectionReasons(t *testing.T) 
 }
 
 func TestReviewRoutesRequireBrowserSession(t *testing.T) {
-	app, _, _, credentialKind := setupReviewApp(t)
+	app, _, current, credentialKind := setupReviewApp(t)
 	for _, kind := range []string{"api_token", "password"} {
 		*credentialKind = kind
-		response := reviewRequest(t, app, http.MethodGet,
-			"/api/reviews?view=requested&status=pending&limit=10&offset=0", nil)
+		response := reviewRequest(t, app, current, http.MethodGet,
+			"/api/tickets?view=requested&status=unprocessed&limit=10&offset=0", nil)
 		require.Equal(t, http.StatusForbidden, response.StatusCode, kind)
 		assert.Equal(t, "review_permission", response.Header.Get("X-Renop-Error-Code"), kind)
 		require.NoError(t, response.Body.Close())
@@ -421,8 +529,8 @@ func TestRepositoryModeratorListsDownloadsAndRejectsPublication(t *testing.T) {
 	state.Inner.FileIndex.BlockFile(absolute)
 	*current = config.User{Username: "bob", Roles: []string{"base", "canmoderate:releases"}}
 
-	response := reviewRequest(t, app, http.MethodGet,
-		"/api/reviews?view=reviewer&status=pending&types=maven_artifact&limit=10&offset=0", nil)
+	response := reviewRequest(t, app, current, http.MethodGet,
+		"/api/tickets?view=reviewer&status=unprocessed&types=maven_artifact&limit=10&offset=0", nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var page struct {
 		Tasks []*core.ReviewTask `json:"tasks"`
@@ -434,7 +542,7 @@ func TestRepositoryModeratorListsDownloadsAndRejectsPublication(t *testing.T) {
 	require.Len(t, page.Tasks, 1)
 	assert.Equal(t, result.TaskID, page.Tasks[0].ID)
 
-	response = reviewRequest(t, app, http.MethodGet, "/api/reviews/"+result.TaskID+"/files", nil)
+	response = reviewRequest(t, app, current, http.MethodGet, "/api/tickets/"+result.TaskID+"/files", nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var filesPayload struct {
 		Files []*core.ReviewFile `json:"files"`
@@ -442,22 +550,23 @@ func TestRepositoryModeratorListsDownloadsAndRejectsPublication(t *testing.T) {
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&filesPayload))
 	require.NoError(t, response.Body.Close())
 	require.Len(t, filesPayload.Files, 1)
-	response = reviewRequest(t, app, http.MethodGet,
-		"/api/reviews/"+result.TaskID+"/files/"+filesPayload.Files[0].ID, nil)
+	response = reviewRequest(t, app, current, http.MethodGet,
+		"/api/tickets/"+result.TaskID+"/files/"+filesPayload.Files[0].ID, nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	body, err := io.ReadAll(response.Body)
 	require.NoError(t, err)
 	require.NoError(t, response.Body.Close())
 	assert.Equal(t, "review artifact", string(body))
+	claimRouteTicket(t, app, state, current, result.TaskID)
 
-	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+result.TaskID+"/decision",
+	response = reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+result.TaskID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusRejected, ReasonCode: "custom"})
 	require.Equal(t, http.StatusBadRequest, response.StatusCode)
 	require.NoError(t, response.Body.Close())
 	_, err = os.Stat(absolute)
 	require.NoError(t, err)
 
-	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+result.TaskID+"/decision",
+	response = reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+result.TaskID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusRejected, ReasonCode: "quality"})
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, response.Body.Close())
@@ -497,18 +606,19 @@ func TestRepositoryModeratorApprovalPublishesMavenCatalogBeforeFiles(t *testing.
 	files, err := state.GetDB().ListReviewTaskFiles(result.TaskID)
 	require.NoError(t, err)
 	require.Len(t, files, 1)
-	preview := reviewRequest(t, app, http.MethodGet, "/api/reviews/"+result.TaskID+"/files/"+files[0].ID, nil)
+	preview := reviewRequest(t, app, current, http.MethodGet, "/api/tickets/"+result.TaskID+"/files/"+files[0].ID, nil)
 	require.Equal(t, http.StatusNotFound, preview.StatusCode)
 	require.NoError(t, preview.Body.Close())
+	claimRouteTicket(t, app, state, current, result.TaskID)
 	for _, decision := range []string{core.ReviewStatusApproved, core.ReviewStatusRejected} {
-		response := reviewRequest(t, app, http.MethodPost, "/api/reviews/"+result.TaskID+"/decision", decisionRequest{Decision: decision, ReasonCode: "malware"})
+		response := reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+result.TaskID+"/decision", decisionRequest{Decision: decision, ReasonCode: "malware"})
 		require.Equal(t, http.StatusLocked, response.StatusCode)
 		require.NoError(t, response.Body.Close())
 	}
 	require.FileExists(t, absolute)
 	require.True(t, state.Inner.FileIndex.IsBlocked(absolute))
 	require.NoError(t, state.GetDB().DeleteResourceLock(lock.ResourceLockTarget, core.ResourceLockSystem, "", ""))
-	response := reviewRequest(t, app, http.MethodPost, "/api/reviews/"+result.TaskID+"/decision",
+	response := reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+result.TaskID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusApproved})
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, response.Body.Close())
@@ -545,7 +655,8 @@ func TestRepositoryModeratorApprovalPublishesNPMVersionBeforeTarball(t *testing.
 	require.NoError(t, err)
 	state.Inner.FileIndex.BlockFile(absolute)
 	*current = config.User{Username: "bob", Roles: []string{"base", "canmoderate:npm"}}
-	response := reviewRequest(t, app, http.MethodPost, "/api/reviews/"+result.TaskID+"/decision",
+	claimRouteTicket(t, app, state, current, result.TaskID)
+	response := reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+result.TaskID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusApproved})
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, response.Body.Close())
@@ -584,7 +695,8 @@ func TestRepositoryModeratorApprovalPublishesCargoIndexBeforeCrate(t *testing.T)
 	require.NoError(t, err)
 	state.Inner.FileIndex.BlockFile(absolute)
 	*current = config.User{Username: "bob", Roles: []string{"base", "canmoderate:cargo"}}
-	response := reviewRequest(t, app, http.MethodPost, "/api/reviews/"+result.TaskID+"/decision",
+	claimRouteTicket(t, app, state, current, result.TaskID)
+	response := reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+result.TaskID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusApproved})
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, response.Body.Close())
@@ -616,7 +728,7 @@ func TestRepositoryModeratorDownloadsAndApprovesVirtualDockerManifest(t *testing
 		state, repo, "personal", "1.0.0", parsed, "charlie", false, now)
 	require.NoError(t, err)
 	*current = config.User{Username: "bob", Roles: []string{"base", "canmoderate:containers"}}
-	response := reviewRequest(t, app, http.MethodGet, "/api/reviews/"+result.TaskID+"/files", nil)
+	response := reviewRequest(t, app, current, http.MethodGet, "/api/tickets/"+result.TaskID+"/files", nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var filePage struct {
 		Files []*core.ReviewFile `json:"files"`
@@ -624,15 +736,16 @@ func TestRepositoryModeratorDownloadsAndApprovesVirtualDockerManifest(t *testing
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&filePage))
 	require.NoError(t, response.Body.Close())
 	require.Len(t, filePage.Files, 1)
-	response = reviewRequest(t, app, http.MethodGet,
-		"/api/reviews/"+result.TaskID+"/files/"+filePage.Files[0].ID, nil)
+	response = reviewRequest(t, app, current, http.MethodGet,
+		"/api/tickets/"+result.TaskID+"/files/"+filePage.Files[0].ID, nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	downloaded, err := io.ReadAll(response.Body)
 	require.NoError(t, err)
 	require.NoError(t, response.Body.Close())
 	assert.JSONEq(t, string(manifestJSON), string(downloaded))
+	claimRouteTicket(t, app, state, current, result.TaskID)
 
-	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+result.TaskID+"/decision",
+	response = reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+result.TaskID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusApproved})
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, response.Body.Close())
@@ -651,7 +764,8 @@ func TestRepositoryModeratorDownloadsAndApprovesVirtualDockerManifest(t *testing
 	rejected, err := dockerservice.QueuePublicationReview(
 		state, repo, "personal", "2.0.0", rejectedManifest, "charlie", true, now)
 	require.NoError(t, err)
-	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+rejected.TaskID+"/decision",
+	claimRouteTicket(t, app, state, current, rejected.TaskID)
+	response = reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+rejected.TaskID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusRejected, ReasonCode: "quality"})
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, response.Body.Close())
@@ -670,7 +784,8 @@ func TestRepositoryModeratorDownloadsAndApprovesVirtualDockerManifest(t *testing
 	dockerCreation, err := dockerservice.QueueImageCreationReview(
 		state, repo, "created-after-review", "", "", "charlie", true, now)
 	require.NoError(t, err)
-	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+dockerCreation.TaskID+"/decision",
+	claimRouteTicket(t, app, state, current, dockerCreation.TaskID)
+	response = reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+dockerCreation.TaskID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusApproved})
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, response.Body.Close())
@@ -691,17 +806,18 @@ func TestRepositoryModeratorDownloadsAndApprovesVirtualDockerManifest(t *testing
 	npmCreation, err := npmservice.QueuePackageCreationReview(
 		state, npmRepo, "created-after-review", "", "", "charlie", false, now)
 	require.NoError(t, err)
-	response = reviewRequest(t, app, http.MethodGet, "/api/reviews/"+npmCreation.TaskID+"/files", nil)
+	response = reviewRequest(t, app, current, http.MethodGet, "/api/tickets/"+npmCreation.TaskID+"/files", nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	filePage.Files = nil
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&filePage))
 	require.NoError(t, response.Body.Close())
 	require.Len(t, filePage.Files, 1)
-	response = reviewRequest(t, app, http.MethodGet,
-		"/api/reviews/"+npmCreation.TaskID+"/files/"+filePage.Files[0].ID, nil)
+	response = reviewRequest(t, app, current, http.MethodGet,
+		"/api/tickets/"+npmCreation.TaskID+"/files/"+filePage.Files[0].ID, nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, response.Body.Close())
-	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+npmCreation.TaskID+"/decision",
+	claimRouteTicket(t, app, state, current, npmCreation.TaskID)
+	response = reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+npmCreation.TaskID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusApproved})
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, response.Body.Close())
@@ -712,7 +828,7 @@ func TestRepositoryModeratorDownloadsAndApprovesVirtualDockerManifest(t *testing
 
 func TestSystemAdministratorListsAndDecidesTeamReview(t *testing.T) {
 	app, state, current, _ := setupReviewApp(t)
-	response := reviewRequest(t, app, http.MethodPost, "/api/reviews/super-team-transfers",
+	response := reviewRequest(t, app, current, http.MethodPost, "/api/tickets/super-team-transfers",
 		core.SuperTeamTransferRequest{
 			ResourceType: core.ReviewResourceDockerImage, Repository: "containers",
 			ResourceKey: "personal", TargetTeamPrefix: "platform",
@@ -734,8 +850,8 @@ func TestSystemAdministratorListsAndDecidesTeamReview(t *testing.T) {
 	}))
 	*current = config.User{Username: "dana", Roles: []string{"manager"}}
 
-	response = reviewRequest(t, app, http.MethodGet,
-		"/api/reviews?view=reviewer&status=pending&limit=10&offset=0", nil)
+	response = reviewRequest(t, app, current, http.MethodGet,
+		"/api/tickets?view=reviewer&status=unprocessed&limit=10&offset=0", nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var page struct {
 		Tasks []*core.ReviewTask `json:"tasks"`
@@ -745,12 +861,14 @@ func TestSystemAdministratorListsAndDecidesTeamReview(t *testing.T) {
 	require.NoError(t, response.Body.Close())
 	require.Equal(t, 2, page.Total)
 	require.Len(t, page.Tasks, 2)
+	claimRouteTicket(t, app, state, current, task.ID)
 
-	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+task.ID+"/decision",
+	response = reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+task.ID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusApproved})
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, response.Body.Close())
-	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+rejectTask.ID+"/decision",
+	claimRouteTicket(t, app, state, current, rejectTask.ID)
+	response = reviewRequest(t, app, current, http.MethodPost, "/api/tickets/"+rejectTask.ID+"/decision",
 		decisionRequest{Decision: core.ReviewStatusRejected, Reason: "Not approved"})
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, response.Body.Close())

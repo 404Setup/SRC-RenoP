@@ -38,7 +38,7 @@ import {
     publicSuperTeamRouteFromPath,
     superTeamRouteFromPath
 } from './super-teams.js';
-import {loadReviewCenterPage, openReviewCenter, reviewRouteFromPath} from './reviews.js';
+import {loadTicketCenterPage, openTicketCenter, ticketRouteFromPath} from './tickets.js';
 import {initMessageCenter, openMessageCenter} from './messages.js';
 import {initNotificationComposer, openNotificationComposer} from './notification-composer.js';
 import {initPrivacyPolicy} from './privacy-policy.js';
@@ -49,7 +49,7 @@ import './npm-messages.js';
 import './team-messages.js';
 import './super-team-messages.js';
 import './updater-messages.js';
-import './review-messages.js';
+import './ticket-messages.js';
 import {navigateToUserProfile, profileRouteFromPath} from './user-profiles.js';
 import {installBackendAvailabilityMonitor} from './backend-availability.js';
 import {initializeGitHubAuth} from './github-auth.js';
@@ -76,7 +76,7 @@ const backendAvailability = installBackendAvailabilityMonitor();
 function accountTabFromPath(pathname = window.location.pathname) {
     if (mavenDomainRouteFromPath(pathname)) return 'maven-domains';
     if (superTeamRouteFromPath(pathname)) return 'super-teams';
-    if (reviewRouteFromPath(pathname)) return 'reviews';
+    if (ticketRouteFromPath(pathname)) return 'tickets';
     return '';
 }
 
@@ -86,7 +86,7 @@ function accountTabFromPath(pathname = window.location.pathname) {
  * @returns {boolean} Whether the tab owns an account route.
  */
 function isAccountTab(tabId) {
-    return tabId === 'maven-domains' || tabId === 'super-teams' || tabId === 'reviews';
+    return tabId === 'maven-domains' || tabId === 'super-teams' || tabId === 'tickets';
 }
 
 $(window).on('languageChanged', async () => {
@@ -416,8 +416,8 @@ export async function switchTab(tabId) {
     if (tabId === 'super-team') {
         await loadPublicSuperTeamPage();
     }
-    if (tabId === 'reviews') {
-        await loadReviewCenterPage();
+    if (tabId === 'tickets') {
+        await loadTicketCenterPage();
     }
     if (tabId === 'overview') {
         loadDirectory(window.location.pathname);
@@ -600,8 +600,8 @@ async function initializeApplication() {
                     openSuperTeamCenter();
                     return;
                 }
-                if (accountAction === 'reviews') {
-                    openReviewCenter();
+                if (accountAction === 'tickets') {
+                    openTicketCenter();
                     return;
                 }
                 if (accountAction === 'messages') {

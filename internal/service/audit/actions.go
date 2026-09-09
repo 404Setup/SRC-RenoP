@@ -53,6 +53,8 @@ const (
 	ActionSuperTeamLimit         = "SUPER_TEAM_LIMIT"
 	ActionPublicationQuotaUpdate = "PUBLICATION_QUOTA_UPDATE"
 	ActionReviewRequest          = "REVIEW_REQUEST"
+	ActionTicketCreate           = "TICKET_CREATE"
+	ActionTicketUpdate           = "TICKET_UPDATE"
 	ActionReviewDecision         = "REVIEW_DECISION"
 	ActionReviewCancel           = "REVIEW_CANCEL"
 
@@ -162,6 +164,8 @@ func KnownActions() []string {
 		ActionSuperTeamLimit,
 		ActionPublicationQuotaUpdate,
 		ActionReviewRequest,
+		ActionTicketCreate,
+		ActionTicketUpdate,
 		ActionReviewDecision,
 		ActionReviewCancel,
 		ActionCargoPublish,

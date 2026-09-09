@@ -134,6 +134,7 @@ func TestMavenDomainHealthRedemptionAndReleasedArtifactProtection(t *testing.T) 
 	require.NoError(t, err)
 	require.Equal(t, 1, total)
 	require.Equal(t, task.ID, tasks[0].ID)
+	claimReviewTicket(t, db, task.ID, "moderator")
 	packageLock := &core.ResourceLock{ResourceLockTarget: target, Source: core.ResourceLockSystem,
 		Mode: core.ResourceLockWrite, Reason: "quality", LockedAt: now}
 	require.NoError(t, db.SetResourceLock(packageLock, "", ""))

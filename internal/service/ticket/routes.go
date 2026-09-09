@@ -8,15 +8,17 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-// Package review exposes independent, single-decision review workflows.
-package review
+// Package ticket exposes support requests, reports, and publication and ownership workflows.
+package ticket
 
 import (
 	"errors"
 	"fmt"
 	"maps"
+	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -30,12 +32,14 @@ import (
 	"renop/internal/service/maven"
 	"renop/internal/service/npm"
 	"renop/internal/service/repositorygate"
-	"renop/internal/service/reviewnotify"
 	"renop/internal/service/storage"
+	"renop/internal/service/ticketnotify"
 	"renop/internal/utils"
 )
 
 const maxReviewRequestBytes = 16 << 10
+
+var ticketMutationLock sync.Mutex
 
 type decisionRequest struct {
 	Decision   string `json:"decision"`
@@ -47,6 +51,12 @@ func reviewError(c fiber.Ctx, err error) error {
 	status := fiber.StatusInternalServerError
 	code := "review_failed"
 	switch {
+	case errors.Is(err, core.ErrTicketClaimRequired):
+		status, code = fiber.StatusConflict, "ticket_claim_required"
+	case errors.Is(err, core.ErrTicketOccupied):
+		status, code = fiber.StatusConflict, "ticket_occupied"
+	case errors.Is(err, core.ErrTicketEscalationLimit):
+		status, code = fiber.StatusConflict, "ticket_escalation_limit"
 	case errors.Is(err, core.ErrResourceLocked):
 		status, code = fiber.StatusLocked, "resource_locked"
 	case errors.Is(err, fiber.ErrBadRequest):
@@ -112,7 +122,7 @@ func currentUser(c fiber.Ctx) (string, bool, error) {
 	if user == nil || user.Username == "" || strings.EqualFold(user.Username, "guest") {
 		return "", false, fiber.ErrUnauthorized
 	}
-	if auth.CurrentCredentialKind(c) != "session" {
+	if auth.CurrentCredentialKind(c) != "session" || auth.CurrentSessionToken(c) == "" || c.Cookies("renop_session") != auth.CurrentSessionToken(c) {
 		return "", false, core.ErrReviewPermissionDenied
 	}
 	return user.Username, user.IsManager(), nil
@@ -171,30 +181,12 @@ func validReviewResourceType(value string) bool {
 	}
 }
 
-func validReviewStatus(value string) bool {
-	switch value {
-	case "all", core.ReviewStatusPending, core.ReviewStatusApproved,
-		core.ReviewStatusRejected, core.ReviewStatusCancelled:
-		return true
-	default:
-		return false
-	}
-}
-
 func logReviewAudit(c fiber.Ctx, state *core.AppState, action, details string) {
 	username, operator, method, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
 		Username: username, Operator: operator, AuthMethod: method, SessionID: sessionID,
 		IP: ip, Action: action, Details: details, CreatedAt: time.Now().UnixMilli(),
 	})
-}
-
-func redactReviewDecisionActor(task *core.ReviewTask, administrator bool) {
-	if task == nil || administrator {
-		return
-	}
-	task.DecidedByID = ""
-	task.DecidedBy = ""
 }
 
 func createTransfer(c fiber.Ctx, state *core.AppState) error {
@@ -222,11 +214,11 @@ func createTransfer(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return reviewError(c, err)
 	}
-	reviewnotify.DeliverTask(state, task)
+	ticketnotify.DeliverTask(state, task)
 	logReviewAudit(c, state, audit.ActionReviewRequest,
 		fmt.Sprintf("Type: %s, repository: %s, resource: %s, team: %s",
 			task.ResourceType, task.Repository, task.ResourceName, task.ReviewTeamPrefix))
-	c.Set(fiber.HeaderLocation, "/api/reviews/"+task.ID)
+	c.Set(fiber.HeaderLocation, "/api/tickets/"+task.ID)
 	return c.Status(fiber.StatusCreated).JSON(task)
 }
 
@@ -256,9 +248,9 @@ func createMavenRestore(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return reviewError(c, err)
 	}
-	reviewnotify.DeliverTask(state, task)
+	ticketnotify.DeliverTask(state, task)
 	logReviewAudit(c, state, audit.ActionReviewRequest, "Restore reclaimed Maven artifact: "+task.Repository+"/"+task.ResourceKey)
-	c.Set(fiber.HeaderLocation, "/api/reviews/"+task.ID)
+	c.Set(fiber.HeaderLocation, "/api/tickets/"+task.ID)
 	return c.Status(fiber.StatusCreated).JSON(task)
 }
 
@@ -279,14 +271,14 @@ func listTasks(c fiber.Ctx, state *core.AppState) error {
 	if view != "reviewer" && view != "requested" {
 		return reviewError(c, fiber.ErrBadRequest)
 	}
-	status := strings.ToLower(strings.TrimSpace(c.Query("status", core.ReviewStatusPending)))
-	if !validReviewStatus(status) {
+	status := strings.ToLower(strings.TrimSpace(c.Query("status", core.TicketUnprocessed)))
+	if !core.ValidTicketStatus(status) {
 		return reviewError(c, fiber.ErrBadRequest)
 	}
 	types := make([]string, 0, 5)
 	for value := range strings.SplitSeq(c.Query("types"), ",") {
 		if value = strings.ToLower(strings.TrimSpace(value)); value != "" {
-			if !validReviewResourceType(value) {
+			if !validReviewResourceType(value) && !slices.Contains([]string{"support", "user", "superteam", "maven-domain", "maven", "cargo", "npm", "docker"}, value) {
 				return reviewError(c, fiber.ErrBadRequest)
 			}
 			types = append(types, value)
@@ -303,15 +295,10 @@ func listTasks(c fiber.Ctx, state *core.AppState) error {
 	tasks, total, err := state.GetDB().ListReviewTasks(core.ReviewTaskListOptions{
 		Username: username, RequestedView: view == "requested", Administrator: administrator, ResourceTypes: types,
 		ModerateAll: moderateAll, ModeratedRepositories: moderatedRepositories,
-		Status: status, Limit: limit, Offset: offset,
+		TicketStatus: status, Limit: limit, Offset: offset,
 	})
 	if err != nil {
 		return reviewError(c, err)
-	}
-	if !administrator {
-		for _, task := range tasks {
-			redactReviewDecisionActor(task, false)
-		}
 	}
 	c.Set(fiber.HeaderCacheControl, "no-store")
 	return c.JSON(fiber.Map{
@@ -336,27 +323,11 @@ func publicationDecisionReason(request decisionRequest) (string, bool) {
 }
 
 func canInspectPublicationTask(c fiber.Ctx, state *core.AppState, task *core.ReviewTask) (bool, error) {
-	user := auth.GetUser(c)
-	if user == nil || task == nil || state == nil || state.GetDB() == nil {
+	if auth.GetUser(c) == nil || task == nil || state == nil || state.GetDB() == nil {
 		return false, nil
 	}
-	if user.IsManager() || (task.ReviewTeamPrefix == "" && user.CheckModeratePermission(task.Repository)) {
-		return true, nil
-	}
-	if task.ReviewTeamPrefix != "" {
-		role, err := state.GetDB().GetSuperTeamRole(task.ReviewTeamPrefix, user.Username)
-		if err == nil {
-			return role >= core.SuperTeamRoleManage, nil
-		}
-		if !errors.Is(err, core.ErrSuperTeamPermissionDenied) && !errors.Is(err, core.ErrSuperTeamNotFound) {
-			return false, err
-		}
-	}
-	profile, err := state.GetDB().GetUserProfile(user.Username)
-	if err != nil {
-		return false, err
-	}
-	return profile.UserID == task.RequestedByID, nil
+	_, err := state.GetDB().GetTicket(task.ID, auth.GetUser(c).Username)
+	return err == nil, err
 }
 
 func reviewFiles(c fiber.Ctx, state *core.AppState) error {
@@ -586,13 +557,28 @@ func decidePublicationTask(c fiber.Ctx, state *core.AppState, username string,
 }
 
 func decideTask(c fiber.Ctx, state *core.AppState) error {
-	username, administrator, err := currentUser(c)
+	username, _, err := currentUser(c)
 	if err != nil {
 		return reviewError(c, err)
 	}
 	var request decisionRequest
 	if err := utils.ReadJSONLimited(c, &request, maxReviewRequestBytes); err != nil {
 		return reviewError(c, fiber.ErrBadRequest)
+	}
+	ticketMutationLock.Lock()
+	defer ticketMutationLock.Unlock()
+	visible, err := state.GetDB().GetTicket(c.Params("id"), username)
+	if err != nil {
+		return reviewError(c, err)
+	}
+	if visible.Status != core.ReviewStatusPending {
+		return reviewError(c, core.ErrReviewTaskConflict)
+	}
+	if !slices.Contains(visible.Actions, "decision") {
+		if visible.AssigneeID == "" && !slices.Contains(visible.Actions, "claim") {
+			return reviewError(c, core.ErrReviewPermissionDenied)
+		}
+		return reviewError(c, core.ErrTicketClaimRequired)
 	}
 	existing, err := state.GetDB().GetReviewTask(c.Params("id"))
 	if err != nil {
@@ -612,45 +598,58 @@ func decideTask(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		if task != nil && errors.Is(err, core.ErrReviewResourceConflict) {
 			if task.Status != core.ReviewStatusPending {
-				reviewnotify.DeliverDecision(state, task)
+				ticketnotify.DeliverDecision(state, task)
 			}
-			redactReviewDecisionActor(task, administrator)
+			visible, viewErr := state.GetDB().GetTicket(task.ID, username)
+			if viewErr != nil {
+				return reviewError(c, viewErr)
+			}
 			c.Set("X-Renop-Error-Code", "resource_changed")
-			return c.Status(fiber.StatusConflict).JSON(task)
+			return c.Status(fiber.StatusConflict).JSON(visible)
 		}
 		return reviewError(c, err)
 	}
-	if existing.Kind == core.ReviewKindPublication && existing.ReviewTeamPrefix != "" &&
-		task.Status == core.ReviewStatusPending && task.ReviewTeamPrefix == "" {
-		reviewnotify.DeliverPendingTransition(state, task)
+	forwarded := existing.Kind == core.ReviewKindPublication && existing.ReviewTeamPrefix != "" &&
+		task.Status == core.ReviewStatusPending && task.ReviewTeamPrefix == ""
+	if forwarded {
+		ticketnotify.DeliverPendingTransition(state, task)
 	} else {
-		reviewnotify.DeliverDecision(state, task)
+		ticketnotify.DeliverDecision(state, task)
 	}
 	logReviewAudit(c, state, audit.ActionReviewDecision,
 		fmt.Sprintf("Review: %s, decision: %s, type: %s", task.ID, task.Status, task.ResourceType))
-	redactReviewDecisionActor(task, administrator)
-	return c.JSON(task)
+	if forwarded {
+		// The successful handoff can remove the actor's access to the next stage.
+		task.Actions = nil
+		task.Assignee, task.EscalatedBy, task.DecidedBy = "", "", ""
+		return c.JSON(task)
+	}
+	return getTask(c, state)
 }
 
 func cancelTask(c fiber.Ctx, state *core.AppState) error {
-	username, administrator, err := currentUser(c)
+	username, _, err := currentUser(c)
 	if err != nil {
 		return reviewError(c, err)
 	}
+	ticketMutationLock.Lock()
+	defer ticketMutationLock.Unlock()
 	task, err := state.GetDB().CancelReviewTask(c.Params("id"), username, time.Now().UnixMilli())
 	if err != nil {
 		return reviewError(c, err)
 	}
-	reviewnotify.DeliverDecision(state, task)
-	logReviewAudit(c, state, audit.ActionReviewCancel, "Review: "+task.ID)
-	redactReviewDecisionActor(task, administrator)
-	return c.JSON(task)
+	ticketnotify.DeliverDecision(state, task)
+	logSupportAudit(c, state, task, audit.ActionReviewCancel, "Ticket: "+task.ID)
+	return getTask(c, state)
 }
 
-// SetupRoutes registers session-only review and transfer APIs.
+// SetupRoutes registers cookie-session ticket and workflow APIs.
 func SetupRoutes(router fiber.Router, state *core.AppState) {
-	base := router.Group("/reviews")
+	base := router.Group("/tickets")
 	base.Get("", func(c fiber.Ctx) error { return listTasks(c, state) })
+	base.Post("", func(c fiber.Ctx) error { return createTask(c, state) })
+	base.Get("/:id", func(c fiber.Ctx) error { return getTask(c, state) })
+	base.Post("/:id/action", func(c fiber.Ctx) error { return transitionTask(c, state) })
 	base.Post("/super-team-transfers", func(c fiber.Ctx) error { return createTransfer(c, state) })
 	base.Post("/maven-restorations", func(c fiber.Ctx) error { return createMavenRestore(c, state) })
 	base.Get("/:id/files", func(c fiber.Ctx) error { return reviewFiles(c, state) })

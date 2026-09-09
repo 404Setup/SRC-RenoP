@@ -30,8 +30,12 @@ func TestOpenAPIContractParsesAndIncludesPublicationReviewRoutes(t *testing.T) {
 		t.Fatalf("parse OpenAPI contract: %v", err)
 	}
 	for _, path := range []string{
-		"/api/reviews/{id}/files",
-		"/api/reviews/{id}/files/{file_id}",
+		"/api/tickets",
+		"/api/tickets/{id}",
+		"/api/tickets/{id}/action",
+		"/api/tickets/maven-restorations",
+		"/api/tickets/{id}/files",
+		"/api/tickets/{id}/files/{file_id}",
 		"/api/settings/repositories/publication-reviews",
 		"/api/settings/repositories/{name}/publication-review",
 	} {

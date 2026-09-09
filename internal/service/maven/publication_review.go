@@ -19,7 +19,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
-	"renop/internal/service/reviewnotify"
+	"renop/internal/service/ticketnotify"
 	"renop/internal/utils"
 )
 
@@ -28,7 +28,7 @@ func queueMavenPublicationReview(state *core.AppState,
 ) (*core.PublicationReviewResult, error) {
 	result, err := state.GetDB().CreateOrUpdatePublicationReview(request)
 	if err == nil {
-		reviewnotify.DeliverPending(state, result)
+		ticketnotify.DeliverPending(state, result)
 	}
 	return result, err
 }

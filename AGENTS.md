@@ -48,8 +48,8 @@ Service paths in this table are relative to `internal/service/`; all other paths
 | Files, Disk/S3, quarantine, mirror completion         | `storage/`, `gpg/`, `packagestore/`; shared mirror hook in `storage/mirror.go`                                  |
 | Missing/stale index entries, file-vs-directory errors | `index/`; HTTP classification in `storage/`                                                                     |
 | Upload/configuration races                            | `repositorygate/`, affected protocol, database transaction                                                      |
-| Global teams, ownership, public resources             | `superteam/`, `review/`, `internal/database/super_team_resources.go`                                            |
-| Publication/creation review and notifications         | `review/`, `reviewnotify/`, `internal/database/review*.go`                                                      |
+| Global teams, ownership, public resources             | `superteam/`, `ticket/`, `internal/database/super_team_resources.go`                                            |
+| Tickets, reports, publication review and notifications         | `ticket/`, `ticketnotify/`, `internal/database/ticket*.go`, `internal/database/review*.go`                                                      |
 | Quota, statistics, global/activity logs, messages, periodic work     | `publicationquota/`, `statistics/`, `audit/`, `message/`, `tasks/`                                              |
 | Email transports, templates, durable queue, accounting | `internal/mail/`, `mailqueue/`, `internal/database/mail*.go`, `settings/mail.go`; disposable domain data in `internal/mail/data/`, refreshed by `scripts/update-disposable-domains.ps1` |
 | Outbound networking                                   | `proxy/`, `outboundproxy/`                                                                                      |
@@ -71,7 +71,7 @@ Check `packages/renop-ui/package.json` exports before building another shared co
 | Identity, profile photos/links, provider connections, profile cache | `js/user-profiles.js`, `js/profile.js`, `js/profile-avatar.js`, `js/profile-links.js`, `js/account-language.js`, `js/oauth.js`, `js/components/user-avatar.js` |
 | Account security / recovery / retirement / tokens / administration | `js/account-security.js`, `js/account-emails.js`, `js/fido-utils.js`, `js/mfa-login.js`, `js/profile-email-verification.js`, `js/account-recovery.js`, `js/password-recovery.js`, `js/login-route.js`, `js/account-retirement.js`, `js/api-tokens.js`, `js/users/` |
 | Email accounts, provider presets, billing, delivery     | `js/settings/mail.js`; JSON settings are integrated by `js/settings.js`                                                                                   |
-| Reviews / messages / administrator composer             | `js/reviews.js`, `js/review-messages.js`, `js/messages.js`, `js/notification-composer.js`                                                                |
+| Tickets / reports / messages / administrator composer             | `js/tickets.js`, `js/ticket-report.js`, `js/ticket-messages.js`, `js/messages.js`, `js/notification-composer.js`                                                                |
 | Teams and quota                                         | `js/super-teams.js`, `js/super-team-resources.js`, `js/publication-quota.js`                                                                             |
 | Repository/package UI                                   | `js/browser/`; reuse `repository-view.js`, `package-detail-tabs.js`, `copy-feedback.js`, `user-suggestions.js`; lifecycle in `js/package-deprecation.js`; lock controls in `js/resource-locks.js` |
 | Markdown, clipboard, timestamps, async buttons          | `js/markdown.js`, `js/clipboard.js`, `js/time.js`, `js/components/button.js`                                                                             |
@@ -139,8 +139,8 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   `@create`;
   T2 requests pass team approval before any repository stage. Virtual Docker manifests are not filesystem objects;
   rejection must not delete shared blobs. Block repository reconfiguration/migration/deletion while publication reviews
-  are pending. Notify after durable decisions, deduplicate recipients, and expose reviewer identity only to system
-  administrators.
+  are pending. Notify after durable decisions, deduplicate recipients, and expose handling staff identity only to authorized staff inside tickets, never to the requester.
+  Reports hide reporter identity from targets; assignment and escalation commit atomically with live authority.
 - **Storage and concurrency:** Reuse `packagestore/` for bounded staging, validation, atomic Disk/S3 commit, and
   rollback;
   use `repositorygate/` around mutations that race configuration, review, or retirement. Stream large bodies/archives,

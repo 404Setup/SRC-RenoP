@@ -32,8 +32,9 @@ func accountRetirementPlanTx(tx *Tx, username, userID string,
 		userID, core.MavenPermissionOwner).Scan(&plan.MavenDomainOwnerCount); err != nil {
 		return nil, fmt.Errorf("count active Maven domain ownerships: %w", err)
 	}
-	if err := tx.QueryRow(`SELECT COUNT(*) FROM review_tasks WHERE requested_by_id = ? AND status = ?`,
-		userID, core.ReviewStatusPending).Scan(&plan.PendingReviewCount); err != nil {
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM review_tasks r LEFT JOIN ticket_state ts ON ts.task_id = r.id
+		WHERE (r.requested_by_id = ? OR ts.assignee_id = ?) AND r.status = ?`,
+		userID, userID, core.ReviewStatusPending).Scan(&plan.PendingReviewCount); err != nil {
 		return nil, fmt.Errorf("count pending account reviews: %w", err)
 	}
 	rows, err := tx.Query(`SELECT COUNT(*) FROM cargo_members member

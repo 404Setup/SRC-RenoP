@@ -134,7 +134,7 @@ RenoP 使用 [IANA 引导数据](https://data.iana.org/rdap/dns.json)通过 RDAP
 
 历史包（包括原先未登记到目录的索引文件）在重新认领后仍可下载，但禁止写入。
 发布域认领获批后，可以发布新的包名。当前发布域所有者可在旧包页面申请恢复发布权限，
-对应 `POST /api/reviews/maven-restorations`，由仓库版主或系统管理员批准。
+对应 `POST /api/tickets/maven-restorations`，由仓库版主或系统管理员批准。
 批准时重新核对当前认领和所有权，仅恢复该包，并将其绑定到发布域当前所属团队。
 镜像包和永久弃用的包不能恢复。参见[审核 API](reviews.md)。
 
