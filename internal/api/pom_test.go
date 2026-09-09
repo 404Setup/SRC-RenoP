@@ -71,7 +71,7 @@ func TestGeneratePomFilenameAppending(t *testing.T) {
 	if err := db.CreateMavenDomain(domain, "admin"); err != nil {
 		t.Fatalf("create test Maven domain: %v", err)
 	}
-	if err := db.MarkMavenDomainVerified("com.example", domain.VerificationCode, time.Now().UnixMilli()); err != nil {
+	if err := db.MarkMavenDomainVerified("com.example", domain.VerificationCode, time.Now().UnixMilli(), nil); err != nil {
 		t.Fatalf("verify test Maven domain: %v", err)
 	}
 

@@ -46,3 +46,17 @@ description: 按域管理服务设置、存储库与索引重建
 
 - **路径**：`POST /api/settings/index/rebuild`
 - **行为**：提交可合并的后台重建任务，不会并发启动重复任务。
+
+## 发布域保留周期
+
+`GET /api/settings/maven-domains` 和 `PUT /api/settings/maven-domains` 使用 JSON。
+设置发现列表包含 `maven_domains`，默认值为：
+
+```json
+{"release_value":2,"release_unit":"year"}
+```
+
+`release_value` 是 1–100 的整数；`release_unit` 支持 `month` 或 `year`，按 UTC 日历计算。
+配置文件在 `maven_domains` 下保存相同字段。保存后仅影响新建安全锁，
+不会改变已有释放日期，也不会改变主动关闭的独立 31 天保留期。
+参见 [Maven 发布域状态](maven.md)。

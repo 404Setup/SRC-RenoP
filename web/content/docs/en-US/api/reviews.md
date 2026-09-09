@@ -124,3 +124,18 @@ review file does not exist. `409` covers duplicate pending requests, a completed
 transfer, or a publication that is still receiving files.
 
 Clients must localize the registered code and must not display the response body directly.
+
+## Restore a reclaimed Maven artifact
+
+`POST /api/reviews/maven-restorations` requires the current publishing-domain L4 owner's active `renop_session` cookie:
+
+```json
+{"resource_type":"maven_artifact","repository":"releases","resource_key":"com.example:demo"}
+```
+
+It returns a `maven_restore` task with status `pending` and HTTP `201`; an equivalent pending request returns `409`.
+The repository's moderators and system administrators see the task. Existing decision and cancellation routes apply.
+Approval atomically rechecks the domain claim, live ownership, and independent locks before restoring publication
+and the current domain-team binding. A changed claim cancels the stale request. Rejection or cancellation preserves
+the artifact's restriction and downloads. Pending requests are limited to 64 per account and 4096 overall.
+These tasks have no downloadable review bundle.

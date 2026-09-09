@@ -61,12 +61,12 @@ func TestGitHubIdentityLifecycleAndPrincipalRefresh(t *testing.T) {
 	byProvider, err := db.GetGitHubIdentityByProviderID(101)
 	require.NoError(t, err)
 	assert.Equal(t, "alice", byProvider.Username)
-	authorized, err := db.HasRecentGitHubPrincipal("alice", "EXAMPLE-ORG", now-1)
+	authorized, err := db.GetRecentGitHubPrincipal("alice", "EXAMPLE-ORG", now-1)
 	require.NoError(t, err)
-	assert.True(t, authorized)
-	authorized, err = db.HasRecentGitHubPrincipal("alice", "example-org", now+1)
+	assert.NotNil(t, authorized)
+	authorized, err = db.GetRecentGitHubPrincipal("alice", "example-org", now+1)
 	require.NoError(t, err)
-	assert.False(t, authorized)
+	assert.Nil(t, authorized)
 
 	require.ErrorIs(t, db.StoreGitHubIdentity(bob.UserID, 101, "alice-gh", []core.GitHubPrincipal{
 		{Type: core.GitHubPrincipalUser, GitHubID: 101, Login: "alice-gh"},
@@ -80,12 +80,12 @@ func TestGitHubIdentityLifecycleAndPrincipalRefresh(t *testing.T) {
 		{Type: core.GitHubPrincipalUser, GitHubID: 101, Login: "alice-renamed"},
 		{Type: core.GitHubPrincipalOrganization, GitHubID: 404, Login: "new-org"},
 	}, later))
-	authorized, err = db.HasRecentGitHubPrincipal("alice", "example-org", 0)
+	authorized, err = db.GetRecentGitHubPrincipal("alice", "example-org", 0)
 	require.NoError(t, err)
-	assert.False(t, authorized)
-	authorized, err = db.HasRecentGitHubPrincipal("alice", "new-org", later)
+	assert.Nil(t, authorized)
+	authorized, err = db.GetRecentGitHubPrincipal("alice", "new-org", later)
 	require.NoError(t, err)
-	assert.True(t, authorized)
+	assert.NotNil(t, authorized)
 
 	require.ErrorIs(t, db.DeleteGitHubIdentity("alice"), core.ErrLastLoginMethod)
 	require.NoError(t, db.SetAccountPassword("alice", "configured-password-hash", later+1))

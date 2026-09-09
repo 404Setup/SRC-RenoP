@@ -203,6 +203,7 @@ func DefaultConfig() *Config {
 		Cache:                 DefaultCacheConfig(),
 		Mail:                  mail.DefaultConfig(),
 		Registration:          DefaultRegistrationConfig(),
+		MavenDomains:          DefaultMavenDomainConfig(),
 		GPG:                   GPGConfig{KeyServers: DefaultGPGKeyServers()},
 		Proxy:                 ProxyConfig{},
 	}

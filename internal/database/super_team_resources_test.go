@@ -31,7 +31,7 @@ func TestSuperTeamResourcesAreBoundedAndPrivateAware(t *testing.T) {
 		VerificationHost: "example.org", VerificationCode: "renop=platform",
 		SuperTeamPrefix: "platform", CreatedAt: now,
 	}, "alice"))
-	require.NoError(t, db.MarkMavenDomainVerified("org.example", "renop=platform", now+1))
+	require.NoError(t, db.MarkMavenDomainVerified("org.example", "renop=platform", now+1, nil))
 	require.NoError(t, db.RecordCargoPublication(&core.CargoPackage{
 		Repository: "cargo-public", Name: "platform-crate", NormalizedName: "platform-crate",
 		Description: "Cargo resource", SuperTeamPrefix: "platform", CreatedAt: now, UpdatedAt: now,

@@ -517,6 +517,38 @@ func StatS3(s3Key string) (index.FileInfo, error) {
 	}, nil
 }
 
+// WalkS3Files streams one logical prefix and stops on listing or visitor errors.
+func WalkS3Files(ctx context.Context, cfg *config.S3Config, root string, visit func(string, index.FileInfo) error) error {
+	client, err := GetS3Client(cfg)
+	if err != nil {
+		return err
+	}
+	if client == nil || visit == nil {
+		return errors.New("S3 file traversal is not configured")
+	}
+	prefix, err := s3ObjectKey(cfg, utils.GetS3Key(root))
+	if err != nil {
+		return err
+	}
+	prefix = strings.TrimSuffix(prefix, "/") + "/"
+	ctx, cancel := context.WithTimeout(ctx, s3TransferTimeout)
+	defer cancel()
+	for object := range client.ListObjects(ctx, cfg.Bucket, minio.ListObjectsOptions{Prefix: prefix, Recursive: true}) {
+		if object.Err != nil {
+			return object.Err
+		}
+		localKey, ok := localPathFromS3Object(root, prefix, object.Key)
+		if !ok {
+			log.Printf("Ignoring invalid S3 object key %q", object.Key)
+			continue
+		}
+		if err := visit(localKey, index.FileInfo{Size: object.Size, ModTime: object.LastModified.UnixNano()}); err != nil {
+			return err
+		}
+	}
+	return ctx.Err()
+}
+
 func BuildS3IndexSync(storagePath string, idx *index.FileIndex) error {
 	cfg := currentConfig.Load()
 	if cfg == nil {
@@ -530,41 +562,13 @@ func BuildS3IndexSync(storagePath string, idx *index.FileIndex) error {
 		idx.InsertDir(repoDir)
 
 		if repo.S3 != nil && repo.S3.Enabled {
-			client, err := GetS3Client(repo.S3)
-			if err != nil {
-				return fmt.Errorf("get S3 client for repository %q: %w", repoName, err)
+			if err := WalkS3Files(context.Background(), repo.S3, repoDir, func(path string, info index.FileInfo) error {
+				idx.EnsureParentDirs(path)
+				idx.InsertFile(path, info)
+				return nil
+			}); err != nil {
+				return fmt.Errorf("list S3 objects for repository %q: %w", repoName, err)
 			}
-
-			prefix, err := s3ObjectKey(repo.S3, utils.GetS3Key(repoDir))
-			if err != nil {
-				return fmt.Errorf("resolve S3 key prefix for repository %q: %w", repoName, err)
-			}
-			if !strings.HasSuffix(prefix, "/") {
-				prefix += "/"
-			}
-			ctx, cancel := context.WithTimeout(context.Background(), s3TransferTimeout)
-
-			for object := range client.ListObjects(ctx, repo.S3.Bucket, minio.ListObjectsOptions{
-				Prefix:    prefix,
-				Recursive: true,
-			}) {
-				if object.Err != nil {
-					cancel()
-					return fmt.Errorf("list S3 objects for repository %q: %w", repoName, object.Err)
-				}
-
-				localKey, ok := localPathFromS3Object(repoDir, prefix, object.Key)
-				if !ok {
-					log.Printf("Ignoring invalid S3 object key %q for repo %q", object.Key, repoName)
-					continue
-				}
-				idx.EnsureParentDirs(localKey)
-				idx.InsertFile(localKey, index.FileInfo{
-					Size:    object.Size,
-					ModTime: object.LastModified.UnixNano(),
-				})
-			}
-			cancel()
 		} else {
 			index.ScanLocalDir(repoDir, idx, false)
 		}

@@ -33,9 +33,121 @@ func newMavenDB(t *testing.T) *database.DB {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = db.Close() })
 	for _, username := range []string{"alice", "bob", "admin"} {
-		require.NoError(t, db.SaveToken(&core.AccessToken{Name: username, CreatedAt: time.Now().Format(time.RFC3339)}))
+		token := &core.AccessToken{Name: username, CreatedAt: time.Now().Format(time.RFC3339)}
+		if username == "admin" {
+			token.Permissions = []string{"manager"}
+		}
+		require.NoError(t, db.SaveToken(token))
 	}
 	return db
+}
+
+func TestMavenDomainHealthRedemptionAndReleasedArtifactProtection(t *testing.T) {
+	db := newMavenDB(t)
+	now := time.Now().UnixMilli()
+	for _, name := range []string{"alice", "bob"} {
+		session := &core.Session{PublicID: name + "-redemption", Username: name, CreatedAt: now}
+		session.LastActive.Store(now)
+		require.NoError(t, db.SaveSession(session, name+"-session"))
+	}
+	domain := &core.MavenDomain{Domain: "io.github.original", VerificationType: core.MavenVerificationGitHub,
+		VerificationHost: "original", VerificationCode: "first-proof", CreatedAt: now, Verified: true, VerifiedAt: now,
+		Health: &core.MavenDomainHealth{ProviderType: "user", ProviderID: "42", Status: "active", CheckedAt: now}}
+	require.NoError(t, db.CreateMavenDomain(domain, "alice"))
+	artifact := &core.MavenArtifact{Repository: "releases", Domain: domain.Domain, GroupID: domain.Domain,
+		ArtifactID: "demo", CreatedAt: now, UpdatedAt: now}
+	version := &core.MavenVersion{Repository: "releases", GroupID: domain.Domain, ArtifactID: "demo", Version: "1.0", CreatedAt: now}
+	require.NoError(t, db.RecordMavenPublication(artifact, version))
+	load := func(viewer string) *core.MavenDomain {
+		t.Helper()
+		details, err := db.GetMavenDomainDetails(domain.Domain, viewer)
+		require.NoError(t, err)
+		return details.Domain
+	}
+	blocked := &core.MavenDomainHealth{Status: "prohibited", ProviderType: "user", ProviderID: "99", CheckedAt: now + 1, NextCheckAt: now + 50}
+	require.NoError(t, db.RecordMavenDomainHealth(load("alice"), blocked, now+1000, "fresh-proof"))
+	locked := load("alice")
+	require.Equal(t, "42", locked.Health.ProviderID)
+	require.Equal(t, "fresh-proof", locked.VerificationCode)
+	require.True(t, locked.Member)
+	require.Equal(t, core.MavenPermissionOwner, locked.PermissionLevel)
+	require.Len(t, locked.Locks, 1)
+	target := core.ResourceLockTarget{Format: "maven", Repository: "releases", Name: domain.Domain + ":demo"}
+	require.ErrorIs(t, db.EnsureResourceMutable(target, true), core.ErrResourceLocked)
+	healthy := &core.MavenDomainHealth{Status: "active", ProviderType: "user", ProviderID: "42", CheckedAt: now + 2, NextCheckAt: now + 100}
+	require.NoError(t, db.RecordMavenDomainHealth(locked, healthy, now+2000, ""))
+	locked = load("alice")
+	require.Len(t, locked.Locks, 1, "a healthy check must not automatically redeem the namespace")
+	require.Equal(t, now+1000, locked.Health.ReleaseAt)
+	require.ErrorIs(t, db.ReserveMavenRedemptionAttempt(domain.Domain, "bob", "bob-session", now+3, now), core.ErrMavenPermissionDenied)
+	require.NoError(t, db.ReserveMavenRedemptionAttempt(domain.Domain, "alice", "alice-session", now+3, now))
+	require.ErrorIs(t, db.ReserveMavenRedemptionAttempt(domain.Domain, "alice", "alice-session", now+4, now), core.ErrMavenVerificationRateLimit)
+	require.ErrorIs(t, db.RedeemMavenDomain(locked, healthy, "alice", "revoked-session"), core.ErrMavenPermissionDenied)
+	changedIdentity := *healthy
+	changedIdentity.ProviderID = "99"
+	require.ErrorIs(t, db.RedeemMavenDomain(locked, &changedIdentity, "alice", "alice-session"), core.ErrMavenVerificationFailed)
+	otherLock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "maven-domain", Name: domain.Domain},
+		Source: core.ResourceLockSystem, Mode: core.ResourceLockWrite, Reason: "quality", LockedAt: now}
+	require.NoError(t, db.SetResourceLock(otherLock, "", ""))
+	healthy.CheckedAt = now + 5
+	require.NoError(t, db.RedeemMavenDomain(locked, healthy, "alice", "alice-session"))
+	require.NoError(t, db.RecordMavenDomainHealth(locked, blocked, now+2000, "late-proof"))
+	redeemed := load("alice")
+	require.Zero(t, redeemed.Health.LockedAt)
+	require.Len(t, redeemed.Locks, 1, "redemption must retain independent restrictions")
+	require.Equal(t, "quality", redeemed.Locks[0].Reason)
+	require.NoError(t, db.DeleteResourceLock(otherLock.ResourceLockTarget, core.ResourceLockSystem, "", ""))
+	require.NoError(t, db.EnsureResourceMutable(target, true))
+	blocked.CheckedAt, blocked.NextCheckAt = now+6, now+100
+	require.NoError(t, db.RecordMavenDomainHealth(load("alice"), blocked, now+200, "reclaim-proof"))
+	claim := &core.MavenDomain{Domain: domain.Domain, VerificationType: core.MavenVerificationGitHub,
+		VerificationHost: "original", VerificationCode: "claim-proof", CreatedAt: now + 199}
+	require.ErrorIs(t, db.CreateMavenDomain(claim, "bob"), core.ErrMavenDomainLocked)
+	claim.CreatedAt = now + 200
+	require.NoError(t, db.CreateMavenDomain(claim, "bob"))
+	require.False(t, load("alice").Member)
+	require.Equal(t, core.MavenDomainClaimAwaitingVerification, load("bob").ClaimStatus)
+	newIdentity := &core.MavenDomainHealth{ProviderType: "user", ProviderID: "99", Status: "active", CheckedAt: now + 201, NextCheckAt: now + 300}
+	require.NoError(t, db.MarkMavenDomainVerified(domain.Domain, claim.VerificationCode, now+201, newIdentity))
+	require.ErrorIs(t, db.ReviewMavenDomainClaim(load("bob"), newIdentity, "bob", core.ReviewStatusApproved, now+202), core.ErrMavenPermissionDenied)
+	require.NoError(t, db.ReviewMavenDomainClaim(load("bob"), newIdentity, "admin", core.ReviewStatusApproved, now+202))
+	require.True(t, load("bob").Verified)
+	require.ErrorIs(t, db.EnsureResourceMutable(target, true), core.ErrResourceLocked)
+	require.ErrorIs(t, db.RecordMavenPublication(artifact, version), core.ErrResourceLocked)
+	stored, err := db.GetMavenArtifactDetails("releases", domain.Domain, "demo")
+	require.NoError(t, err)
+	require.Equal(t, now+200, stored.Artifact.ReclaimHoldAt)
+	require.Len(t, stored.Versions, 1)
+	_, err = db.CreateMavenRestoreReview("releases", domain.Domain, "demo", "alice", "alice-session", now+203)
+	require.ErrorIs(t, err, core.ErrReviewPermissionDenied)
+	_, err = db.CreateMavenRestoreReview("releases", domain.Domain, "demo", "bob", "revoked", now+203)
+	require.ErrorIs(t, err, core.ErrReviewPermissionDenied)
+	task, err := db.CreateMavenRestoreReview("releases", domain.Domain, "demo", "bob", "bob-session", now+203)
+	require.NoError(t, err)
+	_, err = db.CreateMavenRestoreReview("releases", domain.Domain, "demo", "bob", "bob-session", now+204)
+	require.ErrorIs(t, err, core.ErrReviewTaskExists)
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "moderator", Permissions: []string{"canmoderate:other"}, CreatedAt: time.Now().Format(time.RFC3339)}))
+	_, err = db.DecideReviewTask(task.ID, "moderator", core.ReviewStatusApproved, "", now+205)
+	require.ErrorIs(t, err, core.ErrReviewPermissionDenied)
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "moderator", Permissions: []string{"canmoderate:releases"}, CreatedAt: time.Now().Format(time.RFC3339)}))
+	tasks, total, err := db.ListReviewTasks(core.ReviewTaskListOptions{Username: "moderator", ModeratedRepositories: []string{"releases"}, Limit: 20})
+	require.NoError(t, err)
+	require.Equal(t, 1, total)
+	require.Equal(t, task.ID, tasks[0].ID)
+	packageLock := &core.ResourceLock{ResourceLockTarget: target, Source: core.ResourceLockSystem,
+		Mode: core.ResourceLockWrite, Reason: "quality", LockedAt: now}
+	require.NoError(t, db.SetResourceLock(packageLock, "", ""))
+	_, err = db.DecideReviewTask(task.ID, "moderator", core.ReviewStatusApproved, "", now+206)
+	require.ErrorIs(t, err, core.ErrResourceLocked)
+	require.NoError(t, db.DeleteResourceLock(target, core.ResourceLockSystem, "", ""))
+	decided, err := db.DecideReviewTask(task.ID, "moderator", core.ReviewStatusApproved, "", now+207)
+	require.NoError(t, err)
+	require.Equal(t, core.ReviewStatusApproved, decided.Status)
+	require.NoError(t, db.EnsureResourceMutable(target, true))
+	_, err = db.DecideReviewTask(task.ID, "admin", core.ReviewStatusApproved, "", now+208)
+	require.ErrorIs(t, err, core.ErrReviewTaskConflict)
+	artifact.ArtifactID, version.ArtifactID = "new", "new"
+	require.NoError(t, db.RecordMavenPublication(artifact, version))
 }
 
 func TestMavenDomainLifecycleColumnsMigrateFromLegacySchema(t *testing.T) {
@@ -82,7 +194,7 @@ func TestManagedMavenDomainsFilterPaginationAndMirrorClaim(t *testing.T) {
 		}
 		require.NoError(t, db.CreateMavenDomain(record, "alice"))
 	}
-	require.NoError(t, db.MarkMavenDomainVerified("com.alpha", "renop-verification=com.alpha", now))
+	require.NoError(t, db.MarkMavenDomainVerified("com.alpha", "renop-verification=com.alpha", now, nil))
 	require.NoError(t, db.EnsureMirroredMavenDomain("org.mirror", now))
 	require.NoError(t, db.EnsureMirroredMavenDomain("org.mirror", now))
 
@@ -145,7 +257,7 @@ func TestMavenDomainOwnershipAndCatalog(t *testing.T) {
 		"com.example", "alice", false, now+5000, now,
 	))
 
-	require.NoError(t, db.MarkMavenDomainVerified("com.example", domain.VerificationCode, now+1))
+	require.NoError(t, db.MarkMavenDomainVerified("com.example", domain.VerificationCode, now+1, nil))
 	publicDomains, err := db.ListMavenDomains("guest", false)
 	require.NoError(t, err)
 	require.Len(t, publicDomains, 1)
@@ -246,7 +358,7 @@ func TestMavenDomainCloseReleaseAndReviewedReclaim(t *testing.T) {
 		CreatedAt: now,
 	}
 	require.NoError(t, db.CreateMavenDomain(domain, "alice"))
-	require.NoError(t, db.MarkMavenDomainVerified(domain.Domain, domain.VerificationCode, now+1))
+	require.NoError(t, db.MarkMavenDomainVerified(domain.Domain, domain.VerificationCode, now+1, nil))
 	require.NoError(t, db.RecordMavenPublication(&core.MavenArtifact{
 		Repository: "releases", Domain: domain.Domain, GroupID: domain.Domain, ArtifactID: "demo",
 		CreatedAt: now + 2, UpdatedAt: now + 2,
@@ -280,14 +392,14 @@ func TestMavenDomainCloseReleaseAndReviewedReclaim(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, artifact.Artifact)
 
-	require.NoError(t, db.MarkMavenDomainVerified(domain.Domain, claim.VerificationCode, claim.CreatedAt+1))
+	require.NoError(t, db.MarkMavenDomainVerified(domain.Domain, claim.VerificationCode, claim.CreatedAt+1, nil))
 	details, err = db.GetMavenDomainDetails(domain.Domain, "bob")
 	require.NoError(t, err)
 	assert.False(t, details.Domain.Verified)
 	assert.Equal(t, core.MavenDomainClaimPending, details.Domain.ClaimStatus)
-	require.NoError(t, db.ReviewMavenDomainClaim(domain.Domain, core.ReviewStatusRejected, claim.CreatedAt+2))
-	require.NoError(t, db.MarkMavenDomainVerified(domain.Domain, claim.VerificationCode, claim.CreatedAt+3))
-	require.NoError(t, db.ReviewMavenDomainClaim(domain.Domain, core.ReviewStatusApproved, claim.CreatedAt+4))
+	require.NoError(t, db.ReviewMavenDomainClaim(claim, nil, "admin", core.ReviewStatusRejected, claim.CreatedAt+2))
+	require.NoError(t, db.MarkMavenDomainVerified(domain.Domain, claim.VerificationCode, claim.CreatedAt+3, nil))
+	require.NoError(t, db.ReviewMavenDomainClaim(claim, &core.MavenDomainHealth{Status: "active", CheckedAt: claim.CreatedAt + 4}, "admin", core.ReviewStatusApproved, claim.CreatedAt+4))
 	details, err = db.GetMavenDomainDetails(domain.Domain, "bob")
 	require.NoError(t, err)
 	assert.True(t, details.Domain.Verified)
@@ -328,7 +440,7 @@ func TestMavenArtifactMovesToMostSpecificDomain(t *testing.T) {
 			CreatedAt: now,
 		}
 		require.NoError(t, db.CreateMavenDomain(domain, candidate.owner))
-		require.NoError(t, db.MarkMavenDomainVerified(candidate.domain, domain.VerificationCode, now))
+		require.NoError(t, db.MarkMavenDomainVerified(candidate.domain, domain.VerificationCode, now, nil))
 	}
 
 	artifact := &core.MavenArtifact{

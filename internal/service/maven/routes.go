@@ -89,6 +89,7 @@ func SetupRoutes(router fiber.Router, state *core.AppState) {
 	registerDomainRoutes(global, state)
 	global.Put("/domains/:domain/locks", func(c fiber.Ctx) error { return setDomainLock(c, state) })
 	global.Delete("/domains/:domain/locks", func(c fiber.Ctx) error { return setDomainLock(c, state) })
+	global.Post("/domains/:domain/redeem", func(c fiber.Ctx) error { return redeemDomain(c, state) })
 	global.Get("/domains/:domain/packages", func(c fiber.Ctx) error { return listDomainArtifacts(c, state) })
 	base := router.Group("/maven/repositories/:repo_name")
 	base.Use(func(c fiber.Ctx) error {
@@ -416,14 +417,16 @@ func createDomain(c fiber.Ctx, state *core.AppState) error {
 		return apiError(c, core.ErrSuperTeamBindingPermission)
 	}
 	if verificationType == core.MavenVerificationGitHub {
-		authorized, authErr := state.GetDB().HasRecentGitHubPrincipal(user.Username, verificationHost,
+		principal, authErr := state.GetDB().GetRecentGitHubPrincipal(user.Username, verificationHost,
 			now-core.GitHubPrincipalFreshnessMillis)
 		if authErr != nil {
 			return apiError(c, authErr)
 		}
-		if authorized {
+		if principal != nil {
 			record.Verified = true
 			record.VerifiedAt = now
+			record.Health = &core.MavenDomainHealth{ProviderType: principal.Type, ProviderID: strconv.FormatInt(principal.GitHubID, 10),
+				Status: "active", CheckedAt: now, NextCheckAt: now + domainHealthInterval.Milliseconds()}
 		}
 	}
 	if verificationType == core.MavenVerificationGitLab {
@@ -436,9 +439,26 @@ func createDomain(c fiber.Ctx, state *core.AppState) error {
 			if configured && provider.Type == "gitlab" && provider.UserInfoURL == "https://gitlab.com/oauth/userinfo" &&
 				identity.Authority == provider.Authority("https://gitlab.com") && identity.AuthorizedAt >= now-core.GitHubPrincipalFreshnessMillis &&
 				slices.Contains(identity.Namespaces, verificationHost) {
-				record.Verified, record.VerifiedAt = true, now
+				health, healthErr := checkDomainHealth(c.Context(), state.Inner.Config.Load(), record)
+				if healthErr == nil && health.Status == "active" &&
+					(health.ProviderType != core.GitHubPrincipalUser || health.ProviderID == identity.Subject) {
+					record.Verified, record.VerifiedAt = true, now
+					health.CheckedAt, health.NextCheckAt = now, now+domainHealthInterval.Milliseconds()
+					record.Health = health
+				}
 				break
 			}
+		}
+	}
+	release := repositorygate.AcquireAllMigrations()
+	defer release()
+	previous, err := state.GetDB().GetMavenDomainDetails(domain, user.Username)
+	if err != nil && !errors.Is(err, core.ErrMavenDomainNotFound) {
+		return apiError(c, err)
+	}
+	if previous != nil && previous.Domain.Released {
+		if err := reconcileReleasedDomain(c.Context(), state, previous.Domain); err != nil {
+			return apiError(c, err)
 		}
 	}
 	if err := state.GetDB().CreateMavenDomain(record, user.Username); err != nil {
@@ -585,15 +605,19 @@ func verifyDomain(c fiber.Ctx, state *core.AppState) error {
 		details.Administrator, now.UnixMilli(), now.Add(-verificationInterval).UnixMilli()); err != nil {
 		return apiError(c, err)
 	}
-	if err := VerifyDomainProof(c.Context(), state.Inner.Config.Load(), details.Domain); err != nil {
+	health, err := VerifyDomainProof(c.Context(), state.Inner.Config.Load(), details.Domain)
+	if err != nil {
 		if errors.Is(err, core.ErrMavenVerificationFailed) {
 			return apiError(c, err)
 		}
 		log.Printf("Maven domain verification failed for %s: %v", details.Domain.Domain, err)
 		return c.Status(fiber.StatusBadGateway).SendString("Maven verification provider is unavailable")
 	}
+	release := repositorygate.AcquireAllMigrations()
+	defer release()
+	health.CheckedAt, health.NextCheckAt = time.Now().UnixMilli(), time.Now().Add(domainHealthInterval).UnixMilli()
 	if err := state.GetDB().MarkMavenDomainVerified(details.Domain.Domain,
-		details.Domain.VerificationCode, now.UnixMilli()); err != nil {
+		details.Domain.VerificationCode, health.CheckedAt, health); err != nil {
 		return apiError(c, err)
 	}
 	details, err = state.GetDB().GetMavenDomainDetails(details.Domain.Domain, user.Username)
@@ -623,10 +647,25 @@ func forceVerifyDomain(c fiber.Ctx, state *core.AppState) error {
 	if details.Domain.Verified {
 		return c.JSON(details.Domain)
 	}
+	var health *core.MavenDomainHealth
+	if details.Domain.VerificationType != core.MavenVerificationMirror && details.Domain.VerificationType != core.MavenVerificationLegacy {
+		health, err = checkDomainHealth(c.Context(), state.Inner.Config.Load(), details.Domain)
+		if err != nil {
+			return c.Status(fiber.StatusBadGateway).SendString("Maven verification provider is unavailable")
+		}
+		if health.Status != "active" {
+			return apiError(c, core.ErrMavenVerificationFailed)
+		}
+	}
 	now := time.Now().UnixMilli()
+	if health != nil {
+		health.CheckedAt, health.NextCheckAt = now, now+domainHealthInterval.Milliseconds()
+	}
+	release := repositorygate.AcquireAllMigrations()
+	defer release()
 	if details.Domain.ClaimStatus != core.MavenDomainClaimPending {
 		if err := state.GetDB().MarkMavenDomainVerified(details.Domain.Domain,
-			details.Domain.VerificationCode, now); err != nil {
+			details.Domain.VerificationCode, now, health); err != nil {
 			return apiError(c, err)
 		}
 		details, err = state.GetDB().GetMavenDomainDetails(details.Domain.Domain, user.Username)
@@ -635,7 +674,7 @@ func forceVerifyDomain(c fiber.Ctx, state *core.AppState) error {
 		}
 	}
 	if details.Domain.ClaimStatus == core.MavenDomainClaimPending {
-		if err := state.GetDB().ReviewMavenDomainClaim(details.Domain.Domain,
+		if err := state.GetDB().ReviewMavenDomainClaim(details.Domain, health, user.Username,
 			core.ReviewStatusApproved, now); err != nil {
 			return apiError(c, err)
 		}
@@ -691,8 +730,27 @@ func reviewDomainClaim(c fiber.Ctx, state *core.AppState) error {
 	if decision != core.ReviewStatusApproved && decision != core.ReviewStatusRejected {
 		return apiError(c, fiber.ErrBadRequest)
 	}
+	details, err := state.GetDB().GetMavenDomainDetails(domain, user.Username)
+	if err != nil {
+		return apiError(c, err)
+	}
+	var health *core.MavenDomainHealth
+	if decision == core.ReviewStatusApproved {
+		health, err = checkDomainHealth(c.Context(), state.Inner.Config.Load(), details.Domain)
+		if err != nil {
+			return c.Status(fiber.StatusBadGateway).SendString("Maven verification provider is unavailable")
+		}
+		if health.Status != "active" {
+			return apiError(c, core.ErrMavenVerificationFailed)
+		}
+	}
 	reviewedAt := time.Now().UnixMilli()
-	if err := state.GetDB().ReviewMavenDomainClaim(domain, decision, reviewedAt); err != nil {
+	if health != nil {
+		health.CheckedAt, health.NextCheckAt = reviewedAt, reviewedAt+domainHealthInterval.Milliseconds()
+	}
+	release := repositorygate.AcquireAllMigrations()
+	defer release()
+	if err := state.GetDB().ReviewMavenDomainClaim(details.Domain, health, user.Username, decision, reviewedAt); err != nil {
 		return apiError(c, err)
 	}
 	action := audit.ActionMavenDomainClaimApprove
@@ -705,7 +763,7 @@ func reviewDomainClaim(c fiber.Ctx, state *core.AppState) error {
 			log.Printf("failed to reconcile approved Maven domain claim %s: %v", domain, err)
 		}
 	}
-	details, err := state.GetDB().GetMavenDomainDetails(domain, user.Username)
+	details, err = state.GetDB().GetMavenDomainDetails(domain, user.Username)
 	if err != nil {
 		return apiError(c, err)
 	}
@@ -782,6 +840,14 @@ func getArtifact(c fiber.Ctx, state *core.AppState) error {
 	details.Artifact.Deprecated = deprecated
 	user := auth.GetUser(c)
 	details.Moderator = user != nil && user.CheckModeratePermission(repo.Name)
+	if details.Artifact.ReclaimHoldAt > 0 && !deprecated && !details.Artifact.Mirrored && user != nil && auth.CurrentCredentialKind(c) == "session" {
+		domain, err := state.GetDB().GetMavenDomainDetails(details.Artifact.Domain, user.Username)
+		if err != nil {
+			return apiError(c, err)
+		}
+		details.CanRequestRestore = domain.Domain.Verified && domain.Domain.Member &&
+			domain.Domain.PermissionLevel >= core.MavenPermissionOwner && len(domain.Domain.Locks) == 0
+	}
 	if user != nil && !strings.EqualFold(user.Username, "guest") {
 		details.Member, err = state.GetDB().IsMavenArtifactMember(repo.Name, groupID, artifactID, user.Username)
 		if err != nil {

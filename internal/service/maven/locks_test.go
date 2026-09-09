@@ -83,7 +83,7 @@ func TestMavenLocksSeparateMetadataFromBytesAndRejectFrozenWrites(t *testing.T) 
 	domain := &core.MavenDomain{Domain: "com.example", SuperTeamPrefix: team.Prefix, VerificationType: core.MavenVerificationDNS,
 		VerificationHost: "example.com", VerificationCode: "renop-verification=locks", CreatedAt: now}
 	require.NoError(t, db.CreateMavenDomain(domain, "alice"))
-	require.NoError(t, db.MarkMavenDomainVerified(domain.Domain, domain.VerificationCode, now))
+	require.NoError(t, db.MarkMavenDomainVerified(domain.Domain, domain.VerificationCode, now, nil))
 	require.NoError(t, db.ForceAddMavenMembers(domain.Domain, "alice", []string{"bob"}, 0))
 	app := fiber.New()
 	app.Use(func(c fiber.Ctx) error {
@@ -181,7 +181,7 @@ func TestMavenLocksSeparateMetadataFromBytesAndRejectFrozenWrites(t *testing.T) 
 		nested := &core.MavenDomain{Domain: "com.example.independent", VerificationType: core.MavenVerificationDNS,
 			VerificationHost: "independent.example.com", VerificationCode: "nested", CreatedAt: now}
 		require.NoError(t, db.CreateMavenDomain(nested, "writer"))
-		require.NoError(t, db.MarkMavenDomainVerified(nested.Domain, nested.VerificationCode, now))
+		require.NoError(t, db.MarkMavenDomainVerified(nested.Domain, nested.VerificationCode, now, nil))
 		for relative, data := range map[string]string{
 			"com/example/maven-metadata.xml":                  `<metadata><plugins><plugin><prefix>demo</prefix><artifactId>demo</artifactId></plugin></plugins></metadata>`,
 			"com/example/uncatalogued/file.bin":               "private bytes",
@@ -248,6 +248,8 @@ func TestMavenLocksSeparateMetadataFromBytesAndRejectFrozenWrites(t *testing.T) 
 		require.Equal(t, http.StatusForbidden, status)
 		status, data := request(http.MethodPut, url, "global", body, true)
 		require.Equal(t, http.StatusNoContent, status, string(data))
+		status, data = request(http.MethodPost, "/api/maven/domains", "alice", `{"domain":"com.example.bypass"}`, true)
+		require.Equal(t, http.StatusLocked, status, "A locked publishing namespace cannot be subdivided: "+string(data))
 		for _, viewer := range []string{"alice", "bob", "global", "admin", "guest", "scoped"} {
 			status, data := request(http.MethodGet, "/api/maven/domains/com.example", viewer, "", true)
 			if viewer == "guest" || viewer == "scoped" {

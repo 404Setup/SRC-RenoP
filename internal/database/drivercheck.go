@@ -500,7 +500,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		if err := db.CreateMavenDomain(domain, username); err != nil {
 			return err
 		}
-		if err := db.MarkMavenDomainVerified(domain.Domain, domain.VerificationCode, now); err != nil {
+		if err := db.MarkMavenDomainVerified(domain.Domain, domain.VerificationCode, now, nil); err != nil {
 			return err
 		}
 		if err := db.RecordMavenPublication(&core.MavenArtifact{
@@ -522,6 +522,14 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		if err := db.CreateMavenDomain(originalClaim, username); err != nil {
 			return err
 		}
+		if err := db.MarkMavenDomainVerified(lifecycleDomain, originalClaim.VerificationCode, closedAt, nil); err != nil {
+			return err
+		}
+		if err := db.RecordMavenPublication(&core.MavenArtifact{Repository: mavenRepository, Domain: lifecycleDomain,
+			GroupID: lifecycleDomain, ArtifactID: "legacy", CreatedAt: closedAt},
+			&core.MavenVersion{Repository: mavenRepository, GroupID: lifecycleDomain, ArtifactID: "legacy", Version: "1.0", CreatedAt: closedAt}); err != nil {
+			return err
+		}
 		if err := db.CloseMavenDomain(lifecycleDomain, username, false, closedAt); err != nil {
 			return err
 		}
@@ -533,16 +541,73 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		if err := db.CreateMavenDomain(reclaimed, memberUsername); err != nil {
 			return err
 		}
-		if err := db.MarkMavenDomainVerified(lifecycleDomain, reclaimed.VerificationCode, now+1); err != nil {
+		if err := db.MarkMavenDomainVerified(lifecycleDomain, reclaimed.VerificationCode, now+1, nil); err != nil {
 			return err
 		}
-		if err := db.ReviewMavenDomainClaim(lifecycleDomain, core.ReviewStatusApproved, now+2); err != nil {
+		claimReviewer := "claim-reviewer-" + suffix
+		if err := db.SaveToken(&core.AccessToken{Name: claimReviewer, Permissions: []string{"manager"}, CreatedAt: time.Now().Format(time.RFC3339)}); err != nil {
+			return err
+		}
+		if err := db.ReviewMavenDomainClaim(reclaimed, &core.MavenDomainHealth{Status: "active", CheckedAt: now + 2}, claimReviewer, core.ReviewStatusApproved, now+2); err != nil {
 			return err
 		}
 		reclaimedDetails, err := db.GetMavenDomainDetails(lifecycleDomain, memberUsername)
 		if err != nil || reclaimedDetails == nil || reclaimedDetails.Domain == nil ||
 			!reclaimedDetails.Domain.Verified || reclaimedDetails.Domain.ClaimStatus != "" {
 			return errorsOrMissing(err, "released Maven domain reviewed reclaim")
+		}
+		if err := db.EnsureResourceMutable(core.ResourceLockTarget{Format: "maven", Repository: mavenRepository,
+			Name: lifecycleDomain + ":legacy"}, true); !errors.Is(err, core.ErrResourceLocked) {
+			return errorsOrMissing(err, "reclaimed Maven artifact remains frozen")
+		}
+		restoreSession := &core.Session{PublicID: "restore-" + suffix, Username: memberUsername, CreatedAt: now}
+		restoreSession.LastActive.Store(now)
+		if err := db.SaveSession(restoreSession, "restore-session-"+suffix); err != nil {
+			return err
+		}
+		restoreTask, err := db.CreateMavenRestoreReview(mavenRepository, lifecycleDomain, "legacy", memberUsername, "restore-session-"+suffix, now+3)
+		if err != nil {
+			return err
+		}
+		if _, err := db.DecideReviewTask(restoreTask.ID, claimReviewer, core.ReviewStatusApproved, "", now+4); err != nil {
+			return err
+		}
+		if err := db.EnsureResourceMutable(core.ResourceLockTarget{Format: "maven", Repository: mavenRepository,
+			Name: lifecycleDomain + ":legacy"}, true); err != nil {
+			return err
+		}
+		healthDetails, err := db.GetMavenDomainDetails(mavenDomain, username)
+		if err != nil {
+			return err
+		}
+		if err := db.RecordMavenDomainHealth(healthDetails.Domain, &core.MavenDomainHealth{Status: "expired",
+			CheckedAt: now + 5, NextCheckAt: now + 1000}, now+2000, "redemption-"+suffix); err != nil {
+			return err
+		}
+		healthDetails, err = db.GetMavenDomainDetails(mavenDomain, username)
+		if err != nil || healthDetails.Domain.Health.LockedAt == 0 || len(healthDetails.Domain.Locks) == 0 {
+			return errorsOrMissing(err, "Maven domain health restriction")
+		}
+		if _, err := db.ListMavenDomainHealthChecks(now+1001, 16); err != nil {
+			return err
+		}
+		redemptionSession := &core.Session{PublicID: "redemption-" + suffix, Username: username, CreatedAt: now}
+		redemptionSession.LastActive.Store(now)
+		if err := db.SaveSession(redemptionSession, "redemption-session-"+suffix); err != nil {
+			return err
+		}
+		if err := db.RedeemMavenDomain(healthDetails.Domain, &core.MavenDomainHealth{Status: "active", CheckedAt: now + 6,
+			NextCheckAt: now + 1000}, username, "redemption-session-"+suffix); err != nil {
+			return err
+		}
+		if err := db.EnsureResourceMutable(core.ResourceLockTarget{Format: "maven-domain", Name: mavenDomain}, true); err != nil {
+			return err
+		}
+		if err := db.DeleteMavenVersionMetadata(mavenRepository, lifecycleDomain, "legacy", "1.0"); err != nil {
+			return err
+		}
+		if _, err := db.Exec(`DELETE FROM review_tasks WHERE id = ?`, restoreTask.ID); err != nil {
+			return err
 		}
 		npmPackage := "@" + globalTeamPrefix + "/demo"
 		if _, err := db.CreateNPMPackageForTeam(

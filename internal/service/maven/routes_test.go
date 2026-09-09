@@ -11,6 +11,7 @@
 package maven
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -35,6 +36,27 @@ import (
 
 func newMavenRouteState(t *testing.T) (*core.AppState, *config.User) {
 	t.Helper()
+	previousClient := verificationClient
+	verificationClient = func(*config.OutboundProxy) (*http.Client, error) {
+		return &http.Client{Transport: verificationRoundTripper(func(request *http.Request) (*http.Response, error) {
+			switch request.URL.Host {
+			case "data.iana.org":
+				return verificationResponse(http.StatusOK, `{"services":[[["com","org","net"],["https://rdap.example/"]]]}`), nil
+			case "rdap.example":
+				body, err := json.Marshal(map[string]any{"objectClassName": "domain", "ldhName": strings.TrimPrefix(request.URL.Path, "/domain/"), "status": []string{"active"}})
+				return verificationResponse(http.StatusOK, string(body)), err
+			case "gitlab.com":
+				if request.URL.Path == "/api/v4/groups/owned-group" {
+					return verificationResponse(http.StatusOK, `{"id":202,"full_path":"owned-group"}`), nil
+				}
+			}
+			return verificationResponse(http.StatusNotFound, `{}`), nil
+		})}, nil
+	}
+	rdapBootstrap.Lock()
+	rdapBootstrap.expires = time.Time{}
+	rdapBootstrap.Unlock()
+	t.Cleanup(func() { verificationClient = previousClient })
 	storagePath := testutil.TempDir(t)
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = storagePath
@@ -57,7 +79,11 @@ func newMavenRouteState(t *testing.T) (*core.AppState, *config.User) {
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
 	state.Inner.DB = db
 	for _, username := range []string{"alice", "bob", "admin"} {
-		require.NoError(t, db.SaveToken(&core.AccessToken{Name: username, CreatedAt: "2026-08-25T00:00:00Z"}))
+		token := &core.AccessToken{Name: username, CreatedAt: "2026-08-25T00:00:00Z"}
+		if username == "admin" {
+			token.Permissions = []string{"manager"}
+		}
+		require.NoError(t, db.SaveToken(token))
 	}
 	return state, &config.User{Username: "alice", Roles: []string{"base"}}
 }
@@ -73,6 +99,74 @@ func mavenRequest(t *testing.T, app *fiber.App, method, path, body string) *http
 	return response
 }
 
+func TestMavenDomainRedemptionRequiresCookieOwnerAndFreshProof(t *testing.T) {
+	state, currentUser := newMavenRouteState(t)
+	db := state.GetDB()
+	now := time.Now().UnixMilli()
+	for _, username := range []string{"alice", "bob"} {
+		session := &core.Session{PublicID: username, Username: username, CreatedAt: now}
+		session.LastActive.Store(now)
+		require.NoError(t, db.SaveSession(session, username+"-session"))
+	}
+	domain := &core.MavenDomain{Domain: "io.github.example", VerificationType: core.MavenVerificationGitHub,
+		VerificationHost: "example", VerificationCode: "old-proof", Verified: true, CreatedAt: now, VerifiedAt: now,
+		Health: &core.MavenDomainHealth{ProviderType: "user", ProviderID: "42", Status: "active", CheckedAt: now}}
+	require.NoError(t, db.CreateMavenDomain(domain, "alice"))
+	require.NoError(t, db.RecordMavenDomainHealth(domain, &core.MavenDomainHealth{Status: "hold", CheckedAt: now + 1, NextCheckAt: now + 10000}, now+100000, "fresh-proof"))
+	verificationClient = func(*config.OutboundProxy) (*http.Client, error) {
+		return &http.Client{Transport: verificationRoundTripper(func(request *http.Request) (*http.Response, error) {
+			if request.URL.Host == "api.github.com" && request.URL.Path == "/users/example" {
+				return verificationResponse(http.StatusOK, `{"id":42,"type":"User","login":"example","bio":"fresh-proof"}`), nil
+			}
+			return verificationResponse(http.StatusServiceUnavailable, `{}`), nil
+		})}, nil
+	}
+	kind := "session"
+	app := fiber.New()
+	app.Use(func(c fiber.Ctx) error {
+		c.Locals("user", currentUser)
+		c.Locals("auth_credential_kind", kind)
+		c.Locals("current_session_id", currentUser.Username+"-session")
+		return c.Next()
+	})
+	SetupRoutes(app.Group("/api"), state)
+	request := func(cookie bool, expected int) {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPost, "/api/maven/domains/io.github.example/redeem", nil)
+		if cookie {
+			req.AddCookie(&http.Cookie{Name: "renop_session", Value: currentUser.Username + "-session"})
+		}
+		response, err := app.Test(req)
+		require.NoError(t, err)
+		defer response.Body.Close()
+		body, err := io.ReadAll(response.Body)
+		require.NoError(t, err)
+		require.Equal(t, expected, response.StatusCode, string(body))
+	}
+	request(false, http.StatusForbidden)
+	kind = "api_token"
+	request(true, http.StatusForbidden)
+	kind = "session"
+	currentUser = &config.User{Username: "bob"}
+	request(true, http.StatusForbidden)
+	currentUser = &config.User{Username: "alice"}
+	request(true, http.StatusOK)
+	loaded, err := db.GetMavenDomainDetails(domain.Domain, "alice")
+	require.NoError(t, err)
+	require.Zero(t, loaded.Domain.Health.LockedAt)
+	require.Equal(t, "42", loaded.Domain.Health.ProviderID)
+	expired := &core.MavenDomain{Domain: "com.expired", VerificationType: core.MavenVerificationDNS,
+		VerificationHost: "expired.com", VerificationCode: "expiration-proof", Verified: true, CreatedAt: now, VerifiedAt: now,
+		Health: &core.MavenDomainHealth{Status: "active", CheckedAt: now, ExpiresAt: now - 1}}
+	require.NoError(t, db.CreateMavenDomain(expired, "alice"))
+	CheckDomainHealth(context.Background(), state)
+	loaded, err = db.GetMavenDomainDetails(expired.Domain, "alice")
+	require.NoError(t, err)
+	require.Equal(t, "expired", loaded.Domain.Health.Status)
+	require.Positive(t, loaded.Domain.Health.LockedAt, "a provider outage cannot extend a known expiration")
+	require.Equal(t, state.Inner.Config.Load().MavenDomains.ReleaseAt(loaded.Domain.Health.LockedAt), loaded.Domain.Health.ReleaseAt)
+}
+
 func TestMavenPermanentDeprecationKeepsDownloadsAndBlocksMutations(t *testing.T) {
 	state, _ := newMavenRouteState(t)
 	currentUser := &config.User{Username: "admin", Roles: []string{"manager"}}
@@ -82,7 +176,7 @@ func TestMavenPermanentDeprecationKeepsDownloadsAndBlocksMutations(t *testing.T)
 		VerificationHost: "example.com", VerificationCode: "renop-verification=frozen", CreatedAt: now,
 	}
 	require.NoError(t, state.GetDB().CreateMavenDomain(domain, "admin"))
-	require.NoError(t, state.GetDB().MarkMavenDomainVerified(domain.Domain, domain.VerificationCode, now+1))
+	require.NoError(t, state.GetDB().MarkMavenDomainVerified(domain.Domain, domain.VerificationCode, now+1, nil))
 
 	app := fiber.New()
 	app.Use(func(c fiber.Ctx) error {
@@ -141,7 +235,7 @@ func TestMavenDomainCloseKeepsDownloadsAndReleasedClaimNeedsReview(t *testing.T)
 		VerificationHost: "closed.com", VerificationCode: "renop-verification=closed", CreatedAt: now,
 	}
 	require.NoError(t, state.GetDB().CreateMavenDomain(domain, "alice"))
-	require.NoError(t, state.GetDB().MarkMavenDomainVerified(domain.Domain, domain.VerificationCode, now+1))
+	require.NoError(t, state.GetDB().MarkMavenDomainVerified(domain.Domain, domain.VerificationCode, now+1, nil))
 
 	released := &core.MavenDomain{
 		Domain: "com.released", VerificationType: core.MavenVerificationDNS,
@@ -151,6 +245,23 @@ func TestMavenDomainCloseKeepsDownloadsAndReleasedClaimNeedsReview(t *testing.T)
 	require.NoError(t, state.GetDB().CreateMavenDomain(released, "alice"))
 	require.NoError(t, state.GetDB().CloseMavenDomain(released.Domain, "alice", false,
 		now-core.MavenDomainReleaseLockMillis-1))
+	oldFile := filepath.Join(state.Inner.Config.Load().StoragePath, "releases/com/released/legacy/1.0/legacy-1.0.jar")
+	require.NoError(t, os.MkdirAll(filepath.Dir(oldFile), 0700))
+	require.NoError(t, os.WriteFile(oldFile, []byte("retained"), 0600))
+	state.Inner.FileIndex.EnsureParentDirs(oldFile)
+	state.Inner.FileIndex.InsertFile(oldFile, index.FileInfo{Size: 8, ModTime: now})
+	unindexedFile := filepath.Join(state.Inner.Config.Load().StoragePath, "releases/com/released/offline/1.0/offline-1.0.jar")
+	require.NoError(t, os.MkdirAll(filepath.Dir(unindexedFile), 0700))
+	require.NoError(t, os.WriteFile(unindexedFile, []byte("unindexed"), 0600))
+	pendingPath := "com/released/pending/1.0/pending-1.0.jar"
+	pendingFile := filepath.Join(state.Inner.Config.Load().StoragePath, "releases", filepath.FromSlash(pendingPath))
+	require.NoError(t, os.MkdirAll(filepath.Dir(pendingFile), 0700))
+	require.NoError(t, os.WriteFile(pendingFile, []byte("unapproved"), 0600))
+	pendingReview, err := state.GetDB().CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+		ResourceType: core.ReviewResourceMavenArtifact, Repository: "releases", ResourceKey: "com.released:pending",
+		ResourceName: "com.released:pending", Version: "1.0", RequestedBy: "alice", Policy: config.PublicationReviewEveryVersion,
+		CreatedAt: released.CreatedAt + 1, Files: []*core.ReviewFile{{Path: pendingPath, Size: 10}}})
+	require.NoError(t, err)
 
 	app := fiber.New()
 	app.Use(func(c fiber.Ctx) error {
@@ -194,7 +305,7 @@ func TestMavenDomainCloseKeepsDownloadsAndReleasedClaimNeedsReview(t *testing.T)
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&claim))
 	require.NoError(t, response.Body.Close())
 	assert.Equal(t, core.MavenDomainClaimAwaitingVerification, claim.ClaimStatus)
-	require.NoError(t, state.GetDB().MarkMavenDomainVerified(claim.Domain, claim.VerificationCode, now+2))
+	require.NoError(t, state.GetDB().MarkMavenDomainVerified(claim.Domain, claim.VerificationCode, now+2, nil))
 
 	currentUser = &config.User{Username: "admin", Roles: []string{"manager"}}
 	response = mavenRequest(t, app, http.MethodGet,
@@ -215,6 +326,29 @@ func TestMavenDomainCloseKeepsDownloadsAndReleasedClaimNeedsReview(t *testing.T)
 	require.NoError(t, response.Body.Close())
 	assert.True(t, claim.Verified)
 	assert.Empty(t, claim.ClaimStatus)
+	legacy, err := state.GetDB().GetMavenArtifactDetails("releases", released.Domain, "legacy")
+	require.NoError(t, err)
+	require.Positive(t, legacy.Artifact.ReclaimHoldAt)
+	require.Len(t, legacy.Versions, 1)
+	unindexed, err := state.GetDB().GetMavenArtifactDetails("releases", released.Domain, "offline")
+	require.NoError(t, err)
+	require.Positive(t, unindexed.Artifact.ReclaimHoldAt)
+	_, err = state.GetDB().GetMavenArtifactDetails("releases", released.Domain, "pending")
+	require.ErrorIs(t, err, core.ErrMavenArtifactNotFound, "reclamation must not expose an unapproved publication")
+	stillPending, err := state.GetDB().GetReviewTask(pendingReview.TaskID)
+	require.NoError(t, err)
+	require.Equal(t, core.ReviewStatusPending, stillPending.Status)
+	currentUser = &config.User{Username: "bob", Roles: []string{"base"}}
+	response = mavenRequest(t, app, http.MethodPut, "/releases/com/released/legacy/2.0/legacy-2.0.jar", "blocked")
+	require.Equal(t, http.StatusLocked, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	currentUser = &config.User{Username: "guest", Roles: []string{"guest"}}
+	response = mavenRequest(t, app, http.MethodGet, "/releases/com/released/legacy/1.0/legacy-1.0.jar", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	retained, err := io.ReadAll(response.Body)
+	require.NoError(t, err)
+	require.Equal(t, "retained", string(retained))
+	require.NoError(t, response.Body.Close())
 }
 
 func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {

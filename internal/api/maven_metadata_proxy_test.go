@@ -45,7 +45,7 @@ func TestMavenLockedMetadataCacheAndLatestFileRespectViewer(t *testing.T) {
 	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "owner"}))
 	require.NoError(t, db.CreateMavenDomain(&core.MavenDomain{Domain: "com.example", VerificationType: "dns",
 		VerificationHost: "example.com", VerificationCode: "proof", CreatedAt: now}, "owner"))
-	require.NoError(t, db.MarkMavenDomainVerified("com.example", "proof", now))
+	require.NoError(t, db.MarkMavenDomainVerified("com.example", "proof", now, nil))
 	root := filepath.Join(cfg.StoragePath, "releases/com/example/demo")
 	for _, version := range []string{"1.0", "2.0"} {
 		require.NoError(t, db.RecordMavenPublication(&core.MavenArtifact{Repository: "releases", Domain: "com.example",

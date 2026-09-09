@@ -46,3 +46,17 @@ description: ドメイン別サービス設定、リポジトリ管理、イン�
 
 - **パス**: `POST /api/settings/index/rebuild`
 - **動作**: 統合可能なバックグラウンド再構築を投入し、同じ処理を並行起動しません。
+
+## 公開ドメインの予約期間
+
+`GET /api/settings/maven-domains` と `PUT /api/settings/maven-domains` は JSON を使用します。
+設定一覧には `maven_domains` が含まれます。既定値は次のとおりです。
+
+```json
+{"release_value":2,"release_unit":"year"}
+```
+
+`release_value` は 1–100 の整数、`release_unit` は `month` または `year` で、UTC の暦に従って計算します。
+設定ファイルの `maven_domains` に同じフィールドを保存します。保存後は新しい安全ロックに適用され、
+既存の解放日や自主閉鎖の独立した 31 日間の予約期間は変更しません。
+[Maven ドメイン状態](maven.md)を参照してください。

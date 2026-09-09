@@ -158,7 +158,7 @@ type StateDB interface {
 	LinkGitHubIdentity(username, session, snapshot string, githubUserID int64, githubLogin string, principals []GitHubPrincipal, authorizedAt int64, emails ...ProviderEmail) error
 	RefreshGitHubIdentity(userID string, githubUserID int64, githubLogin string, principals []GitHubPrincipal, authorizedAt int64, emails ...ProviderEmail) error
 	DeleteGitHubIdentity(username string) error
-	HasRecentGitHubPrincipal(username, login string, authorizedAfter int64) (bool, error)
+	GetRecentGitHubPrincipal(username, login string, authorizedAfter int64) (*GitHubPrincipal, error)
 	FindGPGPublicKeys(identifier string) ([]*GPGPublicKey, error)
 	GetGPGPublicKey(fingerprint string) (*GPGPublicKey, error)
 	ListUserGPGKeys(username string) ([]*UserGPGKey, error)
@@ -256,9 +256,15 @@ type StateDB interface {
 	SearchMavenRepositoryDomains(repository, query, username string, moderator bool, limit int) ([]*MavenDomain, int, error)
 	GetMavenDomainDetails(domain, username string) (*MavenDomainDetails, error)
 	ReserveMavenVerificationAttempt(domain, actor string, administrator bool, checkedAt, minimumPrevious int64) error
-	MarkMavenDomainVerified(domain, code string, verifiedAt int64) error
+	MarkMavenDomainVerified(domain, code string, verifiedAt int64, health *MavenDomainHealth) error
+	ListMavenDomainHealthChecks(now int64, limit int) ([]*MavenDomain, error)
+	RecordMavenDomainHealth(expected *MavenDomain, health *MavenDomainHealth, releaseAt int64, code string) error
+	ReserveMavenRedemptionAttempt(domain, actor, session string, checkedAt, minimumPrevious int64) error
+	RedeemMavenDomain(expected *MavenDomain, health *MavenDomainHealth, actor, session string) error
 	CloseMavenDomain(domain, actor string, administrator bool, closedAt int64) error
-	ReviewMavenDomainClaim(domain, decision string, reviewedAt int64) error
+	ReviewMavenDomainClaim(expected *MavenDomain, health *MavenDomainHealth, actor, decision string, reviewedAt int64) error
+	CreateMavenRestoreReview(repository, groupID, artifactID, actor, session string, createdAt int64) (*ReviewTask, error)
+	RecordMavenReleasedPublication(expected *MavenDomain, artifact *MavenArtifact, version *MavenVersion) error
 	HasMavenMembership(username string) (bool, error)
 	RecordMavenPublication(artifact *MavenArtifact, version *MavenVersion) error
 	RecordMavenMirrorPublication(artifact *MavenArtifact, version *MavenVersion) error

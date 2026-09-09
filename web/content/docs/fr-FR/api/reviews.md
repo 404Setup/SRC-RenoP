@@ -128,3 +128,17 @@ la tâche ou le fichier est absent. `409` couvre une demande en double, une tâc
 transfert interdit ou une publication qui reçoit encore des fichiers.
 
 Les clients doivent traduire le code enregistré et ne jamais afficher directement le corps de la réponse.
+
+## Rétablir un paquet Maven revendiqué
+
+`POST /api/reviews/maven-restorations` exige le cookie actif `renop_session` du propriétaire L4 actuel du domaine :
+
+```json
+{"resource_type":"maven_artifact","repository":"releases","resource_key":"com.example:demo"}
+```
+
+La réponse HTTP `201` contient une tâche `maven_restore` à l’état `pending` ; une demande équivalente en attente renvoie `409`.
+Les modérateurs du dépôt et les administrateurs système voient la tâche. Les routes habituelles de décision et d’annulation s’appliquent.
+L’approbation revérifie atomiquement la revendication, la propriété effective et les restrictions indépendantes avant de rétablir la publication et le lien avec l’équipe actuelle du domaine.
+Une revendication modifiée annule la demande obsolète. Le rejet ou l’annulation conserve la restriction et les téléchargements.
+Les demandes en attente sont limitées à 64 par compte et 4096 au total. Ces tâches ne proposent aucune archive de revue à télécharger.

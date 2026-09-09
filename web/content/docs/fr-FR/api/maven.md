@@ -107,3 +107,47 @@ Les administrateurs système et les modérateurs globaux gèrent le verrouillage
 ```
 
 PUT accepte le corps ci-dessous ; DELETE accepte `{}`. Les deux renvoient `204`. Les jetons API et les modérateurs limités à un dépôt ne peuvent pas gérer un domaine global. La suppression du verrouillage manuel conserve les restrictions système et celles héritées des équipes. Le champ `moderator` des détails reflète les droits de la requête actuelle ; les pages publiques, du compte et du dépôt partagent la même commande. Les modifications, migrations et suppressions de dépôts vérifient aussi les espaces de noms verrouillés présents uniquement sur disque ou dans l’index des fichiers.
+
+## État du domaine et récupération
+
+RenoP vérifie les domaines enregistrés par RDAP avec l’[amorçage IANA](https://data.iana.org/rdap/dns.json).
+Il traite au plus 16 domaines par minute ; les contrôles réussis sont espacés de six heures, les contrôles indisponibles sont réessayés après 15 minutes.
+
+| État du registre | Motif public du verrouillage |
+| --- | --- |
+| `serverHold`, `clientHold` | `hold` |
+| `pendingDelete`, `restorable`, `redemptionPeriod`, `pendingRestore`, ou date d’expiration dépassée | `expired` |
+| `clientRenewProhibited`, `serverRenewProhibited`, `renew prohibited` | `prohibited` |
+
+Les équivalents RDAP séparés par des espaces sont acceptés. Une panne ne retire aucune restriction et ne prolonge pas une expiration connue.
+Un registre indisponible empêche un nouveau contrôle ; la preuve de propriété et l’approbation administrative d’une revendication exigent un résultat sain.
+
+Pour `io.github.<account>` et `io.gitlab.<account>`, RenoP contrôle le compte public au lieu de l’expiration du domaine.
+La vérification mémorise son identifiant numérique immuable et son type, utilisateur ou organisation/groupe.
+Un compte absent bloque la publication ; un changement d’identifiant ou de type constitue un litige, même si le nom reste identique.
+Les anciens espaces vérifiés sans identifiant enregistré exigent une nouvelle preuve avant de récupérer leurs droits.
+
+Le verrouillage d’état bloque le domaine et son contenu tout en conservant les téléchargements et les membres.
+Le premier verrouillage renouvelle le code de vérification. Après le rétablissement externe, le propriétaire L4 actuel publie
+la nouvelle preuve et choisit **Demander la récupération**, qui appelle `POST /api/maven/domains/{domain}/redeem` avec
+le cookie actif `renop_session`. Une tentative par domaine est autorisée toutes les cinq secondes.
+Un contrôle sain en arrière-plan ne rétablit jamais les droits automatiquement. La récupération retire seulement ce verrouillage ;
+les restrictions manuelles, système et d’équipe indépendantes restent actives.
+Le champ `health` expose l’état, les dates de contrôle et d’expiration, l’identité du fournisseur et les dates de verrouillage et de libération.
+
+## Paquets des domaines libérés
+
+Les verrouillages de sécurité réservent le nom pendant deux années calendaires par défaut.
+Les [paramètres du domaine](settings.md) acceptent 1–100 mois ou années ; les modifications concernent les nouveaux verrouillages.
+La fermeture volontaire conserve son délai distinct de 31 jours.
+Après libération, un nouveau demandeur doit prouver la propriété et obtenir l’approbation administrative avec un nouveau contrôle d’état.
+
+Les anciens paquets, y compris les fichiers indexés auparavant absents du catalogue, restent téléchargeables mais non modifiables après la revendication.
+Les nouveaux noms de paquets peuvent être publiés après l’approbation du domaine.
+Le propriétaire actuel demande l’accès depuis la page de l’ancien paquet via `POST /api/reviews/maven-restorations`.
+Un modérateur du dépôt ou un administrateur système doit approuver la demande.
+L’approbation revérifie la revendication et le propriétaire, rétablit uniquement ce paquet et l’associe à l’équipe actuelle du domaine.
+Les miroirs et les paquets définitivement abandonnés ne peuvent pas être rétablis. Voir l’[API de revue](reviews.md).
+
+La préparation lit les métadonnées du disque ou de S3 en flux, avec un délai d’une minute. Une erreur de stockage ou un dépassement laisse la revendication actuelle inchangée.
+Les publications en attente restent dans leur procédure de revue et sont exclues de l’importation du catalogue public.

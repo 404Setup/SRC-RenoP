@@ -8,6 +8,8 @@
 package database
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -57,6 +59,23 @@ func (db *DB) attachMavenDomainLocks(domains []*core.MavenDomain) error {
 
 func ensureMavenDomainMutableQuery(queryRow func(string, ...any) row, domain string) error {
 	return ensureResourceMutableQuery(queryRow, mavenDomainLockTarget(domain), false)
+}
+
+func ensureMavenDomainAncestorMutableTx(tx *Tx, domain string) error {
+	var locked int
+	err := tx.QueryRow(`SELECT 1 FROM `+resourceLocksQuery("maven-domain")+` l
+		WHERE l.format = 'maven-domain' AND SUBSTR(?, 1, LENGTH(l.resource_name) + 1) = CONCAT(l.resource_name, '.')
+		AND NOT EXISTS (SELECT 1 FROM maven_domains specific WHERE specific.repository = '' AND specific.verified = 1
+			AND LENGTH(specific.domain) > LENGTH(l.resource_name) AND specific.domain <> ?
+			AND SUBSTR(?, 1, LENGTH(specific.domain) + 1) = CONCAT(specific.domain, '.')) LIMIT 1`,
+		domain, domain, domain).Scan(&locked)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return core.ErrResourceLocked
 }
 
 func (db *DB) mavenDomainMetadataVisibility(username string, moderator bool, targets []core.ResourceLockTarget) ([]bool, error) {

@@ -129,6 +129,9 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   files to everyone. Include index/search/profile visibility, cached files, mirror refreshes, and repository changes.
 - **Maven lifecycle:** Domains are global across repositories. Closure blocks mutations, preserves downloads, and holds
   the name for 31 days; a later claimant must verify ownership and obtain administrator approval before publication.
+  Security monitoring in `maven/domain_health.go` uses RDAP or pinned provider account IDs. Preserve explicit redemption,
+  configurable calendar reservations (two years by default), and moderator-approved restoration of reclaimed artifacts;
+  persistence lives in `internal/database/maven_health.go` and `maven_restore.go`.
   Preserve classic/catalog layouts and Maven/files migration without moving stored objects.
 - **Review:** Decisions and metadata changes commit once, atomically, with live authority rechecked. Pending
   publications

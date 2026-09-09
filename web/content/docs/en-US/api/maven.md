@@ -112,3 +112,45 @@ System administrators and global moderators manage a publishing domain across ev
 ```
 
 PUT accepts the body below; DELETE accepts `{}`. Both return `204`. API tokens and repository-scoped moderators cannot manage a global domain. Removing a manual domain lock leaves system and inherited team locks intact. Domain details expose `moderator` for the current request; public, account, and repository domain pages share the same control. Repository changes, migration, and deletion also check locked namespaces present only on disk or in the file index.
+
+## Domain health and redemption
+
+RenoP checks registry domains through RDAP, using the [IANA bootstrap](https://data.iana.org/rdap/dns.json).
+It checks up to 16 due domains each minute; successful checks are scheduled six hours apart and unavailable checks retry after 15 minutes.
+
+| Registry state | Public lock reason |
+| --- | --- |
+| `serverHold`, `clientHold` | `hold` |
+| `pendingDelete`, `restorable`, `redemptionPeriod`, `pendingRestore`, or a passed expiration date | `expired` |
+| `clientRenewProhibited`, `serverRenewProhibited`, `renew prohibited` | `prohibited` |
+
+RDAP space-separated equivalents are accepted. A provider outage does not remove a restriction or extend a known expiration.
+An unavailable registry cannot complete a fresh health check. Proof verification and administrator claim approval require a healthy result.
+
+For `io.github.<account>` and `io.gitlab.<account>`, RenoP checks the public account instead of registry expiration.
+Verification records its immutable numeric ID and whether it is a user or organization/group.
+A missing account freezes publication; a changed ID or account type is a dispute even if the login name is unchanged.
+Legacy verified provider namespaces without an ID require fresh proof before their permissions can be restored.
+
+A health lock freezes the domain and its content while keeping downloads and membership records.
+The first lock rotates the verification code. After restoring the external account/domain, its current L4 owner must publish
+the new proof and select **Request redemption**, which calls `POST /api/maven/domains/{domain}/redeem` with the active
+`renop_session` cookie. Checks are limited to one attempt every five seconds. A healthy background check alone never
+restores control. Redemption removes only the health lock; independent manual, system, and team restrictions remain.
+Domain responses expose `health`, including status, check/expiration times, provider identity, lock time, and release time.
+
+## Released domain artifacts
+
+Security locks reserve the name for two calendar years by default. [Domain settings](settings.md) configure a period
+of 1–100 months or years; changing it affects future locks. Voluntary closure retains its separate 31-day reservation.
+After release, a new claimant must prove ownership and obtain administrator approval, including a fresh health check.
+
+Historical artifacts, including previously uncatalogued indexed files, retain downloads but remain write-locked after
+reclamation. New artifact names can publish after the domain claim is approved.
+The current domain owner requests publication access from the old artifact page through
+`POST /api/reviews/maven-restorations`. A repository moderator or system administrator must approve it.
+Approval rechecks the current claim and owner, restores only that artifact, and binds it to the domain's current team.
+Mirrored and permanently deprecated artifacts cannot be restored. See [Review API](reviews.md).
+
+Claim preparation streams disk or S3 metadata with a one-minute deadline. A storage error or timeout leaves the current claim unchanged.
+Pending publications remain in their existing review workflow and are excluded from public catalog import.

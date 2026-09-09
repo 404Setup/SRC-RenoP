@@ -19,7 +19,7 @@ import {createIcon, createSkeleton, createUserIdentity, RenopDialog, runButtonAc
 import {t} from '../i18n.js';
 import {createSuperTeamBindingField} from '../super-team-selector.js';
 import {SUPER_TEAM_ERROR_KEYS} from '../super-team-errors.js';
-import {openSuperTeamTransferDialog} from '../reviews.js';
+import {openReviewCenter, openSuperTeamTransferDialog} from '../reviews.js';
 import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {createSuperTeamPublicLink} from '../profile-links.js';
@@ -156,6 +156,11 @@ function permissionLabel(level) {
     return `L${normalized} · ${t(`maven.permissionL${normalized}`)}`;
 }
 
+/** Show effective access while preserving the stored membership role. */
+function domainPermissionLabel(domain) {
+    return resourceWriteLocked(domain) ? t('resourceLock.write') : permissionLabel(domain.permission_level);
+}
+
 /**
  * Format a timestamp for the current locale.
  * @param {number|string} value
@@ -266,6 +271,10 @@ function domainLockButton(details, refresh) {
 
 /** Describe the domain's current publication state. */
 function mavenDomainStatus(domain) {
+    if (Number(domain?.health?.locked_at) > 0) {
+        return {tone: 'pending', icon: 'fileLock', label: t('maven.healthLocked'),
+            description: t(domain.released ? 'maven.domainReleasedHint' : 'maven.redemptionHint')};
+    }
     if (resourceWriteLocked(domain)) {
         const lock = domain.locks.find(lock => lock.mode === 'read') || domain.locks[0];
         return {tone: 'pending', icon: 'fileLock', label: t(`resourceLock.${lock.mode}`),
@@ -310,7 +319,7 @@ function domainCard(repository, domain, onSelect) {
         ),
         el('span', {class: 'maven-domain-card-meta'},
             el('span', {class: `maven-status-badge is-${status.tone}`}, status.label),
-            domain.member ? el('span', {class: 'maven-permission-badge'}, permissionLabel(domain.permission_level)) : null,
+            domain.member ? el('span', {class: 'maven-permission-badge'}, domainPermissionLabel(domain)) : null,
             el('span', {class: 'maven-artifact-count'}, t('maven.artifactCount', {count: Number(domain.artifact_count) || 0}))
         ));
     return card;
@@ -387,7 +396,7 @@ function domainInformationSection(details, {repository = '', repositoryArtifactC
     const domain = details.domain;
     const status = mavenDomainStatus(domain);
     const canViewGlobalCounts = Boolean(details.administrator || domain.member);
-    const access = details.administrator
+    const access = resourceWriteLocked(domain) ? t('resourceLock.write') : details.administrator
         ? t('maven.administratorAccess')
         : (domain.member ? permissionLabel(domain.permission_level) : t('maven.readOnlyAccess'));
     const facts = [
@@ -401,6 +410,11 @@ function domainInformationSection(details, {repository = '', repositoryArtifactC
         {label: t('maven.lastChecked'), value: domain.last_check_at ? formatDate(domain.last_check_at) : null},
         {label: t('maven.closedAt'), value: domain.closed_at ? formatDate(domain.closed_at) : null},
         {label: t('maven.releaseAt'), value: domain.release_at ? formatDate(domain.release_at) : null},
+        {label: t('maven.healthCheckedAt'), value: domain.health?.checked_at ? formatDate(domain.health.checked_at) : null},
+        {label: t('maven.healthStatus'), value: domain.health?.status ? t(`maven.health.${domain.health.status}`) : null},
+        {label: t('maven.healthExpiresAt'), value: domain.health?.expires_at ? formatDate(domain.health.expires_at) : null},
+        {label: t('maven.healthReleaseAt'), value: domain.health?.release_at ? formatDate(domain.health.release_at) : null},
+        {label: t('maven.providerIdentity'), value: domain.health?.provider_id ? `${domain.health.provider_type} #${domain.health.provider_id}` : null},
         {label: t('maven.claimVerifiedAt'), value: domain.claim_verified_at ? formatDate(domain.claim_verified_at) : null},
         {label: t('maven.teamMembers'), value: Number(domain.member_count) || 0},
         {label: t('maven.repositoryCount'), value: canViewGlobalCounts ? Number(domain.repository_count) || 0 : null},
@@ -1111,10 +1125,26 @@ async function renderManagedDomain(container, domainName) {
         const canOwn = !locked && (details.administrator || Number(domain.permission_level) === 4);
         const closed = Number(domain.closed_at) > 0;
         const claimPending = domain.claim_status === 'pending';
+        const canRedeem = !closed && domain.member && Number(domain.permission_level) === 4 && Number(domain.health?.locked_at) > 0;
         const status = mavenDomainStatus(domain);
         const actions = el('div', {class: 'maven-domain-actions'}, domainLockButton(details, () => {
             if (sequence === domainCenterSequence && container === domainCenterBody) return refresh();
         }));
+        if (canRedeem) {
+            actions.appendChild(el('button', {
+                type: 'button', class: 'pill-btn pill-btn--primary', onclick: async event => {
+                    await runButtonAction(event.currentTarget, async () => {
+                        const response = await apiRequest(`/api/maven/domains/${encodeURIComponent(domain.domain)}/redeem`, {method: 'POST'});
+                        if (!response.ok) {
+                            showAlert(t(response.status === 429 ? 'maven.verifyRateLimited' : 'maven.redemptionFailed'), 'error');
+                            return;
+                        }
+                        showAlert(t('maven.redemptionSuccess'), 'success');
+                        await refresh();
+                    }).catch(error => showAlert(caughtErrorMessage(error, 'maven.redemptionFailed'), 'error'));
+                }
+            }, createIcon('refresh'), el('span', {}, t('maven.redeem'))));
+        }
         if (canOwn && !closed) {
             actions.appendChild(el('button', {
                 type: 'button', class: 'pill-btn pill-btn--soft',
@@ -1141,7 +1171,7 @@ async function renderManagedDomain(container, domainName) {
                 }
             }, createIcon('check'), el('span', {}, t('maven.verifyNow'))));
         }
-        if (!domain.verified && !closed && !claimPending && cachedIsManager) {
+        if (!locked && !domain.verified && !closed && !claimPending && cachedIsManager) {
             actions.appendChild(el('button', {
                 type: 'button', class: 'pill-btn pill-btn--soft', onclick: async event => {
                     if (!(await showConfirm(t('maven.forceVerifyConfirm', {domain: domain.domain})))) return;
@@ -1210,11 +1240,12 @@ async function renderManagedDomain(container, domainName) {
             ),
             el('div', {class: 'maven-stats'},
                 el('span', {class: `maven-status-badge is-${status.tone}`}, status.label),
-                domain.member ? el('span', {class: 'maven-permission-badge'}, permissionLabel(domain.permission_level)) : null,
+                domain.member ? el('span', {class: 'maven-permission-badge'}, domainPermissionLabel(domain)) : null,
                 el('span', {}, t('maven.artifactCount', {count: Number(domain.artifact_count) || 0})),
                 domain.verified_at ? el('span', {}, t('maven.verifiedAt', {date: formatDate(domain.verified_at)})) : null
             ),
-            !domain.verified && !closed && !claimPending ? verificationPanel(domain) : null
+            canRedeem ? el('p', {class: 'maven-verification-panel'}, t('maven.redemptionHint')) : null,
+            canRedeem || (!domain.verified && !closed && !claimPending) ? verificationPanel(domain) : null
         );
         const team = teamPanel(details, refresh);
         await replaceRepositoryView(container, [hero, domainInformationSection(details), team], {
@@ -1398,7 +1429,7 @@ async function renderDomain(container, repository, domainName, sequence) {
             ),
             el('div', {class: 'maven-stats'},
                 el('span', {class: `maven-status-badge is-${status.tone}`}, status.label),
-                Number(domain.permission_level) > 0 ? el('span', {class: 'maven-permission-badge'}, permissionLabel(domain.permission_level)) : null,
+                Number(domain.permission_level) > 0 ? el('span', {class: 'maven-permission-badge'}, domainPermissionLabel(domain)) : null,
                 el('span', {}, t('maven.artifactCount', {count: Number(artifactData.total) || 0})),
                 domain.verified_at ? el('span', {}, t('maven.verifiedAt', {date: formatDate(domain.verified_at)})) : null
             )
@@ -1664,6 +1695,21 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
             }
         }) : null;
         const artifactActions = el('div', {class: 'maven-domain-actions'});
+        if (details.can_request_restore) artifactActions.appendChild(el('button', {
+            type: 'button', class: 'pill-btn pill-btn--soft',
+            onclick: event => runButtonAction(event.currentTarget, async () => {
+                const response = await apiRequest('/api/reviews/maven-restorations', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({resource_type: 'maven_artifact', repository, resource_key: `${groupID}:${artifactID}`})
+                });
+                if (!response.ok) {
+                    showAlert(await responseErrorMessage(response, 'review.operationFailed'), 'error');
+                    return;
+                }
+                showAlert(t('maven.restoreRequested'), 'success');
+                openReviewCenter('requested');
+            }).catch(error => showAlert(caughtErrorMessage(error, 'review.operationFailed'), 'error'))
+        }, createIcon('refresh'), el('span', {}, t('maven.restorePublication'))));
         if (manageLock) artifactActions.appendChild(manageLock());
         if (canDeprecate && !artifact.mirrored && !isDeprecated) {
             artifactActions.appendChild(createDeprecatePackageButton(

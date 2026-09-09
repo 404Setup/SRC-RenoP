@@ -150,7 +150,7 @@ func TestClickHouseNativePackageAndStatisticsMatrix(t *testing.T) {
 		VerificationCode: "renop-clickhouse", CreatedAt: now,
 	}
 	require.NoError(t, db.CreateMavenDomain(domain, "alice"))
-	require.NoError(t, db.MarkMavenDomainVerified(domain.Domain, domain.VerificationCode, now))
+	require.NoError(t, db.MarkMavenDomainVerified(domain.Domain, domain.VerificationCode, now, nil))
 	require.NoError(t, db.RecordMavenPublication(&core.MavenArtifact{
 		Repository: "maven", Domain: domain.Domain, GroupID: "com.example", ArtifactID: "demo",
 		Description: "Demo artifact", Readme: "# Maven", CreatedAt: now, UpdatedAt: now,

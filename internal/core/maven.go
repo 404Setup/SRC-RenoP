@@ -71,27 +71,41 @@ var (
 
 // MavenDomain is one verified or pending Maven publishing namespace.
 type MavenDomain struct {
-	Locks            []*ResourceLock `json:"locks,omitempty"`
-	Repository       string          `json:"-"`
-	Domain           string          `json:"domain"`
-	VerificationType string          `json:"verification_type"`
-	VerificationHost string          `json:"verification_host"`
-	VerificationCode string          `json:"verification_code,omitempty"`
-	SuperTeamPrefix  string          `json:"super_team_prefix,omitempty"`
-	CreatedAt        int64           `json:"created_at"`
-	VerifiedAt       int64           `json:"verified_at,omitempty"`
-	LastCheckAt      int64           `json:"last_check_at,omitempty"`
-	ClosedAt         int64           `json:"closed_at,omitempty"`
-	ReleaseAt        int64           `json:"release_at,omitempty"`
-	ClaimStatus      string          `json:"claim_status,omitempty"`
-	ClaimVerifiedAt  int64           `json:"claim_verified_at,omitempty"`
-	PermissionLevel  int             `json:"permission_level,omitempty"`
-	ArtifactCount    int             `json:"artifact_count"`
-	RepositoryCount  int             `json:"repository_count"`
-	MemberCount      int             `json:"member_count"`
-	Verified         bool            `json:"verified"`
-	Released         bool            `json:"released,omitempty"`
-	Member           bool            `json:"member,omitempty"`
+	Health           *MavenDomainHealth `json:"health,omitempty"`
+	Locks            []*ResourceLock    `json:"locks,omitempty"`
+	Repository       string             `json:"-"`
+	Domain           string             `json:"domain"`
+	VerificationType string             `json:"verification_type"`
+	VerificationHost string             `json:"verification_host"`
+	VerificationCode string             `json:"verification_code,omitempty"`
+	SuperTeamPrefix  string             `json:"super_team_prefix,omitempty"`
+	CreatedAt        int64              `json:"created_at"`
+	VerifiedAt       int64              `json:"verified_at,omitempty"`
+	LastCheckAt      int64              `json:"last_check_at,omitempty"`
+	ClosedAt         int64              `json:"closed_at,omitempty"`
+	ReleaseAt        int64              `json:"release_at,omitempty"`
+	ClaimStatus      string             `json:"claim_status,omitempty"`
+	ClaimVerifiedAt  int64              `json:"claim_verified_at,omitempty"`
+	PermissionLevel  int                `json:"permission_level,omitempty"`
+	ArtifactCount    int                `json:"artifact_count"`
+	RepositoryCount  int                `json:"repository_count"`
+	MemberCount      int                `json:"member_count"`
+	Verified         bool               `json:"verified"`
+	Released         bool               `json:"released,omitempty"`
+	Member           bool               `json:"member,omitempty"`
+}
+
+// MavenDomainHealth retains external identity evidence and a persistent security reservation.
+type MavenDomainHealth struct {
+	ProviderType string `json:"provider_type,omitempty"`
+	ProviderID   string `json:"provider_id,omitempty"`
+	Status       string `json:"status,omitempty"`
+	CheckedAt    int64  `json:"checked_at,omitempty"`
+	NextCheckAt  int64  `json:"-"`
+	ExpiresAt    int64  `json:"expires_at,omitempty"`
+	LockedAt     int64  `json:"locked_at,omitempty"`
+	ReleaseAt    int64  `json:"release_at,omitempty"`
+	LockReason   string `json:"lock_reason,omitempty"`
 }
 
 // MavenDomainListOptions controls the account domain-management listing.
@@ -125,6 +139,7 @@ type MavenDomainDetails struct {
 
 // MavenArtifact is durable catalog metadata for one groupId and artifactId.
 type MavenArtifact struct {
+	ReclaimHoldAt   int64           `json:"reclaim_hold_at,omitempty"`
 	Locks           []*ResourceLock `json:"locks,omitempty"`
 	VersionLocked   bool            `json:"version_locked,omitempty"`
 	Repository      string          `json:"repository"`
@@ -234,15 +249,16 @@ type MavenProjectMetadata struct {
 
 // MavenArtifactDetails combines an artifact with all indexed versions.
 type MavenArtifactDetails struct {
-	Moderator       bool                  `json:"moderator"`
-	Member          bool                  `json:"member"`
-	Artifact        *MavenArtifact        `json:"artifact"`
-	Versions        []*MavenVersion       `json:"versions"`
-	Project         *MavenProjectMetadata `json:"project,omitempty"`
-	FileCount       int                   `json:"file_count,omitempty"`
-	TotalFileSize   int64                 `json:"total_file_size,omitempty"`
-	SignedFileCount int                   `json:"signed_file_count,omitempty"`
-	Administrator   bool                  `json:"administrator"`
+	CanRequestRestore bool                  `json:"can_request_restore,omitempty"`
+	Moderator         bool                  `json:"moderator"`
+	Member            bool                  `json:"member"`
+	Artifact          *MavenArtifact        `json:"artifact"`
+	Versions          []*MavenVersion       `json:"versions"`
+	Project           *MavenProjectMetadata `json:"project,omitempty"`
+	FileCount         int                   `json:"file_count,omitempty"`
+	TotalFileSize     int64                 `json:"total_file_size,omitempty"`
+	SignedFileCount   int                   `json:"signed_file_count,omitempty"`
+	Administrator     bool                  `json:"administrator"`
 }
 
 // MavenInvitation is stored until its matching message action is completed.

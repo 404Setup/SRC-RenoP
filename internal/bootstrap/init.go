@@ -36,6 +36,7 @@ import (
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
 	"renop/internal/service/mailqueue"
+	"renop/internal/service/maven"
 	"renop/internal/service/statistics"
 	"renop/internal/service/status"
 	"renop/internal/service/storage"
@@ -276,6 +277,9 @@ func StartServices(state *core.AppState, bootstrapContext BootstrapContext) (*Se
 			status.UpdateStatusSnapshot(state)
 		}},
 		{"index-save", indexSaveInterval, indexSaveInterval, indexSave},
+		{"maven-domain-health", time.Minute, time.Minute, func(ctx context.Context) {
+			maven.CheckDomainHealth(ctx, state)
+		}},
 		{"session-cleanup", sessionCleanupInterval, sessionCleanupInterval, func(context.Context) {
 			if err := tasks.CleanExpiredSessions(state, time.Now()); err != nil {
 				state.Inner.FailuresCount.Add(1)

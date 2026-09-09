@@ -74,7 +74,7 @@ func reviewRecipients(state *core.AppState, task *core.ReviewTask) ([]string, er
 		if strings.EqualFold(user.Username, task.RequestedBy) {
 			continue
 		}
-		if user.IsManager() || (task.Kind == core.ReviewKindPublication && task.ReviewTeamPrefix == "" &&
+		if user.IsManager() || ((task.Kind == core.ReviewKindPublication || task.Kind == core.ReviewKindMavenRestore) && task.ReviewTeamPrefix == "" &&
 			user.CheckModeratePermission(task.Repository)) {
 			unique[user.Username] = struct{}{}
 		}

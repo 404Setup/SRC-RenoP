@@ -104,3 +104,17 @@ DELETE /api/reviews/{id} 仅允许申请人取消待审核的所有权转让；�
 完成、所有权已变化、转让受到限制，或发布仍在接收文件。
 
 客户端应翻译已注册的错误码，不应直接显示响应正文。
+
+## 恢复重新认领的 Maven 包
+
+`POST /api/reviews/maven-restorations` 要求当前发布域 L4 所有者的有效 `renop_session` Cookie：
+
+```json
+{"resource_type":"maven_artifact","repository":"releases","resource_key":"com.example:demo"}
+```
+
+成功返回 HTTP `201` 和状态为 `pending` 的 `maven_restore` 任务；已有相同待处理申请时返回 `409`。
+对应仓库版主和系统管理员可见此任务，使用已有的决策和取消接口。
+批准会在事务中核对认领状态、有效所有权和独立锁定，再恢复发布权限及当前发布域团队绑定。
+认领状态变化会取消过期申请；拒绝或取消申请会保留包的限制和下载。
+每个账号最多有 64 个待处理申请，全局最多 4096 个。此类任务不提供审核文件包下载。

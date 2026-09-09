@@ -254,23 +254,23 @@ func (db *DB) DeleteGitHubIdentity(username string) error {
 	return nil
 }
 
-// HasRecentGitHubPrincipal reports whether a recent OAuth snapshot contains an account or organization login.
-func (db *DB) HasRecentGitHubPrincipal(username, login string, authorizedAfter int64) (bool, error) {
+// GetRecentGitHubPrincipal returns the immutable identity in a recent OAuth ownership snapshot.
+func (db *DB) GetRecentGitHubPrincipal(username, login string, authorizedAfter int64) (*core.GitHubPrincipal, error) {
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
 	login = strings.ToLower(SanitizeInputString(strings.TrimSpace(login), 39))
 	if username == "" || login == "" {
-		return false, nil
+		return nil, nil
 	}
-	var exists int
-	err := db.QueryRow(`SELECT 1 FROM github_principals principal
+	principal := &core.GitHubPrincipal{}
+	err := db.QueryRow(`SELECT principal.principal_type, principal.github_principal_id, principal.github_login, principal.authorized_at FROM github_principals principal
 		JOIN user_profiles profile ON profile.user_id = principal.user_id
 		WHERE profile.username = ? AND principal.github_login = ? AND principal.authorized_at >= ?`,
-		username, login, authorizedAfter).Scan(&exists)
+		username, login, authorizedAfter).Scan(&principal.Type, &principal.GitHubID, &principal.Login, &principal.AuthorizedAt)
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
+		return nil, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("inspect GitHub principal %s for %s: %w", login, username, err)
+		return nil, fmt.Errorf("inspect GitHub principal %s for %s: %w", login, username, err)
 	}
-	return true, nil
+	return principal, nil
 }

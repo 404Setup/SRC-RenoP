@@ -73,6 +73,16 @@ func resourceLocksQuery(format string) string {
 		query += ` UNION ALL SELECT l.id, l.source, '', 'maven', p.repository, ` + name + `,
 			'', l.mode, l.reason, l.locked_at, 1 FROM maven_artifacts p JOIN resource_locks l
 			ON l.format = 'maven-domain' AND l.repository = '' AND l.resource_name = p.domain`
+		query += ` UNION ALL SELECT 'maven-domain-health', 'system', '', 'maven', p.repository, ` + name + `,
+			'', 'write', d.health_lock_reason, d.health_locked_at, 1 FROM maven_artifacts p
+			JOIN maven_domains d ON d.repository = '' AND d.domain = p.domain WHERE d.health_locked_at > 0`
+		query += ` UNION ALL SELECT 'maven-reclaim', 'system', '', 'maven', p.repository, ` + name + `,
+			'', 'write', 'prohibited', p.reclaim_hold_at, 0 FROM maven_artifacts p WHERE p.reclaim_hold_at > 0`
+	}
+	if format == "maven-domain" {
+		query += ` UNION ALL SELECT 'maven-domain-health', 'system', '', 'maven-domain', '', p.domain,
+			'', 'write', p.health_lock_reason, p.health_locked_at, 0 FROM maven_domains p
+			WHERE p.repository = '' AND p.health_locked_at > 0`
 	}
 	return `(` + query + `)`
 }

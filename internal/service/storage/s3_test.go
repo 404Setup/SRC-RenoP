@@ -11,9 +11,15 @@
 package storage
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"renop/internal/config"
 	"renop/internal/core"
@@ -226,5 +232,48 @@ func TestBuildS3IndexSyncReturnsClientError(t *testing.T) {
 	err := BuildS3IndexSync(cfg.StoragePath, index.NewFileIndex())
 	if err == nil {
 		t.Fatal("S3 index build ignored an invalid client configuration")
+	}
+}
+
+func TestWalkS3FilesPreservesPrefixAndStopsOnVisitorFailure(t *testing.T) {
+	previous := currentConfig.Load()
+	t.Cleanup(func() { InitS3(previous) })
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = storageTestTempDir(t)
+	const prefix = "tenant/releases/com/example/"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead && r.URL.Path == "/artifacts/" {
+			w.Header().Set("X-Amz-Bucket-Region", "us-east-1")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		if r.URL.Query().Get("prefix") != prefix {
+			t.Errorf("unexpected listing request: %s %s", r.Method, r.URL.String())
+		}
+		w.Header().Set("Content-Type", "application/xml")
+		fmt.Fprintf(w, `<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Name>artifacts</Name><Prefix>%s</Prefix><IsTruncated>false</IsTruncated><Contents><Key>%sdemo/1.0/demo-1.0.jar</Key><Size>8</Size><LastModified>2026-09-09T00:00:00Z</LastModified></Contents></ListBucketResult>`, prefix, prefix)
+	}))
+	defer server.Close()
+	s3 := &config.S3Config{Enabled: true, Endpoint: server.URL, Bucket: "artifacts", Region: "us-east-1", ForcePathStyle: true, KeyPrefix: "tenant"}
+	InitS3(cfg)
+	root := filepath.Join(cfg.StoragePath, "releases/com/example")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	visited := 0
+	if err := WalkS3Files(ctx, s3, root, func(path string, info index.FileInfo) error {
+		visited++
+		if path != filepath.Join(root, "demo/1.0/demo-1.0.jar") || info.Size != 8 {
+			t.Fatalf("unexpected object: %s, %d", path, info.Size)
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if visited != 1 {
+		t.Fatalf("visited %d objects", visited)
+	}
+	stopped := errors.New("stop importing")
+	if err := WalkS3Files(ctx, s3, root, func(string, index.FileInfo) error { return stopped }); !errors.Is(err, stopped) {
+		t.Fatalf("visitor error was not preserved: %v", err)
 	}
 }

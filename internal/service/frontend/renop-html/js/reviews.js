@@ -191,6 +191,7 @@ function statusLabel(status) {
 
 /** @param {object} task - Review task. @returns {string} Localized transfer direction. */
 function directionLabel(task) {
+    if (task.kind === 'maven_restore') return t('maven.restorePublication');
     if (task.kind === 'publication') {
         if (task.resource_version === '@create') {
             if (task.review_team_prefix) {
@@ -230,7 +231,9 @@ async function submitDecision(task, decision, reason = '', reasonCode = '') {
             : publication
                 ? decision === 'approved' ? 'review.publicationApproved' : 'review.publicationRejected'
                 : decision === 'approved' ? 'review.approved' : 'review.rejected';
-    showAlert(t(resultKey), 'success');
+    showAlert(t(task.kind === 'maven_restore'
+        ? decision === 'approved' ? 'maven.restoreApproved' : 'maven.restoreRejected'
+        : resultKey), 'success');
     await loadTasks();
 }
 
@@ -429,7 +432,7 @@ function taskCard(task) {
         actions.append(
             el('button', {
                 type: 'button', class: 'pill-btn pill-btn--primary pill-btn--sm', onclick: async event => {
-                    const confirmKey = task.kind === 'publication'
+                    const confirmKey = task.kind === 'maven_restore' ? 'maven.restoreApproveConfirm' : task.kind === 'publication'
                         ? task.resource_version === '@create'
                             ? 'review.approveCreationConfirm' : 'review.approvePublicationConfirm'
                         : 'review.approveConfirm';

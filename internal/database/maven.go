@@ -39,6 +39,8 @@ func sanitizeMavenUsername(value string) string {
 const mavenDomainSelectPrefix = `d.repository, d.domain, d.verification_type, d.verification_host,
 	d.verification_code, d.super_team_prefix, d.verified, d.created_at, d.verified_at, d.last_check_at,
 	d.closed_at, d.release_at, d.claim_status, d.claim_verified_at,
+	d.provider_type, d.provider_id, d.health_status, d.health_checked_at, d.health_next_check_at,
+	d.health_expires_at, d.health_locked_at, d.health_release_at, d.health_lock_reason,
 	COALESCE(m.permission_level, 0), CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END,
 	COALESCE(stm.role_level, 0), CASE WHEN stm.user_id IS NULL THEN 0 ELSE 1 END,`
 
@@ -63,17 +65,21 @@ type mavenDomainScanner interface {
 }
 
 func scanMavenDomain(scanner mavenDomainScanner) (*core.MavenDomain, error) {
-	domain := &core.MavenDomain{}
+	domain := &core.MavenDomain{Health: &core.MavenDomainHealth{}}
 	var verified, explicitLevel, explicitMember, superRole, superMember int
 	if err := scanner.Scan(&domain.Repository, &domain.Domain, &domain.VerificationType,
 		&domain.VerificationHost, &domain.VerificationCode, &domain.SuperTeamPrefix, &verified,
 		&domain.CreatedAt, &domain.VerifiedAt, &domain.LastCheckAt, &domain.ClosedAt, &domain.ReleaseAt,
-		&domain.ClaimStatus, &domain.ClaimVerifiedAt, &explicitLevel, &explicitMember,
+		&domain.ClaimStatus, &domain.ClaimVerifiedAt, &domain.Health.ProviderType, &domain.Health.ProviderID,
+		&domain.Health.Status, &domain.Health.CheckedAt, &domain.Health.NextCheckAt, &domain.Health.ExpiresAt,
+		&domain.Health.LockedAt, &domain.Health.ReleaseAt, &domain.Health.LockReason, &explicitLevel, &explicitMember,
 		&superRole, &superMember, &domain.ArtifactCount, &domain.RepositoryCount, &domain.MemberCount); err != nil {
 		return nil, err
 	}
 	domain.Verified = verified != 0
 	domain.Released = domain.ClosedAt > 0 && domain.ReleaseAt > 0 && domain.ReleaseAt <= time.Now().UnixMilli()
+	domain.Released = domain.Released || (domain.Health.LockedAt > 0 && domain.Health.ReleaseAt > 0 &&
+		domain.Health.ReleaseAt <= time.Now().UnixMilli())
 	domain.PermissionLevel, domain.Member = effectiveBoundPermission(
 		explicitLevel, explicitMember != 0, superRole, superMember != 0)
 	return domain, nil
@@ -225,6 +231,12 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string) error {
 	if domain.Domain == "" || domain.VerificationHost == "" || domain.VerificationCode == "" || owner == "" {
 		return errors.New("maven domain is invalid")
 	}
+	if domain.Verified && !validMavenProviderIdentity(domain.VerificationType, domain.Health) {
+		return core.ErrMavenVerificationFailed
+	}
+	if domain.Health == nil {
+		domain.Health = &core.MavenDomainHealth{}
+	}
 	ownerID, err := db.userIDForExistingAccount(owner)
 	if err != nil {
 		return core.ErrMavenPermissionDenied
@@ -240,23 +252,29 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string) error {
 	if err := requireSuperTeamRoleTx(tx, domain.SuperTeamPrefix, ownerID, core.SuperTeamRoleManage); err != nil {
 		return err
 	}
+	if err := ensureMavenDomainAncestorMutableTx(tx, domain.Domain); err != nil {
+		return err
+	}
 	var existingType string
 	var existingVerified int
-	var existingClosedAt, existingReleaseAt int64
+	var existingClosedAt, existingReleaseAt, existingHealthLock, existingHealthRelease int64
 	var existingClaimStatus string
 	existing := false
 	loadExisting := func() error {
-		return tx.QueryRow(`SELECT verification_type, verified, closed_at, release_at, claim_status
+		return tx.QueryRow(`SELECT verification_type, verified, closed_at, release_at, claim_status, health_locked_at, health_release_at
 			FROM maven_domains WHERE repository = ? AND domain = ?`, domain.Repository, domain.Domain).
-			Scan(&existingType, &existingVerified, &existingClosedAt, &existingReleaseAt, &existingClaimStatus)
+			Scan(&existingType, &existingVerified, &existingClosedAt, &existingReleaseAt, &existingClaimStatus, &existingHealthLock, &existingHealthRelease)
 	}
 	if err := loadExisting(); err == nil {
 		existing = true
-		if err := lockMavenDomain(tx, domain.Domain); err != nil {
+		if err := lockMavenDomainRow(tx, domain.Domain); err != nil {
 			return err
 		}
 		if err := loadExisting(); err != nil {
 			return fmt.Errorf("reload Maven domain claim: %w", err)
+		}
+		if err := ensureMavenDomainOtherLocksMutableTx(tx, domain.Domain, "maven-domain-health"); err != nil {
+			return err
 		}
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("inspect Maven domain: %w", err)
@@ -265,8 +283,10 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string) error {
 		existingClosedAt == 0 && existingClaimStatus == ""
 	releasedReservation := existing && existingClosedAt > 0 && existingReleaseAt > 0 &&
 		existingReleaseAt <= domain.CreatedAt
+	releasedReservation = releasedReservation || (existing && existingHealthLock > 0 && existingHealthRelease > 0 &&
+		existingHealthRelease <= domain.CreatedAt)
 	if existing && !mirroredReservation && !releasedReservation {
-		if existingClosedAt > 0 {
+		if existingClosedAt > 0 || existingHealthLock > 0 {
 			return core.ErrMavenDomainLocked
 		}
 		return core.ErrMavenDomainExists
@@ -303,17 +323,23 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string) error {
 			globalMavenRepository, domain.Domain); err != nil {
 			return fmt.Errorf("replace released Maven domain members: %w", err)
 		}
+		if _, err := tx.Exec(`UPDATE maven_artifacts SET reclaim_hold_at = ? WHERE domain = ? AND reclaim_hold_at = 0`,
+			domain.CreatedAt, domain.Domain); err != nil {
+			return fmt.Errorf("protect reclaimed Maven artifacts: %w", err)
+		}
 	}
 	if mirroredReservation || releasedReservation {
 		result, err := tx.Exec(`UPDATE maven_domains SET verification_type = ?, verification_host = ?,
 			verification_code = ?, super_team_prefix = ?, verified = ?, created_at = ?, verified_at = ?, last_check_at = 0,
-			closed_at = 0, release_at = 0, claim_status = ?, claim_verified_at = ?
-			WHERE repository = ? AND domain = ? AND verified = 0 AND
-			((verification_type = ? AND closed_at = 0 AND claim_status = '') OR
-			(closed_at = ? AND release_at = ? AND release_at <= ?))`,
+			closed_at = 0, release_at = 0, claim_status = ?, claim_verified_at = ?, provider_type = ?, provider_id = ?,
+			health_status = ?, health_checked_at = ?, health_next_check_at = ?, health_expires_at = ?,
+			health_locked_at = 0, health_release_at = 0, health_lock_reason = ''
+			WHERE repository = ? AND domain = ? AND verified = ? AND closed_at = ? AND release_at = ?
+			AND health_locked_at = ? AND health_release_at = ?`,
 			domain.VerificationType, domain.VerificationHost, domain.VerificationCode, domain.SuperTeamPrefix, verified,
-			domain.CreatedAt, storedVerifiedAt, claimStatus, claimVerifiedAt, domain.Repository, domain.Domain,
-			core.MavenVerificationMirror, existingClosedAt, existingReleaseAt, domain.CreatedAt)
+			domain.CreatedAt, storedVerifiedAt, claimStatus, claimVerifiedAt, domain.Health.ProviderType, domain.Health.ProviderID,
+			domain.Health.Status, domain.Health.CheckedAt, domain.Health.NextCheckAt, domain.Health.ExpiresAt,
+			domain.Repository, domain.Domain, existingVerified, existingClosedAt, existingReleaseAt, existingHealthLock, existingHealthRelease)
 		if err != nil {
 			return fmt.Errorf("claim Maven domain: %w", err)
 		}
@@ -326,10 +352,12 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string) error {
 		}
 	} else if _, err := tx.Exec(`INSERT INTO maven_domains
 		(repository, domain, verification_type, verification_host, verification_code, super_team_prefix,
-		verified, created_at, verified_at, last_check_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`, domain.Repository, domain.Domain,
+		verified, created_at, verified_at, last_check_at, provider_type, provider_id, health_status, health_checked_at,
+		health_next_check_at, health_expires_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`, domain.Repository, domain.Domain,
 		domain.VerificationType, domain.VerificationHost, domain.VerificationCode, domain.SuperTeamPrefix, verified,
-		domain.CreatedAt, domain.VerifiedAt); err != nil {
+		domain.CreatedAt, domain.VerifiedAt, domain.Health.ProviderType, domain.Health.ProviderID, domain.Health.Status,
+		domain.Health.CheckedAt, domain.Health.NextCheckAt, domain.Health.ExpiresAt); err != nil {
 		return fmt.Errorf("create Maven domain: %w", err)
 	}
 	if _, err := tx.Exec(`INSERT INTO maven_domain_members
@@ -688,7 +716,7 @@ func (db *DB) ReserveMavenVerificationAttempt(domain, actor string, administrato
 }
 
 // MarkMavenDomainVerified completes verification only if the assigned code still matches.
-func (db *DB) MarkMavenDomainVerified(domain, code string, verifiedAt int64) error {
+func (db *DB) MarkMavenDomainVerified(domain, code string, verifiedAt int64, health *core.MavenDomainHealth) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
@@ -705,12 +733,15 @@ func (db *DB) MarkMavenDomainVerified(domain, code string, verifiedAt int64) err
 	if err := lockMavenDomain(tx, domain); err != nil {
 		return err
 	}
-	var storedCode, claimStatus string
+	if err := ensureMavenDomainAncestorMutableTx(tx, domain); err != nil {
+		return err
+	}
+	var storedCode, claimStatus, verificationType string
 	var verified int
 	var closedAt int64
-	if err := tx.QueryRow(`SELECT verification_code, verified, closed_at, claim_status FROM maven_domains
+	if err := tx.QueryRow(`SELECT verification_code, verified, closed_at, claim_status, verification_type FROM maven_domains
 		WHERE repository = ? AND domain = ?`, globalMavenRepository, domain).
-		Scan(&storedCode, &verified, &closedAt, &claimStatus); err != nil {
+		Scan(&storedCode, &verified, &closedAt, &claimStatus, &verificationType); err != nil {
 		return fmt.Errorf("inspect Maven domain verification state: %w", err)
 	}
 	if storedCode != code || verified != 0 {
@@ -718,6 +749,9 @@ func (db *DB) MarkMavenDomainVerified(domain, code string, verifiedAt int64) err
 	}
 	if closedAt != 0 {
 		return core.ErrMavenDomainClosed
+	}
+	if !validMavenProviderIdentity(verificationType, health) || (health != nil && health.Status != "active") {
+		return core.ErrMavenVerificationFailed
 	}
 	var result result
 	switch claimStatus {
@@ -739,6 +773,13 @@ func (db *DB) MarkMavenDomainVerified(domain, code string, verifiedAt int64) err
 	changed, err := result.RowsAffected()
 	if err != nil || changed != 1 {
 		return core.ErrMavenVerificationFailed
+	}
+	if health != nil {
+		if _, err := tx.Exec(`UPDATE maven_domains SET provider_type = ?, provider_id = ?, health_status = ?,
+			health_checked_at = ?, health_next_check_at = ?, health_expires_at = ? WHERE repository = '' AND domain = ?`,
+			health.ProviderType, health.ProviderID, health.Status, health.CheckedAt, health.NextCheckAt, health.ExpiresAt, domain); err != nil {
+			return err
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit Maven domain verification: %w", err)
@@ -849,11 +890,14 @@ func (db *DB) CloseMavenDomain(domain, actor string, administrator bool, closedA
 }
 
 // ReviewMavenDomainClaim activates or rejects a released-domain claim after ownership proof.
-func (db *DB) ReviewMavenDomainClaim(domain, decision string, reviewedAt int64) error {
+func (db *DB) ReviewMavenDomainClaim(expected *core.MavenDomain, health *core.MavenDomainHealth, actor, decision string, reviewedAt int64) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
-	domain = sanitizeMavenDomain(domain)
+	if expected == nil {
+		return core.ErrMavenClaimReviewInvalid
+	}
+	domain := sanitizeMavenDomain(expected.Domain)
 	decision = strings.ToLower(strings.TrimSpace(decision))
 	if domain == "" || reviewedAt <= 0 ||
 		(decision != core.ReviewStatusApproved && decision != core.ReviewStatusRejected) {
@@ -864,7 +908,24 @@ func (db *DB) ReviewMavenDomainClaim(domain, decision string, reviewedAt int64) 
 		return fmt.Errorf("begin Maven domain claim review: %w", err)
 	}
 	defer tx.Rollback()
+	actorID, err := userIDForUsernameTx(tx, sanitizeMavenUsername(actor))
+	if err != nil {
+		return core.ErrMavenPermissionDenied
+	}
+	if err := lockAccountLoginMethodsTx(tx, actorID); err != nil {
+		return err
+	}
+	reviewer, err := reviewUserTx(tx, actorID)
+	if err != nil {
+		return err
+	}
+	if !reviewer.IsManager() {
+		return core.ErrMavenPermissionDenied
+	}
 	if err := lockMavenDomain(tx, domain); err != nil {
+		return err
+	}
+	if err := ensureMavenDomainAncestorMutableTx(tx, domain); err != nil {
 		return err
 	}
 	var claimStatus string
@@ -880,19 +941,31 @@ func (db *DB) ReviewMavenDomainClaim(domain, decision string, reviewedAt int64) 
 	verifiedAt := int64(0)
 	nextStatus := core.MavenDomainClaimRejected
 	if decision == core.ReviewStatusApproved {
+		if health == nil || health.Status != "active" || health.CheckedAt <= 0 ||
+			!validMavenProviderIdentity(expected.VerificationType, health) || expected.Health != nil && expected.Health.ProviderID != "" &&
+			(expected.Health.ProviderID != health.ProviderID || expected.Health.ProviderType != health.ProviderType) {
+			return core.ErrMavenVerificationFailed
+		}
 		verified = 1
 		verifiedAt = reviewedAt
 		nextStatus = ""
 	}
 	result, err := tx.Exec(`UPDATE maven_domains SET verified = ?, verified_at = ?, claim_status = ?
-		WHERE repository = ? AND domain = ? AND closed_at = 0 AND claim_status = ?`, verified,
-		verifiedAt, nextStatus, globalMavenRepository, domain, core.MavenDomainClaimPending)
+		WHERE repository = ? AND domain = ? AND closed_at = 0 AND claim_status = ? AND verification_code = ? AND created_at = ?`, verified,
+		verifiedAt, nextStatus, globalMavenRepository, domain, core.MavenDomainClaimPending, expected.VerificationCode, expected.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("review Maven domain claim: %w", err)
 	}
 	changed, err := result.RowsAffected()
 	if err != nil || changed != 1 {
 		return core.ErrMavenClaimReviewInvalid
+	}
+	if decision == core.ReviewStatusApproved {
+		if _, err := tx.Exec(`UPDATE maven_domains SET health_status = 'active', health_checked_at = ?,
+			health_next_check_at = ?, health_expires_at = ? WHERE repository = '' AND domain = ?`,
+			health.CheckedAt, health.NextCheckAt, health.ExpiresAt, domain); err != nil {
+			return err
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit Maven domain claim review: %w", err)
@@ -938,7 +1011,7 @@ func (db *DB) HasMavenMembership(username string) (bool, error) {
 
 // RecordMavenPublication upserts one catalog artifact and version after storage publication.
 func (db *DB) RecordMavenPublication(artifact *core.MavenArtifact, version *core.MavenVersion) error {
-	return db.recordMavenPublication(artifact, version, false)
+	return db.recordMavenPublication(artifact, version, false, nil)
 }
 
 // MavenArtifactExists reports whether a local or mirrored catalog package already exists.
@@ -966,10 +1039,18 @@ func (db *DB) MavenArtifactExists(repository, groupID, artifactID string) (bool,
 
 // RecordMavenMirrorPublication upserts catalog metadata for a version fetched from an upstream mirror.
 func (db *DB) RecordMavenMirrorPublication(artifact *core.MavenArtifact, version *core.MavenVersion) error {
-	return db.recordMavenPublication(artifact, version, true)
+	return db.recordMavenPublication(artifact, version, true, nil)
 }
 
-func (db *DB) recordMavenPublication(artifact *core.MavenArtifact, version *core.MavenVersion, mirrored bool) error {
+// RecordMavenReleasedPublication imports missing index metadata before a released domain changes hands.
+func (db *DB) RecordMavenReleasedPublication(expected *core.MavenDomain, artifact *core.MavenArtifact, version *core.MavenVersion) error {
+	if expected == nil || artifact == nil || expected.Domain != artifact.Domain {
+		return core.ErrMavenClaimReviewInvalid
+	}
+	return db.recordMavenPublication(artifact, version, false, expected)
+}
+
+func (db *DB) recordMavenPublication(artifact *core.MavenArtifact, version *core.MavenVersion, mirrored bool, released *core.MavenDomain) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
@@ -1012,10 +1093,26 @@ func (db *DB) recordMavenPublication(artifact *core.MavenArtifact, version *core
 		return fmt.Errorf("begin Maven publication: %w", err)
 	}
 	defer tx.Rollback()
-	if err := ensureMavenMutableTx(tx, repository, groupID, artifactID, versionName, false); err != nil {
+	if released != nil {
+		if err := lockMavenDomainRow(tx, domain); err != nil {
+			return err
+		}
+		var exists int
+		now := time.Now().UnixMilli()
+		if err := tx.QueryRow(`SELECT 1 FROM maven_domains WHERE repository = '' AND domain = ?
+			AND verification_code = ? AND created_at = ? AND ((closed_at > 0 AND release_at > 0 AND release_at <= ?)
+			OR (health_locked_at > 0 AND health_release_at > 0 AND health_release_at <= ?))`,
+			domain, released.VerificationCode, released.CreatedAt, now, now).Scan(&exists); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return core.ErrMavenClaimReviewInvalid
+			}
+			return err
+		}
+		superTeamPrefix = released.SuperTeamPrefix
+	} else if err := ensureMavenMutableTx(tx, repository, groupID, artifactID, versionName, false); err != nil {
 		return err
 	}
-	if superTeamPrefix != "" {
+	if superTeamPrefix != "" && released == nil {
 		publisherID, identityErr := userIDForUsernameTx(tx, publisher)
 		if identityErr != nil {
 			return core.ErrSuperTeamBindingPermission
@@ -1024,7 +1121,7 @@ func (db *DB) recordMavenPublication(artifact *core.MavenArtifact, version *core
 			return err
 		}
 	}
-	if !mirrored {
+	if !mirrored && released == nil {
 		if err := ensureMavenDomainMutableQuery(tx.QueryRow, domain); err != nil {
 			return err
 		}
@@ -1052,7 +1149,7 @@ func (db *DB) recordMavenPublication(artifact *core.MavenArtifact, version *core
 		}
 	} else if err != nil {
 		return fmt.Errorf("inspect Maven artifact: %w", err)
-	} else {
+	} else if released == nil {
 		latestPublisher := ""
 		if latestVersion == "" || utils.CompareVersions(versionName, latestVersion) >= 0 {
 			latestVersion = versionName
@@ -1081,12 +1178,17 @@ func (db *DB) recordMavenPublication(artifact *core.MavenArtifact, version *core
 		}
 	} else if err != nil {
 		return fmt.Errorf("inspect Maven version: %w", err)
-	} else if _, err := tx.Exec(`UPDATE maven_versions SET publisher = CASE WHEN ? != '' THEN ? ELSE publisher END,
+	} else if released == nil {
+		if _, err := tx.Exec(`UPDATE maven_versions SET publisher = CASE WHEN ? != '' THEN ? ELSE publisher END,
 		size = CASE WHEN ? > size THEN ? ELSE size END,
 		mirrored = CASE WHEN ? = 1 THEN 1 ELSE mirrored END
 		WHERE repository = ? AND group_id = ? AND artifact_id = ? AND version = ?`,
-		publisher, publisher, version.Size, version.Size, mirroredValue, repository, groupID, artifactID, versionName); err != nil {
-		return fmt.Errorf("update Maven version: %w", err)
+			publisher, publisher, version.Size, version.Size, mirroredValue, repository, groupID, artifactID, versionName); err != nil {
+			return fmt.Errorf("update Maven version: %w", err)
+		}
+	}
+	if released != nil {
+		return tx.Commit()
 	}
 	mirroredUpdate := `UPDATE maven_artifacts SET mirrored = CASE WHEN EXISTS (
 		SELECT 1 FROM maven_versions v WHERE v.repository = maven_artifacts.repository
@@ -1183,7 +1285,7 @@ func (db *DB) listMavenArtifacts(repositories []string, domain, query string, li
 		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id),
 		COALESCE((SELECT SUM(v.size) FROM maven_versions v WHERE v.repository = maven_artifacts.repository
 		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id), 0),
-		super_team_prefix, mirrored, created_at, updated_at FROM maven_artifacts`+where+` ORDER BY group_id, artifact_id, repository LIMIT ? OFFSET ?`,
+		super_team_prefix, mirrored, created_at, updated_at, reclaim_hold_at FROM maven_artifacts`+where+` ORDER BY group_id, artifact_id, repository LIMIT ? OFFSET ?`,
 		append(args, limit, offset)...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list Maven artifacts: %w", err)
@@ -1195,7 +1297,7 @@ func (db *DB) listMavenArtifacts(repositories []string, domain, query string, li
 		var mirrored int
 		if err := rows.Scan(&artifact.Repository, &artifact.Domain, &artifact.GroupID, &artifact.ArtifactID,
 			&artifact.Description, &artifact.Publisher, &artifact.LatestVersion, &artifact.VersionCount,
-			&artifact.TotalSize, &artifact.SuperTeamPrefix, &mirrored, &artifact.CreatedAt, &artifact.UpdatedAt); err != nil {
+			&artifact.TotalSize, &artifact.SuperTeamPrefix, &mirrored, &artifact.CreatedAt, &artifact.UpdatedAt, &artifact.ReclaimHoldAt); err != nil {
 			return nil, 0, fmt.Errorf("scan Maven artifact: %w", err)
 		}
 		artifact.Mirrored = mirrored != 0
@@ -1230,12 +1332,12 @@ func (db *DB) GetMavenArtifactDetails(repository, groupID, artifactID string) (*
 		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id),
 		COALESCE((SELECT SUM(v.size) FROM maven_versions v WHERE v.repository = maven_artifacts.repository
 		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id), 0),
-		super_team_prefix, mirrored, created_at, updated_at FROM maven_artifacts WHERE repository = ? AND group_id = ? AND artifact_id = ?`,
+		super_team_prefix, mirrored, created_at, updated_at, reclaim_hold_at FROM maven_artifacts WHERE repository = ? AND group_id = ? AND artifact_id = ?`,
 		repository, groupID, artifactID).Scan(&result.Artifact.Repository, &result.Artifact.Domain,
 		&result.Artifact.GroupID, &result.Artifact.ArtifactID, &result.Artifact.Description,
 		&result.Artifact.Readme, &result.Artifact.Publisher, &result.Artifact.LatestVersion, &result.Artifact.VersionCount,
 		&result.Artifact.TotalSize, &result.Artifact.SuperTeamPrefix, &mirrored,
-		&result.Artifact.CreatedAt, &result.Artifact.UpdatedAt)
+		&result.Artifact.CreatedAt, &result.Artifact.UpdatedAt, &result.Artifact.ReclaimHoldAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, core.ErrMavenArtifactNotFound
 	}

@@ -30,7 +30,7 @@ func TestDownloadStatisticsPersistStableUsersDomainsAndDockerPulls(t *testing.T)
 		VerificationHost: "example.com", VerificationCode: "code", CreatedAt: now,
 	}
 	require.NoError(t, db.CreateMavenDomain(domain, "alice"))
-	require.NoError(t, db.MarkMavenDomainVerified(domain.Domain, domain.VerificationCode, now))
+	require.NoError(t, db.MarkMavenDomainVerified(domain.Domain, domain.VerificationCode, now, nil))
 	require.NoError(t, db.RecordMavenPublication(&core.MavenArtifact{
 		Repository: "releases", Domain: domain.Domain, GroupID: "com.example.tools", ArtifactID: "demo",
 		LatestVersion: "1.0", CreatedAt: now, UpdatedAt: now,

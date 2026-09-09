@@ -19,6 +19,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -37,7 +38,9 @@ const (
 
 var verificationSemaphore = make(chan struct{}, 8)
 
-func verificationClient(proxyConfig *config.OutboundProxy) (*http.Client, error) {
+var errVerificationAccountMissing = errors.New("verification account was not found")
+
+var verificationClient = func(proxyConfig *config.OutboundProxy) (*http.Client, error) {
 	transport := &http.Transport{
 		Proxy: nil,
 		DialContext: (&net.Dialer{
@@ -70,8 +73,11 @@ func readVerificationResponse(response *http.Response, destination any) error {
 		return errors.New("verification response is missing")
 	}
 	defer utils.DiscardHTTPBody(response.Body, response.ContentLength)
+	if response.StatusCode == http.StatusNotFound {
+		return errVerificationAccountMissing
+	}
 	if response.StatusCode != http.StatusOK {
-		return core.ErrMavenVerificationFailed
+		return fmt.Errorf("verification provider returned HTTP %d", response.StatusCode)
 	}
 	if response.ContentLength > verificationBodySize {
 		return errors.New("verification response exceeds the size limit")
@@ -126,87 +132,110 @@ func verificationTXTMatches(records []string, code string) bool {
 	return false
 }
 
-func verifyGitHub(ctx context.Context, client *http.Client, account, code string) error {
-	var profile struct {
-		Bio         string `json:"bio"`
-		Description string `json:"description"`
-	}
-	endpoint := "https://api.github.com/users/" + url.PathEscape(account)
-	if err := getVerificationJSON(ctx, client, endpoint, &profile); err == nil {
-		if strings.Contains(profile.Bio, code) || strings.Contains(profile.Description, code) {
-			return nil
-		}
-	}
-	profile = struct {
-		Bio         string `json:"bio"`
-		Description string `json:"description"`
-	}{}
-	endpoint = "https://api.github.com/orgs/" + url.PathEscape(account)
-	if err := getVerificationJSON(ctx, client, endpoint, &profile); err != nil {
-		return core.ErrMavenVerificationFailed
-	}
-	if strings.Contains(profile.Description, code) || strings.Contains(profile.Bio, code) {
-		return nil
-	}
-	return core.ErrMavenVerificationFailed
+type verificationProfile struct {
+	ID          int64  `json:"id"`
+	Type        string `json:"type"`
+	Login       string `json:"login"`
+	Username    string `json:"username"`
+	FullPath    string `json:"full_path"`
+	Bio         string `json:"bio"`
+	Description string `json:"description"`
 }
 
-func verifyGitLab(ctx context.Context, client *http.Client, account, code string) error {
-	var group struct {
-		Description string `json:"description"`
-	}
-	endpoint := "https://gitlab.com/api/v4/groups/" + url.PathEscape(account)
-	if err := getVerificationJSON(ctx, client, endpoint, &group); err == nil && strings.Contains(group.Description, code) {
-		return nil
-	}
-	var users []struct {
-		Bio string `json:"bio"`
-	}
-	query := url.Values{"username": []string{account}}
-	endpoint = "https://gitlab.com/api/v4/users?" + query.Encode()
-	if err := getVerificationJSON(ctx, client, endpoint, &users); err == nil {
-		for _, user := range users {
-			if strings.Contains(user.Bio, code) {
-				return nil
+func providerIdentity(ctx context.Context, client *http.Client, provider, account, accountType, code string) (*core.MavenDomainHealth, error) {
+	var profile verificationProfile
+	if provider == core.MavenVerificationGitHub {
+		if err := getVerificationJSON(ctx, client, "https://api.github.com/users/"+url.PathEscape(account), &profile); err != nil {
+			return nil, err
+		}
+		if !strings.EqualFold(profile.Login, account) {
+			return nil, errVerificationAccountMissing
+		}
+		profile.Type = strings.ToLower(profile.Type)
+		if profile.Type == core.GitHubPrincipalOrganization && code != "" {
+			id := profile.ID
+			if err := getVerificationJSON(ctx, client, "https://api.github.com/orgs/"+url.PathEscape(account), &profile); err != nil {
+				return nil, err
+			}
+			if profile.ID != id || !strings.EqualFold(profile.Login, account) {
+				return nil, core.ErrMavenVerificationFailed
+			}
+			profile.Type = core.GitHubPrincipalOrganization
+		}
+	} else if provider == core.MavenVerificationGitLab {
+		if accountType != core.GitHubPrincipalUser {
+			err := getVerificationJSON(ctx, client, "https://gitlab.com/api/v4/groups/"+url.PathEscape(account)+"?with_projects=false", &profile)
+			if err != nil && !errors.Is(err, errVerificationAccountMissing) {
+				return nil, err
+			}
+			if err == nil {
+				if !strings.EqualFold(profile.FullPath, account) {
+					return nil, errVerificationAccountMissing
+				}
+				profile.Type = core.GitHubPrincipalOrganization
+			} else if accountType == core.GitHubPrincipalOrganization {
+				return nil, err
 			}
 		}
+		if profile.Type == "" {
+			var users []verificationProfile
+			query := url.Values{"username": {account}, "per_page": {"2"}}
+			if err := getVerificationJSON(ctx, client, "https://gitlab.com/api/v4/users?"+query.Encode(), &users); err != nil {
+				return nil, err
+			}
+			if len(users) != 1 || !strings.EqualFold(users[0].Username, account) {
+				return nil, errVerificationAccountMissing
+			}
+			profile = users[0]
+			profile.Type = core.GitHubPrincipalUser
+		}
+	} else {
+		return nil, errors.New("unsupported Maven account provider")
 	}
-	return core.ErrMavenVerificationFailed
+	if profile.ID <= 0 || (profile.Type != core.GitHubPrincipalUser && profile.Type != core.GitHubPrincipalOrganization) {
+		return nil, errors.New("verification provider returned an invalid identity")
+	}
+	if code != "" && !strings.Contains(profile.Bio, code) && !strings.Contains(profile.Description, code) {
+		return nil, core.ErrMavenVerificationFailed
+	}
+	return &core.MavenDomainHealth{ProviderID: strconv.FormatInt(profile.ID, 10), ProviderType: profile.Type, Status: "active"}, nil
 }
 
 // VerifyDomainProof checks the fixed external proof target assigned to a domain.
-func VerifyDomainProof(ctx context.Context, cfg *config.Config, domain *core.MavenDomain) error {
+func VerifyDomainProof(ctx context.Context, cfg *config.Config, domain *core.MavenDomain) (*core.MavenDomainHealth, error) {
 	if cfg == nil || domain == nil || domain.VerificationCode == "" {
-		return errors.New("maven domain verification configuration is unavailable")
+		return nil, errors.New("maven domain verification configuration is unavailable")
 	}
+	ctx, cancel := context.WithTimeout(ctx, verificationTimeout)
+	defer cancel()
 	select {
 	case verificationSemaphore <- struct{}{}:
 		defer func() { <-verificationSemaphore }()
 	case <-ctx.Done():
-		return ctx.Err()
+		return nil, ctx.Err()
 	}
-	ctx, cancel := context.WithTimeout(ctx, verificationTimeout)
-	defer cancel()
 	if domain.VerificationType == core.MavenVerificationDNS {
-		return verifyDNS(ctx, domain.VerificationHost, domain.VerificationCode)
+		if err := verifyDNS(ctx, domain.VerificationHost, domain.VerificationCode); err != nil {
+			return nil, err
+		}
 	}
 	proxyConfig, err := outboundproxy.Selected(cfg.Proxy)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	client, err := verificationClient(proxyConfig)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if transport, ok := client.Transport.(*http.Transport); ok {
 		defer transport.CloseIdleConnections()
 	}
-	switch domain.VerificationType {
-	case core.MavenVerificationGitHub:
-		return verifyGitHub(ctx, client, domain.VerificationHost, domain.VerificationCode)
-	case core.MavenVerificationGitLab:
-		return verifyGitLab(ctx, client, domain.VerificationHost, domain.VerificationCode)
-	default:
-		return errors.New("unsupported Maven verification method")
+	health, err := inspectDomainHealth(ctx, client, domain, domain.VerificationCode)
+	if err != nil {
+		return nil, err
 	}
+	if health.Status != "active" {
+		return nil, core.ErrMavenVerificationFailed
+	}
+	return health, nil
 }

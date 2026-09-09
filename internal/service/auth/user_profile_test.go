@@ -138,7 +138,7 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 		VerificationHost: "example.com", VerificationCode: "renop-verification=profile", CreatedAt: membershipCreatedAt,
 	}
 	require.NoError(t, db.CreateMavenDomain(mavenDomain, "bobby"))
-	require.NoError(t, db.MarkMavenDomainVerified("com.example", mavenDomain.VerificationCode, membershipCreatedAt))
+	require.NoError(t, db.MarkMavenDomainVerified("com.example", mavenDomain.VerificationCode, membershipCreatedAt, nil))
 
 	response := profileRequest(t, app, http.MethodGet, "/users/bobby/profile", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)

@@ -30,6 +30,7 @@ import {exitProtectedRouteOnDenial} from './protected-route.js';
 import {restartApp} from './dashboard.js';
 import {renderCacheSettings} from './settings/cache.js';
 import {renderRegistrationSettings} from './settings/registration.js';
+import {renderMavenDomainSettings} from './settings/maven-domains.js';
 import {renderOAuthSettings} from './settings/oauth.js';
 import {renderMailSettings} from './settings/mail.js';
 import {
@@ -61,7 +62,7 @@ const DOMAIN_MESSAGE_TYPES = {
     index: IndexDomainSettings,
 };
 
-const SERVICE_DOMAINS = Object.freeze(['server', 'github_oauth', 'oauth_providers', 'super_teams', 'publication_quota', 'cache', 'mail', 'registration', 'proxy', 'storage']);
+const SERVICE_DOMAINS = Object.freeze(['server', 'github_oauth', 'oauth_providers', 'super_teams', 'publication_quota', 'maven_domains', 'cache', 'mail', 'registration', 'proxy', 'storage']);
 const MERGED_SERVICE_DOMAINS = new Set(SERVICE_DOMAINS.filter(domain => domain !== 'server'));
 
 let currentDomain = null;
@@ -260,7 +261,7 @@ async function loadDomainSettings(domain, direction = 'next') {
             const serviceDomains = SERVICE_DOMAINS.filter(name => availableDomains.includes(name));
             const results = await Promise.all(serviceDomains.map(async name => ({
                 name,
-                result: ['cache', 'mail', 'registration', 'oauth_providers'].includes(name) ? await fetchJSONSettings(name) : name === 'github_oauth'
+                result: ['cache', 'mail', 'registration', 'oauth_providers', 'maven_domains'].includes(name) ? await fetchJSONSettings(name) : name === 'github_oauth'
                     ? await fetchGitHubOAuthSettings()
                     : (name === 'publication_quota'
                         ? await fetchPublicationQuotaSettings()
@@ -588,6 +589,7 @@ function renderServiceSettings(container, data) {
     if (data.super_teams) renderSuperTeamSettings(stack, data.super_teams);
     if (data.publication_quota) renderPublicationQuotaSettings(stack, data.publication_quota);
     if (data.registration) renderRegistrationSettings(stack, data.registration, enableSave);
+    if (data.maven_domains) renderMavenDomainSettings(stack, data.maven_domains, enableSave);
     if (data.cache) renderCacheSettings(stack, data.cache, enableSave);
     if (data.mail) renderMailSettings(stack, data.mail, enableSave);
     if (data.proxy) renderProxySettings(stack, data.proxy);
@@ -1594,7 +1596,7 @@ async function triggerIndexRebuild(mode) {
  * @returns {Promise<void>}
  */
 export async function saveDomainSettings() {
-    const invalidMailInput = document.querySelector('#settings-mail .cfg-fields input:invalid:not([data-mail-test]), #settings-registration input:invalid, #settings-oauth input:invalid');
+    const invalidMailInput = document.querySelector('#settings-mail .cfg-fields input:invalid:not([data-mail-test]), #settings-registration input:invalid, #settings-oauth input:invalid, #settings-maven-domains input:invalid');
     if (invalidMailInput) {
         invalidMailInput.reportValidity();
         return;
@@ -1619,7 +1621,7 @@ export async function saveDomainSettings() {
                 if (JSON.stringify(currentConfig[domain]) === JSON.stringify(initialConfig[domain])) continue;
                 let response;
                 let savedData = null;
-                if (['cache', 'mail', 'registration', 'oauth_providers'].includes(domain)) {
+                if (['cache', 'mail', 'registration', 'oauth_providers', 'maven_domains'].includes(domain)) {
                     response = await apiRequest(`/api/settings/${domain.replaceAll('_', '-')}`, {
                         method: 'PUT', headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify(domain === 'oauth_providers' ? {providers: currentConfig[domain].providers} : currentConfig[domain]),

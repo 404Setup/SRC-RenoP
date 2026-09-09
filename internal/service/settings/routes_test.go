@@ -92,6 +92,34 @@ func TestSuperTeamGlobalLimitsPersist(t *testing.T) {
 	response.Body.Close()
 }
 
+func TestMavenDomainReservationPeriodPersistsAndRejectsInvalidPeriods(t *testing.T) {
+	cfg := config.DefaultConfig()
+	require.Equal(t, config.MavenDomainConfig{ReleaseValue: 2, ReleaseUnit: "year"}, cfg.MavenDomains)
+	app, state := setupSettingsTestApp(t, cfg)
+	for _, body := range []string{`{"release_value":0,"release_unit":"year"}`, `{"release_value":101,"release_unit":"month"}`, `{"release_value":2,"release_unit":"day"}`} {
+		request := httptest.NewRequest(http.MethodPut, "/maven-domains", strings.NewReader(body))
+		request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+		response, err := app.Test(request)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusBadRequest, response.StatusCode)
+		require.NoError(t, response.Body.Close())
+		require.Equal(t, cfg.MavenDomains, state.Inner.Config.Load().MavenDomains)
+	}
+	request := httptest.NewRequest(http.MethodPut, "/maven-domains", strings.NewReader(`{"release_value":3,"release_unit":"month"}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err := app.Test(request)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	saved, err := os.ReadFile(os.Getenv("RENOP_CONFIG"))
+	require.NoError(t, err)
+	require.Contains(t, string(saved), "release_value: 3")
+	require.Contains(t, string(saved), "release_unit: month")
+	locked := time.Date(2026, time.November, 9, 12, 0, 0, 0, time.UTC)
+	require.Equal(t, locked.AddDate(0, 3, 0).UnixMilli(), state.Inner.Config.Load().MavenDomains.ReleaseAt(locked.UnixMilli()))
+	require.Equal(t, locked.AddDate(2, 0, 0).UnixMilli(), cfg.MavenDomains.ReleaseAt(locked.UnixMilli()))
+}
+
 func TestPublicationQuotaDefaultsPersist(t *testing.T) {
 	cfg := config.DefaultConfig()
 	app, state := setupSettingsTestApp(t, cfg)
@@ -1007,11 +1035,11 @@ func TestGetDomainsProtobuf(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected GET 200, got %d", resp.StatusCode)
 	}
-	if len(got.Domains) != 13 || !slices.Contains(got.Domains, "proxy") || !slices.Contains(got.Domains, "oauth_providers") ||
+	if len(got.Domains) != 14 || !slices.Contains(got.Domains, "proxy") || !slices.Contains(got.Domains, "oauth_providers") ||
 		!slices.Contains(got.Domains, "github_oauth") || !slices.Contains(got.Domains, "super_teams") ||
 		!slices.Contains(got.Domains, "publication_quota") || !slices.Contains(got.Domains, "cache") ||
-		!slices.Contains(got.Domains, "mail") || !slices.Contains(got.Domains, "registration") || slices.Contains(got.Domains, "gpg") {
-		t.Fatalf("expected 13 domains including OAuth, registration, cache and mail settings while excluding gpg, got %v", got.Domains)
+		!slices.Contains(got.Domains, "mail") || !slices.Contains(got.Domains, "registration") || !slices.Contains(got.Domains, "maven_domains") || slices.Contains(got.Domains, "gpg") {
+		t.Fatalf("expected 14 domains including OAuth, registration, cache, mail and Maven domain settings while excluding gpg, got %v", got.Domains)
 	}
 }
 

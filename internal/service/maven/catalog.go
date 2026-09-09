@@ -11,6 +11,10 @@
 package maven
 
 import (
+	"context"
+	"errors"
+	"io/fs"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -18,6 +22,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/index"
+	"renop/internal/service/storage"
 	"renop/internal/utils"
 )
 
@@ -113,6 +118,10 @@ func RecordMirroredPath(state *core.AppState, repository, path string, size, mod
 
 // ReconcileDomainCatalog derives missing catalog rows from the in-memory file index.
 func ReconcileDomainCatalog(state *core.AppState, repository, domain, publisher string) error {
+	return reconcileDomainCatalog(context.Background(), state, repository, domain, publisher, nil, nil)
+}
+
+func reconcileDomainCatalog(ctx context.Context, state *core.AppState, repository, domain, publisher string, released *core.MavenDomain, domains []*core.MavenDomain) error {
 	if state == nil || state.Inner == nil || state.Inner.FileIndex == nil {
 		return core.ErrDatabaseUnavailable
 	}
@@ -121,8 +130,11 @@ func ReconcileDomainCatalog(state *core.AppState, repository, domain, publisher 
 		return core.ErrDatabaseUnavailable
 	}
 	root := filepath.Join(cfg.StoragePath, repository, filepath.FromSlash(strings.ReplaceAll(domain, ".", "/")))
+	if released != nil {
+		root = filepath.Join(cfg.StoragePath, repository)
+	}
 	var reconcileErr error
-	state.Inner.FileIndex.Walk(root, func(path string, info index.FileInfo, isDir bool) bool {
+	visit := func(path string, info index.FileInfo, isDir bool) bool {
 		if isDir {
 			return true
 		}
@@ -130,13 +142,100 @@ func ReconcileDomainCatalog(state *core.AppState, repository, domain, publisher 
 		if err != nil || strings.HasPrefix(relative, "..") || !utils.IsSubPath(cfg.StoragePath, filepath.FromSlash(path)) {
 			return true
 		}
+		if released != nil {
+			coordinate, valid := ParseArtifactPath(filepath.ToSlash(relative))
+			if !valid || !domainContainsGroup(domain, strings.ToLower(coordinate.GroupID)) {
+				return true
+			}
+			if child := matchingDomain(domains, strings.ToLower(coordinate.GroupID)); child != nil && child.Verified && len(child.Domain) > len(domain) {
+				return true
+			}
+			pending, err := state.GetDB().IsPublicationReviewPathPending(repository, filepath.ToSlash(relative))
+			if err != nil {
+				reconcileErr = err
+				return false
+			}
+			if pending {
+				return true
+			}
+			timestamp := normalizeCatalogTimestamp(info.ModTime)
+			reconcileErr = state.GetDB().RecordMavenReleasedPublication(released, &core.MavenArtifact{
+				Repository: repository, Domain: domain, GroupID: coordinate.GroupID, ArtifactID: coordinate.ArtifactID,
+				LatestVersion: coordinate.Version, CreatedAt: timestamp, UpdatedAt: timestamp,
+			}, &core.MavenVersion{Repository: repository, GroupID: coordinate.GroupID, ArtifactID: coordinate.ArtifactID,
+				Version: coordinate.Version, Size: info.Size, CreatedAt: timestamp})
+			return reconcileErr == nil
+		}
 		if err := RecordPublishedPath(state, repository, filepath.ToSlash(relative), publisher, info.Size, info.ModTime); err != nil {
 			reconcileErr = err
 			return false
 		}
 		return true
-	})
+	}
+	if released == nil {
+		state.Inner.FileIndex.Walk(root, visit)
+	} else if repo := cfg.Maven.Repositories[repository]; repo.S3 != nil && repo.S3.Enabled {
+		return storage.WalkS3Files(ctx, repo.S3, root, func(path string, info index.FileInfo) error {
+			visit(path, info, false)
+			return reconcileErr
+		})
+	} else {
+		return filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			if walkErr != nil {
+				if path == root && errors.Is(walkErr, os.ErrNotExist) {
+					return nil
+				}
+				return walkErr
+			}
+			if path != root {
+				relative, err := filepath.Rel(root, path)
+				if err != nil {
+					return err
+				}
+				candidate := strings.ToLower(strings.ReplaceAll(filepath.ToSlash(relative), "/", "."))
+				if !domainContainsGroup(domain, candidate) && !domainContainsGroup(candidate, domain) {
+					if entry.IsDir() {
+						return fs.SkipDir
+					}
+					return nil
+				}
+			}
+			if entry.IsDir() {
+				return nil
+			}
+			if !entry.Type().IsRegular() {
+				return errors.New("Maven domain contains a non-regular file")
+			}
+			info, err := entry.Info()
+			if err != nil {
+				return err
+			}
+			visit(path, index.FileInfo{Size: info.Size(), ModTime: info.ModTime().UnixNano()}, false)
+			return reconcileErr
+		})
+	}
 	return reconcileErr
+}
+
+func reconcileReleasedDomain(ctx context.Context, state *core.AppState, domain *core.MavenDomain) error {
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+	domains, err := state.GetDB().ListMavenDomains("", true)
+	if err != nil {
+		return err
+	}
+	for repository, repo := range state.Inner.Config.Load().Maven.Repositories {
+		if repo == nil || repo.NormalizedFormat() != config.RepositoryFormatMaven {
+			continue
+		}
+		if err := reconcileDomainCatalog(ctx, state, repository, domain.Domain, "", domain, domains); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ReconcileGlobalDomainCatalog derives catalog rows for a domain in every Maven repository.

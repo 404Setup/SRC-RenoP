@@ -48,3 +48,17 @@ The generic `/api/settings/repositories` routes are preferred. Maven-prefixed al
 
 - **Path**: `POST /api/settings/index/rebuild`
 - **Behavior**: Submits a coalesced background rebuild. A concurrent rebuild is not started twice.
+
+## Publishing-domain reservation
+
+`GET /api/settings/maven-domains` and `PUT /api/settings/maven-domains` use JSON.
+Discovery includes `maven_domains`. The default is:
+
+```json
+{"release_value":2,"release_unit":"year"}
+```
+
+`release_value` is an integer from 1 to 100. `release_unit` accepts `month` or `year`, using UTC calendar arithmetic.
+The configuration file stores the same fields under `maven_domains`. A saved change applies to newly created security
+locks without changing existing release dates or the separate 31-day voluntary closure period.
+See [Maven domain health](maven.md).

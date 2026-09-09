@@ -49,6 +49,7 @@ func (a *AuditLogConfig) setDefaults() {
 }
 
 type Config struct {
+	MavenDomains          MavenDomainConfig      `json:"maven_domains" yaml:"maven_domains"`
 	Registration          RegistrationConfig     `json:"registration" yaml:"registration"`
 	MFAEncryptionKey      string                 `json:"-" yaml:"mfa_encryption_key,omitempty"`
 	StoragePath           string                 `json:"storage_path" yaml:"storage_path"`
@@ -76,6 +77,9 @@ type Config struct {
 }
 
 func (c *Config) setDefaults() {
+	if c.MavenDomains.ReleaseValue == 0 && c.MavenDomains.ReleaseUnit == "" {
+		c.MavenDomains = DefaultMavenDomainConfig()
+	}
 	c.Registration.setDefaults()
 	if c.Mail.ManualRate.Interval.Unit == "" && c.Mail.ManualRate.Limit == 0 {
 		c.Mail = mail.DefaultConfig()
@@ -149,7 +153,7 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 	c.Server.GPG.setDefaults()
 	c.Mail.Normalize()
 	c.GPG = c.Server.GPG.DeepCopy()
-	return nil
+	return c.MavenDomains.Validate()
 }
 
 func (c *Config) UnmarshalYAML(value *yaml.Node) error {
@@ -200,7 +204,7 @@ func (c *Config) UnmarshalYAML(value *yaml.Node) error {
 	c.Server.GPG.setDefaults()
 	c.Mail.Normalize()
 	c.GPG = c.Server.GPG.DeepCopy()
-	return nil
+	return c.MavenDomains.Validate()
 }
 
 type SettingsUpdate struct {
@@ -268,6 +272,7 @@ func (c *Config) DeepCopy() *Config {
 		Cache:                 c.Cache,
 		Mail:                  c.Mail.Clone(),
 		Registration:          c.Registration,
+		MavenDomains:          c.MavenDomains,
 		GPG:                   c.Server.GPG.DeepCopy(),
 		Proxy:                 c.Proxy.DeepCopy(),
 	}

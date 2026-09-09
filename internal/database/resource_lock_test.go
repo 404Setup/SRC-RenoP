@@ -27,7 +27,7 @@ func TestMavenLocksCoverMetadataCompanionsAndCatalogMutations(t *testing.T) {
 	now := time.Now().UnixMilli()
 	require.NoError(t, db.CreateMavenDomain(&core.MavenDomain{Domain: "com.example", VerificationType: "dns",
 		VerificationHost: "example.com", VerificationCode: "proof", CreatedAt: now}, "alice"))
-	require.NoError(t, db.MarkMavenDomainVerified("com.example", "proof", now))
+	require.NoError(t, db.MarkMavenDomainVerified("com.example", "proof", now, nil))
 	require.NoError(t, db.ForceAddMavenMembers("com.example", "alice", []string{"bob"}, 0))
 	publish := func(version string) error {
 		return db.RecordMavenPublication(&core.MavenArtifact{Repository: "maven", Domain: "com.example",
@@ -113,7 +113,7 @@ func TestSuperTeamLocksFollowBindingsAndPreserveMembership(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, db.CreateMavenDomain(&core.MavenDomain{Domain: "com.example", SuperTeamPrefix: team.Prefix,
 		VerificationType: "dns", VerificationHost: "example.com", VerificationCode: "proof", CreatedAt: now}, "alice"))
-	require.NoError(t, db.MarkMavenDomainVerified("com.example", "proof", now))
+	require.NoError(t, db.MarkMavenDomainVerified("com.example", "proof", now, nil))
 	publish := func(name string) error {
 		return db.RecordMavenPublication(&core.MavenArtifact{Repository: "maven", Domain: "com.example",
 			GroupID: "com.example", ArtifactID: name, CreatedAt: now}, &core.MavenVersion{Version: "1.0", Publisher: "alice", CreatedAt: now})

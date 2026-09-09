@@ -230,6 +230,38 @@ func createTransfer(c fiber.Ctx, state *core.AppState) error {
 	return c.Status(fiber.StatusCreated).JSON(task)
 }
 
+func createMavenRestore(c fiber.Ctx, state *core.AppState) error {
+	username, _, err := currentUser(c)
+	if err != nil {
+		return reviewError(c, err)
+	}
+	session := auth.CurrentSessionToken(c)
+	if session == "" || c.Cookies("renop_session") != session {
+		return reviewError(c, core.ErrReviewPermissionDenied)
+	}
+	var request core.SuperTeamTransferRequest
+	if err := utils.ReadJSONLimited(c, &request, maxReviewRequestBytes); err != nil ||
+		request.ResourceType != core.ReviewResourceMavenArtifact || !normalizeTransferRequest(&request) {
+		return reviewError(c, fiber.ErrBadRequest)
+	}
+	repo := state.Inner.Config.Load().Maven.Repositories[request.Repository]
+	if repo == nil || repo.NormalizedFormat() != config.RepositoryFormatMaven {
+		return reviewError(c, core.ErrReviewResourceConflict)
+	}
+	separator := strings.LastIndexByte(request.ResourceKey, ':')
+	release := repositorygate.AcquireAllMigrations()
+	task, err := state.GetDB().CreateMavenRestoreReview(request.Repository, request.ResourceKey[:separator],
+		request.ResourceKey[separator+1:], username, session, time.Now().UnixMilli())
+	release()
+	if err != nil {
+		return reviewError(c, err)
+	}
+	reviewnotify.DeliverTask(state, task)
+	logReviewAudit(c, state, audit.ActionReviewRequest, "Restore reclaimed Maven artifact: "+task.Repository+"/"+task.ResourceKey)
+	c.Set(fiber.HeaderLocation, "/api/reviews/"+task.ID)
+	return c.Status(fiber.StatusCreated).JSON(task)
+}
+
 func listTasks(c fiber.Ctx, state *core.AppState) error {
 	username, administrator, err := currentUser(c)
 	if err != nil {
@@ -569,6 +601,10 @@ func decideTask(c fiber.Ctx, state *core.AppState) error {
 	var task *core.ReviewTask
 	if existing.Kind == core.ReviewKindPublication {
 		task, err = decidePublicationTask(c, state, username, existing, request)
+	} else if existing.Kind == core.ReviewKindMavenRestore {
+		release := repositorygate.AcquireAllMigrations()
+		task, err = state.GetDB().DecideReviewTask(existing.ID, username, request.Decision, request.Reason, time.Now().UnixMilli())
+		release()
 	} else {
 		task, err = state.GetDB().DecideReviewTask(
 			existing.ID, username, request.Decision, request.Reason, time.Now().UnixMilli())
@@ -616,6 +652,7 @@ func SetupRoutes(router fiber.Router, state *core.AppState) {
 	base := router.Group("/reviews")
 	base.Get("", func(c fiber.Ctx) error { return listTasks(c, state) })
 	base.Post("/super-team-transfers", func(c fiber.Ctx) error { return createTransfer(c, state) })
+	base.Post("/maven-restorations", func(c fiber.Ctx) error { return createMavenRestore(c, state) })
 	base.Get("/:id/files", func(c fiber.Ctx) error { return reviewFiles(c, state) })
 	base.Get("/:id/files/:file_id", func(c fiber.Ctx) error { return downloadReviewFile(c, state) })
 	base.Post("/:id/decision", func(c fiber.Ctx) error { return decideTask(c, state) })

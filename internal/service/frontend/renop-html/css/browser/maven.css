@@ -657,6 +657,17 @@ button.maven-artifact-card:focus-visible {
     gap: 0.45rem;
 }
 
+.maven-domain-actions {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.maven-domain-actions .pill-btn {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
 .maven-verification-panel {
     margin-top: 1rem;
     padding: 0.9rem;

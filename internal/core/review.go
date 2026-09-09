@@ -15,6 +15,7 @@ import "errors"
 const (
 	ReviewKindSuperTeamTransfer = "super_team_transfer"
 	ReviewKindPublication       = "publication"
+	ReviewKindMavenRestore      = "maven_restore"
 
 	ReviewResourceDockerImage   = "docker_image"
 	ReviewResourceNPMPackage    = "npm_package"

@@ -78,10 +78,69 @@ func setupReviewApp(t *testing.T) (*fiber.App, *core.AppState, *config.User, *st
 	app.Use(func(c fiber.Ctx) error {
 		c.Locals("user", current)
 		c.Locals("auth_credential_kind", credentialKind)
+		c.Locals("current_session_id", current.Username+"-session")
 		return c.Next()
 	})
 	SetupRoutes(app.Group("/api"), state)
 	return app, state, current, &credentialKind
+}
+
+func TestMavenRestorationRequestRequiresCookieAndModeratorApproval(t *testing.T) {
+	app, state, current, kind := setupReviewApp(t)
+	db, now := state.GetDB(), time.Now().UnixMilli()
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "admin", Permissions: []string{"manager"}}))
+	domain := &core.MavenDomain{Domain: "com.restore", VerificationType: core.MavenVerificationDNS,
+		VerificationHost: "restore.com", VerificationCode: "old", Verified: true,
+		CreatedAt: now - core.MavenDomainReleaseLockMillis - 2}
+	require.NoError(t, db.CreateMavenDomain(domain, "alice"))
+	require.NoError(t, db.RecordMavenPublication(&core.MavenArtifact{Repository: "releases", Domain: domain.Domain,
+		GroupID: domain.Domain, ArtifactID: "demo", CreatedAt: domain.CreatedAt},
+		&core.MavenVersion{Repository: "releases", GroupID: domain.Domain, ArtifactID: "demo", Version: "1.0", CreatedAt: domain.CreatedAt}))
+	require.NoError(t, db.CloseMavenDomain(domain.Domain, "alice", false, domain.CreatedAt+1))
+	claim := &core.MavenDomain{Domain: domain.Domain, VerificationType: core.MavenVerificationDNS,
+		VerificationHost: domain.VerificationHost, VerificationCode: "new", CreatedAt: now}
+	require.NoError(t, db.CreateMavenDomain(claim, "charlie"))
+	require.NoError(t, db.MarkMavenDomainVerified(claim.Domain, claim.VerificationCode, now, nil))
+	require.NoError(t, db.ReviewMavenDomainClaim(claim, &core.MavenDomainHealth{Status: "active", CheckedAt: now}, "admin", core.ReviewStatusApproved, now))
+	session := &core.Session{PublicID: "restore-session", Username: "charlie", CreatedAt: now}
+	session.LastActive.Store(now)
+	require.NoError(t, db.SaveSession(session, "charlie-session"))
+	request := func(cookie bool, expected int) *core.ReviewTask {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPost, "/api/reviews/maven-restorations", bytes.NewBufferString(`{"resource_type":"maven_artifact","repository":"releases","resource_key":"com.restore:demo"}`))
+		req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+		if cookie {
+			req.AddCookie(&http.Cookie{Name: "renop_session", Value: "charlie-session"})
+		}
+		response, err := app.Test(req)
+		require.NoError(t, err)
+		defer response.Body.Close()
+		require.Equal(t, expected, response.StatusCode)
+		if response.StatusCode != http.StatusCreated {
+			return nil
+		}
+		var task core.ReviewTask
+		require.NoError(t, json.NewDecoder(response.Body).Decode(&task))
+		return &task
+	}
+	request(false, http.StatusForbidden)
+	*kind = "api_token"
+	request(true, http.StatusForbidden)
+	*kind = "session"
+	task := request(true, http.StatusCreated)
+	require.Equal(t, core.ReviewKindMavenRestore, task.Kind)
+	request(true, http.StatusConflict)
+	*current = config.User{Username: "admin", Roles: []string{"manager"}}
+	req := httptest.NewRequest(http.MethodPost, "/api/reviews/"+task.ID+"/decision", bytes.NewBufferString(`{"decision":"approved"}`))
+	req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	details, err := db.GetMavenArtifactDetails("releases", domain.Domain, "demo")
+	require.NoError(t, err)
+	require.Zero(t, details.Artifact.ReclaimHoldAt)
+	require.Len(t, details.Versions, 1)
 }
 
 func reviewRequest(t *testing.T, app *fiber.App, method, path string, body any) *http.Response {

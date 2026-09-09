@@ -471,12 +471,12 @@ func (db *DB) ListReviewTasks(options core.ReviewTaskListOptions) ([]*core.Revie
 			moderated = append(moderated, repository)
 		}
 		if options.ModerateAll {
-			reviewerClauses = append(reviewerClauses, "(r.kind = ? AND r.review_team_prefix = '')")
-			args = append(args, core.ReviewKindPublication)
+			reviewerClauses = append(reviewerClauses, "(r.kind IN (?, ?) AND r.review_team_prefix = '')")
+			args = append(args, core.ReviewKindPublication, core.ReviewKindMavenRestore)
 		} else if len(moderated) > 0 {
-			reviewerClauses = append(reviewerClauses, "(r.kind = ? AND r.review_team_prefix = '' AND r.repository IN ("+
+			reviewerClauses = append(reviewerClauses, "(r.kind IN (?, ?) AND r.review_team_prefix = '' AND r.repository IN ("+
 				strings.TrimSuffix(strings.Repeat("?,", len(moderated)), ",")+"))")
-			args = append(args, core.ReviewKindPublication)
+			args = append(args, core.ReviewKindPublication, core.ReviewKindMavenRestore)
 			for _, repository := range moderated {
 				args = append(args, repository)
 			}
@@ -772,6 +772,10 @@ func (db *DB) DecideReviewTask(id, actor, decision, reason string, decidedAt int
 		if decidedAt-updatedAt < core.PublicationReviewSettleMillis {
 			return nil, core.ErrReviewPublicationActive
 		}
+	} else if task.Kind == core.ReviewKindMavenRestore {
+		if !reviewer.CheckModeratePermission(task.Repository) {
+			return nil, core.ErrReviewPermissionDenied
+		}
 	} else if !reviewer.IsManager() {
 		if err := requireSuperTeamRoleTx(tx, task.ReviewTeamPrefix, actorID, core.SuperTeamRoleManage); err != nil {
 			return nil, core.ErrReviewPermissionDenied
@@ -783,8 +787,12 @@ func (db *DB) DecideReviewTask(id, actor, decision, reason string, decidedAt int
 	task.DecisionReason = reason
 	status := decision
 	applyErr := error(nil)
-	if decision == core.ReviewStatusApproved && task.Kind == core.ReviewKindSuperTeamTransfer {
-		applyErr = applySuperTeamTransferTx(tx, task)
+	if decision == core.ReviewStatusApproved && (task.Kind == core.ReviewKindSuperTeamTransfer || task.Kind == core.ReviewKindMavenRestore) {
+		if task.Kind == core.ReviewKindMavenRestore {
+			applyErr = applyMavenRestoreTx(tx, task)
+		} else {
+			applyErr = applySuperTeamTransferTx(tx, task)
+		}
 		if applyErr != nil {
 			if !reviewResourceStateChanged(applyErr) {
 				return nil, applyErr
@@ -803,7 +811,7 @@ func (db *DB) DecideReviewTask(id, actor, decision, reason string, decidedAt int
 	if err != nil || changed != 1 {
 		return nil, core.ErrReviewTaskConflict
 	}
-	if task.Kind == core.ReviewKindPublication {
+	if task.Kind == core.ReviewKindPublication || task.Kind == core.ReviewKindMavenRestore {
 		if _, err := tx.Exec(`DELETE FROM review_task_payloads WHERE task_id = ?`, task.ID); err != nil {
 			return nil, fmt.Errorf("delete publication review payload: %w", err)
 		}
@@ -859,6 +867,9 @@ func (db *DB) CancelReviewTask(id, actor string, cancelledAt int64) (*core.Revie
 	changed, err := result.RowsAffected()
 	if err != nil || changed != 1 {
 		return nil, core.ErrReviewTaskConflict
+	}
+	if _, err := tx.Exec(`DELETE FROM review_task_payloads WHERE task_id = ?`, task.ID); err != nil {
+		return nil, err
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit review cancellation: %w", err)

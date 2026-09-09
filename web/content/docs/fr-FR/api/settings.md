@@ -46,3 +46,17 @@ Préférez `/api/settings/repositories`. Les alias préfixés par Maven restent 
 
 - **Chemin** : `POST /api/settings/index/rebuild`
 - **Comportement** : soumet une reconstruction fusionnée en arrière-plan, sans lancer deux tâches concurrentes.
+
+## Réservation des domaines de publication
+
+`GET /api/settings/maven-domains` et `PUT /api/settings/maven-domains` utilisent JSON.
+La découverte contient `maven_domains`. Valeur par défaut :
+
+```json
+{"release_value":2,"release_unit":"year"}
+```
+
+`release_value` est un entier de 1 à 100 ; `release_unit` accepte `month` ou `year`, selon le calendrier UTC.
+Le fichier de configuration conserve ces champs sous `maven_domains`.
+Une modification enregistrée concerne les nouveaux verrouillages de sécurité, sans modifier les dates existantes
+ni le délai distinct de 31 jours d’une fermeture volontaire. Voir l’[état des domaines Maven](maven.md).
