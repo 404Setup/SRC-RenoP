@@ -9,6 +9,8 @@
  */
 
 export default Object.freeze({
+    "profile.languageLoadFailed": "계정 언어를 불러오지 못했습니다. 현재 표시 언어를 유지합니다.",
+    "profile.languageSaveFailed": "계정 언어를 저장하지 못했습니다. 선택 사항은 이 기기에 보관되며 연결이 복구되면 다시 시도합니다.",
     "profile.emailAliases": "다른 로그인 이메일",
     "profile.emailAliasesHint": "제공자 이메일은 비공개이며 로그인과 계정 복구에 사용할 수 있습니다. 연결을 해제해도 이메일은 유지됩니다. 나중에 제공자로 로그인하면 삭제한 주소가 다시 추가될 수 있습니다.",
     "profile.addEmailAlias": "이메일 추가 및 확인",

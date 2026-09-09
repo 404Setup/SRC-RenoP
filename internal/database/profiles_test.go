@@ -58,6 +58,7 @@ func TestLegacyUserProfileSchemaMigratesImmutableID(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "admin", profile.Username)
 	require.Equal(t, "Administrator", profile.Nickname)
+	require.Empty(t, profile.Locale)
 }
 
 func TestUserProfileRenameIsDurableAndPreservesReferences(t *testing.T) {

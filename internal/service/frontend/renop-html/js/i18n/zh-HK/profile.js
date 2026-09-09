@@ -9,6 +9,8 @@
  */
 
 export default Object.freeze({
+    "profile.languageLoadFailed": "無法讀取帳戶語言，已保留目前介面語言。",
+    "profile.languageSaveFailed": "無法儲存帳戶語言。選擇已保留在此裝置，恢復連線後將重試。",
     "profile.emailAliases": "其他登入電郵",
     "profile.emailAliasesHint": "第三方電郵不會公開，可用於登入或復原帳戶。解除第三方綁定不會移除電郵；之後透過第三方登入時，已移除的地址可能再次加入。",
     "profile.addEmailAlias": "新增並驗證電郵",

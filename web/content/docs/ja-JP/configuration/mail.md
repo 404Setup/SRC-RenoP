@@ -18,7 +18,6 @@ mail:
   public_url: https://packages.example.com
   site_name: RenoP
   template_style: card
-  locale: en-US
   delay: {value: 5, unit: second}
   manual_rate: {limit: 1, interval: {value: 2, unit: minute}}
   account_rate: {limit: 50, interval: {value: 1, unit: minute}}
@@ -164,7 +163,7 @@ Cloudflare は初回応答をそのまま使用し、未提供の個別照会 AP
 
 ## テンプレートと通知
 
-`template_style` は `card`、`compact`、`notice` です。`locale` で英語または簡体字中国語のメールを選択します。
+`template_style` は `card`、`compact`、`notice` です。テンプレートはサービス画面と共通の落ち着いた背景色、角丸カード、カプセル型ボタン、明暗の配色を使用します。メールには受信者のアカウントに保存された言語を使用します。新規登録や言語未設定の場合は操作元ページの `Accept-Language` を使用し、既定は `en-US` です。画面と同じ 12 言語に対応し、キューへの追加時に言語を確定します。旧グローバル設定 `locale` は無視され、設定画面からの手動選択はありません。
 各スタイルにプレーンテキスト、エスケープ済み変数、設定インスタンスに限定した HTTPS リンクが含まれます。
 
 ```text

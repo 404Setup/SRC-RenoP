@@ -59,6 +59,9 @@ func newEmailVerificationApp(t *testing.T) (*fiber.App, *core.AppState, *databas
 
 func TestProfileEmailVerificationPreservesAddressUntilConfirmed(t *testing.T) {
 	app, state, db, cfg := newEmailVerificationApp(t)
+	profile, err := db.GetUserProfile("alice")
+	require.NoError(t, err)
+	require.NoError(t, db.SetUserLocale("alice", "original-session", "zh-HK", profile.UserID))
 	response := accountSecurityRequest(t, app, "PUT", "/api/auth/profile/email", map[string]string{"email": "New@Example.com"}, "original-session")
 	require.Equal(t, 202, response.StatusCode)
 	require.Equal(t, "no-store", response.Header.Get("Cache-Control"))
@@ -69,6 +72,7 @@ func TestProfileEmailVerificationPreservesAddressUntilConfirmed(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, job)
 	require.Equal(t, "email_verify", job.Scene)
+	require.Contains(t, job.Message.HTML, `lang="zh-HK"`)
 	code := regexp.MustCompile(`(?m)^\d{8}$`).FindString(job.Message.Text)
 	require.Len(t, code, 8)
 	security, err := db.GetAccountSecurity("alice")

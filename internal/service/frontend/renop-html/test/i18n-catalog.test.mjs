@@ -9,7 +9,7 @@
  */
 
 import assert from 'node:assert/strict';
-import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
@@ -18,6 +18,15 @@ import test from 'node:test';
 import {generateI18nCatalog, scanI18nCatalog} from '../scripts/i18n-catalog.mjs';
 
 const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+test('account and email languages cover every frontend catalog', () => {
+    const catalogs = readdirSync(join(frontendRoot, 'js/i18n'), {withFileTypes: true})
+        .filter(entry => entry.isDirectory()).map(entry => entry.name).sort();
+    const server = readFileSync(resolve(frontendRoot, '../../../locale/locale.go'), 'utf8');
+    const declaration = server.match(/Codes = \[\.\.\.\]string\{([^}]+)}/)[1];
+    const codes = [...declaration.matchAll(/"([^"]+)"/g)].map(match => match[1]).sort();
+    assert.deepEqual(codes, catalogs);
+});
 
 /**
  * Write a minimal locale fragment fixture.

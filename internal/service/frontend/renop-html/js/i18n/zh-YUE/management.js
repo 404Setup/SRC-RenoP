@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "mail.automaticLanguage": "自動用收件帳戶嘅語言，預設係英文。",
     "mail.disposableBlacklist": "使用內置臨時電郵黑名單",
     "mail.disposableBlacklistHint": "只喺黑名單模式生效。封鎖已收錄嘅臨時電郵網域同子網域，唔使上網查詢。",
     "users.banIP": "同時封禁已記錄嘅登入 IP",

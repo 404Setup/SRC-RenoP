@@ -44,6 +44,7 @@ type UserProfile struct {
 	NPMPackageCount        int         `json:"npm_package_count"`
 	Links                  PublicLinks `json:"links"`
 	AvatarHash             string      `json:"-"`
+	Locale                 string      `json:"-"`
 	UsernameChangeCount    int         `json:"-"`
 	UsernameChangeWindowAt int64       `json:"-"`
 }

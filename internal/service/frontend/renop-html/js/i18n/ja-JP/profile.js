@@ -9,6 +9,8 @@
  */
 
 export default Object.freeze({
+    "profile.languageLoadFailed": "アカウントの言語を読み込めませんでした。現在の表示言語を維持します。",
+    "profile.languageSaveFailed": "アカウントの言語を保存できませんでした。選択はこの端末に保持され、接続が回復すると再試行します。",
     "profile.emailAliases": "その他のログイン用メール",
     "profile.emailAliasesHint": "プロバイダーのメールは非公開で、ログインやアカウント復旧に使用できます。連携を解除してもメールは残ります。後でプロバイダーからログインすると、削除したアドレスが再追加される場合があります。",
     "profile.addEmailAlias": "メールを追加して確認",

@@ -27,7 +27,7 @@ export function getAuthHeaders() {
 /**
  * Merge default fetch options so session cookies are always included.
  * @param {RequestInit} [options={}] - Additional fetch options to merge.
- * @returns {RequestInit} Options with credentials, explicit API cache bypass, and auth headers.
+ * @returns {RequestInit} Options with credentials, the current UI language, and explicit API cache bypass.
  */
 export function withCredentials(options = {}) {
     return {
@@ -35,6 +35,7 @@ export function withCredentials(options = {}) {
         cache: 'no-store',
         ...options,
         headers: {
+            'Accept-Language': document.documentElement.lang || 'en-US',
             ...getAuthHeaders(),
             ...(options.headers || {}),
         },

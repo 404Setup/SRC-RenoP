@@ -81,6 +81,7 @@ func clickHouseSchemas() []clickHouseTableSchema {
 		}},
 		{name: "user_profiles", keyColumns: []string{"user_id"}, columns: []string{
 			"`user_id` String", "`username` String", "`nickname` String DEFAULT ''",
+			"`locale` String DEFAULT ''",
 			"`website_url` String DEFAULT ''", "`github_url` String DEFAULT ''", "`discord_url` String DEFAULT ''",
 			"`custom_link_name` String DEFAULT ''", "`custom_link_url` String DEFAULT ''",
 			"`rename_window_started_at` Int64 DEFAULT 0", "`rename_count` Int64 DEFAULT 0", "`updated_at` Int64 DEFAULT 0",

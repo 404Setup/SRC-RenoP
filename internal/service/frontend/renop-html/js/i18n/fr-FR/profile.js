@@ -9,6 +9,8 @@
  */
 
 export default Object.freeze({
+    "profile.languageLoadFailed": "Impossible de charger la langue du compte. La langue actuelle est conservée.",
+    "profile.languageSaveFailed": "Impossible d’enregistrer la langue du compte. Votre choix est conservé sur cet appareil et sera renvoyé au rétablissement de la connexion.",
     "profile.emailAliases": "Autres adresses de connexion",
     "profile.emailAliasesHint": "Les adresses des fournisseurs restent privées et servent à la connexion ou à la récupération du compte. Déconnecter un fournisseur conserve ses adresses ; une connexion ultérieure peut réajouter les adresses supprimées.",
     "profile.addEmailAlias": "Ajouter et vérifier une adresse",

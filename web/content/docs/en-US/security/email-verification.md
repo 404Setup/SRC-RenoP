@@ -67,3 +67,19 @@ RenoP retains at most 2,048 pending email changes. Expired records are removed b
 Successful changes write a profile activity entry. The serial mail worker sends an `email_changed` notification through the configured routing and sending limits. Queue acceptance is distinct from delivery; the verification dialog displays provider delivery progress and failures.
 
 Other providers may offer [Use verified email](./oauth-login.md) in the profile editor. This also requests fresh authorization, preserves the current login binding, and applies the recipient policy. An address without an explicit verified-email claim must use RenoP email verification instead.
+## Account language
+
+Signing in restores the account's saved language on each device. An account without a preference adopts the current interface language; later language-picker changes are saved automatically. Registration saves the page language with the new account. Failed writes keep one pending choice on the device and retry after reconnection, returning to the page, or reloading. A previous account's pending choice is never applied to another account.
+
+The preference is private, survives username changes and restarts, and is removed when the account is retired. Updating it does not alter credentials or invalidate an active second-factor challenge. Background mail and password-reset emails use the recipient's preference, including when an email alias identifies the account. Recipients without a preference use the initiating page's `Accept-Language`, then `en-US`. Queued messages keep the language chosen at enqueue time.
+
+Supported identifiers are `en-US`, `zh-CN`, `zh-HK`, `zh-TW`, `zh-YUE`, `ko-KR`, `ja-JP`, `de-DE`, `fr-FR`, `ru-RU`, `es-ES`, and `pt-PT`.
+
+| Method | Path | Request or response |
+|---|---|---|
+| GET | `/api/auth/profile/locale` | `{"user_id":"00000000-0000-4000-8000-000000000001","locale":"fr-FR"}`; an empty value means no saved preference |
+| PUT | `/api/auth/profile/locale` | `{"user_id":"00000000-0000-4000-8000-000000000001","locale":"fr-FR"}`; returns the saved canonical identifier |
+
+Both operations require the current browser cookie and return `Cache-Control: no-store` for preference data. API tokens cannot read or change this preference. Unsupported values return `400` with `ACCOUNT_LOCALE_INVALID`. [Mail configuration](../configuration/mail.md) no longer offers a global language selector.
+
+PUT must echo the immutable `user_id` returned by GET; a mismatched account returns `403`. Local pending choices are also bound to this ID, so renaming or later reusing a username cannot transfer preferences between accounts.

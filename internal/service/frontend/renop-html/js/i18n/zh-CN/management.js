@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "mail.automaticLanguage": "自动使用收件账号的语言，默认英语。",
     "mail.disposableBlacklist": "使用内置临时邮箱黑名单",
     "mail.disposableBlacklistHint": "仅在黑名单模式生效。拦截已收录的临时邮箱域名及子域名，不进行在线查询。",
     "users.banIP": "同时封禁已记录的登录 IP",

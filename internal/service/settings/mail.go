@@ -18,6 +18,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	"renop/internal/core"
+	"renop/internal/locale"
 	"renop/internal/mail"
 	"renop/internal/service/audit"
 	"renop/internal/service/mailqueue"
@@ -159,7 +160,8 @@ func testMailSettings(c fiber.Ctx, state *core.AppState) error {
 	}
 	_, operator, _, _, _ := audit.ExtractAuthDetails(c, state)
 	cfg := state.Inner.Config.Load()
-	receipt, err := mailqueue.Enqueue(state, mailqueue.Request{AccountID: request.AccountID, Actor: operator, To: request.To, Scene: "test", Manual: true, IP: utils.ExtractIP(c, &cfg.Server)})
+	receipt, err := mailqueue.Enqueue(state, mailqueue.Request{AccountID: request.AccountID, Actor: operator, To: request.To, Scene: "test", Manual: true, IP: utils.ExtractIP(c, &cfg.Server),
+		Data: mail.TemplateData{Locale: locale.FromHeader(c.Get(fiber.HeaderAcceptLanguage))}})
 	if err != nil {
 		status, code := 503, "mail_unavailable"
 		switch {
@@ -246,7 +248,7 @@ func previewMailTemplate(c fiber.Ctx, state *core.AppState) error {
 	if style := c.Query("style"); style != "" {
 		cfg.TemplateStyle = style
 	}
-	message, err := cfg.Render(c.Params("scene"), mail.TemplateData{Username: "RenoP", Code: "123456"})
+	message, err := cfg.Render(c.Params("scene"), mail.TemplateData{Locale: locale.FromHeader(c.Get(fiber.HeaderAcceptLanguage)), Username: "RenoP", Code: "123456"})
 	if err != nil {
 		return mailSettingsError(c, 400, "mail_request_invalid")
 	}

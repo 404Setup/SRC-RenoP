@@ -18,7 +18,6 @@ mail:
   public_url: https://packages.example.com
   site_name: RenoP
   template_style: card
-  locale: en-US
   delay: {value: 5, unit: second}
   manual_rate: {limit: 1, interval: {value: 2, unit: minute}}
   account_rate: {limit: 50, interval: {value: 1, unit: minute}}
@@ -164,7 +163,7 @@ Les codes d’échec sont conservés dans les journaux administrateur. Le statut
 
 ## Modèles et notifications
 
-`template_style` accepte `card`, `compact` et `notice`. `locale` choisit un contenu en anglais ou chinois simplifié.
+`template_style` accepte `card`, `compact` et `notice`. Les modèles reprennent les surfaces neutres, cartes arrondies, boutons en capsule et palettes claire/sombre du service. Les e-mails suivent la langue enregistrée du compte destinataire ; les nouvelles inscriptions et les destinataires sans préférence utilisent l’en-tête `Accept-Language` de la page d’origine, avec `en-US` par défaut. Les 12 langues de l’interface sont disponibles. La langue est fixée à la mise en file. L’ancien réglage global `locale` est ignoré et n’apparaît plus dans les paramètres.
 Chaque style comporte du texte brut, des substitutions échappées et des liens HTTPS limités à l’instance configurée.
 
 ```text

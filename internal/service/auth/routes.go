@@ -95,6 +95,8 @@ func SetupAuthRoutes(app fiber.Router, state *core.AppState, opChan chan<- token
 	auth.Get("/me", func(c fiber.Ctx) error { return GetAuthMe(c) })
 	auth.Get("/profile", func(c fiber.Ctx) error { return ownUserProfile(c, state) })
 	auth.Put("/profile", func(c fiber.Ctx) error { return updateOwnUserProfile(c, state, opChan) })
+	auth.Get("/profile/locale", func(c fiber.Ctx) error { return accountLocale(c, state) })
+	auth.Put("/profile/locale", func(c fiber.Ctx) error { return accountLocale(c, state) })
 	auth.Put("/profile/links", func(c fiber.Ctx) error { return updateOwnUserProfileLinks(c, state) })
 	setupAvatarRoutes(auth, state)
 	auth.Put("/profile/password", func(c fiber.Ctx) error { return UpdatePassword(c, state, opChan) })

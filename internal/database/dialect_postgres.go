@@ -158,6 +158,7 @@ func (d *PostgresDialect) InitTables(db *sql.DB) error {
 		user_id VARCHAR(36) PRIMARY KEY,
 		username VARCHAR(255) NOT NULL UNIQUE,
 		nickname VARCHAR(144) NOT NULL DEFAULT '',
+		locale VARCHAR(16) NOT NULL DEFAULT '',
 		website_url VARCHAR(2048) NOT NULL DEFAULT '',
 		github_url VARCHAR(2048) NOT NULL DEFAULT '',
 		discord_url VARCHAR(2048) NOT NULL DEFAULT '',

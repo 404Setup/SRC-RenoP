@@ -9,6 +9,8 @@
  */
 
 export default Object.freeze({
+    "profile.languageLoadFailed": "Die Kontosprache konnte nicht geladen werden. Ihre aktuelle Sprache bleibt erhalten.",
+    "profile.languageSaveFailed": "Die Kontosprache konnte nicht gespeichert werden. Die Auswahl bleibt auf diesem Gerät und wird bei wiederhergestellter Verbindung erneut übertragen.",
     "profile.emailAliases": "Weitere Anmeldeadressen",
     "profile.emailAliasesHint": "Anbieteradressen bleiben privat und können zur Anmeldung oder Kontowiederherstellung verwendet werden. Beim Trennen eines Anbieters bleiben sie erhalten; eine spätere Anmeldung kann entfernte Adressen wieder hinzufügen.",
     "profile.addEmailAlias": "E-Mail hinzufügen und bestätigen",

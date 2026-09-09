@@ -548,11 +548,12 @@ export function updatePageTranslations() {
  * Set the active language, persist it, update the page, and emit `languageChanged`.
  * Falls back to the default language when the code is unsupported.
  * @param {string} lang - Language code or alias to activate.
+ * @param {string} [source='user-set'] - Account hydration does not write the preference back.
+ * @param {AbortSignal} [signal] - Cancel hydration when the active account changes.
  * @returns {Promise<string>} Resolved language code that is now active.
  */
-export async function setLanguage(lang) {
+export async function setLanguage(lang, source = 'user-set', signal) {
     let resolved = resolveLanguage(lang);
-    let source = 'user-set';
     const available = getAvailableLanguages();
     const requestID = ++languageRequestID;
     setLanguageLoading(true);
@@ -560,15 +561,8 @@ export async function setLanguage(lang) {
     try {
         if (!resolved) {
             console.warn(`[i18n] Language '${lang}' is not supported. Defaulting to '${DEFAULT_LANG}'. Available languages: ${available.join(', ')}`);
-            currentLang = DEFAULT_LANG;
-            currentSource = 'fallback';
-            localStorage.setItem(STORAGE_KEY, DEFAULT_LANG);
-            const langSelect = document.getElementById('lang-select');
-            if (langSelect && langSelect.value !== DEFAULT_LANG) {
-                langSelect.value = DEFAULT_LANG;
-            }
-            updatePageTranslations();
-            return DEFAULT_LANG;
+            resolved = DEFAULT_LANG;
+            source = 'fallback';
         }
 
         try {
@@ -578,7 +572,7 @@ export async function setLanguage(lang) {
             resolved = DEFAULT_LANG;
             source = 'fallback';
         }
-        if (requestID !== languageRequestID) return currentLang;
+        if (requestID !== languageRequestID || signal?.aborted) return currentLang;
 
         currentLang = resolved;
         currentSource = source;
@@ -588,7 +582,7 @@ export async function setLanguage(lang) {
             langSelect.value = resolved;
         }
         updatePageTranslations();
-        window.dispatchEvent(new CustomEvent('languageChanged', {detail: {lang: resolved}}));
+        window.dispatchEvent(new CustomEvent('languageChanged', {detail: {lang: resolved, source}}));
         console.log(`[i18n] Language changed to '${resolved}'.`);
         return resolved;
     } finally {
@@ -598,12 +592,13 @@ export async function setLanguage(lang) {
 
 /**
  * Return (and log) the current language status for console / debugging.
- * @returns {{current: string, source: string, available: string[]}} Status snapshot.
+ * @returns {{current: string, source: string, available: string[], revision: number}} Status snapshot.
  */
 export function getLanguage() {
     const status = {
         current: currentLang,
         source: currentSource,
+        revision: languageRequestID,
         available: getAvailableLanguages()
     };
     console.log('[i18n] Current language status:', status);

@@ -698,7 +698,7 @@ func (db *DB) deleteToken(name string, retire bool, retiredAt int64) error {
 		return fmt.Errorf("delete account IP restrictions: %w", err)
 	}
 	if retire {
-		if _, err := tx.Exec(`UPDATE user_profiles SET nickname = '', website_url = '', github_url = '',
+		if _, err := tx.Exec(`UPDATE user_profiles SET nickname = '', locale = '', website_url = '', github_url = '',
 			discord_url = '', custom_link_name = '', custom_link_url = '', updated_at = ? WHERE user_id = ?`,
 			actedAt, userID); err != nil {
 			return fmt.Errorf("clear retired user profile for token (%s): %w", lowerName, err)

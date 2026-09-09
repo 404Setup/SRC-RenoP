@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "mail.automaticLanguage": "수신자 계정의 언어를 자동으로 사용하며 기본 언어는 영어입니다.",
     "mail.disposableBlacklist": "내장 임시 이메일 차단 목록 사용",
     "mail.disposableBlacklistHint": "차단 목록 모드에서만 적용됩니다. 온라인 조회 없이 알려진 임시 이메일 도메인과 하위 도메인을 차단합니다.",
     "users.banIP": "기록된 로그인 IP도 차단",

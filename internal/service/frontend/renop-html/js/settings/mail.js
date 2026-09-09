@@ -134,7 +134,7 @@ export function renderMailSettings(container, data, changed) {
     input(fields, data, 'public_url', {hint: t('mail.publicURLHint')});
     input(fields, data, 'site_name');
     select(fields, data, 'template_style', ['card', 'compact', 'notice']);
-    select(fields, data, 'locale', [{value: 'en-US', label: 'English'}, {value: 'zh-CN', label: '简体中文'}]);
+    fields.appendChild(createFieldRow(t('mail.locale'), '', el('span', {}, t('mail.automaticLanguage'))));
     interval(fields, data.delay, 'delay', ['second', 'minute', 'hour'], true);
     interval(fields, data.calibration, 'calibration', ['minute', 'hour', 'day'], true);
     for (const [key, units] of [['manual_rate', ['minute', 'hour', 'day']], ['account_rate', ['second', 'minute', 'hour', 'day']]]) {

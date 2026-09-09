@@ -149,6 +149,34 @@ func queueTestState(t *testing.T) (*core.AppState, *database.DB) {
 	return state, db
 }
 
+func TestQueuedMailCapturesTheRecipientLanguage(t *testing.T) {
+	state, db := queueTestState(t)
+	now := time.Now().UnixMilli()
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "alice", Permissions: []string{"base"}}))
+	_, err := db.UpdateAccountEmail("alice", "alice@example.com", now)
+	require.NoError(t, err)
+	session := &core.Session{PublicID: "locale", Username: "alice", CreatedAt: now}
+	session.LastActive.Store(now)
+	require.NoError(t, db.SaveSession(session, "locale-session"))
+	profile, err := db.GetUserProfile("alice")
+	require.NoError(t, err)
+	require.NoError(t, db.SetUserLocale("alice", "locale-session", "ja-JP", profile.UserID))
+	for _, request := range []Request{{Username: "alice", Scene: "test"}, {To: "alice@example.com", Scene: "test"}} {
+		receipt, err := Enqueue(state, request)
+		require.NoError(t, err)
+		job, err := db.GetMailJob(receipt.ID, state.Inner.Config.Load().Mail.EncryptionKey)
+		require.NoError(t, err)
+		require.Contains(t, job.Message.HTML, `lang="ja-JP"`)
+		require.Equal(t, "RenoP テストメール", job.Message.Subject)
+	}
+	require.NoError(t, db.SetUserLocale("alice", "locale-session", "fr-FR", profile.UserID))
+	receipt, err := Enqueue(state, Request{Username: "alice", Scene: "test"})
+	require.NoError(t, err)
+	job, err := db.GetMailJob(receipt.ID, state.Inner.Config.Load().Mail.EncryptionKey)
+	require.NoError(t, err)
+	require.Contains(t, job.Message.HTML, `lang="fr-FR"`)
+}
+
 func TestMailQueueSerialQuotaRefundAndDurableCompletion(t *testing.T) {
 	state, db := queueTestState(t)
 	key := state.Inner.Config.Load().Mail.EncryptionKey

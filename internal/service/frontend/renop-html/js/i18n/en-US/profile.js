@@ -9,6 +9,8 @@
  */
 
 export default Object.freeze({
+    "profile.languageLoadFailed": "Could not restore your account language. Your current language is unchanged.",
+    "profile.languageSaveFailed": "Could not save your account language. The choice is kept on this device and will be retried when the connection returns.",
     "profile.emailAliases": "Other login emails",
     "profile.emailAliasesHint": "Provider emails stay private and can be used to sign in or recover your account. Disconnecting a provider keeps its emails; a later provider sign-in can add removed addresses again.",
     "profile.addEmailAlias": "Add a verified email",

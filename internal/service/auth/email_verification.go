@@ -21,6 +21,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"renop/internal/core"
+	"renop/internal/locale"
 	"renop/internal/mail"
 	"renop/internal/service/audit"
 	"renop/internal/service/mailqueue"
@@ -88,6 +89,14 @@ func providerEmailErrorCode(err error) string {
 
 func queueProfileEmailVerification(c fiber.Ctx, state *core.AppState, username, email string, alias bool) error {
 	cfg := state.Inner.Config.Load()
+	profile, err := state.GetDB().GetUserProfile(username)
+	if err != nil {
+		return emailVerificationError(c, err)
+	}
+	language := profile.Locale
+	if language == "" {
+		language = locale.FromHeader(c.Get(fiber.HeaderAcceptLanguage))
+	}
 	code, err := newEmailVerificationCode()
 	if err != nil {
 		return emailVerificationError(c, err)
@@ -96,7 +105,7 @@ func queueProfileEmailVerification(c fiber.Ctx, state *core.AppState, username, 
 	ip := utils.ExtractIP(c, &cfg.Server)
 	job, receipt, err := mailqueue.Prepare(cfg.Mail, mailqueue.Request{
 		To: email, Username: username, Actor: username, Scene: "email_verify", IP: ip, Manual: true,
-		ExpiresAt: time.Now().Add(10 * time.Minute).UnixMilli(), Data: mail.TemplateData{Code: code},
+		ExpiresAt: time.Now().Add(10 * time.Minute).UnixMilli(), Data: mail.TemplateData{Locale: language, Code: code},
 	})
 	if err == nil {
 		err = state.GetDB().QueueAccountEmailChange(username, session, job,

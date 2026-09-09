@@ -53,6 +53,7 @@ type RegistrationProfile struct {
 
 // AccountRegistration carries validated account fields and the browser's confirmation capability.
 type AccountRegistration struct {
+	Locale       string
 	Provider     string
 	Username     string
 	Nickname     string

@@ -50,6 +50,9 @@ func TestEmailPasswordResetRoutes(t *testing.T) {
 	session := &core.Session{PublicID: "before-reset", Username: "alice", CreatedAt: time.Now().UnixMilli(), LoginMethod: "password"}
 	session.LastActive.Store(session.CreatedAt)
 	require.NoError(t, state.SaveSession(session, "old-session"))
+	profile, err := db.GetUserProfile("alice")
+	require.NoError(t, err)
+	require.NoError(t, db.SetUserLocale("alice", "old-session", "ja-JP", profile.UserID))
 	app := fiber.New()
 	app.Use(AuthMiddleware(state))
 	setupPasswordResetRoutes(app.Group("/api/auth"), state)
@@ -92,8 +95,10 @@ func TestEmailPasswordResetRoutes(t *testing.T) {
 			require.NotContains(t, string(body), secret)
 		}
 		if strings.HasPrefix(email, "Alice") {
+			require.Contains(t, job.Message.HTML, `lang="ja-JP"`)
 			knownCode = code
 		} else {
+			require.Contains(t, job.Message.HTML, `lang="en-US"`)
 			response = accountSecurityRequest(t, app, "POST", "/api/auth/password-reset/confirm", map[string]string{"email": email, "code": code, "new_password": "new-password"}, "")
 			require.Equal(t, 401, response.StatusCode)
 			require.NoError(t, response.Body.Close())

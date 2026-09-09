@@ -36,6 +36,8 @@ test('email provider presets preserve account policy and do not share mutable pr
 });
 
 test('built-in disposable filtering preserves its choice and is disabled in whitelist mode', () => {
+    assert.doesNotMatch(source, /select\(fields, data, 'locale'/);
+    assert.match(source, /t\('mail\.automaticLanguage'\)/);
     let selectChange, toggleChange, tagsChange, disabled, changed = 0;
     const toggle = {toggleAttribute: (name, value) => { assert.equal(name, 'disabled'); disabled = value; }};
     const context = {t: key => key,

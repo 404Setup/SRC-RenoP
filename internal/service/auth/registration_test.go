@@ -65,6 +65,7 @@ func registrationRequest(t *testing.T, app *fiber.App, path string, body map[str
 		method = "POST"
 	}
 	request := httptest.NewRequest(method, path, reader)
+	request.Header.Set("Accept-Language", "fr-FR")
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}
@@ -93,6 +94,9 @@ func TestPublicRegistrationRoutes(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, bcrypt.CompareHashAndPassword([]byte(account.EncryptedSecret), []byte("ValidPassword2026!")))
 	require.Empty(t, account.Tokens)
+	profile, err := state.GetDB().GetUserProfile("manual_user")
+	require.NoError(t, err)
+	require.Equal(t, "fr-FR", profile.Locale)
 	require.Equal(t, uint64(1), state.Inner.TokensCount.Load())
 	signedIn, err := AuthenticateUser(state, &core.LoginRequest{Name: "manual@example.com", Secret: "ValidPassword2026!"}, nil)
 	require.NoError(t, err)
@@ -113,6 +117,7 @@ func TestPublicRegistrationRoutes(t *testing.T) {
 	require.Equal(t, "/api/auth/registration", cookie.Path)
 	job, err := state.GetDB().GetMailJob(receipt.ID, cfg.Mail.EncryptionKey)
 	require.NoError(t, err)
+	require.Contains(t, job.Message.HTML, `lang="fr-FR"`)
 	code := regexp.MustCompile(`(?m)^\d{8}$`).FindString(job.Message.Text)
 	require.Len(t, code, 8)
 	pending, err := state.GetDB().GetPendingRegistration(registrationHash(cookie.Value), time.Now().UnixMilli())

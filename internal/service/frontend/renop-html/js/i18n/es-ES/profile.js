@@ -9,6 +9,8 @@
  */
 
 export default Object.freeze({
+    "profile.languageLoadFailed": "No se ha podido cargar el idioma de tu cuenta. Se mantiene el idioma actual.",
+    "profile.languageSaveFailed": "No se ha podido guardar el idioma de tu cuenta. La elección se conserva en este dispositivo y se reintentará cuando vuelva la conexión.",
     "profile.emailAliases": "Otros correos de acceso",
     "profile.emailAliasesHint": "Los correos de los proveedores son privados y sirven para acceder o recuperar la cuenta. Desconectar un proveedor conserva sus correos; un acceso posterior puede volver a añadir las direcciones eliminadas.",
     "profile.addEmailAlias": "Añadir y verificar un correo",

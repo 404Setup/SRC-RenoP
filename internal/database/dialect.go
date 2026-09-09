@@ -535,6 +535,7 @@ var sharedColumnMigrations = []SchemaMigration{
 	{Name: "maven_domains.claim_status", Query: "ALTER TABLE maven_domains ADD COLUMN claim_status VARCHAR(32) NOT NULL DEFAULT '';"},
 	{Name: "maven_domains.claim_verified_at", Query: "ALTER TABLE maven_domains ADD COLUMN claim_verified_at BIGINT NOT NULL DEFAULT 0;"},
 	{Name: "maven_artifacts.super_team_prefix", Query: "ALTER TABLE maven_artifacts ADD COLUMN super_team_prefix VARCHAR(64) NOT NULL DEFAULT '';"},
+	{Name: "user_profiles.locale", Query: "ALTER TABLE user_profiles ADD COLUMN locale VARCHAR(16) NOT NULL DEFAULT '';"},
 	{Name: "user_profiles.website_url", Query: "ALTER TABLE user_profiles ADD COLUMN website_url VARCHAR(2048) NOT NULL DEFAULT '';"},
 	{Name: "user_profiles.github_url", Query: "ALTER TABLE user_profiles ADD COLUMN github_url VARCHAR(2048) NOT NULL DEFAULT '';"},
 	{Name: "user_profiles.discord_url", Query: "ALTER TABLE user_profiles ADD COLUMN discord_url VARCHAR(2048) NOT NULL DEFAULT '';"},

@@ -18,7 +18,6 @@ mail:
   public_url: https://packages.example.com
   site_name: RenoP
   template_style: card
-  locale: en-US
   delay: {value: 5, unit: second}
   manual_rate: {limit: 1, interval: {value: 2, unit: minute}}
   account_rate: {limit: 50, interval: {value: 1, unit: minute}}
@@ -164,7 +163,7 @@ Cloudflare 直接使用初始响应，不调用不存在的单封邮件轮询接
 
 ## 模板与通知
 
-`template_style` 可选 `card`、`compact`、`notice`。`locale` 选择英语或简体中文邮件内容。
+`template_style` 可选 `card`、`compact`、`notice`。模板采用服务界面的中性色表面、圆角卡片、胶囊按钮及明暗配色。邮件使用收件账号保存的语言；新注册及尚未保存偏好的收件人使用发起页面的 `Accept-Language`，缺省为 `en-US`。支持前端的全部 12 种语言。邮件入队时确定语言。旧版全局 `locale` 配置会被忽略，设置页面不再提供手动选择。
 各样式均包含纯文本版本、经过转义的变量，以及限定为实例公开地址的 HTTPS 操作链接。
 
 ```text

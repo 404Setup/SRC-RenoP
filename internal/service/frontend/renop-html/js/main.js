@@ -11,6 +11,7 @@
 import {initTheme} from '@renop/ui/theme';
 import {cachedIsLoggedIn, cachedIsManager, initializeSession, isManagerTab, setSwitchTabHandler} from './auth.js';
 import {initI18n, t} from './i18n.js';
+import {installAccountLanguageSync} from './account-language.js';
 import {RenopDialog} from './components.js';
 import {el} from '@renop/ui/dom';
 import {updateModalInertState} from '@renop/ui/modal';
@@ -63,6 +64,7 @@ import {protectedRouteDeniedEvent} from './protected-route.js';
 import {accountPageFromPath, isLoginPath, leaveLoginPage, loginReturnTo, navigateToLogin} from './login-route.js';
 
 await initI18n();
+installAccountLanguageSync();
 initConfiguredFont();
 const backendAvailability = installBackendAvailabilityMonitor();
 

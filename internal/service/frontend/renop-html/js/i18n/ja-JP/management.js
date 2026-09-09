@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "mail.automaticLanguage": "受信者のアカウントの言語を自動で使用します。既定は英語です。",
     "mail.disposableBlacklist": "内蔵の使い捨てメール拒否リストを使用",
     "mail.disposableBlacklistHint": "拒否リストモードでのみ有効です。登録済みの一時メールドメインとサブドメインを、オンライン照会なしで拒否します。",
     "users.banIP": "記録済みのログイン IP もブロック",

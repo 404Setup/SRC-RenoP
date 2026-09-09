@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "mail.automaticLanguage": "Verwendet automatisch die Kontosprache des Empfängers, standardmäßig Englisch.",
     "mail.disposableBlacklist": "Integrierte Sperrliste für Wegwerf-E-Mails verwenden",
     "mail.disposableBlacklistHint": "Nur im Sperrlistenmodus aktiv. Sperrt bekannte Wegwerf-Domains und ihre Subdomains ohne Online-Abfragen.",
     "users.banIP": "Auch gespeicherte Anmelde-IP-Adressen sperren",

@@ -52,7 +52,7 @@ func (db *DB) getUserProfile(whereClause, value string) (*core.UserProfile, erro
 		generation = db.profileCache.Generation()
 	}
 	profile := &core.UserProfile{}
-	err := db.QueryRow(`SELECT p.user_id, p.username, t.created_at, p.nickname,
+	err := db.QueryRow(`SELECT p.user_id, p.username, t.created_at, p.nickname, p.locale,
 		p.website_url, p.github_url, p.discord_url, p.custom_link_name, p.custom_link_url,
 		p.rename_window_started_at, p.rename_count,
 		(SELECT COUNT(*) FROM maven_domain_members mm JOIN maven_domains md
@@ -64,7 +64,7 @@ func (db *DB) getUserProfile(whereClause, value string) (*core.UserProfile, erro
 		COALESCE(a.sha256, '')
 		FROM user_profiles p JOIN tokens t ON t.name = p.username
 		LEFT JOIN user_avatars a ON a.user_id = p.user_id WHERE `+whereClause, value).Scan(
-		&profile.UserID, &profile.Username, &profile.CreatedAt, &profile.Nickname,
+		&profile.UserID, &profile.Username, &profile.CreatedAt, &profile.Nickname, &profile.Locale,
 		&profile.Links.Website, &profile.Links.GitHub, &profile.Links.Discord,
 		&profile.Links.CustomName, &profile.Links.CustomURL,
 		&profile.UsernameChangeWindowAt, &profile.UsernameChangeCount,

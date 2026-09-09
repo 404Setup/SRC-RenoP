@@ -20,6 +20,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/locale"
 	"renop/internal/mail"
 )
 
@@ -288,7 +289,7 @@ func (db *DB) RegisterAccount(request core.AccountRegistration, cfg config.Regis
 	username, valid := core.NormalizeUsername(request.Username)
 	nickname, validNickname := core.NormalizeNickname(request.Nickname)
 	email, validEmail := core.NormalizeEmail(request.Email)
-	if !valid || !validNickname || !validEmail {
+	if !valid || !validNickname || !validEmail || request.Locale != "" && locale.Match(request.Locale) == "" {
 		return nil, core.ErrRegistrationInvalid
 	}
 	if _, err := bcrypt.Cost([]byte(request.PasswordHash)); err != nil {
@@ -348,6 +349,9 @@ func (db *DB) RegisterAccount(request core.AccountRegistration, cfg config.Regis
 	}
 	userID, err := userIDForUsernameTx(tx, username)
 	if err != nil {
+		return nil, err
+	}
+	if _, err = tx.Exec(`UPDATE user_profiles SET locale = ? WHERE user_id = ?`, locale.Resolve(request.Locale), userID); err != nil {
 		return nil, err
 	}
 	if err = updateAccountEmailTx(tx, userID, email, now); err != nil {

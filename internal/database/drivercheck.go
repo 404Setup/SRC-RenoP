@@ -75,6 +75,19 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		if err != nil || stored == nil || stored.Username != username {
 			return errorsOrMissing(err, "session")
 		}
+		beforeLocale, err := db.GetMFAState(username)
+		if err != nil {
+			return err
+		}
+		if err := db.SetUserLocale(username, "driver-check-session-"+suffix, "ja-JP", beforeLocale.UserID); err != nil {
+			return err
+		}
+		if profile, err := db.GetUserProfile(username); err != nil || profile.Locale != "ja-JP" {
+			return errorsOrMissing(err, "private account language")
+		}
+		if current, err := db.GetMFAState(username); err != nil || current.Snapshot != beforeLocale.Snapshot {
+			return errorsOrMissing(err, "language change preserves credential snapshot")
+		}
 		banUntil := now + int64(time.Hour/time.Millisecond)
 		if banned, err := db.IsIPBanned("127.0.0.1"); err != nil || banned {
 			return errorsOrMissing(err, "initial IP access")
@@ -1329,6 +1342,14 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		}
 		if err := link(owner, identity); err != nil {
 			return err
+		}
+		if err := db.SetUserLocale(owner, owner, "fr-FR", state.UserID); err != nil {
+			return err
+		}
+		for _, email := range []string{primary, alias} {
+			if code, err := db.GetEmailLocale(email); err != nil || code != "fr-FR" {
+				return errorsOrMissing(err, "provider email recipient language")
+			}
 		}
 		account, err := db.GetTokenByEmail(strings.ToUpper(alias))
 		if err != nil || account == nil || account.Name != owner {

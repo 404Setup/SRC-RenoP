@@ -18,7 +18,6 @@ mail:
   public_url: https://packages.example.com
   site_name: RenoP
   template_style: card
-  locale: en-US
   delay: {value: 5, unit: second}
   manual_rate: {limit: 1, interval: {value: 2, unit: minute}}
   account_rate: {limit: 50, interval: {value: 1, unit: minute}}
@@ -164,7 +163,7 @@ Provider failure codes are retained in administrator logs. Public job status omi
 
 ## Templates and Notifications
 
-`template_style` selects `card`, `compact`, or `notice`. Email copy is available in English and Simplified Chinese, selected by `locale`.
+`template_style` selects `card`, `compact`, or `notice`. Templates use the service’s neutral surfaces, rounded cards, pill buttons, and light/dark palette. Mail follows the recipient’s saved account language; new registrations and recipients without a preference use the initiating page’s `Accept-Language`, falling back to `en-US`. The frontend’s 12 languages are supported. Language is captured when a message is queued. The old global `locale` setting is ignored and is no longer shown in settings.
 All styles include matching plain text, escaped substitutions, and HTTPS action links restricted to the configured instance.
 
 ```text

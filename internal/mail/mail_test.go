@@ -31,6 +31,7 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
+	"renop/internal/locale"
 )
 
 func TestSMTPPlainTLSSTARTTLSAndFailureCharging(t *testing.T) {
@@ -477,8 +478,8 @@ func TestMailTemplatesMIMEAndEncryptedPayload(t *testing.T) {
 	require.NoError(t, cfg.EnsureKey())
 	for _, style := range []string{"card", "compact", "notice"} {
 		cfg.TemplateStyle = style
-		for _, scene := range Scenes {
-			m, err := cfg.Render(scene, TemplateData{Username: "<script>alert(1)</script>", Code: "123456", URL: "https://renop.example/account", Detail: "<img src=x onerror=alert(1)>"})
+		for index, scene := range Scenes {
+			m, err := cfg.Render(scene, TemplateData{Locale: locale.Codes[index%len(locale.Codes)], Username: "<script>alert(1)</script>", Code: "123456", URL: "https://renop.example/account", Detail: "<img src=x onerror=alert(1)>"})
 			require.NoError(t, err)
 			require.Contains(t, m.HTML, "&lt;script&gt;")
 			require.NotContains(t, m.HTML, "<img src=x")
@@ -489,6 +490,9 @@ func TestMailTemplatesMIMEAndEncryptedPayload(t *testing.T) {
 			require.NoError(t, err)
 			parsed, err := netmail.ReadMessage(bytes.NewReader(raw))
 			require.NoError(t, err)
+			subject, err := new(mime.WordDecoder).DecodeHeader(parsed.Header.Get("Subject"))
+			require.NoError(t, err)
+			require.Equal(t, m.Subject, subject)
 			_, params, err := mime.ParseMediaType(parsed.Header.Get("Content-Type"))
 			require.NoError(t, err)
 			reader := multipart.NewReader(parsed.Body, params["boundary"])
@@ -512,6 +516,28 @@ func TestMailTemplatesMIMEAndEncryptedPayload(t *testing.T) {
 	}
 	_, err := cfg.Render("password_reset", TemplateData{URL: "https://attacker.example/reset"})
 	require.Error(t, err)
+}
+
+func TestMailTemplatesCoverEveryAccountLanguage(t *testing.T) {
+	cfg := DefaultConfig()
+	for _, code := range locale.Codes {
+		catalog, ok := templateCatalogs[code]
+		require.True(t, ok, code)
+		require.Len(t, catalog.Messages, len(Scenes), code)
+		for index, scene := range Scenes {
+			require.NotEmpty(t, catalog.Messages[index].Title, code+":"+scene)
+			require.NotEmpty(t, catalog.Messages[index].Body, code+":"+scene)
+			message, err := cfg.Render(scene, TemplateData{Locale: code, Code: "12345678"})
+			require.NoError(t, err)
+			require.Contains(t, message.HTML, `lang="`+code+`"`)
+			require.Contains(t, message.Text, catalog.Footer)
+			require.Equal(t, catalog.Messages[index].Title, message.Subject)
+		}
+	}
+	require.NoError(t, json.Unmarshal([]byte(`{"locale":"zh-CN"}`), &cfg))
+	message, err := cfg.Render("test", TemplateData{Locale: "unknown"})
+	require.NoError(t, err)
+	require.Contains(t, message.HTML, `lang="en-US"`)
 }
 
 func TestMailProviderSubmissionAndStatusContracts(t *testing.T) {

@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "mail.automaticLanguage": "Utiliza automáticamente el idioma de la cuenta del destinatario; el predeterminado es el inglés.",
     "mail.disposableBlacklist": "Usar la lista negra integrada de correos temporales",
     "mail.disposableBlacklistHint": "Solo se aplica en modo lista negra. Bloquea los dominios temporales incluidos y sus subdominios sin consultas en línea.",
     "users.banIP": "Bloquear también las IP de acceso registradas",

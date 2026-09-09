@@ -21,6 +21,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/locale"
 	"renop/internal/mail"
 	"renop/internal/service/audit"
 	"renop/internal/service/mailqueue"
@@ -193,7 +194,7 @@ func requestRegistrationCode(c fiber.Ctx, state *core.AppState) error {
 	}
 	job, receipt, err := mailqueue.Prepare(cfg.Mail, mailqueue.Request{To: email, Actor: "guest", Scene: "registration_verify",
 		IP: ip, Manual: true, ExpiresAt: expiresAt,
-		Data: mail.TemplateData{Code: code, URL: strings.TrimRight(cfg.Mail.PublicURL, "/") + "/account/register"}})
+		Data: mail.TemplateData{Locale: locale.FromHeader(c.Get(fiber.HeaderAcceptLanguage)), Code: code, URL: strings.TrimRight(cfg.Mail.PublicURL, "/") + "/account/register"}})
 	if err != nil {
 		return registrationError(c, err)
 	}
@@ -279,7 +280,8 @@ func postRegistration(c fiber.Ctx, state *core.AppState) error {
 	ip := registrationIP(c, &cfg.Server)
 	state.Inner.TokenWriteLock.Lock()
 	profile, err := state.GetDB().RegisterAccount(core.AccountRegistration{Provider: request.Provider, Username: username, Nickname: nickname,
-		Email: email, PasswordHash: string(password), IPHash: registrationHash(ip), IDHash: registrationHash(capability),
+		Locale: locale.FromHeader(c.Get(fiber.HeaderAcceptLanguage)),
+		Email:  email, PasswordHash: string(password), IPHash: registrationHash(ip), IDHash: registrationHash(capability),
 		CodeHash:     emailVerificationHash(cfg.Mail.EncryptionKey, "registration", capability+"\x00"+email, strings.TrimSpace(request.Code)),
 		RequireEmail: cfg.Mail.Enabled}, cfg.Registration, time.Now().UnixMilli())
 	if err == nil {

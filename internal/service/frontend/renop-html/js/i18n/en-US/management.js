@@ -9,6 +9,7 @@
  */
 
 export default Object.freeze({
+    "mail.automaticLanguage": "Automatically follows the recipient’s account language; English is the default.",
     "mail.disposableBlacklist": "Use built-in disposable email blacklist",
     "mail.disposableBlacklistHint": "Applies only in blacklist mode. Blocks known temporary email domains and their subdomains without online lookups.",
     "users.banIP": "Also ban recorded login IPs",

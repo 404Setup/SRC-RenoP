@@ -68,7 +68,7 @@ Check `packages/renop-ui/package.json` exports before building another shared co
 | Concern                                                 | Existing owner                                                                                                                                           |
 |---------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
 | History, sign-in page, protected routes, HTTP failures, offline state | `js/main.js`, `js/login-route.js`, `js/auth.js`, `css/account-pages.css`, `js/protected-route.js`, `js/api.js`, `js/response-errors.js`, `js/backend-availability.js` |
-| Identity, profile photos/links, provider connections, profile cache | `js/user-profiles.js`, `js/profile.js`, `js/profile-avatar.js`, `js/profile-links.js`, `js/oauth.js`, `js/components/user-avatar.js` |
+| Identity, profile photos/links, provider connections, profile cache | `js/user-profiles.js`, `js/profile.js`, `js/profile-avatar.js`, `js/profile-links.js`, `js/account-language.js`, `js/oauth.js`, `js/components/user-avatar.js` |
 | Account security / recovery / retirement / tokens / administration | `js/account-security.js`, `js/account-emails.js`, `js/fido-utils.js`, `js/mfa-login.js`, `js/profile-email-verification.js`, `js/account-recovery.js`, `js/password-recovery.js`, `js/login-route.js`, `js/account-retirement.js`, `js/api-tokens.js`, `js/users/` |
 | Email accounts, provider presets, billing, delivery     | `js/settings/mail.js`; JSON settings are integrated by `js/settings.js`                                                                                   |
 | Reviews / messages / administrator composer             | `js/reviews.js`, `js/review-messages.js`, `js/messages.js`, `js/notification-composer.js`                                                                |
@@ -150,6 +150,9 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   viewport-bounded dialogs, and loading/empty/error states. A valid authenticated 403 must not log out the user.
   Render untrusted Markdown through the inert allowlist; never show raw backend errors or runtime exceptions.
 - **Localization/docs:** Add stable errors and audit actions to every supported locale. English is canonical;
+  `internal/locale/` matches account and request languages; private preferences live in `user_profiles.locale`.
+  `internal/mail/template_locales.go` covers every frontend language. Mail captures the recipient language when queued;
+  browser language synchronization binds pending changes to immutable user IDs and preserves credential revisions.
   preserve keys/placeholders, lazy locale loading, and bundle budgets. Website translations must retain canonical
   files, heading outlines, examples, endpoints, and links; see `web/test/docs-parity.test.mjs`.
 - **Release:** Frontend sidecars must not be recompressed; serve them with correct negotiation, ETags, and Vary.

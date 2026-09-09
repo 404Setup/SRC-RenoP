@@ -112,7 +112,6 @@ type Config struct {
 	PublicURL              string    `json:"public_url" yaml:"public_url"`
 	SiteName               string    `json:"site_name" yaml:"site_name"`
 	TemplateStyle          string    `json:"template_style" yaml:"template_style"`
-	Locale                 string    `json:"locale" yaml:"locale"`
 	Delay                  Interval  `json:"delay" yaml:"delay"`
 	ManualRate             Rate      `json:"manual_rate" yaml:"manual_rate"`
 	AccountRate            Rate      `json:"account_rate" yaml:"account_rate"`
@@ -125,7 +124,7 @@ type Config struct {
 
 // DefaultConfig keeps sending disabled until an administrator configures an account.
 func DefaultConfig() Config {
-	return Config{SiteName: "RenoP", TemplateStyle: "card", Locale: "en-US", ListMode: "blacklist",
+	return Config{SiteName: "RenoP", TemplateStyle: "card", ListMode: "blacklist",
 		Delay: Interval{5, "second"}, ManualRate: Rate{1, Interval{2, "minute"}},
 		AccountRate: Rate{50, Interval{1, "minute"}}, Calibration: Interval{5, "minute"}}
 }
@@ -155,9 +154,6 @@ func (c *Config) Normalize() {
 	}
 	if c.TemplateStyle == "" {
 		c.TemplateStyle = "card"
-	}
-	if c.Locale == "" {
-		c.Locale = "en-US"
 	}
 	if c.ListMode == "" {
 		c.ListMode = "blacklist"

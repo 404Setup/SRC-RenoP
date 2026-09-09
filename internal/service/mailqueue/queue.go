@@ -66,6 +66,9 @@ func Enqueue(state *core.AppState, request Request) (Receipt, error) {
 			return Receipt{}, core.ErrUserProfileNotFound
 		}
 		request.UserID = profile.UserID
+		if profile.Locale != "" {
+			request.Data.Locale = profile.Locale
+		}
 		if request.To == "" {
 			security, err := state.GetDB().GetAccountSecurity(request.Username)
 			if err != nil {
@@ -75,6 +78,14 @@ func Enqueue(state *core.AppState, request Request) (Receipt, error) {
 				return Receipt{}, ErrRecipientBlocked
 			}
 			request.To = security.Email
+		}
+	} else if request.To != "" {
+		code, err := state.GetDB().GetEmailLocale(request.To)
+		if err != nil {
+			return Receipt{}, err
+		}
+		if code != "" {
+			request.Data.Locale = code
 		}
 	}
 	job, receipt, err := Prepare(cfg, request)

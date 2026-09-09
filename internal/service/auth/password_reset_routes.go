@@ -18,6 +18,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"renop/internal/core"
+	"renop/internal/locale"
 	"renop/internal/mail"
 	"renop/internal/service/audit"
 	"renop/internal/service/mailqueue"
@@ -69,6 +70,13 @@ func requestEmailPasswordReset(c fiber.Ctx, state *core.AppState) error {
 	if !valid || email == "" {
 		return passwordResetError(c, 400, "ACCOUNT_EMAIL_INVALID")
 	}
+	language, err := state.GetDB().GetEmailLocale(email)
+	if err != nil {
+		return passwordResetError(c, 503, "mail_unavailable")
+	}
+	if language == "" {
+		language = locale.FromHeader(c.Get(fiber.HeaderAcceptLanguage))
+	}
 	code, err := newEmailVerificationCode()
 	if err != nil {
 		return passwordResetError(c, 503, "mail_unavailable")
@@ -77,7 +85,7 @@ func requestEmailPasswordReset(c fiber.Ctx, state *core.AppState) error {
 	job, receipt, err := mailqueue.Prepare(cfg.Mail, mailqueue.Request{
 		To: email, Actor: "guest", Scene: "password_reset", IP: ip, Manual: true,
 		ExpiresAt: time.Now().Add(10 * time.Minute).UnixMilli(),
-		Data:      mail.TemplateData{Code: code, URL: strings.TrimRight(cfg.Mail.PublicURL, "/") + "/account/forgot-password"},
+		Data:      mail.TemplateData{Locale: language, Code: code, URL: strings.TrimRight(cfg.Mail.PublicURL, "/") + "/account/forgot-password"},
 	})
 	if err == nil {
 		_, err = state.GetDB().QueueEmailPasswordReset(job, emailPasswordResetHash(cfg.Mail.EncryptionKey, email, code), cfg.Mail.EncryptionKey, ip, cfg.Mail.ManualRate)

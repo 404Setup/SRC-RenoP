@@ -15,6 +15,8 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+
+	"renop/internal/locale"
 )
 
 // Scenes are the stable account-routing and template identifiers.
@@ -22,6 +24,7 @@ var Scenes = []string{"registration_verify", "registration_success", "password_r
 
 // TemplateData contains text-only substitutions and a same-instance action URL.
 type TemplateData struct {
+	Locale   string `json:"locale,omitempty"`
 	Username string `json:"username"`
 	Code     string `json:"code"`
 	URL      string `json:"url"`
@@ -76,17 +79,19 @@ var chineseTemplates = []templateCopy{
 	{"RenoP 测试邮件", "邮件账号已通过 RenoP 发件队列成功提交此测试邮件。"},
 }
 
+// Inline colors mirror @renop/ui tokens because email clients may strip stylesheets.
 var emailTemplate = template.Must(template.New("email").Parse(`<!doctype html>
-<html lang="{{.Locale}}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title></head>
-<body style="margin:0;padding:24px 12px;background:#f3f5f8;color:#192332;font-family:Arial,'Microsoft YaHei',sans-serif;line-height:1.6">
-<table role="presentation" style="width:100%;max-width:600px;margin:0 auto;border-collapse:separate;border-spacing:0"><tr><td style="padding:0 8px 16px;font-size:18px;font-weight:700;color:#3158c9">{{.SiteName}}</td></tr>
-<tr><td style="padding:{{if eq .Style "compact"}}20px{{else}}32px{{end}};background:#fff;border:1px solid #dfe5ef;border-radius:20px;{{if eq .Style "notice"}}border-top:5px solid #c78320;{{end}}">
-<h1 style="margin:0 0 20px;font-size:24px;line-height:1.3;overflow-wrap:anywhere">{{.Title}}</h1>
-{{if .Username}}<p style="margin:0 0 12px">{{.Username}},</p>{{end}}<p style="margin:0 0 20px">{{.Body}}</p>
-{{if .Code}}<div style="padding:16px;margin:20px 0;border:1px solid #dfe5ef;background:#f5f7fb;border-radius:12px;text-align:center;font:700 28px monospace;letter-spacing:6px">{{.Code}}</div>{{end}}
+<html lang="{{.Locale}}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>{{.Title}}</title>
+<style>@media(prefers-color-scheme:dark){.mail-background{background:#000000!important;color:#f9fafb!important}.mail-card{background:#1f2937!important;border-color:#374151!important}.mail-notice{border-top-color:#d97706!important}.mail-code{background:#111827!important;border-color:#374151!important}.mail-muted{color:#9ca3af!important}.mail-button{background:#f9fafb!important;color:#111827!important;border-color:#f9fafb!important}}</style></head>
+<body class="mail-background" style="margin:0;padding:32px 12px;background:#f3f4f6;color:#111827;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;line-height:1.7">
+<table role="presentation" style="width:100%;max-width:600px;margin:0 auto;border-collapse:separate;border-spacing:0;table-layout:fixed"><tr><td style="padding:0 8px 20px;font-size:23px;font-weight:750;letter-spacing:-0.6px;overflow-wrap:anywhere">{{.SiteName}}</td></tr>
+<tr><td class="mail-card{{if eq .Style "notice"}} mail-notice{{end}}" style="padding:{{if eq .Style "compact"}}20px{{else}}32px{{end}};background:#ffffff;border:1px solid #e5e7eb;border-radius:24px;{{if eq .Style "notice"}}border-top:4px solid #d97706;{{end}}">
+<h1 style="margin:0 0 20px;font-size:24px;line-height:1.3;letter-spacing:-0.5px;overflow-wrap:anywhere;word-break:break-word">{{.Title}}</h1>
+{{if .Username}}<p style="margin:0 0 12px;overflow-wrap:anywhere">{{.Username}},</p>{{end}}<p style="margin:0 0 20px">{{.Body}}</p>
+{{if .Code}}<div class="mail-code" style="padding:16px;margin:20px 0;border:1px solid #e5e7eb;background:#f3f4f6;border-radius:16px;text-align:center;font:700 28px ui-monospace,Menlo,Consolas,monospace;letter-spacing:4px;overflow-wrap:anywhere">{{.Code}}</div>{{end}}
 {{if .Detail}}<p style="margin:0 0 20px;white-space:pre-wrap;overflow-wrap:anywhere">{{.Detail}}</p>{{end}}
-{{if .URL}}<a href="{{.URL}}" style="display:inline-block;padding:11px 24px;border-radius:999px;background:#3158c9;color:white;text-decoration:none;font-weight:600">{{.OpenLabel}}</a>{{end}}
-</td></tr><tr><td style="padding:20px 8px;color:#687385;font-size:12px">{{.Footer}}</td></tr></table></body></html>`))
+{{if .URL}}<a class="mail-button" href="{{.URL}}" style="display:inline-block;padding:11px 24px;border:1px solid #111827;border-radius:999px;background:#111827;color:#ffffff;text-decoration:none;font-weight:600;text-align:center">{{.OpenLabel}}</a>{{end}}
+</td></tr><tr><td class="mail-muted" style="padding:20px 8px;color:#6b7280;font-size:12px">{{.Footer}}</td></tr></table></body></html>`))
 
 // Render creates RenoUI-styled HTML and a matching plain-text alternative.
 func (c Config) Render(scene string, data TemplateData) (Message, error) {
@@ -107,18 +112,14 @@ func (c Config) Render(scene string, data TemplateData) (Message, error) {
 			return Message{}, errors.New("invalid email action URL")
 		}
 	}
-	copy := englishTemplates[index]
-	openLabel, footer := "Open RenoP", "This is an automated account notification. Do not share verification codes."
-	locale := "en"
-	if strings.HasPrefix(c.Locale, "zh") {
-		copy = chineseTemplates[index]
-		openLabel, footer = "前往 RenoP", "此邮件由账号通知系统自动发送。请勿向他人透露验证码。"
-		locale = "zh-CN"
-	}
+	code := locale.Resolve(data.Locale)
+	catalog := templateCatalogs[code]
+	copy := catalog.Messages[index]
+	openLabel, footer := catalog.OpenLabel, catalog.Footer
 	view := struct {
 		TemplateData
 		Title, Body, SiteName, Style, Locale, OpenLabel, Footer string
-	}{data, copy.Title, copy.Body, c.SiteName, c.TemplateStyle, locale, openLabel, footer}
+	}{data, copy.Title, copy.Body, c.SiteName, c.TemplateStyle, code, openLabel, footer}
 	var html bytes.Buffer
 	if err := emailTemplate.Execute(&html, view); err != nil {
 		return Message{}, err

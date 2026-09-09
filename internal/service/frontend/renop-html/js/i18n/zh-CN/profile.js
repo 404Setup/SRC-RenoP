@@ -9,6 +9,8 @@
  */
 
 export default Object.freeze({
+    "profile.languageLoadFailed": "无法读取账号语言，已保留当前界面语言。",
+    "profile.languageSaveFailed": "无法保存账号语言。选择已保留在此设备，恢复连接后将重试。",
     "profile.emailAliases": "其他登录邮箱",
     "profile.emailAliasesHint": "第三方邮箱不会公开，可用于登录或恢复账号。解除第三方绑定不会移除邮箱；之后通过第三方登录时，已移除的地址可能被再次添加。",
     "profile.addEmailAlias": "添加并验证邮箱",

@@ -67,3 +67,19 @@ RenoP conserve au maximum 2 048 modifications d’e-mail en attente. Les enregis
 Une modification réussie produit une entrée d’activité du profil. Le worker de courrier séquentiel envoie une notification `email_changed` selon le routage et les limites configurés. La mise en file est distincte de la livraison ; la boîte de vérification affiche la progression et les échecs signalés par le fournisseur.
 
 Les autres fournisseurs peuvent proposer [Utiliser l’e-mail vérifié](./oauth-login.md) dans l’éditeur de profil. Cette opération exige aussi une nouvelle autorisation, conserve l’association actuelle et respecte la politique des destinataires. Sans déclaration explicite de vérification, l’adresse doit être confirmée par un code RenoP.
+## Langue du compte
+
+La connexion restaure la langue enregistrée du compte sur chaque appareil. Un compte sans préférence adopte la langue actuelle de l’interface ; les changements suivants dans le sélecteur sont enregistrés automatiquement. L’inscription enregistre la langue de la page avec le compte. En cas d’échec, un choix en attente reste sur l’appareil et est renvoyé à la reconnexion, au retour sur la page ou après son rechargement. Le choix d’un ancien compte n’est jamais appliqué à un autre compte.
+
+Cette préférence est privée, survit aux changements de nom et aux redémarrages, et est supprimée à la clôture du compte. Sa modification ne change pas les identifiants et n’invalide pas une vérification à deux étapes en cours. Les notifications automatiques et les e-mails de réinitialisation utilisent la préférence du destinataire, y compris quand un alias identifie le compte. Sans préférence, ils utilisent l’en-tête `Accept-Language` de la page d’origine, puis `en-US`. Les messages en file conservent la langue choisie lors de leur ajout.
+
+Les identifiants disponibles sont `en-US`, `zh-CN`, `zh-HK`, `zh-TW`, `zh-YUE`, `ko-KR`, `ja-JP`, `de-DE`, `fr-FR`, `ru-RU`, `es-ES` et `pt-PT`.
+
+| Méthode | Chemin | Requête ou réponse |
+|---|---|---|
+| GET | `/api/auth/profile/locale` | `{"user_id":"00000000-0000-4000-8000-000000000001","locale":"fr-FR"}` ; une valeur vide indique l’absence de préférence |
+| PUT | `/api/auth/profile/locale` | `{"user_id":"00000000-0000-4000-8000-000000000001","locale":"fr-FR"}` ; renvoie l’identifiant canonique enregistré |
+
+Les deux opérations exigent le cookie du navigateur actuel et renvoient `Cache-Control: no-store` pour les données de préférence. Les jetons API ne peuvent ni lire ni modifier cette préférence. Une valeur non prise en charge renvoie `400` avec `ACCOUNT_LOCALE_INVALID`. La [configuration des e-mails](../configuration/mail.md) ne propose plus de sélecteur de langue global.
+
+PUT doit reprendre le `user_id` immuable renvoyé par GET ; une autre identité reçoit `403`. Les choix locaux en attente sont également liés à cet ID : un renommage ou une réutilisation ultérieure du nom ne transfère pas les préférences entre comptes.
