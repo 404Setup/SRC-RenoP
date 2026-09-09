@@ -51,10 +51,43 @@ func checkTickets(db *DB, suffix string, now int64) error {
 	if _, err := act(moderator, "claim", false); err != nil {
 		return err
 	}
+	if err := db.UpdateToken(moderator, func(token *core.AccessToken) { token.Permissions = []string{"manager"} }); err != nil {
+		return err
+	}
+	if view, err := db.GetTicket(task.ID, peer); err != nil || !view.AssigneeAdmin {
+		return errorsOrMissing(err, "promoted ticket assignee authority")
+	}
+	if _, err := act(peer, "claim", true); !errors.Is(err, core.ErrTicketOccupied) {
+		return fmt.Errorf("promoted administrator takeover: %v", err)
+	}
+	if err := db.UpdateToken(moderator, func(token *core.AccessToken) { token.Permissions = []string{"canmoderate:*"} }); err != nil {
+		return err
+	}
 	if _, err := act(peer, "claim", false); !errors.Is(err, core.ErrTicketOccupied) {
 		return fmt.Errorf("occupied claim: %v", err)
 	}
 	if _, err := act(peer, "claim", true); err != nil {
+		return err
+	}
+	if err := db.UpdateToken(peer, func(token *core.AccessToken) { token.Permissions = []string{"base"} }); err != nil {
+		return err
+	}
+	if err := db.UpdateToken(moderator, func(token *core.AccessToken) { token.Permissions = []string{"manager"} }); err != nil {
+		return err
+	}
+	if view, err := db.GetTicket(task.ID, moderator); err != nil || view.AssigneeAdmin {
+		return errorsOrMissing(err, "demoted ticket assignee authority")
+	}
+	if _, err := act(moderator, "claim", true); err != nil {
+		return err
+	}
+	if _, err := act(moderator, "release", false); err != nil {
+		return err
+	}
+	if err := db.UpdateToken(peer, func(token *core.AccessToken) { token.Permissions = []string{"manager"} }); err != nil {
+		return err
+	}
+	if _, err := act(peer, "claim", false); err != nil {
 		return err
 	}
 	if _, err := act(moderator, "complete", false); !errors.Is(err, core.ErrTicketClaimRequired) {

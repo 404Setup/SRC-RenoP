@@ -41,6 +41,8 @@ POST /api/tickets/{id}/action 接受 `action`：`claim`、`release`、`escalate`
 
 支持工单的 `process` 记录已处理状态但不发送最终通知，`complete` 完成工单，`close` 关闭工单。这些操作都需要 1–4096 字符的 `response`。反馈和建议的 `outcome` 为 `resolved`，举报为 `upheld` 或 `dismissed`，关闭记录为 `closed`。操作 JSON 上限 24 KiB。发布与转让需接管后使用下方决策接口。
 
+强制接管资格依据当前处理人的现有角色：晋升为管理员后立即受到保护，撤销管理员权限后可在未达到升级上限时被接管。
+
 GET /api/tickets/{id} 返回有权查看的详情，以及根据当前权限和接管状态计算的 `actions` 数组，界面据此显示操作。接管冲突返回 `409`，错误码为 `ticket_claim_required`、`ticket_occupied` 或 `ticket_escalation_limit`。
 
 ## 转让规则

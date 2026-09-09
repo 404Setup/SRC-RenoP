@@ -40,7 +40,7 @@ const ticketStatusExpression = `CASE WHEN r.status = 'cancelled' THEN 'closed'
 	WHEN r.status != 'pending' THEN 'completed' ELSE COALESCE(NULLIF(ts.status, ''), 'unprocessed') END`
 
 const ticketStateColumns = ticketStatusExpression + `, COALESCE(ts.title, ''), COALESCE(ts.body, ''),
-	COALESCE(ts.assignee_id, ''), COALESCE(assignee.username, ''), COALESCE(ts.assignee_admin, 0),
+	COALESCE(ts.assignee_id, ''), COALESCE(assignee.username, ''), COALESCE(assignee_token.permissions_json, ''),
 	COALESCE(ts.admin_only, 0), COALESCE(ts.escalations, 0), COALESCE(ts.escalated_by_id, ''),
 	COALESCE(escalator.username, ''), COALESCE(ts.revision, 0), COALESCE(ts.target_user_ids, ''),
 	COALESCE(ts.outcome, ''), COALESCE(ts.response, ''), COALESCE(ts.changed_at, 0)`
@@ -49,22 +49,28 @@ const reviewTaskProfileJoins = ` LEFT JOIN user_profiles requester ON requester.
 	LEFT JOIN user_profiles decider ON decider.user_id = r.decided_by_id
 	LEFT JOIN ticket_state ts ON ts.task_id = r.id
 	LEFT JOIN user_profiles assignee ON assignee.user_id = ts.assignee_id
+	LEFT JOIN tokens assignee_token ON assignee_token.name = assignee.username
 	LEFT JOIN user_profiles escalator ON escalator.user_id = ts.escalated_by_id`
 
 func scanReviewTask(scanner row) (*core.ReviewTask, error) {
 	task := &core.ReviewTask{}
 	storedResourceKey := ""
-	var assigneeAdmin, adminOnly int
+	var assigneePermissions string
+	var adminOnly int
 	if err := scanner.Scan(&task.ID, &task.Kind, &task.ResourceType, &task.Repository, &storedResourceKey,
 		&task.ResourceName, &task.SourceTeamPrefix, &task.TargetTeamPrefix, &task.ReviewTeamPrefix,
 		&task.RequestedBy, &task.RequestedByID, &task.Status, &task.DecisionReason,
 		&task.DecidedBy, &task.DecidedByID, &task.CreatedAt, &task.DecidedAt,
-		&task.TicketState.Status, &task.Title, &task.Body, &task.AssigneeID, &task.Assignee, &assigneeAdmin,
+		&task.TicketState.Status, &task.Title, &task.Body, &task.AssigneeID, &task.Assignee, &assigneePermissions,
 		&adminOnly, &task.Escalations, &task.EscalatedByID, &task.EscalatedBy, &task.Revision,
 		&task.TargetUserIDs, &task.Outcome, &task.Response, &task.ChangedAt); err != nil {
 		return nil, err
 	}
-	task.AssigneeAdmin, task.AdminOnly = assigneeAdmin != 0, adminOnly != 0
+	assignee, err := reviewUserFromPermissions(task.Assignee, assigneePermissions)
+	if err != nil {
+		return nil, err
+	}
+	task.AssigneeAdmin, task.AdminOnly = assignee.IsManager(), adminOnly != 0
 	task.ResourceKey = storedResourceKey
 	if task.Kind == core.ReviewKindPublication || task.Kind == core.TicketKindReport {
 		resourceKey, version, valid := decodePublicationReviewKey(storedResourceKey)
@@ -275,6 +281,10 @@ func reviewUserTx(tx *Tx, userID string) (*config.User, error) {
 		}
 		return nil, fmt.Errorf("load review account permissions: %w", err)
 	}
+	return reviewUserFromPermissions(username, encoded)
+}
+
+func reviewUserFromPermissions(username, encoded string) (*config.User, error) {
 	permissions := make([]string, 0)
 	if encoded != "" {
 		if err := json.Unmarshal([]byte(encoded), &permissions); err != nil {

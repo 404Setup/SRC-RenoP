@@ -13,6 +13,8 @@
 :root {
     --app-shell-max-width: 1264px;
     --app-shell-gutter: 2rem;
+    --accent-color: var(--link-hover-color);
+    --muted-text: var(--muted);
 }
 
 html[data-font-preset="inter"] {

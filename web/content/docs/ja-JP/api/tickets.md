@@ -41,6 +41,8 @@ POST /api/tickets/{id}/action は `action` として `claim`、`release`、`esca
 
 サポートの `process` は最終通知なしで処理済みにし、`complete` は完了、`close` は終了にします。これらは 1–4096 文字の `response` が必要です。フィードバックと提案は `outcome: resolved`、通報は `upheld` または `dismissed`、終了は `closed` を記録します。操作 JSON は最大 24 KiB。公開と移管は担当取得後に下記の決定経路を使います。
 
+引き継ぎの可否は担当者の現在の役割で判断します。管理者への昇格は直ちに保護され、管理者権限を失った場合はエスカレーション上限に達する前なら引き継げます。
+
 GET /api/tickets/{id} は閲覧可能な詳細と、現在の権限・担当から計算した `actions` 配列を返します。操作ボタンにこの配列を使用してください。担当の競合は `409` と `ticket_claim_required`、`ticket_occupied`、`ticket_escalation_limit` のいずれかを返します。
 
 ## 移管規則

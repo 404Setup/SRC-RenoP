@@ -32,6 +32,8 @@ GPG remains part of the service configuration. Global-team limits, publication q
 OAuth providers, and publishing-domain security have their own pages and retain their existing JSON APIs. Form labels
 and hints are associated with controls, and page navigation moves keyboard focus to the new heading.
 
+Selected sections, unsaved markers, and muted text use the shared theme colors in both light and dark modes.
+
 ## Read and update one domain
 
 - **Read**: `GET /api/settings/domain/:name`

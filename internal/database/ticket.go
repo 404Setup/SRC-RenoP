@@ -157,7 +157,7 @@ func (db *DB) TransitionTicket(id, actor, session string, action core.TicketActi
 			if task.AssigneeID == account.UserID {
 				return nil, core.ErrTicketOccupied
 			}
-			if !action.Force || !user.IsManager() || task.AssigneeAdmin || task.Escalations >= 3 {
+			if !action.Force || !user.IsManager() || task.Escalations >= 3 {
 				return nil, core.ErrTicketOccupied
 			}
 			if err := lockAccountLoginMethodsTx(tx, task.AssigneeID); err != nil {

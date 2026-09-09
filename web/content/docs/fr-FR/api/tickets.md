@@ -41,6 +41,8 @@ L’escalade libère le ticket et réserve sa prochaine prise aux administrateur
 
 Pour le support, `process` marque le traitement sans notification finale, `complete` termine et `close` ferme. Ces actions exigent `response` non vide, de 4096 caractères au maximum. Retours et suggestions utilisent `outcome: resolved`, les signalements `upheld` ou `dismissed`, et la fermeture enregistre `closed`. Le JSON d’action est limité à 24 KiB. Les publications et transferts utilisent ensuite la route de décision ci-dessous.
 
+La reprise suit le rôle actuel de l’agent : une promotion protège immédiatement un administrateur, tandis que le retrait de ses droits permet une reprise avant la limite d’escalades.
+
 GET /api/tickets/{id} renvoie le détail autorisé et un tableau `actions` calculé selon les droits et l’affectation actuels, à utiliser pour les commandes. Les conflits renvoient `409` avec `ticket_claim_required`, `ticket_occupied` ou `ticket_escalation_limit`.
 
 ## Règles de transfert

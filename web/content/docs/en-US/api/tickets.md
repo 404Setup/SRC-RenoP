@@ -41,6 +41,8 @@ Escalation releases the ticket and restricts the next claim to system administra
 
 For support tickets, `process` records a handled state without final notification; `complete` finishes it and `close` closes it. These actions require a non-empty `response` of at most 4096 characters. Feedback/suggestions use `outcome: resolved`; reports use `upheld` or `dismissed`; closing records `closed`. Action JSON is limited to 24 KiB. Publication and ownership decisions use the decision route below after claiming.
 
+Takeover eligibility follows the assignee's current role: promotion protects an administrator immediately, while removal of administrator authority permits a takeover before the escalation limit.
+
 GET /api/tickets/{id} returns the authorized detail and an `actions` array derived from current permissions and assignment. Use these actions to present controls. Assignment conflicts return `409` with `ticket_claim_required`, `ticket_occupied`, or `ticket_escalation_limit`.
 
 ## Transfer rules

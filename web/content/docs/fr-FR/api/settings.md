@@ -32,6 +32,8 @@ GPG reste dans la configuration du service. Limites d’équipe, quotas, inscrip
 OAuth et sécurité des domaines ont leurs propres pages et conservent leurs API JSON. Les libellés et indications
 sont associés aux commandes ; la navigation place le focus clavier sur le titre de la nouvelle page.
 
+La catégorie active, les marqueurs de brouillon et le texte secondaire utilisent les couleurs communes des thèmes clair et sombre.
+
 ## Lire et modifier un domaine
 
 - **Lire** : `GET /api/settings/domain/:name`
