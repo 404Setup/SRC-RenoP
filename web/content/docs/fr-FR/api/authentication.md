@@ -26,7 +26,7 @@ la récupération par email conserve ces réglages.
 
 - **Chemin** : `POST /api/auth/login`
 - **Authentification** : aucune.
-- **Corps** : protobuf `LoginRequest`; les noms JSON figurent ci-dessous. `name` accepte le nom du compte ou son e-mail
+- **Corps** : JSON / protobuf `LoginRequest`; les noms JSON figurent ci-dessous. `name` accepte le nom du compte ou son e-mail
   privé.
 
 ### Requête

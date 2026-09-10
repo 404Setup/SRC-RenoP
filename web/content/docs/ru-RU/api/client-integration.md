@@ -25,18 +25,27 @@ RenoP публикует management endpoints и пакетные протоко
 
 ## Использовать объявленное представление
 
-Большинство management requests/responses используют `application/x-protobuf`. OpenAPI описывает logical fields, но его
-примеры не означают поддержку JSON. Используйте messages из `proto/api/v1/api.proto` той же версии RenoP.
-
-Для protobuf body явно задавайте:
+API управления на основе схем поддерживают JSON (`application/json`) и бинарный protobuf (`application/x-protobuf`
+или `application/protobuf`). `Content-Type` выбирает декодирование запроса, `Accept` — формат ответа. Если `Accept`
+отсутствует или не поддерживается, ответ остаётся в protobuf для старых клиентов. Тело без указанного типа также
+декодируется как protobuf. Определения сообщений находятся в `proto/api/v1/api.proto`.
 
 ```http
 Content-Type: application/x-protobuf
 Accept: application/x-protobuf
 ```
 
-Health и некоторые ошибки — plain text. Cargo, npm и Docker/OCI используют JSON/binary своего протокола. Следуйте
-документации endpoint, а не суффиксу пути.
+Для JSON-запроса и ответа задайте оба заголовка:
+
+```http
+Content-Type: application/json
+Accept: application/json
+```
+
+JSON использует исходные имена snake_case; на входе также принимаются имена camelCase protobuf. 64-битные целые
+передаются десятичными строками, байты — строками Base64. Неизвестные и повторяющиеся JSON-поля отклоняются. Лимит
+запроса остаётся 1 MiB, с сохранением меньших лимитов отдельных endpoints. Форматы реестров, бинарные части загрузок,
+текст проверки здоровья и форматы ошибок остаются прежними.
 
 ## Выбрать credential по вызывающей стороне
 
@@ -106,9 +115,10 @@ upload продолжайте по состоянию самого проток�
 
 ## Использовать контракты одной версии
 
-Берите `web/assets/openapi.yaml` и `proto/api/v1/api.proto` из того же commit/release, что сервер. OpenAPI field
-описывает
-logical protobuf field, а не обязательно JSON. Maven, Cargo, npm и Docker должны использовать native configuration.
+`web/assets/openapi.yaml` / `proto/api/v1/api.proto`
+
+Используйте определения OpenAPI и protobuf из развёрнутой версии. Представления целых и байтов ProtoJSON следуют
+правилам выше; нативные клиенты пакетов продолжают использовать собственные протоколы.
 
 До production upgrade проверьте non-production: login, token authorization, repository list, read/write каждого формата,
 pagination, error decoding и reverse proxy.

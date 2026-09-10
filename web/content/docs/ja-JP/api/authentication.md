@@ -23,7 +23,7 @@ Passkey は最初のログイン方法にはなりません。オフライン復
 
 - **パス**: `POST /api/auth/login`
 - **認証**: なし。
-- **本文**: protobuf `LoginRequest`。以下は JSON 名です。`name` はユーザー名または非公開メールです。
+- **本文**: JSON / protobuf `LoginRequest`。以下は JSON 名です。`name` はユーザー名または非公開メールです。
 
 ### リクエスト
 

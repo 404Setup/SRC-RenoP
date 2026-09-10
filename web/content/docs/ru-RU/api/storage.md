@@ -40,7 +40,7 @@ description: Прямые операции и ограниченные возо�
 ### Инициализация
 
 - **Путь**: `POST /api/upload/chunked/`
-- **Content-Type**: `application/x-protobuf` с `ChunkedUploadInitRequest`.
+- **Content-Type**: `application/x-protobuf` / `application/json` с `ChunkedUploadInitRequest`.
 - `purpose` — `storage` или `updater`. Для storage поле `path` начинается с имени репозитория.
 
 ```json

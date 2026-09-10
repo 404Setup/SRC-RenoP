@@ -40,7 +40,7 @@ description: リポジトリ直接操作と制限付き再開可能アップロ�
 ### 初期化
 
 - **パス**: `POST /api/upload/chunked/`
-- **Content-Type**: `ChunkedUploadInitRequest` の `application/x-protobuf`。
+- **Content-Type**: `ChunkedUploadInitRequest` の `application/x-protobuf` / `application/json`。
 - `purpose` は `storage` または `updater`。storage の `path` はリポジトリ名から始めます。
 
 ```json

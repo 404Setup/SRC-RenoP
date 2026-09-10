@@ -24,11 +24,15 @@ le serveur écoute sur `http://localhost:3000`.
 
 ## Formats et Protobuf
 
-La plupart des API de gestion utilisent JSON. Les routes à haut débit prennent aussi en charge Google Protocol
-Buffers avec `application/x-protobuf`.
+Les API de gestion fondées sur les schémas acceptent JSON (`application/json`) et protobuf binaire
+(`application/x-protobuf` ou `application/protobuf`). `Content-Type` choisit le décodage du corps ; `Accept` choisit la
+réponse. Sans valeur reconnue pour `Accept`, la réponse reste en protobuf pour les anciens clients. Un corps sans type
+reste décodé en protobuf. Les messages sont définis dans `proto/api/v1/api.proto`.
 
-Utilisez `Accept: application/x-protobuf` ou `Content-Type: application/x-protobuf` selon la route. Le contrat source
-se trouve dans `proto/api/v1/api.proto`.
+Le JSON conserve les noms snake_case ; l’entrée accepte aussi les noms camelCase de protobuf. Les entiers 64 bits
+sont des chaînes décimales et les octets des chaînes Base64. Les champs JSON inconnus ou dupliqués sont rejetés. La
+limite reste de 1 MiB, avec conservation des limites plus basses propres aux endpoints. Les protocoles de dépôt, les
+parties binaires, le texte de santé et les erreurs conservent leur représentation.
 
 ## Transports d’authentification
 

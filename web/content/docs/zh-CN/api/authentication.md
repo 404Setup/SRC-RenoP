@@ -21,7 +21,7 @@ Passkey 不算作初次登录方式。离线恢复会移除验证器并关闭 Pa
 
 - **路径**：`POST /api/auth/login`
 - **认证**：无需认证。
-- **正文**：protobuf `LoginRequest`，下方展示其 JSON 字段名。`name` 可填写用户名或私有登录邮箱。
+- **正文**：JSON / protobuf `LoginRequest`，下方展示其 JSON 字段名。`name` 可填写用户名或私有登录邮箱。
 
 ### 请求
 

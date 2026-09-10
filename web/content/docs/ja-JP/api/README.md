@@ -24,11 +24,15 @@ RenoP は、管理自動化、クライアント統合、監視向けの HTTP AP
 
 ## ワイヤ形式と Protobuf
 
-多くの管理 API は JSON を使用します。高スループットのルートは
-`application/x-protobuf` の Google Protocol Buffers にも対応します。
+スキーマに基づく管理 API は JSON（`application/json`）とバイナリ protobuf（`application/x-protobuf` または
+`application/protobuf`）に対応します。`Content-Type` は要求のデコード、`Accept` は応答形式を選択します。
+`Accept` が未指定または非対応の場合、既存クライアント向けの protobuf 応答を維持します。型指定のない要求も
+protobuf としてデコードします。メッセージ定義は `proto/api/v1/api.proto` を参照してください。
 
-対象ルートでは `Accept: application/x-protobuf` または `Content-Type: application/x-protobuf` を指定します。
-正規の定義は `proto/api/v1/api.proto` にあります。
+JSON は元の snake_case フィールド名を出力し、入力では protobuf の camelCase 名も受け付けます。64 ビット整数は
+10 進文字列、バイト列は Base64 文字列です。不明なフィールドと重複フィールドは拒否します。要求上限は 1 MiB で、
+各エンドポイントのより小さい上限も維持します。ネイティブレジストリ形式、アップロードのバイナリ部分、ヘルスチェックの
+テキスト、個別のエラー形式は従来どおりです。
 
 ## 認証方式
 

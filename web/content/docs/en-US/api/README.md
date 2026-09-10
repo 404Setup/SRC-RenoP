@@ -24,11 +24,15 @@ listens on `http://localhost:3000` by default.
 
 ## Wire Formats & Protobuf
 
-Most endpoints consume and produce JSON. High-throughput endpoints additionally support Google Protocol Buffers
-(`application/x-protobuf`).
+Schema-backed management APIs accept JSON (`application/json`) and binary protobuf (`application/x-protobuf` or
+`application/protobuf`). `Content-Type` selects request decoding; `Accept` selects the response. Missing or unsupported
+`Accept` retains the protobuf response for older clients. Untyped request bodies retain protobuf decoding.
+See `proto/api/v1/api.proto` for message definitions.
 
-Pass `Accept: application/x-protobuf` or `Content-Type: application/x-protobuf` in request headers to utilize binary
-serialization. Proto definitions are located in `proto/api/v1/api.proto`.
+JSON uses the original snake_case field names; input also accepts protobuf camelCase names. Integers with 64-bit
+precision are decimal strings and bytes are Base64 strings. Unknown or duplicate JSON fields are rejected. Control
+requests remain bounded to 1 MiB, with any smaller endpoint limits retained. Native registry formats, raw upload parts,
+health text, and endpoint-specific errors keep their existing representations.
 
 ## Authentication Transports
 

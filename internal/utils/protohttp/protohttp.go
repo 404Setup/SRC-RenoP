@@ -8,11 +8,14 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-// Package protohttp reads and writes bounded protobuf HTTP payloads.
+// Package protohttp reads and writes bounded protobuf and ProtoJSON HTTP payloads.
 package protohttp
 
 import (
+	"mime"
+
 	"github.com/gofiber/fiber/v3"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
 	"renop/internal/utils"
@@ -21,30 +24,52 @@ import (
 // ContentType is the MIME type used for protobuf request/response bodies.
 const ContentType = "application/x-protobuf"
 
-// MaxRequestBodySize bounds control-plane protobuf requests without limiting
+// MaxRequestBodySize bounds control-plane requests without limiting
 // streamed artifact uploads handled by the storage routes.
 const MaxRequestBodySize = 1 << 20
 
-// Write marshals m as protobuf and writes it with the protobuf content type.
+// Write encodes m using the requested response representation.
 func Write(c fiber.Ctx, m proto.Message) error {
 	return WriteStatus(c, fiber.StatusOK, m)
 }
 
 // WriteStatus is Write with an explicit HTTP status code.
 func WriteStatus(c fiber.Ctx, status int, m proto.Message) error {
-	data, err := proto.Marshal(m)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("An unexpected error occurred while attempting to encode a Protobuf message")
+	contentType := c.Accepts(ContentType, fiber.MIMEApplicationJSON, "application/protobuf")
+	if contentType == "" {
+		contentType = ContentType
 	}
-	c.Set(fiber.HeaderContentType, ContentType)
+	c.Vary(fiber.HeaderAccept)
+	var data []byte
+	var err error
+	if contentType == fiber.MIMEApplicationJSON {
+		data, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(m)
+	} else {
+		data, err = proto.Marshal(m)
+	}
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to encode response")
+	}
+	c.Set(fiber.HeaderContentType, contentType)
 	return c.Status(status).Send(data)
 }
 
-// Read unmarshals a size-limited request body into m as protobuf.
+// Read decodes a size-limited request according to Content-Type; legacy untyped bodies use protobuf.
 func Read(c fiber.Ctx, m proto.Message) error {
 	body, err := utils.ReadRequestBodyLimited(c, MaxRequestBodySize)
 	if err != nil {
 		return err
 	}
-	return proto.Unmarshal(body, m)
+	contentType, _, err := mime.ParseMediaType(c.Get(fiber.HeaderContentType, ContentType))
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
+	switch contentType {
+	case fiber.MIMEApplicationJSON:
+		return (protojson.UnmarshalOptions{RecursionLimit: 64}).Unmarshal(body, m)
+	case ContentType, "application/protobuf", fiber.MIMEOctetStream:
+		return proto.Unmarshal(body, m)
+	default:
+		return fiber.ErrUnsupportedMediaType
+	}
 }

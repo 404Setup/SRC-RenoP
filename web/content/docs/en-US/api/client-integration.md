@@ -26,20 +26,27 @@ protocol's method or error shape.
 
 ## Use the declared representation
 
-Most management requests and responses use `application/x-protobuf`. The OpenAPI document describes logical fields for
-human reference and tooling, but those schema examples do not make the endpoint JSON-compatible. Use the protobuf
-messages from `proto/api/v1/api.proto` that belong to the same RenoP release.
-
-Set both headers explicitly when an endpoint has a protobuf body:
+Schema-backed management APIs accept JSON (`application/json`) and binary protobuf (`application/x-protobuf` or
+`application/protobuf`). `Content-Type` selects request decoding; `Accept` selects the response. Missing or unsupported
+`Accept` retains the protobuf response for older clients. Untyped request bodies retain protobuf decoding.
+See `proto/api/v1/api.proto` for message definitions.
 
 ```http
 Content-Type: application/x-protobuf
 Accept: application/x-protobuf
 ```
 
-Health checks and some errors are plain text. Cargo, npm, and Docker/OCI routes use the structured JSON or binary
-formats
-required by those protocols. Always follow the endpoint documentation instead of guessing from a path suffix.
+For JSON requests and responses, set both headers:
+
+```http
+Content-Type: application/json
+Accept: application/json
+```
+
+JSON uses the original snake_case field names; input also accepts protobuf camelCase names. Integers with 64-bit
+precision are decimal strings and bytes are Base64 strings. Unknown or duplicate JSON fields are rejected. Control
+requests remain bounded to 1 MiB, with any smaller endpoint limits retained. Native registry formats, raw upload parts,
+health text, and endpoint-specific errors keep their existing representations.
 
 ## Select the credential by caller
 
@@ -112,10 +119,10 @@ server where supported, but do not assume that a UI filter changes authorization
 
 ## Keep contracts from one release
 
-Generate clients from `web/assets/openapi.yaml` and `proto/api/v1/api.proto` from the same commit or release as the
-server. An OpenAPI field name describes the logical protobuf field and may not match a JSON wire representation. Native
-Maven, Cargo, npm, and Docker clients should continue to use their protocol configuration rather than generated
-management stubs.
+`web/assets/openapi.yaml` / `proto/api/v1/api.proto`
+
+Keep the OpenAPI and protobuf definitions from the deployed release. ProtoJSON integer and byte representations
+follow the wire-format rules above; native package clients continue to use their own protocols.
 
 Before upgrading production, run contract tests against a non-production instance for login, token authorization,
 repository listing, one representative read and write per enabled format, pagination, error decoding, and reverse-proxy

@@ -41,7 +41,7 @@ session count, and deletes abandoned temporary files.
 ### Initialize
 
 - **Path**: `POST /api/upload/chunked/`
-- **Content-Type**: `application/x-protobuf` with `ChunkedUploadInitRequest`.
+- **Content-Type**: `application/x-protobuf` / `application/json` with `ChunkedUploadInitRequest`.
 - `purpose` is `storage` or `updater`. Storage `path` includes the repository name.
 
 ```json

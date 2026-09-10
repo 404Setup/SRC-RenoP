@@ -24,10 +24,13 @@ RenoP 提供用于管理自动化、客户端集成与健康监控的完整 HTTP
 
 ## 传输格式与 Protobuf
 
-多数管理 API 使用 JSON。高吞吐接口同时支持 `application/x-protobuf` 格式的 Google Protocol Buffers。
+基于消息模式的管理 API 支持 JSON（`application/json`）和二进制 protobuf（`application/x-protobuf` 或
+`application/protobuf`）。`Content-Type` 决定请求解码方式，`Accept` 决定响应格式。未指定或不支持的 `Accept`
+会保留旧客户端使用的 protobuf 响应；未指定请求类型时也沿用 protobuf 解码。消息定义见 `proto/api/v1/api.proto`。
 
-根据接口要求设置 `Accept: application/x-protobuf` 或 `Content-Type: application/x-protobuf`。协议定义位于
-`proto/api/v1/api.proto`。
+JSON 输出使用原始 snake_case 字段名，输入也接受 protobuf 的 camelCase 名称。64 位整数使用十进制字符串，
+字节字段使用 Base64 字符串。未知或重复的 JSON 字段会被拒绝。控制请求仍限制为 1 MiB，并保留端点原有的
+更小上限。原生仓库协议、上传二进制分块、健康检查纯文本与各端点的错误格式维持原状。
 
 ## 认证方式
 

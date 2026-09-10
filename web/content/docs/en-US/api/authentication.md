@@ -24,7 +24,7 @@ removes the authenticator and turns off secondary Passkeys; email password recov
 
 - **Path**: `POST /api/auth/login`
 - **Auth**: None.
-- **Body**: protobuf `LoginRequest`; JSON field names are shown below. `name` accepts a username or private login email.
+- **Body**: JSON / protobuf `LoginRequest`; JSON field names are shown below. `name` accepts a username or private login email.
 
 ### Request
 

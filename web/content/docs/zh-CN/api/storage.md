@@ -39,7 +39,7 @@ API Token 权限、仓库权限、仓库引擎及 Maven 域策略。
 ### 初始化
 
 - **路径**：`POST /api/upload/chunked/`
-- **Content-Type**：`application/x-protobuf`，正文为 `ChunkedUploadInitRequest`。
+- **Content-Type**：`application/x-protobuf` / `application/json`，正文为 `ChunkedUploadInitRequest`。
 - `purpose` 为 `storage` 或 `updater`；storage 的 `path` 以仓库名称开头。
 
 ```json

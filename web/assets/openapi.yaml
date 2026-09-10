@@ -18,10 +18,12 @@ info:
     - Sandboxed documentation viewers: `/javadoc/{repo}/{path}` and `/cargodoc/{repo}/{path}`
 
     **Representations:**
-    Most management endpoints use `application/x-protobuf`. OpenAPI schemas describe their logical snake_case fields;
-    they do not imply that those endpoints accept JSON. Generate or reuse protobuf types from
-    `proto/api/v1/api.proto` and set `Content-Type` and `Accept` explicitly. Cargo, npm, and Docker/OCI protocol routes
-    use the JSON and binary representations required by their respective clients.
+    Schema-backed management endpoints support `application/x-protobuf`, `application/protobuf`, and `application/json`.
+    Content-Type selects request decoding; Accept selects the response, retaining protobuf when no supported preference
+    is provided. JSON follows ProtoJSON with snake_case output, decimal strings for 64-bit integers, and Base64 bytes;
+    the schemas describe logical field types. JSON input also accepts protobuf camelCase names. Unknown and duplicate
+    JSON fields are rejected. Cargo, npm, Docker/OCI, raw upload parts, and endpoint-specific errors keep their native
+    representations. Control requests remain bounded to 1 MiB, with smaller endpoint-specific limits retained.
 
     **Authentication boundaries:**
     Browser security operations use the HttpOnly `renop_session` cookie. Automation uses scoped Bearer API tokens whose
@@ -539,7 +541,7 @@ components:
 
     LoginRequest:
       type: object
-      description: Credentials for password-based login (wire format `application/x-protobuf`).
+      description: Credentials for password-based login (wire formats `application/x-protobuf` and `application/json`).
       required: [ name, secret ]
       properties:
         name:
@@ -882,7 +884,7 @@ components:
 
     UpdatePasswordRequest:
       type: object
-      description: Password change request (wire format `application/x-protobuf`).
+      description: Password change request (wire formats `application/x-protobuf` and `application/json`).
       required: [ new_password ]
       properties:
         new_password:
@@ -892,7 +894,7 @@ components:
 
     GenerateTokenResponse:
       type: object
-      description: Newly generated publishing API token (wire format `application/x-protobuf`).
+      description: Newly generated publishing API token (wire formats `application/x-protobuf` and `application/json`).
       properties:
         token:
           type: string
@@ -3272,6 +3274,12 @@ paths:
           application/x-protobuf:
             schema:
               $ref: "#/components/schemas/LoginRequest"
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+          application/protobuf:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
       responses:
         "200":
           description: Session created.
@@ -3282,6 +3290,12 @@ paths:
               description: "`renop_session=<id>; HttpOnly; SameSite=Lax; Max-Age=604800`"
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/SessionDetails"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionDetails"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/SessionDetails"
         "400":
@@ -3304,6 +3318,12 @@ paths:
           description: Session details.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/SessionDetails"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionDetails"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/SessionDetails"
         "401":
@@ -3595,6 +3615,9 @@ paths:
           application/x-protobuf:
             schema:
               $ref: "#/components/schemas/UpdatePasswordRequest"
+          application/protobuf:
+            schema:
+              $ref: "#/components/schemas/UpdatePasswordRequest"
           application/json:
             schema:
               $ref: "#/components/schemas/UpdatePasswordRequest"
@@ -3603,6 +3626,12 @@ paths:
           description: Password updated.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/StatusOk"
         "400":
@@ -3623,6 +3652,12 @@ paths:
           description: "New publishing API token. Returned once with Cache-Control: no-store."
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/GenerateTokenResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateTokenResponse"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/GenerateTokenResponse"
         "401":
@@ -3733,6 +3768,12 @@ paths:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/FidoDeviceList"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FidoDeviceList"
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/FidoDeviceList"
         "401":
           $ref: "#/components/responses/PlainUnauthorized"
 
@@ -3754,6 +3795,12 @@ paths:
           description: Device removed.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/StatusOk"
         "401":
@@ -3813,6 +3860,12 @@ paths:
           description: Device registered.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/FidoDeviceDto"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FidoDeviceDto"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/FidoDeviceDto"
         "400":
@@ -3884,6 +3937,12 @@ paths:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/SessionDetails"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionDetails"
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/SessionDetails"
         "400":
           $ref: "#/components/responses/PlainBadRequest"
         "401":
@@ -3906,6 +3965,12 @@ paths:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/SessionList"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionList"
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/SessionList"
         "401":
           $ref: "#/components/responses/PlainUnauthorized"
 
@@ -3924,6 +3989,12 @@ paths:
           description: Other sessions revoked.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/StatusOk"
         "401":
@@ -3946,6 +4017,12 @@ paths:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/StatusOk"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
         "401":
           $ref: "#/components/responses/PlainUnauthorized"
 
@@ -3966,6 +4043,12 @@ paths:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/AccessTokenList"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessTokenList"
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/AccessTokenList"
         "403":
           $ref: "#/components/responses/PlainForbidden"
 
@@ -3984,6 +4067,12 @@ paths:
           description: Account descriptor.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/AccessTokenDto"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessTokenDto"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/AccessTokenDto"
         "403":
@@ -4008,6 +4097,9 @@ paths:
           application/x-protobuf:
             schema:
               $ref: "#/components/schemas/CreateAccessTokenRequest"
+          application/protobuf:
+            schema:
+              $ref: "#/components/schemas/CreateAccessTokenRequest"
           application/json:
             schema:
               $ref: "#/components/schemas/CreateAccessTokenRequest"
@@ -4016,6 +4108,12 @@ paths:
           description: Account created or updated.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/CreateAccessTokenResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateAccessTokenResponse"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/CreateAccessTokenResponse"
         "400":
@@ -4062,6 +4160,12 @@ paths:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/SessionList"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionList"
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/SessionList"
         "403":
           $ref: "#/components/responses/PlainForbidden"
         "404":
@@ -4087,6 +4191,12 @@ paths:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/StatusOk"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
         "403":
           $ref: "#/components/responses/PlainForbidden"
 
@@ -4107,6 +4217,12 @@ paths:
           description: Session revoked.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/StatusOk"
         "403":
@@ -4131,6 +4247,12 @@ paths:
           description: Device list.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/FidoDeviceList"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FidoDeviceList"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/FidoDeviceList"
         "403":
@@ -4160,6 +4282,12 @@ paths:
           description: Device removed.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/StatusOk"
         "403":
@@ -4212,6 +4340,14 @@ paths:
               schema:
                 $ref: "#/components/schemas/InstanceStatus"
 
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceStatus"
+
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/InstanceStatus"
+
   /api/status/snapshots:
     get:
       tags: [ status ]
@@ -4224,6 +4360,14 @@ paths:
           description: Metric snapshot list.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/StatusSnapshotList"
+
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusSnapshotList"
+
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/StatusSnapshotList"
 
@@ -4312,6 +4456,12 @@ paths:
           description: Runtime memory breakdown.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/RuntimeMemoryBreakdown"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeMemoryBreakdown"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/RuntimeMemoryBreakdown"
         "403":
@@ -5691,6 +5841,14 @@ paths:
               schema:
                 $ref: "#/components/schemas/FileDetails"
 
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileDetails"
+
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/FileDetails"
+
   /api/maven/details/{repo_name}:
     get:
       tags: [ maven ]
@@ -5706,6 +5864,12 @@ paths:
           description: Repository root details.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/FileDetails"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileDetails"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/FileDetails"
         "404":
@@ -5731,6 +5895,12 @@ paths:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/FileDetails"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileDetails"
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/FileDetails"
         "404":
           $ref: "#/components/responses/PlainNotFound"
 
@@ -5749,6 +5919,12 @@ paths:
           description: Repository details.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/RepoDetailsResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RepoDetailsResponse"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/RepoDetailsResponse"
         "403":
@@ -5777,6 +5953,12 @@ paths:
           description: Version list.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/VersionsResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionsResponse"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/VersionsResponse"
         "404":
@@ -5812,6 +5994,12 @@ paths:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/LatestVersionResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LatestVersionResponse"
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/LatestVersionResponse"
             text/plain:
               schema:
                 type: string
@@ -5845,6 +6033,12 @@ paths:
           description: File details for the latest artifact.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/FileDetails"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileDetails"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/FileDetails"
         "404":
@@ -5938,6 +6132,9 @@ paths:
           application/x-protobuf:
             schema:
               $ref: "#/components/schemas/PomDetails"
+          application/protobuf:
+            schema:
+              $ref: "#/components/schemas/PomDetails"
           application/json:
             schema:
               $ref: "#/components/schemas/PomDetails"
@@ -6000,6 +6197,12 @@ paths:
           application/x-protobuf:
             schema:
               $ref: "#/components/schemas/RebuildIndexRequest"
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RebuildIndexRequest"
+          application/protobuf:
+            schema:
+              $ref: "#/components/schemas/RebuildIndexRequest"
       responses:
         "200":
           description: Rebuild initiated (empty body).
@@ -6026,6 +6229,12 @@ paths:
           description: Domain name list.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/SettingsDomainsResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettingsDomainsResponse"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/SettingsDomainsResponse"
         "403":
@@ -6060,6 +6269,24 @@ paths:
                   - $ref: "#/components/schemas/StorageConfig"
                   - $ref: "#/components/schemas/UpdaterConfig"
                   - $ref: "#/components/schemas/IndexDomainSettings"
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/FrontendConfig"
+                  - $ref: "#/components/schemas/ServerConfig"
+                  - $ref: "#/components/schemas/ProxyConfig"
+                  - $ref: "#/components/schemas/StorageConfig"
+                  - $ref: "#/components/schemas/UpdaterConfig"
+                  - $ref: "#/components/schemas/IndexDomainSettings"
+            application/protobuf:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/FrontendConfig"
+                  - $ref: "#/components/schemas/ServerConfig"
+                  - $ref: "#/components/schemas/ProxyConfig"
+                  - $ref: "#/components/schemas/StorageConfig"
+                  - $ref: "#/components/schemas/UpdaterConfig"
+                  - $ref: "#/components/schemas/IndexDomainSettings"
         "403":
           $ref: "#/components/responses/PlainForbidden"
         "404":
@@ -6080,6 +6307,22 @@ paths:
         required: true
         content:
           application/x-protobuf:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/FrontendConfig"
+                - $ref: "#/components/schemas/ServerConfig"
+                - $ref: "#/components/schemas/ProxyConfig"
+                - $ref: "#/components/schemas/StorageConfig"
+                - $ref: "#/components/schemas/UpdaterConfig"
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/FrontendConfig"
+                - $ref: "#/components/schemas/ServerConfig"
+                - $ref: "#/components/schemas/ProxyConfig"
+                - $ref: "#/components/schemas/StorageConfig"
+                - $ref: "#/components/schemas/UpdaterConfig"
+          application/protobuf:
             schema:
               oneOf:
                 - $ref: "#/components/schemas/FrontendConfig"
@@ -6117,6 +6360,12 @@ paths:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/MavenRepositoriesResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MavenRepositoriesResponse"
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/MavenRepositoriesResponse"
         "403":
           $ref: "#/components/responses/PlainForbidden"
 
@@ -6142,6 +6391,12 @@ paths:
         required: true
         content:
           application/x-protobuf:
+            schema:
+              $ref: "#/components/schemas/Repository"
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Repository"
+          application/protobuf:
             schema:
               $ref: "#/components/schemas/Repository"
       responses:
@@ -6402,6 +6657,14 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpdateState"
 
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateState"
+
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/UpdateState"
+
   /api/updater/check:
     post:
       tags: [ updater ]
@@ -6529,11 +6792,23 @@ paths:
           application/x-protobuf:
             schema:
               $ref: "#/components/schemas/ChunkedUploadInitRequest"
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChunkedUploadInitRequest"
+          application/protobuf:
+            schema:
+              $ref: "#/components/schemas/ChunkedUploadInitRequest"
       responses:
         "200":
           description: Session created.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/ChunkedUploadInitResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChunkedUploadInitResponse"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/ChunkedUploadInitResponse"
         "400":
@@ -6606,10 +6881,22 @@ paths:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/ChunkedUploadCompleteResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChunkedUploadCompleteResponse"
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/ChunkedUploadCompleteResponse"
         "201":
           description: Artifact stored (`purpose=storage`).
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/ChunkedUploadCompleteResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChunkedUploadCompleteResponse"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/ChunkedUploadCompleteResponse"
         "400":
@@ -6671,6 +6958,12 @@ paths:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/MessageListResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageListResponse"
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/MessageListResponse"
         "400":
           $ref: "#/components/responses/PlainBadRequest"
         "401":
@@ -6688,6 +6981,12 @@ paths:
           description: Messages cleared.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/ClearMessagesResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClearMessagesResponse"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/ClearMessagesResponse"
         "401":
@@ -6708,6 +7007,12 @@ paths:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/UnreadCountResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnreadCountResponse"
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/UnreadCountResponse"
         "401":
           $ref: "#/components/responses/PlainUnauthorized"
 
@@ -6724,6 +7029,12 @@ paths:
           description: All messages marked read.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/MarkAllReadResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarkAllReadResponse"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/MarkAllReadResponse"
         "401":
@@ -6749,6 +7060,12 @@ paths:
           description: Message marked read.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/StatusOk"
         "400":
@@ -6783,6 +7100,12 @@ paths:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/StatusOk"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
         "400":
           $ref: "#/components/responses/PlainBadRequest"
         "401":
@@ -6814,6 +7137,12 @@ paths:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/UserSearchResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSearchResponse"
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/UserSearchResponse"
         "400":
           $ref: "#/components/responses/PlainBadRequest"
         "403":
@@ -6836,6 +7165,9 @@ paths:
           application/x-protobuf:
             schema:
               $ref: "#/components/schemas/SendNotificationRequest"
+          application/protobuf:
+            schema:
+              $ref: "#/components/schemas/SendNotificationRequest"
           application/json:
             schema:
               $ref: "#/components/schemas/SendNotificationRequest"
@@ -6844,6 +7176,12 @@ paths:
           description: Notification delivered.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/SendNotificationResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SendNotificationResponse"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/SendNotificationResponse"
         "400":
@@ -6943,6 +7281,12 @@ paths:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/AuditLogListResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogListResponse"
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/AuditLogListResponse"
         "400":
           $ref: "#/components/responses/PlainBadRequest"
         "403":
@@ -7025,6 +7369,12 @@ paths:
           description: Paginated audit log.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/AuditLogListResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogListResponse"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/AuditLogListResponse"
         "401":
@@ -7122,6 +7472,12 @@ paths:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/AuditLogListResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogListResponse"
+            application/protobuf:
+              schema:
+                $ref: "#/components/schemas/AuditLogListResponse"
         "403":
           $ref: "#/components/responses/PlainForbidden"
     delete:
@@ -7143,6 +7499,12 @@ paths:
           description: Audit log cleared.
           content:
             application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+            application/protobuf:
               schema:
                 $ref: "#/components/schemas/StatusOk"
         "403":

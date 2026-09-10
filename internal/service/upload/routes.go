@@ -40,7 +40,7 @@ import (
 
 // SetupChunkedUploadRoutes registers multi-part upload endpoints under /api/upload/chunked.
 //
-// Init and complete use application/x-protobuf. Part bodies are raw octets.
+// Init and complete negotiate protobuf or JSON. Part bodies are raw octets.
 // Original single-shot PUT (repo paths) and POST /api/updater/upload remain unchanged.
 func SetupChunkedUploadRoutes(router fiber.Router, state *core.AppState) {
 	mgr := DefaultManager()

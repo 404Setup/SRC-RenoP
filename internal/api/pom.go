@@ -64,19 +64,15 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 	user := auth.GetUser(c)
 
 	var pomMsg pb.PomDetails
-	var pomDetails PomDetails
 	readErr := protohttp.Read(c, &pomMsg)
-	if readErr == fiber.ErrRequestEntityTooLarge {
-		return readErr
-	}
-	if readErr == nil && pomMsg.ArtifactId != "" {
-		pomDetails.GroupID = pomMsg.GroupId
-		pomDetails.ArtifactID = pomMsg.ArtifactId
-		pomDetails.Version = pomMsg.Version
-	} else {
-		if err := c.Bind().JSON(&pomDetails); err != nil {
-			return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+	if readErr != nil {
+		if readErr == fiber.ErrRequestEntityTooLarge {
+			return readErr
 		}
+		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+	}
+	pomDetails := PomDetails{
+		GroupID: pomMsg.GroupId, ArtifactID: pomMsg.ArtifactId, Version: pomMsg.Version,
 	}
 
 	if !strings.HasSuffix(path, ".pom") {

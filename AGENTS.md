@@ -170,6 +170,9 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   Keep streaming/observers/native APIs where appropriate. Preserve keyboard/focus behavior, responsive layouts,
   viewport-bounded dialogs, and loading/empty/error states. A valid authenticated 403 must not log out the user.
   Render untrusted Markdown through the inert allowlist; never show raw backend errors or runtime exceptions.
+- **API encoding:** `internal/utils/protohttp/` negotiates protobuf and ProtoJSON for schema-backed control APIs.
+  Preserve the legacy protobuf default, Content-Type request selection, Accept response selection, request bounds,
+  and Vary headers. Native package protocols and binary uploads retain their own wire formats.
 - **Localization/docs:** Add stable errors and audit actions to every supported locale. English is canonical;
   `internal/locale/` matches account and request languages; private preferences live in `user_profiles.locale`.
   `internal/mail/template_locales.go` covers every frontend language. Mail captures the recipient language when queued;

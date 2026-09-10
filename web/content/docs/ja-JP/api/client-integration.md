@@ -27,20 +27,27 @@ Native package URL に `/api` を付けないでください。Package protocol 
 
 ## 宣言された表現形式を使う
 
-多くの management request/response は `application/x-protobuf` です。OpenAPI schema は logical field を説明しますが、example
-が endpoint の
-JSON compatibility を意味するわけではありません。同じ RenoP release の `proto/api/v1/api.proto` message を使用します。
-
-Protobuf body の endpoint では両方を明示します。
+スキーマに基づく管理 API は JSON（`application/json`）とバイナリ protobuf（`application/x-protobuf` または
+`application/protobuf`）に対応します。`Content-Type` は要求のデコード、`Accept` は応答形式を選択します。
+`Accept` が未指定または非対応の場合、既存クライアント向けの protobuf 応答を維持します。型指定のない要求も
+protobuf としてデコードします。メッセージ定義は `proto/api/v1/api.proto` を参照してください。
 
 ```http
 Content-Type: application/x-protobuf
 Accept: application/x-protobuf
 ```
 
-Health check と一部 error は plain text です。Cargo、npm、Docker/OCI は protocol が要求する structured JSON または binary
-format を使います。
-Path suffix から推測せず endpoint documentation に従ってください。
+JSON の要求と応答には両方のヘッダーを指定します。
+
+```http
+Content-Type: application/json
+Accept: application/json
+```
+
+JSON は元の snake_case フィールド名を出力し、入力では protobuf の camelCase 名も受け付けます。64 ビット整数は
+10 進文字列、バイト列は Base64 文字列です。不明なフィールドと重複フィールドは拒否します。要求上限は 1 MiB で、
+各エンドポイントのより小さい上限も維持します。ネイティブレジストリ形式、アップロードのバイナリ部分、ヘルスチェックの
+テキスト、個別のエラー形式は従来どおりです。
 
 ## 呼び出し元に合う認証情報を選ぶ
 
@@ -117,10 +124,10 @@ response が完了を示したら停止します。UI filter が authorization/v
 
 ## 同じリリースの契約を使う
 
-Client generation では server と同じ commit/release の `web/assets/openapi.yaml` と `proto/api/v1/api.proto`
-を使います。OpenAPI field は
-logical protobuf field で、JSON wire representation とは限りません。Maven、Cargo、npm、Docker は native configuration
-を使い続けます。
+`web/assets/openapi.yaml` / `proto/api/v1/api.proto`
+
+稼働中のバージョンに対応する OpenAPI と protobuf 定義を使用してください。ProtoJSON の整数とバイト列は上記の
+規則に従い、ネイティブパッケージクライアントは引き続き独自のプロトコルを使用します。
 
 Production upgrade 前に non-production で login、token authorization、repository list、各 format の
 read/write、pagination、error decoding、

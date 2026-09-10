@@ -40,7 +40,7 @@ et sessions, puis supprime les fichiers temporaires abandonnés.
 ### Initialiser
 
 - **Chemin** : `POST /api/upload/chunked/`
-- **Content-Type** : `application/x-protobuf` avec `ChunkedUploadInitRequest`.
+- **Content-Type** : `application/x-protobuf` / `application/json` avec `ChunkedUploadInitRequest`.
 - `purpose` vaut `storage` ou `updater`. Pour le stockage, `path` commence par le nom du dépôt.
 
 ```json

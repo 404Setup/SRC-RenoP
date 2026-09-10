@@ -25,18 +25,25 @@ JSON REST API 是错误的。
 
 ## 使用声明的表示格式
 
-大多数管理请求与响应使用 `application/x-protobuf`。OpenAPI 文档中的逻辑字段用于人工参考和工具处理，示例并不
-意味着端点兼容 JSON。请使用与当前 RenoP 版本配套的 `proto/api/v1/api.proto` 消息。
-
-端点包含 protobuf 请求体时，应明确设置两个请求头：
+基于消息模式的管理 API 支持 JSON（`application/json`）和二进制 protobuf（`application/x-protobuf` 或
+`application/protobuf`）。`Content-Type` 决定请求解码方式，`Accept` 决定响应格式。未指定或不支持的 `Accept`
+会保留旧客户端使用的 protobuf 响应；未指定请求类型时也沿用 protobuf 解码。消息定义见 `proto/api/v1/api.proto`。
 
 ```http
 Content-Type: application/x-protobuf
 Accept: application/x-protobuf
 ```
 
-健康检查及部分错误使用纯文本。Cargo、npm 和 Docker/OCI 路由使用各自协议要求的结构化 JSON 或二进制格式。
-始终遵循端点文档，不要根据路径后缀猜测。
+请求与响应均使用 JSON 时，请同时设置两个请求头：
+
+```http
+Content-Type: application/json
+Accept: application/json
+```
+
+JSON 输出使用原始 snake_case 字段名，输入也接受 protobuf 的 camelCase 名称。64 位整数使用十进制字符串，
+字节字段使用 Base64 字符串。未知或重复的 JSON 字段会被拒绝。控制请求仍限制为 1 MiB，并保留端点原有的
+更小上限。原生仓库协议、上传二进制分块、健康检查纯文本与各端点的错误格式维持原状。
 
 ## 根据调用方选择凭据
 
@@ -106,9 +113,10 @@ GET 和 HEAD 在传输失败后通常可以安全重试。对于写入，应先�
 
 ## 使用同一版本的契约文件
 
-生成客户端时，`web/assets/openapi.yaml` 与 `proto/api/v1/api.proto` 应来自和服务器相同的提交或发行版。OpenAPI
-字段名描述逻辑 protobuf 字段，不一定对应 JSON 传输格式。原生 Maven、Cargo、npm 和 Docker 客户端应继续使用
-各自协议配置，而不是生成的管理端存根。
+`web/assets/openapi.yaml` / `proto/api/v1/api.proto`
+
+请使用与已部署版本配套的 OpenAPI 和 protobuf 定义。ProtoJSON 的整数和字节表示遵循上述规则；原生包客户端
+继续使用各自的协议配置。
 
 升级生产环境前，应在非生产实例上测试登录、令牌授权、仓库列表、每种启用格式的一次代表性读写、分页、错误解码和
 反向代理行为。

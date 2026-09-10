@@ -27,19 +27,27 @@ paquet
 
 ## Utiliser la représentation déclarée
 
-La plupart des requêtes et réponses de gestion utilisent `application/x-protobuf`. Les schémas OpenAPI décrivent des
-champs logiques ; leurs exemples ne rendent pas l’endpoint compatible JSON. Utilisez les messages
-`proto/api/v1/api.proto` de la même version de RenoP.
-
-Pour un corps protobuf, définissez explicitement :
+Les API de gestion fondées sur les schémas acceptent JSON (`application/json`) et protobuf binaire
+(`application/x-protobuf` ou `application/protobuf`). `Content-Type` choisit le décodage du corps ; `Accept` choisit la
+réponse. Sans valeur reconnue pour `Accept`, la réponse reste en protobuf pour les anciens clients. Un corps sans type
+reste décodé en protobuf. Les messages sont définis dans `proto/api/v1/api.proto`.
 
 ```http
 Content-Type: application/x-protobuf
 Accept: application/x-protobuf
 ```
 
-Le health check et certaines erreurs sont en texte. Cargo, npm et Docker/OCI utilisent les formats JSON ou binaires de
-leur protocole. Suivez la documentation de l’endpoint au lieu de déduire le format du suffixe.
+Pour des requêtes et réponses JSON, définissez les deux en-têtes :
+
+```http
+Content-Type: application/json
+Accept: application/json
+```
+
+Le JSON conserve les noms snake_case ; l’entrée accepte aussi les noms camelCase de protobuf. Les entiers 64 bits
+sont des chaînes décimales et les octets des chaînes Base64. Les champs JSON inconnus ou dupliqués sont rejetés. La
+limite reste de 1 MiB, avec conservation des limites plus basses propres aux endpoints. Les protocoles de dépôt, les
+parties binaires, le texte de santé et les erreurs conservent leur représentation.
 
 ## Choisir l’identifiant selon l’appelant
 
@@ -111,9 +119,10 @@ stables et arrêtez lorsque la page indique la fin. Un filtre d’interface ne m
 
 ## Garder les contrats d’une même version
 
-Générez les clients avec `web/assets/openapi.yaml` et `proto/api/v1/api.proto` du même commit ou release que le serveur.
-Un champ OpenAPI représente un champ protobuf logique, pas forcément du JSON. Maven, Cargo, npm et Docker doivent rester
-configurés avec leurs protocoles natifs.
+`web/assets/openapi.yaml` / `proto/api/v1/api.proto`
+
+Conservez les définitions OpenAPI et protobuf de la version déployée. Les entiers et octets ProtoJSON suivent les
+règles ci-dessus ; les clients de paquets natifs continuent à utiliser leurs propres protocoles.
 
 Avant mise à niveau, testez hors production : connexion, autorisation par jeton, liste des dépôts, lecture et écriture
 de

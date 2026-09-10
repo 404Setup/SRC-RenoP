@@ -15,12 +15,14 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
 	"renop/internal/config"
@@ -96,6 +98,30 @@ func TestPostAuthLogin(t *testing.T) {
 	var details pb.SessionDetails
 	assert.NoError(t, proto.Unmarshal(raw, &details))
 	assert.Empty(t, details.GetSessionToken(), "login must not return raw session secret in body")
+
+	jsonRequest := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(`{"name":"admin","secret":"test-admin-password"}`))
+	jsonRequest.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	jsonRequest.Header.Set(fiber.HeaderAccept, fiber.MIMEApplicationJSON)
+	jsonResponse, err := app.Test(jsonRequest)
+	require.NoError(t, err)
+	defer jsonResponse.Body.Close()
+	require.Equal(t, http.StatusOK, jsonResponse.StatusCode)
+	require.Equal(t, fiber.MIMEApplicationJSON, jsonResponse.Header.Get(fiber.HeaderContentType))
+	require.Len(t, jsonResponse.Cookies(), 1)
+	require.True(t, jsonResponse.Cookies()[0].HttpOnly)
+	raw, err = io.ReadAll(jsonResponse.Body)
+	require.NoError(t, err)
+	require.NoError(t, protojson.Unmarshal(raw, &details))
+	require.Equal(t, "admin", details.GetAccessToken().GetName())
+	require.Empty(t, details.GetSessionToken())
+
+	denied := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(`{"name":"admin","secret":"wrong-password"}`))
+	denied.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	deniedResponse, err := app.Test(denied)
+	require.NoError(t, err)
+	defer deniedResponse.Body.Close()
+	require.Equal(t, http.StatusUnauthorized, deniedResponse.StatusCode)
+	require.Empty(t, deniedResponse.Cookies())
 }
 
 func TestCreateSessionDetailsWriteUser(t *testing.T) {

@@ -14,9 +14,7 @@
 package message
 
 import (
-	"bytes"
 	"errors"
-	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -25,13 +23,13 @@ import (
 
 	"github.com/emmansun/base64"
 
-	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
+	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
 	"renop/pkg/pb"
 )
@@ -265,22 +263,22 @@ func sendNotification(c fiber.Ctx, state *core.AppState) error {
 	if sender == nil || !sender.IsManager() {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
+	if c.Is("json") {
+		if _, err := utils.ReadRequestBodyLimited(c, maxRequestSize); err != nil {
+			return err
+		}
+	}
 	var protoReq pb.SendNotificationRequest
 	readErr := protohttp.Read(c, &protoReq)
-	if readErr == fiber.ErrRequestEntityTooLarge {
-		return readErr
-	}
-	var request notificationRequest
-	if readErr == nil && (len(protoReq.Recipients) > 0 || protoReq.All || protoReq.Title != "" || protoReq.Body != "") {
-		request.Recipients = protoReq.Recipients
-		request.All = protoReq.All
-		request.Severity = protoReq.Severity
-		request.Title = protoReq.Title
-		request.Body = protoReq.Body
-	} else {
-		if err := decodeJSONRequest(c, &request); err != nil {
-			return c.Status(fiber.StatusBadRequest).SendString("Invalid notification")
+	if readErr != nil {
+		if readErr == fiber.ErrRequestEntityTooLarge {
+			return readErr
 		}
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid notification")
+	}
+	request := notificationRequest{
+		Recipients: protoReq.Recipients, All: protoReq.All, Severity: protoReq.Severity,
+		Title: protoReq.Title, Body: protoReq.Body,
 	}
 	request.Title = strings.TrimSpace(request.Title)
 	request.Body = strings.TrimSpace(request.Body)
@@ -383,29 +381,6 @@ func resolveRecipients(state *core.AppState, request notificationRequest) ([]str
 		recipients = append(recipients, name)
 	}
 	return recipients, nil
-}
-
-func decodeJSONRequest(c fiber.Ctx, destination any) error {
-	var reader io.Reader
-	if stream := c.Request().BodyStream(); stream != nil {
-		reader = stream
-	} else {
-		reader = bytes.NewReader(c.Request().Body())
-	}
-	limited := &io.LimitedReader{R: reader, N: maxRequestSize + 1}
-	decoder := json.NewDecoder(limited)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(destination); err != nil {
-		return err
-	}
-	var extra any
-	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
-		return errors.New("request must contain one JSON value")
-	}
-	if limited.N <= 0 {
-		return errors.New("request is too large")
-	}
-	return nil
 }
 
 func validMessageText(value string, limit int, allowNewline bool) bool {

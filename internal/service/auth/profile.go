@@ -25,14 +25,6 @@ import (
 	"renop/pkg/pb"
 )
 
-type UpdatePasswordRequest struct {
-	NewPassword string `json:"new_password"`
-}
-
-type StatusResponse struct {
-	Status string `json:"status"`
-}
-
 func UpdatePassword(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenOp) error {
 	userInt := c.Locals("user")
 	if userInt == nil {
@@ -42,16 +34,11 @@ func UpdatePassword(c fiber.Ctx, state *core.AppState, opChan chan<- token.Token
 
 	var req pb.UpdatePasswordRequest
 	readErr := protohttp.Read(c, &req)
-	if readErr == fiber.ErrRequestEntityTooLarge {
-		return readErr
-	}
-	if readErr != nil || req.NewPassword == "" {
-		var jsonReq UpdatePasswordRequest
-		if jsonErr := c.Bind().JSON(&jsonReq); jsonErr == nil && jsonReq.NewPassword != "" {
-			req.NewPassword = jsonReq.NewPassword
-		} else if req.NewPassword == "" {
-			return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+	if readErr != nil {
+		if readErr == fiber.ErrRequestEntityTooLarge {
+			return readErr
 		}
+		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
 	}
 	if len(req.NewPassword) < 6 || len(req.NewPassword) > 72 {
 		return c.Status(fiber.StatusBadRequest).SendString("Password must be between 6 and 72 bytes")
