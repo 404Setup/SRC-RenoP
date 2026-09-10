@@ -10,6 +10,13 @@ description: 公开健康检查、运行时指标、历史快照与受保护诊�
 标明的响应使用 protobuf。健康检查与实例状态公开可读；内存诊断要求管理员权限，并且进程启动时已启用
 `server.debug_mode`。
 
+
+基于 schema 的状态响应同时支持 protobuf 和 ProtoJSON。使用 `Accept: application/json` 获取 JSON，默认返回 protobuf。下方示例表示解码后的逻辑值；ProtoJSON 在线格式中的 64 位整数为十进制字符串。健康检查文本与性能分析下载保留原有格式。
+
+```sh
+curl --fail -H "Accept: application/json" http://localhost:3000/api/status/instance
+```
+
 ## 健康检查与前端哈希
 
 - **健康检查**：`GET /api/status/health`，进程正常服务时返回 `"UP"`。

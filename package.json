@@ -13,5 +13,8 @@
     "test:frontend": "pnpm --filter renop-html test",
     "check:i18n": "pnpm --filter renop-html check:i18n",
     "build:ui-consumers": "pnpm --filter renop-web build && pnpm --filter renop-html build"
+  },
+  "scarfSettings": {
+    "enabled": false
   }
 }

@@ -103,4 +103,4 @@ Les membres conservent les métadonnées sans pouvoir modifier le contenu verrou
 manuel ne supprime pas le verrouillage système. Les autres versions peuvent être publiées, mais les opérations
 qui modifient tout le paquet restent bloquées.
 
-Voir [Cargo API](/docs/api/cargo) pour les requêtes, motifs et codes de réponse.
+Voir [Cargo API](/api/cargo) pour les requêtes, motifs et codes de réponse.

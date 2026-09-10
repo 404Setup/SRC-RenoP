@@ -10,6 +10,13 @@ description: 公開ヘルス、実行時メトリクス、スナップショッ�
 明記されたレスポンスは protobuf です。ヘルスと現在状態は公開されます。メモリ診断には管理者権限と、
 プロセス開始時から有効な `server.debug_mode` が必要です。
 
+
+スキーマに基づく状態応答は protobuf と ProtoJSON に対応します。`Accept: application/json` で JSON を選択し、既定は protobuf です。以下の例はデコード後の論理値であり、ProtoJSON の 64 ビット整数は十進文字列です。ヘルステキストとプロファイルは固有形式を維持します。
+
+```sh
+curl --fail -H "Accept: application/json" http://localhost:3000/api/status/instance
+```
+
 ## ヘルスとフロントエンドハッシュ
 
 - **ヘルス**: `GET /api/status/health` はプロセスが応答中なら `"UP"` を返します。

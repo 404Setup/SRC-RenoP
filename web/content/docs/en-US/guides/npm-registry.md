@@ -104,6 +104,6 @@ collaborators and block every file download. Removing a manual lock leaves syste
 
 Locked versions keep their associated tags and block whole-package lifecycle changes. Publish other versions with
 a separate tag when the existing tag targets a locked version. Mirror refreshes preserve locked stored content.
-See the [npm API](/docs/api/npm) for endpoints and response codes.
+See the [npm API](/api/npm) for endpoints and response codes.
 
 Navigation discards stale package responses and lock refreshes so they cannot overwrite a different package page.

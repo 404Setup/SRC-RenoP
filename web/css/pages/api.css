@@ -8,11 +8,6 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-@import url("variables.css");
-@import url("layout.css");
-@import url("components.css");
-@import url("pages/home.css");
-@import url("pages/api.css");
-@import url("pages/docs.css");
-@import url("pages/download.css");
-@import url("pages/contributors.css");
+.api-modes { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 24px; }
+.api-content { min-width: 0; }
+.api-openapi { width: 100%; height: 78vh; min-height: 420px; border: 1px solid var(--border-color); border-radius: 12px; background: #fff; }

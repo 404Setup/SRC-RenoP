@@ -10,6 +10,13 @@ description: Public health, runtime metrics, snapshots, and protected diagnostic
 Status responses use protobuf where noted. Health and runtime status are public; memory diagnostics require a manager
 and `server.debug_mode` enabled when the process starts.
 
+
+Schema-backed status responses support both protobuf and ProtoJSON. Set `Accept: application/json` to receive JSON; the default is protobuf. The examples below show decoded logical values; on the ProtoJSON wire, 64-bit integers are decimal strings. Health text and profiler downloads retain their own formats.
+
+```sh
+curl --fail -H "Accept: application/json" http://localhost:3000/api/status/instance
+```
+
 ## Health and frontend hash
 
 - **Health**: `GET /api/status/health` returns `"UP"` while the process is serving.

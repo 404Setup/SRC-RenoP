@@ -96,4 +96,4 @@ cargo yank --registry renop --undo --version 0.1.0 my-crate
 限制为仅工作人员和协作者可见，并禁止所有文件下载及 Cargodoc 预览。成员仍可查看元数据，但不能修改被锁定的内容。
 移除人工锁定后，系统锁定仍然有效。某个版本被锁定时，仍可发布其他未锁定的版本，但影响整个包的操作会被阻止。
 
-锁定请求、原因和响应码见 [Cargo API](/docs/api/cargo)。
+锁定请求、原因和响应码见 [Cargo API](/api/cargo)。

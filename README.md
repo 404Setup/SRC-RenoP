@@ -56,7 +56,7 @@ See [Quickstart](https://renop.mvnc.one/docs/getting-started/quickstart) for rep
 | Configuration   | [Overview](https://renop.mvnc.one/docs/configuration/overview), [repositories](https://renop.mvnc.one/docs/configuration/repositories), [databases](https://renop.mvnc.one/docs/configuration/database)                                        |
 | Deployment      | [Services](https://renop.mvnc.one/docs/deployment/daemon), [reverse proxy](https://renop.mvnc.one/docs/deployment/reverse-proxy), [backup and recovery](https://renop.mvnc.one/docs/deployment/backup-and-recovery)                            |
 | Security        | [Security model](https://renop.mvnc.one/docs/security/security-model), [tokens and keys](https://renop.mvnc.one/docs/security/tokens-and-keys)                                                                                                 |
-| API             | [Reference](https://renop.mvnc.one/docs/api/README), [OpenAPI](https://renop.mvnc.one/assets/openapi.yaml)                                                                                                                                     |
+| API             | [Reference](https://renop.mvnc.one/api/README), [OpenAPI](https://renop.mvnc.one/assets/openapi.yaml)                                                                                                                                     |
 | Support         | [Troubleshooting](https://renop.mvnc.one/docs/guides/troubleshooting), [issues](https://github.com/404Setup/SRC-RenoP/issues)                                                                                                                  |
 
 ## Building from source

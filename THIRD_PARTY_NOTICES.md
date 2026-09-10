@@ -155,6 +155,9 @@ marketing site and documentation, not the server binary.
 | `brotli-compress`                                        | 2.2.2   | Apache-2.0 AND MIT | Pure-JavaScript Brotli decompression in the website conversion worker; decoder copyright 2017 Google Inc. |
 | `fflate`                                                 | 0.8.3   | MIT                | Browser-side legacy ZIP generation; copyright (c) 2026 Arjun Barrett                                      |
 
+| `swagger-ui-dist` | 5.32.15 | Apache-2.0 | Self-hosted OpenAPI viewer; Copyright 2020-2021 SmartBear Software Inc. |
+| `@scarf/scarf` | 1.4.0 | Apache-2.0 | Transitive install-time dependency of swagger-ui-dist; installation analytics disabled |
+
 ---
 
 ### D. Disposable email domain data
@@ -216,6 +219,13 @@ available with the fork source.
 ---
 
 ## Apache NOTICE excerpts
+
+### swagger-ui
+
+```text
+swagger-ui
+Copyright 2020-2021 SmartBear Software Inc.
+```
 
 ### MinIO Go Client (`github.com/minio/minio-go`)
 

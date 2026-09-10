@@ -99,4 +99,4 @@ URL: `http://localhost:3000/cargodoc/{repo}/{crate}/{version}/index.html`
 ロックされた内容を変更できません。手動ロックの解除後もシステムロックは有効です。
 他のロックされていないバージョンは公開できますが、パッケージ全体を書き換える操作は禁止されます。
 
-リクエスト、理由、応答コードは [Cargo API](/docs/api/cargo) を参照してください。
+リクエスト、理由、応答コードは [Cargo API](/api/cargo) を参照してください。

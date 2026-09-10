@@ -8,11 +8,15 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-@import url("variables.css");
-@import url("layout.css");
-@import url("components.css");
-@import url("pages/home.css");
-@import url("pages/api.css");
-@import url("pages/docs.css");
-@import url("pages/download.css");
-@import url("pages/contributors.css");
+// The reference viewer never sends credentials or executes API operations.
+SwaggerUIBundle({
+    url: '/assets/openapi.yaml',
+    dom_id: '#swagger-ui',
+    deepLinking: true,
+    filter: true,
+    docExpansion: 'none',
+    defaultModelsExpandDepth: -1,
+    supportedSubmitMethods: [],
+    validatorUrl: null,
+    persistAuthorization: false,
+});

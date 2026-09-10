@@ -58,7 +58,7 @@ Service paths in this table are relative to `internal/service/`; all other paths
 | Updates, services, Caddy                                               | `updater/`, `internal/daemon/`, `internal/caddy/`, `internal/version/`                                                                                                                                                                                       |
 | Shared bounds, secret encryption, renames, memory tuning, test cleanup | `internal/utils/` (AES-GCM in `secretcipher/`), `internal/testutil/`                                                                                                                                                                                         |
 | SPA and embedded assets                                                | `internal/service/frontend/`; sources in `renop-html/`, embedding in `html.go`                                                                                                                                                                               |
-| Shared UI / website / documentation                                    | `packages/renop-ui/`, `web/`, `web/content/docs/`                                                                                                                                                                                                            |
+| Shared UI / website / documentation                                    | `packages/renop-ui/`, `web/`, `web/content/docs/`; independent API views in `web/js/pages/api.js`                                                                                                                                                                                                            |
 | API/session schemas and generated Go bindings                          | `proto/`, `pkg/pb/`                                                                                                                                                                                                                                          |
 | Build, compression, release publishing                                 | `build.ps1`, `scripts/`, `cmd/`, `.github/workflows/`, `.github/scripts/`                                                                                                                                                                                    |
 
@@ -191,7 +191,9 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   `internal/locale/` matches account and request languages; private preferences live in `user_profiles.locale`.
   `internal/mail/template_locales.go` covers every frontend language. Mail captures the recipient language when queued;
   browser language synchronization binds pending changes to immutable user IDs and preserves credential revisions.
-  preserve keys/placeholders, lazy locale loading, and bundle budgets. Website translations must retain canonical
+  preserve keys/placeholders, lazy locale loading, and bundle budgets. Website `/api` serves Markdown and a lazily loaded local Swagger UI; `/docs` excludes API references.
+  Markdown sources remain in `web/content/docs/<locale>/api/` and `web/assets/openapi.yaml` owns the specification.
+  Website translations must retain canonical
   files, heading outlines, examples, endpoints, and links; see `web/test/docs-parity.test.mjs`.
 - **Release:** Frontend sidecars must not be recompressed; serve them with correct negotiation, ETags, and Vary.
   Update payloads contain only raw `.br` executables and `manifest.json`; release docs attach separately to GitHub.

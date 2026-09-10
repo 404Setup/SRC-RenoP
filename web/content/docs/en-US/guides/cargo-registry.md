@@ -100,4 +100,4 @@ block all file downloads and Cargodoc previews. Members retain metadata access w
 locked content. Removing a manual lock leaves any system lock active. An unlocked version can still be published
 when another version is locked; operations that rewrite the whole package remain blocked.
 
-See [Cargo API](/docs/api/cargo) for lock requests, reasons, and response codes.
+See [Cargo API](/api/cargo) for lock requests, reasons, and response codes.

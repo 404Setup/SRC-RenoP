@@ -23,6 +23,7 @@
     "@renop/ui": "workspace:*",
     "brotli-compress": "^2.2.2",
     "fflate": "^0.8.3",
-    "marked": "^18.0.10"
+    "marked": "^18.0.10",
+    "swagger-ui-dist": "5.32.15"
   }
 }

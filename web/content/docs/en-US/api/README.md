@@ -10,6 +10,9 @@ description: RenoP HTTP RESTful and RPC API overview and endpoints
 RenoP provides a complete HTTP API for administrative automation, client integrations, and health monitoring. The server
 listens on `http://localhost:3000` by default.
 
+
+The standalone [API page](/api) switches between RenoPAPI Markdown and OpenAPI rendering. Deep links such as `/api/authentication` open an article; `?view=openapi` selects the specification. The self-hosted OpenAPI viewer loads on demand and does not execute API requests. The raw [OpenAPI file](/assets/openapi.yaml) remains downloadable. General documentation no longer includes the API category; old `/docs/api/...` bookmarks redirect to `/api/...`.
+
 ## API Route Structure
 
 | Route Prefix                    | Purpose                                                              |

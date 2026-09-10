@@ -12,7 +12,7 @@ import {initTheme} from '@renop/ui/theme';
 import {initI18n, t, updatePageTranslations} from './i18n.js';
 import {initRouter, registerRoute, renderRoute} from './router.js';
 import {renderHome} from './pages/home.js';
-import {renderPricing} from './pages/pricing.js';
+import {renderAPI} from './pages/api.js';
 import {invalidateDocsCache, renderDocs} from './pages/docs.js';
 import {renderDownload} from './pages/download.js';
 import {renderContributors} from './pages/contributors.js';
@@ -39,7 +39,8 @@ function updateCopyrightFooter() {
 }
 
 registerRoute('/', renderHome);
-registerRoute('/pricing', renderPricing);
+registerRoute('/api', renderAPI);
+registerRoute('/api/*', renderAPI);
 registerRoute('/download', renderDownload);
 registerRoute('/contributors', renderContributors);
 registerRoute('/docs', renderDocs);

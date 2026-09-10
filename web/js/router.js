@@ -13,6 +13,7 @@
  * Soft-navigates within the same section (e.g. /docs → /docs/...) without remounting.
  */
 
+import {canonicalPageURL} from './lib/doc-routes.js';
 import {smoothScrollToTop, wait} from '@renop/ui/scroll';
 import {$} from '@renop/ui/jquery';
 
@@ -20,7 +21,9 @@ const routes = [];
 let currentCleanup = null;
 let firstRender = true;
 let rendering = false;
+let pendingRender = false;
 let previousPath = null;
+let previousView = null;
 
 /**
  * Register a path pattern and its page renderer.
@@ -72,7 +75,7 @@ function sectionKey(path) {
     if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
     if (p === '/docs' || p.startsWith('/docs/')) return 'docs';
     if (p === '/download') return 'download';
-    if (p === '/pricing') return 'pricing';
+    if (p === '/api' || p.startsWith('/api/')) return 'api';
     if (p === '/contributors') return 'contributors';
     if (p === '/') return 'home';
     return p;
@@ -95,27 +98,35 @@ export function navigate(path, {replace = false} = {}) {
 /**
  * Resolve the current pathname, run leave animation / cleanup when needed,
  * invoke the matched route handler, and play the enter animation.
- * Concurrent calls while a render is in progress are ignored.
+ * Concurrent calls schedule the latest location after the current render.
  * @returns {Promise<void>}
  */
 export async function renderRoute() {
-    if (rendering) return;
+    if (rendering) {
+        pendingRender = true;
+        return;
+    }
     rendering = true;
 
     try {
+        const canonical = canonicalPageURL(new URL(location.href));
+        if (canonical !== location.pathname + location.search + location.hash) history.replaceState({}, '', canonical);
         const path = location.pathname || '/';
         const matched = matchRoute(path) || matchRoute('/');
         const root = $('#page-root').get(0);
         if (!root || !matched) return;
 
+        const view = new URLSearchParams(location.search).get('view');
         const soft =
             !firstRender &&
             previousPath != null &&
+            previousView === view &&
             sectionKey(previousPath) === sectionKey(path) &&
-            sectionKey(path) === 'docs' &&
+            ['docs', 'api'].includes(sectionKey(path)) &&
             $(root).find('.docs-layout').length > 0;
 
         previousPath = path;
+        previousView = view;
 
         if (!soft) {
             if (!firstRender && root.childNodes.length) {
@@ -164,6 +175,10 @@ export async function renderRoute() {
         }
     } finally {
         rendering = false;
+        if (pendingRender) {
+            pendingRender = false;
+            await renderRoute();
+        }
     }
 }
 
@@ -178,7 +193,7 @@ export function initRouter() {
         const href = a.getAttribute('href');
         if (!href || href.startsWith('http') || href.startsWith('//') || href.startsWith('#')) return;
         e.preventDefault();
-        if (href !== location.pathname) navigate(href);
+        if (href !== location.pathname + location.search + location.hash) navigate(href);
         else renderRoute();
     });
 

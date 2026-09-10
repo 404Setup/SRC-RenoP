@@ -10,6 +10,9 @@ description: RenoP HTTP、REST 与 RPC API 概览
 RenoP 提供用于管理自动化、客户端集成与健康监控的完整 HTTP API。服务默认监听
 `http://localhost:3000`。
 
+
+独立的 [API 页面](/api) 可切换 RenoPAPI Markdown 与 OpenAPI 渲染。`/api/authentication` 等深层链接打开文章，`?view=openapi` 选择接口规范。本地托管的 OpenAPI 渲染器按需加载，不执行 API 请求。仍可下载原始 [OpenAPI 文件](/assets/openapi.yaml)。常规文档不再包含 API 分类；旧 `/docs/api/...` 书签会转到 `/api/...`。
+
 ## 路由结构
 
 | 路由前缀                        | 用途                                         |

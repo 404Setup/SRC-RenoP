@@ -109,6 +109,6 @@ Les versions verrouillées conservent leurs tags et bloquent le cycle de vie du 
 versions
 avec un tag distinct si le tag existant vise une version verrouillée. Les miroirs préservent le contenu stocké
 verrouillé.
-Consultez l'[API npm](/docs/api/npm) pour les points d'accès et codes de réponse.
+Consultez l'[API npm](/api/npm) pour les points d'accès et codes de réponse.
 
 La navigation ignore les anciennes réponses de paquet et les actualisations de verrou pour préserver la nouvelle page.

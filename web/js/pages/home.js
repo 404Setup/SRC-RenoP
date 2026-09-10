@@ -149,7 +149,7 @@ export async function renderHome({root}) {
             el('h2', {}, t('home.cta.title')),
             el('p', {}, t('home.cta.desc')),
         ),
-        el('a', {class: 'pill-btn pill-btn--primary', href: '/pricing', 'data-link': ''}, t('home.cta.pricing')),
+        el('a', {class: 'pill-btn pill-btn--primary', href: '/download', 'data-link': ''}, t('nav.download')),
     );
 
     root.append(hero, grid, cta);

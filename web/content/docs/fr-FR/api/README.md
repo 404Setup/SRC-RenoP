@@ -10,6 +10,9 @@ description: Vue d’ensemble de l’API HTTP, REST et RPC de RenoP
 RenoP fournit une API HTTP complète pour l’administration, les intégrations clientes et la supervision. Par défaut,
 le serveur écoute sur `http://localhost:3000`.
 
+
+La [page API](/api) dédiée permet de basculer entre le Markdown RenoPAPI et le rendu OpenAPI. Les liens comme `/api/authentication` ouvrent un article ; `?view=openapi` sélectionne la spécification. Le visualiseur auto-hébergé se charge à la demande et n’exécute aucune requête API. Le [fichier OpenAPI](/assets/openapi.yaml) reste téléchargeable. La documentation générale ne contient plus la catégorie API ; les anciens liens `/docs/api/...` redirigent vers `/api/...`.
+
 ## Structure des routes
 
 | Préfixe                         | Usage                                                                 |

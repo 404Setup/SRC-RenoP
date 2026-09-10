@@ -10,6 +10,13 @@ description: Santé publique, métriques, instantanés et diagnostics protégés
 Les réponses utilisent protobuf lorsque cela est indiqué. La santé et l’état courant sont publics ; les diagnostics
 mémoire exigent un administrateur et `server.debug_mode` actif au démarrage du processus.
 
+
+Les réponses de statut avec schéma prennent en charge protobuf et ProtoJSON. Utilisez `Accept: application/json` pour JSON ; protobuf reste le défaut. Les exemples montrent les valeurs logiques décodées ; les entiers 64 bits sont des chaînes décimales en ProtoJSON. Le texte de santé et les profils conservent leurs formats.
+
+```sh
+curl --fail -H "Accept: application/json" http://localhost:3000/api/status/instance
+```
+
 ## Santé et hash de l’interface
 
 - **Santé** : `GET /api/status/health` renvoie `"UP"` tant que le processus répond.

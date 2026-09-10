@@ -10,6 +10,9 @@ description: RenoP の HTTP、REST、RPC API の概要
 RenoP は、管理自動化、クライアント統合、監視向けの HTTP API を提供します。既定の待受先は
 `http://localhost:3000` です。
 
+
+独立した [API ページ](/api) では RenoPAPI Markdown と OpenAPI 表示を切り替えられます。`/api/authentication` などのリンクは記事を、`?view=openapi` は仕様を開きます。自己ホスト型ビューアは必要時に読み込まれ、API リクエストを実行しません。[OpenAPI ファイル](/assets/openapi.yaml) もダウンロードできます。一般ドキュメントから API 分類を分離し、旧 `/docs/api/...` は `/api/...` に転送されます。
+
 ## ルート構成
 
 | プレフィックス                      | 用途                                                   |

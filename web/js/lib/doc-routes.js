@@ -8,11 +8,13 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-@import url("variables.css");
-@import url("layout.css");
-@import url("components.css");
-@import url("pages/home.css");
-@import url("pages/api.css");
-@import url("pages/docs.css");
-@import url("pages/download.css");
-@import url("pages/contributors.css");
+/** Map a locale-relative source slug to its public page. @param {string} slug */
+export function docURL(slug) {
+    return slug.startsWith('api/') ? `/${slug}` : `/docs/${slug}`;
+}
+
+/** Preserve old API bookmarks, including their query and fragment. @param {URL} url */
+export function canonicalPageURL(url) {
+    const path = url.pathname.replace(/^\/docs\/api(?=\/|$)/, '/api');
+    return path + url.search + url.hash;
+}

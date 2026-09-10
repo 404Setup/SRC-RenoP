@@ -204,10 +204,18 @@ ensureDir(outDir);
 const docsIndex = generateDocsIndex();
 const {_totalDocs, ...publicIndex} = docsIndex;
 ensureDir(join(outDir, 'content'));
-writeFileSync(
-    join(outDir, 'content', 'docs-index.json'),
-    JSON.stringify(publicIndex, null, 2),
-);
+for (const section of ['docs', 'api']) {
+    const locales = Object.fromEntries(Object.entries(publicIndex.locales).map(([locale, bundle]) => [
+        locale, buildLocaleBundle(bundle.docs.filter(doc => (doc.categorySlug === 'api') === (section === 'api'))),
+    ]));
+    writeFileSync(join(outDir, 'content', `${section}-index.json`), JSON.stringify({...publicIndex, locales}));
+}
+const swaggerDir = join(root, 'node_modules', 'swagger-ui-dist');
+const vendorDir = join(outDir, 'assets', 'swagger-ui');
+ensureDir(vendorDir);
+for (const filename of ['swagger-ui-bundle.js', 'swagger-ui.css', 'LICENSE', 'NOTICE']) {
+    copyFileSync(join(swaggerDir, filename), join(vendorDir, filename));
+}
 copyDir(contentDocs, join(outDir, 'content', 'docs'));
 
 const configUrl = pathToFileURL(join(root, 'rolldown.config.mjs')).href;

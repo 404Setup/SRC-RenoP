@@ -8,12 +8,13 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {docURL} from '../lib/doc-routes.js';
 import {getDocsLocale, t} from '../i18n.js';
 import {clear, el} from '@renop/ui/dom';
 import {renderMarkdown} from '../lib/markdown.js';
 import {morphElementHeight, prefersReducedMotion} from '@renop/ui/height-anim';
 
-let indexCache = null;
+const indexCache = new Map();
 let tocObserver = null;
 
 /** In-memory shell refs for soft navigation within /docs*. */
@@ -24,12 +25,13 @@ let shell = null;
  * @returns {Promise<object>} Parsed index document.
  * @throws {Error} When the index cannot be fetched.
  */
-async function loadIndex() {
-    if (indexCache) return indexCache;
-    const res = await fetch('/content/docs-index.json', {cache: 'no-cache'});
+async function loadIndex(section) {
+    if (indexCache.has(section)) return indexCache.get(section);
+    const res = await fetch(`/content/${section}-index.json`, {cache: 'no-cache'});
     if (!res.ok) throw new Error('docs index missing');
-    indexCache = await res.json();
-    return indexCache;
+    const index = await res.json();
+    indexCache.set(section, index);
+    return index;
 }
 
 /**
@@ -193,7 +195,7 @@ function buildSidebar(categories, activeSlug) {
             ul.appendChild(
                 el('li', {},
                     el('a', {
-                        href: `/docs/${doc.slug}`,
+                        href: docURL(doc.slug),
                         'data-link': '',
                         class: doc.slug === activeSlug ? 'active' : '',
                         'data-docs-slug': doc.slug,
@@ -319,7 +321,7 @@ function renderDocsIndex(categories) {
             ul.appendChild(
                 el('li', {},
                     el('a', {
-                        href: `/docs/${doc.slug}`,
+                        href: docURL(doc.slug),
                         'data-link': '',
                         'data-docs-slug': doc.slug,
                     }, doc.title),
@@ -558,10 +560,11 @@ function destroyShell() {
  * @param {object} ctx
  * @param {HTMLElement} ctx.root - `#page-root`.
  * @param {{ splat?: string }} ctx.params - Route params; `splat` is the doc path under `/docs/`.
+ * @param {'docs'|'api'} [ctx.section='docs'] - Content index to render.
  * @param {boolean} [ctx.soft=false] - Soft navigation flag from the router.
  * @returns {Promise<() => void>} Cleanup that destroys the docs shell.
  */
-export async function renderDocs({root, params, soft = false}) {
+export async function renderDocs({root, params, soft = false, section = 'docs'}) {
     const locale = getDocsLocale();
     const fallbackLocale = 'en-US';
     const slug = (params.splat || '').replace(/^\/+|\/+$/g, '');
@@ -570,7 +573,7 @@ export async function renderDocs({root, params, soft = false}) {
     if (soft && shell && root.contains(shell.layout)) {
         let index;
         try {
-            index = await loadIndex();
+            index = await loadIndex(section);
         } catch {
             clear(shell.main);
             shell.main.appendChild(el('p', {class: 'docs-error'}, t('docs.loadError')));
@@ -583,6 +586,7 @@ export async function renderDocs({root, params, soft = false}) {
 
         if (shell.locale !== locale) {
             const newSidebar = buildSidebar(categories, activeSlug);
+            shell.sidebar._docsMql.removeEventListener('change', shell.sidebar._docsOnBreakpoint);
             shell.sidebar.replaceWith(newSidebar);
             shell.sidebar = newSidebar;
             shell.locale = locale;
@@ -624,7 +628,7 @@ export async function renderDocs({root, params, soft = false}) {
         el('h1', {'data-i18n': 'docs.title'}, t('docs.title')),
         el('p', {'data-i18n': 'docs.lead'}, t('docs.lead')),
     );
-    root.appendChild(hero);
+    if (section === 'docs') root.appendChild(hero);
 
     const layout = el('div', {class: 'docs-layout'});
     const main = el('div', {class: 'docs-content'},
@@ -636,7 +640,7 @@ export async function renderDocs({root, params, soft = false}) {
 
     let index;
     try {
-        index = await loadIndex();
+        index = await loadIndex(section);
     } catch {
         clear(main);
         layout.appendChild(main);
@@ -679,7 +683,7 @@ export async function renderDocs({root, params, soft = false}) {
  * @returns {void}
  */
 export function invalidateDocsCache() {
-    indexCache = null;
+    indexCache.clear();
 }
 
 /**
@@ -720,7 +724,7 @@ function rewriteDocLinks(article, currentSlug) {
             else resolved.push(part);
         }
         const nextSlug = resolved.join('/').replace(/\.md$/i, '');
-        a.setAttribute('href', `/docs/${nextSlug}${hash ? `#${hash}` : ''}`);
+        a.setAttribute('href', `${docURL(nextSlug)}${hash ? `#${hash}` : ''}`);
         a.setAttribute('data-link', '');
         a.setAttribute('data-docs-slug', nextSlug);
     });
