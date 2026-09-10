@@ -21,10 +21,12 @@ import (
 	"strings"
 	"time"
 
+	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/locale"
 	"renop/internal/mail"
 	"renop/internal/service/audit"
+	"renop/internal/service/captcha"
 	"renop/internal/service/mailqueue"
 	"renop/internal/utils"
 
@@ -91,6 +93,9 @@ func providerEmailErrorCode(err error) string {
 }
 
 func queueProfileEmailVerification(c fiber.Ctx, state *core.AppState, username, email string, alias bool) error {
+	if err := captcha.Require(c, state, config.CaptchaManualMail); err != nil {
+		return err
+	}
 	cfg := state.Inner.Config.Load()
 	profile, err := state.GetDB().GetUserProfile(username)
 	if err != nil {

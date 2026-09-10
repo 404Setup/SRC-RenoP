@@ -162,6 +162,9 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 		return fiber.ErrServiceUnavailable
 	}
 
+	if err := storage.RequireMavenUploadCaptcha(c, state, repo, path); err != nil {
+		return err
+	}
 	state.Inner.FileIndex.EnsureParentDirs(basePath)
 	_ = os.MkdirAll(parentDir, 0755)
 

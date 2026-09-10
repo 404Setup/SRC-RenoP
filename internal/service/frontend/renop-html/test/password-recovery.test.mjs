@@ -104,6 +104,7 @@ test('email recovery gates mail, submits once, polls privately, and clears stale
             return {ok: true, json: async () => body};
         },
     });
+    context.captchaFetch = context.fetch;
     const buttonSource = readFileSync(new URL('../js/components/button.js', import.meta.url), 'utf8');
     const action = vm.runInContext(buttonSource.slice(buttonSource.indexOf('export async function runButtonAction')).replace('export ', '') + '; runButtonAction', context);
     const pending = [];

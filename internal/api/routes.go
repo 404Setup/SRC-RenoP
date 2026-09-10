@@ -15,6 +15,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	"renop/internal/core"
+	"renop/internal/service/captcha"
 	"renop/internal/service/legal"
 	"renop/internal/service/repositorygate"
 )
@@ -81,4 +82,5 @@ func SetupAPIRoutes(router fiber.Router, state *core.AppState) {
 	router.Post("/maven/generate/pom/:repo_name/*", func(c fiber.Ctx) error { return GeneratePom(c, state) })
 
 	legal.SetupRoutes(router, state)
+	captcha.SetupRoutes(router, state)
 }

@@ -184,3 +184,5 @@ Passkey、セッション、API Token、写真、復旧コード、メッセー�
 は Unix ミリ秒です。管理者用 `DELETE /api/tokens/:name` にも同じ永久閉鎖条件が適用されます。
 
 [法的文書と Cookie の設定](../configuration/legal.md)
+
+[セキュリティ認証](../security/captcha.md)

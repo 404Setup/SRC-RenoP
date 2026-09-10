@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {captchaFetch} from './captcha.js';
 import {showAlert} from './alert.js';
 import {logout} from './auth.js';
 import {loginReturnTo, navigateToLogin} from './login-route.js';
@@ -31,7 +32,7 @@ let active = false, epoch = 0, availabilityEpoch = 0, receipt, timer, strength;
 
 /** Read bounded auth responses without interpreting a rejected code as an expired session. */
 async function requestJSON(path, options = {}) {
-    const response = await fetch('/api/auth/' + path, {
+    const response = await captchaFetch('/api/auth/' + path, {
         credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(15000), ...options,
     });
     if (!response.ok) throw new LocalizedResponseError(await responseErrorMessage(response, 'login.recoveryFailed'), response.status);

@@ -174,3 +174,5 @@ Cookie，页面返回登录；其他凭据保持绑定，封禁仍然有效。`A
 管理员的 `DELETE /api/tokens/:name` 同样遵循上述永久注销条件。
 
 [法律文档与 Cookie 偏好](../configuration/legal.md)
+
+[安全验证](../security/captcha.md)

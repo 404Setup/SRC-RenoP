@@ -124,6 +124,9 @@ func (staged *memoryStagedFile) Discard() error {
 
 func cargoTestApp(t *testing.T, handler Handler, state *core.AppState, repo *config.Repository, storagePath string, users ...*config.User) *fiber.App {
 	t.Helper()
+	if state.Inner.Config.Load() == nil {
+		state.Inner.Config.Store(config.DefaultConfig())
+	}
 	app := fiber.New()
 	if len(users) > 0 && users[0] != nil {
 		app.Use(func(c fiber.Ctx) error {

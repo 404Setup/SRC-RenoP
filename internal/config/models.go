@@ -49,6 +49,7 @@ func (a *AuditLogConfig) setDefaults() {
 }
 
 type Config struct {
+	Captcha               CaptchaConfig          `json:"captcha" yaml:"captcha"`
 	Legal                 LegalConfig            `json:"legal" yaml:"legal"`
 	MavenDomains          MavenDomainConfig      `json:"maven_domains" yaml:"maven_domains"`
 	Registration          RegistrationConfig     `json:"registration" yaml:"registration"`
@@ -78,6 +79,9 @@ type Config struct {
 }
 
 func (c *Config) setDefaults() {
+	if c.Captcha.Provider == "" {
+		c.Captcha = DefaultCaptchaConfig()
+	}
 	if c.Legal.PrivacyPolicy == "" && c.Legal.TermsOfService == "" && c.Legal.LegalNotice == "" {
 		c.Legal = DefaultLegalConfig()
 	}
@@ -156,6 +160,9 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 	c.Cache.Normalize()
 	c.Server.GPG.setDefaults()
 	c.Mail.Normalize()
+	if err := c.Captcha.Normalize(); err != nil {
+		return err
+	}
 	if err := c.Legal.Normalize(); err != nil {
 		return err
 	}
@@ -210,6 +217,9 @@ func (c *Config) UnmarshalYAML(value *yaml.Node) error {
 	c.Cache.Normalize()
 	c.Server.GPG.setDefaults()
 	c.Mail.Normalize()
+	if err := c.Captcha.Normalize(); err != nil {
+		return err
+	}
 	if err := c.Legal.Normalize(); err != nil {
 		return err
 	}
@@ -263,6 +273,7 @@ func (c *Config) DeepCopy() *Config {
 		return nil
 	}
 	return &Config{
+		Captcha:               c.Captcha.DeepCopy(),
 		Legal:                 c.Legal.DeepCopy(),
 		MFAEncryptionKey:      c.MFAEncryptionKey,
 		StoragePath:           strings.Clone(c.StoragePath),

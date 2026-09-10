@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {captchaFetch} from '../captcha.js';
 import {t} from '../i18n.js';
 import {showAlert} from '../alert.js';
 import {fetchProto, getAuthHeaders} from '../api.js';
@@ -610,7 +611,7 @@ export function initUpload() {
                     try {
                         const relPath = dest.substring(repoName.length + 1) || '';
                         const encodedPomPath = encodeRelativePath(relPath);
-                        const pomResp = await fetch(`/api/maven/generate/pom/${encodePathSegment(repoName)}/${encodedPomPath}`, {
+                        const pomResp = await captchaFetch(`/api/maven/generate/pom/${encodePathSegment(repoName)}/${encodedPomPath}`, {
                             method: 'POST',
                             headers: {
                                 ...getAuthHeaders(),

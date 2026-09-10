@@ -15,6 +15,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/auth"
 )
 
 // MavenMutationAuthorizer is wired by the Maven service to avoid a package cycle.
@@ -41,3 +42,22 @@ var MavenPublicationProcessor func(state *core.AppState, repo *config.Repository
 
 // MavenMirrorRecorder is wired by the Maven service to retain mirror provenance in its catalog.
 var MavenMirrorRecorder func(state *core.AppState, repository, path string, size, modTime int64) error
+
+// MavenUploadChallenge identifies first browser publication using the Maven catalog.
+var MavenUploadChallenge func(fiber.Ctx, *core.AppState, *config.Repository, string) error
+
+// RequireMavenUploadCaptcha checks new browser uploads before staging or upload-session allocation.
+func RequireMavenUploadCaptcha(c fiber.Ctx, state *core.AppState, repo *config.Repository, path string) error {
+	if repo.NormalizedFormat() != config.RepositoryFormatMaven ||
+		state.Inner.Config.Load().Captcha.EffectiveScope(config.CaptchaPackageCreate) == "" {
+		return nil
+	}
+	kind := auth.CurrentCredentialKind(c)
+	if kind == "password" || kind == "api_token" {
+		return nil
+	}
+	if MavenUploadChallenge == nil {
+		return fiber.ErrServiceUnavailable
+	}
+	return MavenUploadChallenge(c, state, repo, path)
+}

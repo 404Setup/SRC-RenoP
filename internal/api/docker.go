@@ -26,6 +26,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
+	"renop/internal/service/captcha"
 	"renop/internal/service/docker"
 	"renop/internal/utils"
 )
@@ -234,6 +235,9 @@ func CreateDockerImageAPI(c fiber.Ctx, state *core.AppState) error {
 		if upstreamExists {
 			return c.Status(fiber.StatusConflict).SendString("Docker image name is already in use by an upstream mirror")
 		}
+	}
+	if err := captcha.Require(c, state, config.CaptchaPackageCreate); err != nil {
+		return err
 	}
 	createdAt := time.Now().UnixMilli()
 	if repo.PublicationReviewPolicy() != config.PublicationReviewOff || reviewTeamPrefix != "" {

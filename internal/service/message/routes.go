@@ -26,9 +26,11 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 
+	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
+	"renop/internal/service/captcha"
 	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
 	"renop/pkg/pb"
@@ -297,6 +299,11 @@ func sendNotification(c fiber.Ctx, state *core.AppState) error {
 	recipients, err := resolveRecipients(state, request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+	}
+	if state.Inner.Config.Load().Mail.Enabled {
+		if err := captcha.Require(c, state, config.CaptchaManualMail); err != nil {
+			return err
+		}
 	}
 	now := time.Now().UnixMilli()
 	messages := make([]*core.UserMessage, 0, len(recipients))

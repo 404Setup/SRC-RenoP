@@ -14,6 +14,13 @@ export const RESPONSE_ERROR_CODE_HEADER = 'X-Renop-Error-Code';
 
 const MAX_ERROR_BODY_BYTES = 2048;
 const commonErrorCodeKeys = Object.freeze({
+    captcha_required: 'captcha.complete',
+    captcha_invalid: 'captcha.failed',
+    captcha_unavailable: 'captcha.unavailable',
+    captcha_changed: 'captcha.changed',
+    captcha_cookies_required: 'captcha.cookiesRequired',
+    captcha_settings_invalid: 'captcha.settingsInvalid',
+    captcha_settings_save_failed: 'captcha.settingsSaveFailed',
     legal_consent_required: 'legal.consentRequired',
     legal_settings_invalid: 'legal.invalid',
     legal_settings_save_failed: 'legal.saveFailed',

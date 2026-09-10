@@ -17,10 +17,12 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"golang.org/x/crypto/bcrypt"
 
+	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/locale"
 	"renop/internal/mail"
 	"renop/internal/service/audit"
+	"renop/internal/service/captcha"
 	"renop/internal/service/mailqueue"
 	"renop/internal/utils"
 )
@@ -69,6 +71,9 @@ func requestEmailPasswordReset(c fiber.Ctx, state *core.AppState) error {
 	email, valid := core.NormalizeEmail(request.Email)
 	if !valid || email == "" {
 		return passwordResetError(c, 400, "ACCOUNT_EMAIL_INVALID")
+	}
+	if err := captcha.Require(c, state, config.CaptchaManualMail); err != nil {
+		return err
 	}
 	language, err := state.GetDB().GetEmailLocale(email)
 	if err != nil {

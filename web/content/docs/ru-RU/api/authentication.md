@@ -196,3 +196,5 @@ Microsoft, Google, GitLab, Cloudflare, Stack Exchange и собственные 
 Административный маршрут `DELETE /api/tokens/:name` применяет те же условия окончательного закрытия.
 
 [Правовые документы и cookie](../configuration/legal.md)
+
+[Проверка безопасности](../security/captcha.md)

@@ -326,6 +326,7 @@ window.addEventListener(protectedRouteDeniedEvent, event => {
  * @returns {Promise<void>}
  */
 export async function switchTab(tabId) {
+    window.dispatchEvent(new Event('appNavigation'));
     const accountPage = accountPageFromPath();
     if (accountPage) tabId = accountPage;
     if (legalPageFromPath()) tabId = 'legal';

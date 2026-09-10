@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {captchaFetch} from './captcha.js';
 import {ensureLegalConsent} from './legal-consent.js';
 import {t} from './i18n.js';
 import {showAlert} from './alert.js';
@@ -35,7 +36,7 @@ let active = false, epoch = 0, availabilityEpoch = 0, pending, receipt, timer, e
 
 /** Read public auth results without treating a rejected confirmation as an expired login. */
 async function requestJSON(path, body) {
-    const response = await fetch('/api/auth/' + path, {
+    const response = await captchaFetch('/api/auth/' + path, {
         credentials: 'include', cache: 'no-store',
         signal: AbortSignal.timeout(15000), ...(body ? {
             method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body),

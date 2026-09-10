@@ -40,6 +40,7 @@ test('settings pages preserve drafts and isolate loads, saves, credentials, and 
         responseErrorMessage: async () => 'safe error',
         caughtErrorMessage: () => 'safe error',
         LocalizedResponseError: Error,
+        renderCaptchaSettings() {},
         renderLegalSettings() {},
         renderCacheSettings() {
         },

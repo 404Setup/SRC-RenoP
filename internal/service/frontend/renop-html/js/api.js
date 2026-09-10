@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {captchaFetch} from './captcha.js';
 import {logout} from './auth.js';
 import {protoObjectOptions} from './proto/index.js';
 
@@ -64,7 +65,7 @@ function handleAuthFailure(response, policy = {}) {
  * @returns {Promise<Response>} The fetch response; throws on 401 and policy-gated 403 responses.
  */
 export async function apiRequest(url, options = {}, authPolicy = {}) {
-    const response = await fetch(url, withCredentials(options));
+    const response = await captchaFetch(url, withCredentials(options));
     handleAuthFailure(response, authPolicy);
     return response;
 }
@@ -90,7 +91,7 @@ export async function decodeProtoResponse(response, MessageType) {
  * @returns {Promise<{response: Response, data: object|null}>}
  */
 export async function fetchProto(url, MessageType, options = {}) {
-    const response = await fetch(url, withCredentials({
+    const response = await captchaFetch(url, withCredentials({
         ...options,
         headers: {
             Accept: PROTO_CONTENT_TYPE,
@@ -124,7 +125,7 @@ export async function sendProto(url, method, RequestType = null, requestPayload 
         body = RequestType.encode(requestPayload || {}).finish();
         headers['Content-Type'] = PROTO_CONTENT_TYPE;
     }
-    const response = await fetch(url, withCredentials({
+    const response = await captchaFetch(url, withCredentials({
         method,
         ...options,
         headers,

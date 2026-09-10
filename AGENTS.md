@@ -38,6 +38,7 @@ Service paths in this table are relative to `internal/service/`; all other paths
 | HTTP routing, search, middleware, public API                           | `internal/api/`, `internal/middleware/`, relevant service `routes.go`                                                                                                                                                                                        |
 | SQL, migrations, transactions, persistence caches                      | `internal/database/`; dialect logic in `clickhouse*.go`                                                                                                                                                                                                      |
 | Memory, Redis, Valkey cache backends                                   | `internal/cache/`, `internal/core/cache.go`, `internal/database/cache.go`; configuration in `settings/cache.go`                                                                                                                                              |
+| CAPTCHA verification | `internal/config/captcha.go`, `captcha/`, `settings/captcha.go`; browser transport and disposable widget in `js/captcha*.js` |
 | Legal documents and browser consent | `internal/config/legal.go`, `legal/`, `settings/legal.go`; public pages and consent in frontend `js/legal-*.js`, `js/cookie-consent.js` |
 | Login, sessions, Passkey, TOTP, OAuth, API tokens, profiles            | `auth/`; second factors in `mfa*.go`; email ownership in `internal/database/account_emails.go`, verification in `email_verification.go`, `github_email.go`; provider flows in `github_*.go`, `oauth_*.go`; OAuth configuration in `internal/config/oauth.go` |
 | Registration, retirement, recovery, avatars                            | `auth/`, `internal/database/`, matching `registration*`, `account_retirement*`, `recovery_codes*`, `password_reset*`, `avatar*` files; registration policy in `internal/config/registration.go` and `settings/registration.go`                               |
@@ -168,6 +169,10 @@ Read the relevant implementation and tests for exact limits and exceptions befor
 - **Email:** `mailqueue/` owns the durable serial worker, rate limits, credit reservations, and status checks.
   Preserve encrypted queue payloads, persistent OAuth rotation, bounded history, and private status capabilities.
   An interrupted submission has an unknown outcome; never resend it automatically or treat acceptance as delivery.
+- **CAPTCHA:** Browser actions consume bounded, single-use approvals bound to their cookies, scope, and current policy.
+  Verified API tokens and protocol-password clients remain exempt. Manual-mail scopes take precedence on overlapping
+  email actions. Enforce before mutation/staging; retry only the explicit precondition denial. Provider code lives in
+  the disposable `captcha-widget` bundle and requires optional-service consent.
 - **Legal documents:** `config.yaml` owns the three Markdown documents; no local policy file or external legal URL is read.
   Keep bounded safe rendering and public access with expired credentials. Account entry requires the current privacy/terms
   revision; optional browser services require explicit category consent, with preferences available from the footer.

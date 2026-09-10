@@ -17,10 +17,12 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
+	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/locale"
 	"renop/internal/mail"
 	"renop/internal/service/audit"
+	"renop/internal/service/captcha"
 	"renop/internal/service/mailqueue"
 	"renop/internal/utils"
 )
@@ -160,6 +162,11 @@ func testMailSettings(c fiber.Ctx, state *core.AppState) error {
 	}
 	_, operator, _, _, _ := audit.ExtractAuthDetails(c, state)
 	cfg := state.Inner.Config.Load()
+	if cfg.Mail.Enabled {
+		if err := captcha.Require(c, state, config.CaptchaManualMail); err != nil {
+			return err
+		}
+	}
 	receipt, err := mailqueue.Enqueue(state, mailqueue.Request{AccountID: request.AccountID, Actor: operator, To: request.To, Scene: "test", Manual: true, IP: utils.ExtractIP(c, &cfg.Server),
 		Data: mail.TemplateData{Locale: locale.FromHeader(c.Get(fiber.HeaderAcceptLanguage))}})
 	if err != nil {

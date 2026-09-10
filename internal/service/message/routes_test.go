@@ -35,6 +35,7 @@ func messageTestState(t *testing.T) (*core.AppState, *database.DB) {
 	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "messages.db")})
 	require.NoError(t, err)
 	state := core.NewAppState()
+	state.Inner.Config.Store(config.DefaultConfig())
 	state.Inner.DB = db
 	return state, db
 }

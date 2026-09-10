@@ -17,7 +17,7 @@ l’opération. Les réponses utilisent protobuf lorsque `proto/api/v1/api.proto
 
 ## Pages de paramètres dans le navigateur
 
-Chaque domaine parmi les 15 annoncés dispose de sa propre page. Sur ordinateur, les catégories figurent à côté
+Chaque domaine parmi les 16 annoncés dispose de sa propre page. Sur ordinateur, les catégories figurent à côté
 du formulaire ; sur petit écran, un sélecteur les remplace. Précédent et suivant suivent le même ordre. Ouvrir une
 page charge uniquement sa configuration, sans charger tous les paramètres du service.
 
@@ -92,3 +92,5 @@ ni le délai distinct de 31 jours d’une fermeture volontaire. Voir l’[état 
 Les pages de paramètres, éditeurs de fournisseurs et champs associés utilisent des transitions annulables et respectent la réduction des animations. Les listes vides partagent le style de notification. Les listes déroulantes fermées ne conservent ni menu ni écouteurs du document ; ceux-ci sont créés à l’ouverture.
 
 Les ressources intégrées sont transmises en flux depuis l’exécutable. RenoP conserve le type, la taille et l’ETag sans garder une autre copie de chaque bundle et variante compressée dans le tas Go. La négociation et les requêtes conditionnelles restent disponibles.
+
+[Vérification de sécurité](../security/captcha.md)

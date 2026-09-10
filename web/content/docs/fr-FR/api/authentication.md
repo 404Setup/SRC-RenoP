@@ -203,3 +203,5 @@ Les administrateurs consultent les échéances avec `GET /api/tokens/:name/reten
 La route administrateur `DELETE /api/tokens/:name` applique les mêmes conditions de fermeture définitive.
 
 [Documents juridiques et cookies](../configuration/legal.md)
+
+[Vérification de sécurité](../security/captcha.md)

@@ -850,6 +850,7 @@ export async function loadDirectory(path) {
  */
 export function navigateToPath(path, replace = false) {
     if (!path || typeof path !== 'string' || !path.startsWith('/')) return;
+    window.dispatchEvent(new Event('appNavigation'));
     if (replace) window.history.replaceState(null, '', path);
     else window.history.pushState(null, '', path);
     void loadDirectory(path);

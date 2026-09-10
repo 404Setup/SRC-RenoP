@@ -209,6 +209,9 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 	case fiber.MethodHead:
 		return HandleHead(c, state, repo, cfg.StoragePath)
 	case fiber.MethodPut, fiber.MethodPost:
+		if err := RequireMavenUploadCaptcha(c, state, repo, sanitized); err != nil {
+			return err
+		}
 		return HandlePut(c, state, repo, localFilePath)
 	case fiber.MethodDelete:
 		return HandleDelete(c, state, repo, path, localFilePath)

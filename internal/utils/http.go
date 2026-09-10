@@ -183,3 +183,9 @@ func normalizeForwardedIP(s string) string {
 func DecodeB64(s string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(s)
 }
+
+// IsHTTPSRequest recognizes the HTTPS hints used when securing browser cookies.
+func IsHTTPSRequest(c fiber.Ctx) bool {
+	return c.Secure() || strings.EqualFold(c.Get("X-Forwarded-Proto"), "https") ||
+		strings.Contains(c.Get("CF-Visitor"), `"scheme":"https"`)
+}

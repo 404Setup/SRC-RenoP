@@ -1057,11 +1057,11 @@ func TestGetDomainsProtobuf(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected GET 200, got %d", resp.StatusCode)
 	}
-	if len(got.Domains) != 15 || !slices.Contains(got.Domains, "legal") || !slices.Contains(got.Domains, "proxy") || !slices.Contains(got.Domains, "oauth_providers") ||
+	if len(got.Domains) != 16 || !slices.Contains(got.Domains, "captcha") || !slices.Contains(got.Domains, "legal") || !slices.Contains(got.Domains, "proxy") || !slices.Contains(got.Domains, "oauth_providers") ||
 		!slices.Contains(got.Domains, "github_oauth") || !slices.Contains(got.Domains, "super_teams") ||
 		!slices.Contains(got.Domains, "publication_quota") || !slices.Contains(got.Domains, "cache") ||
 		!slices.Contains(got.Domains, "mail") || !slices.Contains(got.Domains, "registration") || !slices.Contains(got.Domains, "maven_domains") || slices.Contains(got.Domains, "gpg") {
-		t.Fatalf("expected 15 domains including legal, OAuth, registration, cache, mail and Maven domain settings while excluding gpg, got %v", got.Domains)
+		t.Fatalf("expected 16 domains including CAPTCHA, legal, OAuth, registration, cache, mail and Maven domain settings while excluding gpg, got %v", got.Domains)
 	}
 }
 
@@ -2055,4 +2055,33 @@ func TestRepositoryMutationsRespectUncataloguedDomainLocks(t *testing.T) {
 			require.Equal(t, "maven", state.Inner.Config.Load().Maven.Repositories["releases"].NormalizedFormat())
 		})
 	}
+}
+
+func TestCaptchaSettingsPreserveOnlyMatchingWriteOnlySecrets(t *testing.T) {
+	cfg := config.DefaultConfig()
+	app, state := setupSettingsTestApp(t, cfg)
+	put := func(body string) *http.Response {
+		t.Helper()
+		request := httptest.NewRequest(http.MethodPut, "/captcha", strings.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		response, err := app.Test(request)
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = response.Body.Close() })
+		return response
+	}
+	response := put(`{"provider":"turnstile","site_key":"site","secret_key":"private-secret","scopes":{"password_login":true}}`)
+	require.Equal(t, 200, response.StatusCode)
+	data, err := io.ReadAll(response.Body)
+	require.NoError(t, err)
+	require.NotContains(t, string(data), "private-secret")
+	require.Contains(t, string(data), `"secret_configured":true`)
+	response = put(string(data))
+	require.Equal(t, 200, response.StatusCode)
+	require.Equal(t, "private-secret", state.Inner.Config.Load().Captcha.SecretKey)
+	response = put(`{"provider":"hcaptcha","site_key":"site","secret_configured":true}`)
+	require.Equal(t, 400, response.StatusCode)
+	require.Equal(t, "turnstile", state.Inner.Config.Load().Captcha.Provider)
+	response = put(`{"provider":"disabled"}`)
+	require.Equal(t, 200, response.StatusCode)
+	require.Empty(t, state.Inner.Config.Load().Captcha.SecretKey)
 }

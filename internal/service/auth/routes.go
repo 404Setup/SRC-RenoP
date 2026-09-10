@@ -22,8 +22,10 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
+	"renop/internal/service/captcha"
 	"renop/internal/service/legal"
 	"renop/internal/service/token"
+	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
 	"renop/pkg/pb"
 )
@@ -38,18 +40,7 @@ var invalidPasswordHash = func() []byte {
 	return hash
 }()
 
-func isSecure(c fiber.Ctx) bool {
-	if c.Secure() {
-		return true
-	}
-	if strings.EqualFold(c.Get("X-Forwarded-Proto"), "https") {
-		return true
-	}
-	if strings.Contains(c.Get("CF-Visitor"), `"scheme":"https"`) {
-		return true
-	}
-	return false
-}
+func isSecure(c fiber.Ctx) bool { return utils.IsHTTPSRequest(c) }
 
 func setSessionCookie(c fiber.Ctx, value string, maxAge int) {
 	secure := isSecure(c)
@@ -253,6 +244,9 @@ func AuthenticateUser(state *core.AppState, body *core.LoginRequest, opChan chan
 
 func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenOp) error {
 	if err := legal.RequireConsent(c, state); err != nil {
+		return err
+	}
+	if err := captcha.Require(c, state, config.CaptchaPasswordLogin); err != nil {
 		return err
 	}
 	var req pb.LoginRequest

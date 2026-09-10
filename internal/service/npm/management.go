@@ -27,6 +27,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
+	"renop/internal/service/captcha"
 	"renop/internal/service/repositorygate"
 	"renop/internal/utils"
 )
@@ -247,6 +248,9 @@ func createPackageAPI(c fiber.Ctx, state *core.AppState) error {
 	}
 	if existing != nil {
 		return npmAPIError(c, fiber.StatusConflict, "package_exists", "npm package already exists")
+	}
+	if err := captcha.Require(c, state, config.CaptchaPackageCreate); err != nil {
+		return err
 	}
 	createdAt := time.Now().UnixMilli()
 	if repo.PublicationReviewPolicy() != config.PublicationReviewOff || reviewTeamPrefix != "" {

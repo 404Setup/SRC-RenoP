@@ -20,6 +20,8 @@ import (
 )
 
 func SetupSettingsRoutes(router fiber.Router, state *core.AppState) {
+	router.Get("/captcha", func(c fiber.Ctx) error { return getCaptchaSettings(c, state) })
+	router.Put("/captcha", func(c fiber.Ctx) error { return putCaptchaSettings(c, state) })
 	router.Get("/legal", func(c fiber.Ctx) error { return getLegalSettings(c, state) })
 	router.Put("/legal", func(c fiber.Ctx) error { return putLegalSettings(c, state) })
 	router.Get("/maven-domains", func(c fiber.Ctx) error { return getMavenDomainSettings(c, state) })

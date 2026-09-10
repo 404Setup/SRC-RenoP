@@ -418,6 +418,7 @@ type AppStateInner struct {
 	DownloadStatisticsCounter   DownloadStatisticsCounter
 	DownloadStatisticsCounterMu sync.Mutex
 	ExternalAuthStates          *TransientAuthStateStore
+	CaptchaApprovals            *TransientAuthStateStore
 
 	FileIndex              *index.FileIndex
 	IndexWatcher           *fsnotify.Watcher
@@ -455,6 +456,7 @@ func NewAppState() *AppState {
 			AuditLogChan:         make(chan *AuditLogEntry, 500),
 			MailWake:             make(chan struct{}, 1),
 			ExternalAuthStates:   NewTransientAuthStateStore(),
+			CaptchaApprovals:     NewTransientAuthStateStore(),
 		},
 	}
 }

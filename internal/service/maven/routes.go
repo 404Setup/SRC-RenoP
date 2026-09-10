@@ -26,6 +26,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
+	"renop/internal/service/captcha"
 	"renop/internal/service/repositorygate"
 	"renop/internal/service/storage"
 	"renop/internal/utils"
@@ -53,6 +54,7 @@ type domainClaimReviewRequest struct {
 }
 
 func wireStorageHooks() {
+	storage.MavenUploadChallenge = requireNewPackageCaptcha
 	storage.MavenMutationAuthorizer = func(state *core.AppState, user *config.User, repo *config.Repository, path string, requiredLevel int) error {
 		_, err := AuthorizeMutation(state, user, repo, path, requiredLevel)
 		return err
@@ -388,6 +390,9 @@ func createDomain(c fiber.Ctx, state *core.AppState) error {
 		!auth.CurrentCredentialHasScope(c, core.APITokenScopeDomainManage) {
 		c.Set("X-Renop-Required-Scope", core.APITokenScopeDomainCreate)
 		return c.Status(fiber.StatusForbidden).SendString("API token target is not permitted")
+	}
+	if err := captcha.Require(c, state, config.CaptchaDomainCreate); err != nil {
+		return err
 	}
 	verificationType, verificationHost, err := VerificationTarget(domain)
 	if err != nil {

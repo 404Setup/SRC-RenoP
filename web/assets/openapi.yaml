@@ -1295,6 +1295,28 @@ components:
           description: |
             `full` re-indexes every file in storage. `diff` indexes only files not already recorded.
 
+    CaptchaSettings:
+      type: object
+      properties:
+        provider:
+          type: string
+          enum: [ disabled, recaptcha_v2, recaptcha_invisible, recaptcha_v3, turnstile, hcaptcha, friendlycaptcha ]
+        site_key: { type: string, maxLength: 256 }
+        secret_key: { type: string, maxLength: 1024, writeOnly: true }
+        secret_configured: { type: boolean, readOnly: true }
+        clear_secret: { type: boolean, writeOnly: true }
+        min_score: { type: number, minimum: 0, maximum: 1, default: 0.5 }
+        friendly_region: { type: string, enum: [ global, eu ], default: global }
+        scopes:
+          type: object
+          properties:
+            password_login: { type: boolean, default: false }
+            registration: { type: boolean, default: false }
+            manual_mail: { type: boolean, default: false }
+            super_team_create: { type: boolean, default: false }
+            domain_create: { type: boolean, default: false }
+            package_create: { type: boolean, default: false }
+
     LegalConfig:
       type: object
       description: Administrator-authored UTF-8 Markdown, up to 512 KiB per document; empty fields restore placeholders.
@@ -6170,6 +6192,103 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorBody"
+
+  /api/captcha:
+    get:
+      tags: [ auth ]
+      summary: Read public CAPTCHA settings and establish the browser nonce
+      operationId: getCaptchaConfiguration
+      security: []
+      responses:
+        "200":
+          description: Public provider, site_key, scopes and friendly_region. Never includes a secret.
+          content:
+            application/json:
+              schema: { type: object }
+  /api/captcha/verify:
+    post:
+      tags: [ auth ]
+      summary: Verify a provider response and issue a one-time browser proof
+      operationId: verifyCaptcha
+      security: []
+      description: Requires the HttpOnly nonce cookie established by GET /api/captcha. The proof binds the browser cookies, selected scope, and current provider configuration for 120 seconds. Provider failures never bypass verification.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ scope, provider, site_key, response ]
+              properties:
+                scope: { type: string, enum: [ password_login, registration, manual_mail, super_team_create, domain_create, package_create ] }
+                provider: { type: string }
+                site_key: { type: string, maxLength: 256 }
+                response: { type: string, maxLength: 16384 }
+      responses:
+        "200":
+          description: Send proof in X-Renop-Captcha on the protected request with the same cookies.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  proof: { type: string }
+                  expires_in: { type: integer, example: 120 }
+        "400": { description: Invalid, expired, replayed or unbound verification. }
+        "409": { description: Provider configuration changed. }
+        "415": { description: JSON content type required. }
+        "503": { description: Provider unavailable or verification capacity exhausted. }
+  /api/captcha/widget:
+    get:
+      tags: [ auth ]
+      summary: Load the same-origin disposable browser widget frame
+      operationId: getCaptchaWidget
+      security: []
+      responses:
+        "200":
+          description: Isolated HTML document; provider scripts start only after the parent authorizes them.
+          content:
+            text/html:
+              schema: { type: string }
+  /api/settings/captcha:
+    get:
+      tags: [ settings ]
+      summary: Read CAPTCHA settings without the secret
+      operationId: getCaptchaSettings
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Requires settings administrator authority.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CaptchaSettings' }
+        "403": { $ref: '#/components/responses/PlainForbidden' }
+    put:
+      tags: [ settings ]
+      summary: Replace CAPTCHA provider and browser-action policy
+      operationId: putCaptchaSettings
+      description: Requires settings administrator authority. Blank secrets are preserved only for an unchanged provider and site key. Verified API tokens and protocol-password clients are exempt from interactive challenges.
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CaptchaSettings' }
+      responses:
+        "200":
+          description: Settings persisted and applied; secret omitted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CaptchaSettings' }
+        "400": { description: Invalid provider, credentials or policy. }
+        "403": { $ref: '#/components/responses/PlainForbidden' }
+        "413": { description: Body exceeds 16 KiB. }
+        "415": { description: JSON content type required. }
+        "500": { description: Settings could not be saved. }
 
   /api/legal:
     get:

@@ -177,6 +177,9 @@ func handleInit(c fiber.Ctx, state *core.AppState, mgr *Manager) error {
 		if err := authorizeStorageUpload(state, user, repo, sanitized); err != nil {
 			return storageUploadAuthorizationError(c, err)
 		}
+		if err := storage.RequireMavenUploadCaptcha(c, state, repo, sanitized); err != nil {
+			return err
+		}
 		isMaven := repo.NormalizedFormat() == config.RepositoryFormatMaven
 		if _, isSignature := gpg.ArtifactForDetachedSignature(filepath.ToSlash(localFilePath)); isMaven && isSignature && req.GetSize() > gpg.MaxDetachedSignatureSize {
 			return jsonErr(c, fiber.StatusRequestEntityTooLarge, "GPG detached signature exceeds the size limit")

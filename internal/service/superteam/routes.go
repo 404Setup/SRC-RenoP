@@ -26,6 +26,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
+	"renop/internal/service/captcha"
 )
 
 const (
@@ -289,6 +290,9 @@ func createTeam(c fiber.Ctx, state *core.AppState) error {
 	if !auth.CurrentCredentialHasScopeTarget(c, core.APITokenScopeTeamManage, "global/"+prefix) {
 		c.Set("X-Renop-Required-Scope", core.APITokenScopeTeamManage)
 		return apiError(c, core.ErrSuperTeamPermissionDenied)
+	}
+	if err := captcha.Require(c, state, config.CaptchaSuperTeamCreate); err != nil {
+		return err
 	}
 	limits := teamConfig(state)
 	if err := state.GetDB().CreateSuperTeam(team, user.Username, limits.CreateLimit, limits.JoinLimit); err != nil {

@@ -25,7 +25,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-var diagnosticCredentials = regexp.MustCompile(`(?i)((?:password|passwd|secret|client_secret|access_token|refresh_token|api_key|authorization|cookie|session_token|secret_access_key)["']?\s*[:=]\s*)(?:"[^"\r\n]*"|'[^'\r\n]*'|[^\s,;]+)`)
+var diagnosticCredentials = regexp.MustCompile(`(?i)((?:password|passwd|secret|secret_key|captcha|proof|client_secret|access_token|refresh_token|api_key|authorization|cookie|session_token|secret_access_key)["']?\s*[:=]\s*)(?:"[^"\r\n]*"|'[^'\r\n]*'|[^\s,;]+)`)
 var diagnosticBearer = regexp.MustCompile(`(?i)\b(Bearer|Basic|Session)\s+[A-Za-z0-9_+/:.=-]+`)
 var diagnosticURLCredentials = regexp.MustCompile(`([a-zA-Z][a-zA-Z0-9+.-]*://)[^\s/@]+@`)
 

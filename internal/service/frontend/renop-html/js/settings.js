@@ -26,6 +26,7 @@ import {
 import {exitProtectedRouteOnDenial} from './protected-route.js';
 import {logout} from './auth.js';
 import {restartApp} from './dashboard.js';
+import {renderCaptchaSettings} from './settings/captcha.js';
 import {renderLegalSettings} from './settings/legal.js';
 import {renderCacheSettings} from './settings/cache.js';
 import {renderRegistrationSettings} from './settings/registration.js';
@@ -62,6 +63,7 @@ const DOMAIN_MESSAGE_TYPES = {
 };
 
 const SETTINGS_PAGES = Object.freeze({
+    captcha: {label: 'captcha.title', render: renderCaptchaSettings},
     legal: {label: 'legal.title', render: renderLegalSettings},
     frontend: {label: 'settings.domainFrontend', render: renderFrontendSettings},
     server: {label: 'settings.domainServer', render: renderServerSettings},
@@ -1443,6 +1445,7 @@ export async function saveDomainSettings() {
         draft.initial = structuredClone(draft.config);
         if (domain === 'oauth_providers') window.dispatchEvent(new Event('oauthProvidersChanged'));
         if (domain === 'legal') window.dispatchEvent(new Event('legalSettingsChanged'));
+        if (domain === 'captcha') window.dispatchEvent(new Event('captchaSettingsChanged'));
         showAlert(t('settings.savedSuccess'), 'success');
     } catch (error) {
         if (generation === accountGeneration) showAlert(caughtErrorMessage(error, 'settings.saveFailed'), 'error');

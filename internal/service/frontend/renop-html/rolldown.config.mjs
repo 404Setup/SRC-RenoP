@@ -18,6 +18,7 @@ const outDir = join(root, 'dist');
 export default defineConfig({
     input: {
         main: join(root, 'js', 'main.js'),
+        'captcha-widget': join(root, 'js', 'captcha-widget.js'),
     },
     output: {
         dir: outDir,

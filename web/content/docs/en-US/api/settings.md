@@ -18,7 +18,7 @@ to the operation. Responses use protobuf where defined in `proto/api/v1/api.prot
 
 ## Settings pages in the browser
 
-The settings interface provides a separate page for each of the 15 advertised domains. Desktop navigation lists
+The settings interface provides a separate page for each of the 16 advertised domains. Desktop navigation lists
 the sections beside the form; smaller screens use a section selector. Previous and next controls follow the same
 ordered pages. Opening a page fetches its configuration only, rather than fetching every service configuration.
 
@@ -92,3 +92,5 @@ See [Maven domain health](maven.md).
 Settings navigation, provider editors, and dependent fields use cancellable transitions and respect reduced motion. Empty provider/account lists use the shared notice style. Closed dropdowns do not keep their option menus or document listeners alive; opening a dropdown creates them on demand.
 
 Embedded assets stream from the executable. RenoP caches their content type, length, and ETag without retaining another copy of every bundle and compression variant in the Go heap. Precompressed negotiation and conditional requests remain supported.
+
+[Security verification](../security/captcha.md)

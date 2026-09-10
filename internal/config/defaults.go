@@ -184,6 +184,7 @@ func DefaultAuditLogConfig() AuditLogConfig {
 
 func DefaultConfig() *Config {
 	return &Config{
+		Captcha:               DefaultCaptchaConfig(),
 		Legal:                 DefaultLegalConfig(),
 		StoragePath:           "storage",
 		EnableJavadocPreview:  true,

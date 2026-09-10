@@ -1,0 +1,28 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+.captcha-dialog {
+    box-sizing: border-box;
+    width: min(38rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 2rem);
+    overflow: auto;
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    background: var(--card-bg);
+    color: var(--text-color);
+    box-shadow: 0 1rem 3rem rgb(0 0 0 / 20%);
+}
+.captcha-dialog::backdrop { background: rgb(0 0 0 / 40%); }
+.captcha-dialog h2 { margin: 0 0 0.8rem; font-size: 1.15rem; }
+.captcha-dialog p { line-height: 1.5; }
+.captcha-frame { display: block; width: 100%; height: 110px; border: 0; transition: height 180ms ease; }
+.captcha-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.6rem; margin-top: 1rem; }
+@media (prefers-reduced-motion: reduce) { .captcha-frame { transition: none; } }

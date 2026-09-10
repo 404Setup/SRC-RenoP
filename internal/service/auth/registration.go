@@ -24,6 +24,7 @@ import (
 	"renop/internal/locale"
 	"renop/internal/mail"
 	"renop/internal/service/audit"
+	"renop/internal/service/captcha"
 	"renop/internal/service/legal"
 	"renop/internal/service/mailqueue"
 	"renop/internal/utils"
@@ -146,6 +147,9 @@ func requestRegistrationCode(c fiber.Ctx, state *core.AppState) error {
 	if err := legal.RequireConsent(c, state); err != nil {
 		return err
 	}
+	if err := captcha.Require(c, state, config.CaptchaManualMail, config.CaptchaRegistration); err != nil {
+		return err
+	}
 	var request struct {
 		Email    string `json:"email"`
 		Provider string `json:"provider"`
@@ -225,6 +229,9 @@ func postRegistration(c fiber.Ctx, state *core.AppState) error {
 		return registrationError(c, core.ErrRegistrationDisabled)
 	}
 	if err := legal.RequireConsent(c, state); err != nil {
+		return err
+	}
+	if err := captcha.Require(c, state, config.CaptchaRegistration); err != nil {
 		return err
 	}
 	var request struct {

@@ -193,3 +193,5 @@ System administrators can read deadlines with `GET /api/tokens/:name/retention`,
 Administrator `DELETE /api/tokens/:name` follows the same permanent closure requirements.
 
 [Legal documents and cookie choices](../configuration/legal.md)
+
+[Security verification](../security/captcha.md)

@@ -30,6 +30,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
+	"renop/internal/service/captcha"
 	"renop/internal/service/publicationquota"
 	"renop/internal/service/status"
 	"renop/internal/utils"
@@ -125,6 +126,11 @@ func (h Handler) publish(c fiber.Ctx, state *core.AppState, repo *config.Reposit
 		}
 		if !user.CheckUpdatePermission(repo.Name) {
 			return cargoError(c, core.ErrCargoPermissionDenied)
+		}
+		if !reserved {
+			if err := captcha.Require(c, state, config.CaptchaPackageCreate); err != nil {
+				return err
+			}
 		}
 	} else {
 		details, err := db.GetCargoPackageDetails(repo.Name, normalizedName, user.Username)

@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {captchaFetch, captchaHeaders} from './captcha.js';
 import {decodeProtoResponse, getAuthHeaders, PROTO_CONTENT_TYPE} from './api.js';
 import {ChunkedUploadCompleteResponse, ChunkedUploadInitRequest, ChunkedUploadInitResponse,} from './proto/index.js';
 
@@ -121,7 +122,7 @@ export async function uploadFileChunked(file, options = {}) {
 
     const initBody = ChunkedUploadInitRequest.encode(initPayload).finish();
 
-    const initResp = await fetch('/api/upload/chunked/', {
+    const initResp = await captchaFetch('/api/upload/chunked/', {
         method: 'POST',
         headers: {
             ...headers,
@@ -486,11 +487,11 @@ function putChunkWithProgress(uploadId, index, blob, headers, signal, onChunkPro
  * @param {(loaded: number, total: number) => void} [onProgress]
  * @returns {Promise<{ok: boolean, status: number, responseText: string, reviewID?: string}>}
  */
-export function uploadFileSinglePut(targetPath, file, headers, onProgress) {
-    return new Promise((resolve) => {
+export async function uploadFileSinglePut(targetPath, file, headers, onProgress) {
+    const send = requestHeaders => new Promise((resolve) => {
         const xhr = new XMLHttpRequest();
         xhr.open('PUT', targetPath, true);
-        for (const [key, value] of Object.entries(headers || {})) {
+        for (const [key, value] of Object.entries(requestHeaders || {})) {
             xhr.setRequestHeader(key, value);
         }
         xhr.upload.onprogress = (e) => {
@@ -503,6 +504,8 @@ export function uploadFileSinglePut(targetPath, file, headers, onProgress) {
                 ok: xhr.status >= 200 && xhr.status < 300,
                 status: xhr.status,
                 responseText: xhr.responseText || '',
+                errorCode: xhr.getResponseHeader('X-Renop-Error-Code') || '',
+                captchaScope: xhr.getResponseHeader('X-Renop-Captcha-Scope') || '',
                 reviewID: xhr.getResponseHeader('X-RenoP-Review-ID') || '',
             });
         };
@@ -511,6 +514,12 @@ export function uploadFileSinglePut(targetPath, file, headers, onProgress) {
         };
         xhr.send(file);
     });
+    let result = await send(headers);
+    const approval = await captchaHeaders({status: result.status, headers: new Headers({
+        'X-Renop-Error-Code': result.errorCode || '', 'X-Renop-Captcha-Scope': result.captchaScope || ''
+    })}, targetPath);
+    if (approval !== null) result = await send({...headers, ...approval});
+    return result;
 }
 
 /**
