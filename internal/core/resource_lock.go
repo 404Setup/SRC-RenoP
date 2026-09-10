@@ -40,17 +40,18 @@ type ResourceLockTarget struct {
 // ResourceLock exposes the public reason for an independently removable restriction.
 type ResourceLock struct {
 	ResourceLockTarget
-	Source    string `json:"source"`
-	Mode      string `json:"mode"`
-	Reason    string `json:"reason"`
-	LockedAt  int64  `json:"locked_at"`
-	Inherited bool   `json:"inherited,omitempty"`
+	Source     string `json:"source"`
+	Mode       string `json:"mode"`
+	Reason     string `json:"reason"`
+	ReasonText string `json:"reason_text,omitempty"`
+	LockedAt   int64  `json:"locked_at"`
+	Inherited  bool   `json:"inherited,omitempty"`
 }
 
 // ValidResourceLockReason accepts the public, localized moderation reasons.
 func ValidResourceLockReason(reason string) bool {
 	switch reason {
-	case "hold", "prohibited", "expired", "trojan", "abuse", "dmca", "reup", "squatting", "quality":
+	case "hold", "prohibited", "expired", "trojan", "abuse", "dmca", "reup", "squatting", "quality", "custom":
 		return true
 	default:
 		return false

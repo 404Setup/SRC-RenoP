@@ -14,13 +14,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"io"
 	"io/fs"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 	syncv2 "sync/v2"
-	"time"
 
 	"github.com/gofiber/fiber/v3"
 
@@ -34,26 +34,22 @@ var (
 	embeddedRemoteCache *cache.Remote
 )
 
-// UseRemoteCache selects storage for cached embedded asset payloads before requests begin.
+// UseRemoteCache configures rendered HTML caching before requests begin; static assets stay in embed.FS.
 func UseRemoteCache(remote *cache.Remote) {
 	indexHTMLCache = core.NewFileByteCache(1 << 20)
 	indexHTMLCache.UseRemote(remote)
-	embeddedFileCache.Range(func(key string, file *embeddedFile) bool {
-		embeddedFileCache.Delete(key)
-		file.blob.Delete()
-		return true
-	})
+	embeddedFileCache.Clear()
 	embeddedRemoteCache = remote
 }
 
 const frontendAssetCacheControl = "no-cache, must-revalidate, max-age=0"
 
 type embeddedFile struct {
-	data            []byte
+	assetPath       string
+	size            int
 	etag            string
 	contentType     string
 	contentEncoding string
-	blob            *cache.Blob
 }
 
 type embeddedAssetEncoding struct {
@@ -69,49 +65,29 @@ var embeddedAssetEncodings = [...]embeddedAssetEncoding{
 	{name: "deflate", suffix: ".deflate"},
 }
 
-// cacheEmbeddedFile stores an embed payload under its public URL path so later
-// ServeEmbeddedFile hits avoid a second embed.FS.ReadFile of large bundles.
-func cacheEmbeddedFile(publicPath string, data []byte) *embeddedFile {
-	return cacheEmbeddedRepresentation(publicPath, publicPath, data, "")
-}
-
-func cacheEmbeddedRepresentation(cacheKey, publicPath string, data []byte, encoding string) *embeddedFile {
-	hasher := sha256.New()
-	_, _ = hasher.Write(data)
-	candidate := &embeddedFile{
-		data:            data,
-		etag:            `W/"` + hex.EncodeToString(hasher.Sum(nil))[:16] + `"`,
-		contentType:     utils.ContentTypeByExt(filepath.Ext(publicPath)),
-		contentEncoding: encoding,
+// loadEmbeddedFile caches only immutable metadata; payload bytes are streamed from the executable.
+func loadEmbeddedFile(cacheKey, publicPath, encoding string) (*embeddedFile, error) {
+	if cached, ok := embeddedFileCache.Load(cacheKey); ok {
+		return cached, nil
 	}
-	if embeddedRemoteCache != nil {
-		blob, err := embeddedRemoteCache.Put(data, time.Hour)
-		if err != nil {
-			return candidate
-		}
-		stored := *candidate
-		stored.data, stored.blob = nil, blob
-		if previous, loaded := embeddedFileCache.Swap(cacheKey, &stored); loaded {
-			previous.blob.Delete()
-		}
-		return candidate
+	assetPath := resolveAssetPath(cacheKey)
+	reader, err := Asset.Open(assetPath)
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+	hasher := sha256.New()
+	size, err := io.Copy(hasher, reader)
+	if err != nil {
+		return nil, err
+	}
+	candidate := &embeddedFile{
+		assetPath: assetPath, size: int(size),
+		etag:        `W/"` + hex.EncodeToString(hasher.Sum(nil))[:16] + `"`,
+		contentType: utils.ContentTypeByExt(filepath.Ext(publicPath)), contentEncoding: encoding,
 	}
 	actual, _ := embeddedFileCache.LoadOrStore(cacheKey, candidate)
-	return actual
-}
-
-func loadCachedEmbeddedFile(key string) (*embeddedFile, bool) {
-	file, ok := embeddedFileCache.Load(key)
-	if !ok || embeddedRemoteCache == nil {
-		return file, ok
-	}
-	data, err := file.blob.Read()
-	if err != nil {
-		return nil, false
-	}
-	loaded := *file
-	loaded.data = data
-	return &loaded, true
+	return actual, nil
 }
 
 func isPrecompressedAssetPath(path string) bool {
@@ -180,26 +156,11 @@ func preferredAssetEncodings(header string) ([]embeddedAssetEncoding, bool) {
 }
 
 func loadEmbeddedRepresentation(path string, encoding embeddedAssetEncoding) (*embeddedFile, error) {
-	cacheKey := path + encoding.suffix
-	if cached, ok := loadCachedEmbeddedFile(cacheKey); ok {
-		return cached, nil
-	}
-	data, err := readAsset(cacheKey)
-	if err != nil {
-		return nil, err
-	}
-	return cacheEmbeddedRepresentation(cacheKey, path, data, encoding.name), nil
+	return loadEmbeddedFile(path+encoding.suffix, path, encoding.name)
 }
 
 func loadEmbeddedIdentity(path string) (*embeddedFile, error) {
-	if cached, ok := loadCachedEmbeddedFile(path); ok {
-		return cached, nil
-	}
-	data, err := readAsset(path)
-	if err != nil {
-		return nil, err
-	}
-	return cacheEmbeddedFile(path, data), nil
+	return loadEmbeddedFile(path, path, "")
 }
 
 func ServeEmbeddedFile(c fiber.Ctx, path string) error {
@@ -255,5 +216,13 @@ func ServeEmbeddedFile(c fiber.Ctx, path string) error {
 		return c.SendStatus(fiber.StatusNotModified)
 	}
 
-	return c.Send(file.data)
+	c.Response().Header.SetContentLength(file.size)
+	if c.Method() == fiber.MethodHead {
+		return nil
+	}
+	reader, err := Asset.Open(file.assetPath)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to read asset")
+	}
+	return c.SendStream(reader, file.size)
 }

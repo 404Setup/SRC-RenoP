@@ -155,3 +155,7 @@
     color: var(--link-hover-color);
     flex-shrink: 0;
 }
+
+@media (prefers-reduced-motion: reduce) {
+    .custom-select-dropdown { animation: none; }
+}

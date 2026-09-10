@@ -114,6 +114,18 @@ func TestEmbeddedAssetsNegotiatePrecompressedRepresentations(t *testing.T) {
 				t.Fatal("asset response is missing an ETag")
 			}
 			etags[test.encoding] = etag
+			head := httptest.NewRequest(http.MethodHead, "/js/main.js", nil)
+			head.Header.Set(fiber.HeaderAcceptEncoding, test.header)
+			headResponse, err := app.Test(head)
+			if err != nil {
+				t.Fatal(err)
+			}
+			headBody, err := io.ReadAll(headResponse.Body)
+			_ = headResponse.Body.Close()
+			if err != nil || len(headBody) != 0 || headResponse.ContentLength != int64(len(body)) ||
+				headResponse.Header.Get(fiber.HeaderETag) != etag {
+				t.Fatalf("HEAD metadata/body mismatch: length=%d body=%d err=%v", headResponse.ContentLength, len(headBody), err)
+			}
 			if test.encoding != "" && len(body) >= len(want) {
 				t.Fatalf("%s representation did not reduce the response size", test.encoding)
 			}
@@ -159,5 +171,15 @@ func TestEmbeddedAssetNegotiationRejectsUnacceptableAndSidecarPaths(t *testing.T
 	_ = response.Body.Close()
 	if response.StatusCode != http.StatusNotFound {
 		t.Fatalf("direct sidecar status = %d", response.StatusCode)
+	}
+}
+
+func BenchmarkEmbeddedAssetLoad(b *testing.B) {
+	b.ReportAllocs()
+	for b.Loop() {
+		embeddedFileCache.Delete("js/main.js")
+		if _, err := loadEmbeddedIdentity("js/main.js"); err != nil {
+			b.Fatal(err)
+		}
 	}
 }

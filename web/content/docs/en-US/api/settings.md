@@ -88,3 +88,7 @@ locks without changing existing release dates or the separate 31-day voluntary c
 See [Maven domain health](maven.md).
 
 [Legal documents and cookie choices](../configuration/legal.md)
+
+Settings navigation, provider editors, and dependent fields use cancellable transitions and respect reduced motion. Empty provider/account lists use the shared notice style. Closed dropdowns do not keep their option menus or document listeners alive; opening a dropdown creates them on demand.
+
+Embedded assets stream from the executable. RenoP caches their content type, length, and ETag without retaining another copy of every bundle and compression variant in the Go heap. Precompressed negotiation and conditional requests remain supported.

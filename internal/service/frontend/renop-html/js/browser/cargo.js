@@ -61,10 +61,11 @@ function cargoResourceLockButton(packageRecord, version = null) {
     const repository = activeRepository;
     return createResourceLockButton({
         locks: version?.locks || packageRecord.locks || [],
+        inheritedLocks: version ? packageRecord.locks || [] : [],
         name: version ? `${packageRecord.name} ${version.version}` : packageRecord.name,
-        request: (mode, reason) => apiRequest(endpoint, {
+        request: (mode, reason, reasonText) => apiRequest(endpoint, {
             method: mode ? 'PUT' : 'DELETE', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({version: version?.version || '', mode, reason})
+            body: JSON.stringify({version: version?.version || '', mode, reason, reason_text: reasonText})
         }),
         onSuccess: () => {
             if (activeRepository === repository && activePackageDetails?.package?.name === packageRecord.name) {

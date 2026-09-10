@@ -19,6 +19,49 @@ func mavenLockTarget(repository, group, artifact, version string) core.ResourceL
 	return core.ResourceLockTarget{Format: "maven", Repository: repository, Name: group + ":" + artifact, Version: version}
 }
 
+// attachMavenArtifactLocks adds public package restrictions to an already filtered catalog page.
+func (db *DB) attachMavenArtifactLocks(artifacts []*core.MavenArtifact) error {
+	if len(artifacts) == 0 {
+		return nil
+	}
+	conditions := make([]string, len(artifacts))
+	args := make([]any, 0, len(artifacts)*2)
+	byTarget := make(map[string]*core.MavenArtifact, len(artifacts))
+	for i, artifact := range artifacts {
+		name := core.ResourceLockVersionKey("maven", artifact.GroupID+":"+artifact.ArtifactID)
+		conditions[i] = `(repository = ? AND resource_name = ?)`
+		args = append(args, artifact.Repository, name)
+		byTarget[artifact.Repository+"\x00"+name] = artifact
+	}
+	where := `format = 'maven' AND (` + strings.Join(conditions, " OR ") + `)`
+	locks := resourceLocksQuery("maven")
+	rows, err := db.Query(`SELECT repository, resource_name, source, mode, reason, reason_text, locked_at, inherited
+		FROM `+locks+` l WHERE `+where+` AND version = ''
+		UNION ALL SELECT DISTINCT repository, resource_name, '', '', '', '', 0, 0
+		FROM `+locks+` l WHERE `+where+` AND version != ''`, append(args, args...)...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "maven"}}
+		var inherited int
+		if err := rows.Scan(&lock.Repository, &lock.Name, &lock.Source, &lock.Mode, &lock.Reason,
+			&lock.ReasonText, &lock.LockedAt, &inherited); err != nil {
+			return err
+		}
+		lock.Inherited = inherited != 0
+		artifact := byTarget[lock.Repository+"\x00"+lock.Name]
+		// Version summaries expose no version names or private lock reasons.
+		if lock.Source == "" {
+			artifact.VersionLocked = true
+			continue
+		}
+		artifact.Locks = append(artifact.Locks, lock)
+	}
+	return rows.Err()
+}
+
 func lockMavenArtifactTargetTx(tx *Tx, target core.ResourceLockTarget) error {
 	var err error
 	target, err = normalizeResourceLockTarget(target)
@@ -261,7 +304,7 @@ func (db *DB) GetMavenPathLocks(repository, path string, descendants bool) ([]*c
 	if len(conditions) == 0 {
 		return locks, nil
 	}
-	rows, err := db.Query(`SELECT resource_name, version, source, mode, reason, locked_at, inherited FROM `+resourceLocksQuery("maven")+` l
+	rows, err := db.Query(`SELECT resource_name, version, source, mode, reason, reason_text, locked_at, inherited FROM `+resourceLocksQuery("maven")+` l
 		WHERE format = 'maven' AND repository = ? AND (`+strings.Join(conditions, " OR ")+`) LIMIT 8193`, args...)
 	if err != nil {
 		return nil, err
@@ -270,7 +313,7 @@ func (db *DB) GetMavenPathLocks(repository, path string, descendants bool) ([]*c
 	for rows.Next() {
 		lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "maven", Repository: strings.ToLower(repository)}}
 		var inherited int
-		if err := rows.Scan(&lock.Name, &lock.Version, &lock.Source, &lock.Mode, &lock.Reason, &lock.LockedAt, &inherited); err != nil {
+		if err := rows.Scan(&lock.Name, &lock.Version, &lock.Source, &lock.Mode, &lock.Reason, &lock.ReasonText, &lock.LockedAt, &inherited); err != nil {
 			return nil, err
 		}
 		lock.Inherited = inherited != 0

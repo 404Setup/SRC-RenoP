@@ -13,7 +13,7 @@ export default Object.freeze({
     "resourceLock.manage": "管理鎖定",
     "resourceLock.mode": "鎖定類型",
     "resourceLock.reason": "公開原因",
-    "resourceLock.none": "冇人手鎖定",
+    "resourceLock.none": "未鎖定",
     "resourceLock.write": "禁止寫入",
     "resourceLock.read": "禁止讀取",
     "resourceLock.explanation": "禁止寫入會凍結修改。禁止讀取亦會令中繼資料只限工作人員同協作者睇到，所有人都唔可以下載檔案。",

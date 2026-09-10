@@ -24,7 +24,7 @@ func initResourceLockTable(db *sql.DB) error {
 		package_id VARCHAR(64) NOT NULL, format VARCHAR(16) NOT NULL,
 		repository VARCHAR(255) NOT NULL, resource_name TEXT NOT NULL,
 		version VARCHAR(255) NOT NULL, mode VARCHAR(16) NOT NULL,
-		reason VARCHAR(32) NOT NULL, locked_at BIGINT NOT NULL,
+		reason VARCHAR(32) NOT NULL, reason_text VARCHAR(1024) NOT NULL DEFAULT '', locked_at BIGINT NOT NULL,
 		PRIMARY KEY (id, source)
 	);`)
 	if err != nil {
@@ -39,11 +39,11 @@ func initResourceLockTable(db *sql.DB) error {
 
 // Parent restrictions follow live bindings; Docker indexes also retain captured content references.
 func resourceLocksQuery(format string) string {
-	const columns = `id, source, package_id, format, repository, resource_name, version, mode, reason, locked_at`
+	const columns = `id, source, package_id, format, repository, resource_name, version, mode, reason, reason_text, locked_at`
 	query := `SELECT ` + columns + `, 0 AS inherited FROM resource_locks`
 	if format == "docker" {
 		query += ` UNION ALL SELECT l.id, l.source, l.package_id, l.format, l.repository, l.resource_name,
-			v.version, l.mode, l.reason, l.locked_at, 1 AS inherited
+			v.version, l.mode, l.reason, l.reason_text, l.locked_at, 1 AS inherited
 			FROM resource_locks l JOIN resource_lock_versions v ON v.lock_id = l.id AND v.source = l.source`
 	}
 	table, name := "", ""
@@ -66,22 +66,22 @@ func resourceLocksQuery(format string) string {
 	}
 	if table != "" {
 		query += ` UNION ALL SELECT l.id, l.source, '', '` + format + `', p.repository, ` + name + `,
-			'', l.mode, l.reason, l.locked_at, 1 FROM ` + table + ` p` + join + `
+			'', l.mode, l.reason, l.reason_text, l.locked_at, 1 FROM ` + table + ` p` + join + `
 			JOIN resource_locks l ON l.format = 'superteam' AND l.repository = '' AND ` + binding
 	}
 	if format == "maven" {
 		query += ` UNION ALL SELECT l.id, l.source, '', 'maven', p.repository, ` + name + `,
-			'', l.mode, l.reason, l.locked_at, 1 FROM maven_artifacts p JOIN resource_locks l
+			'', l.mode, l.reason, l.reason_text, l.locked_at, 1 FROM maven_artifacts p JOIN resource_locks l
 			ON l.format = 'maven-domain' AND l.repository = '' AND l.resource_name = p.domain`
 		query += ` UNION ALL SELECT 'maven-domain-health', 'system', '', 'maven', p.repository, ` + name + `,
-			'', 'write', d.health_lock_reason, d.health_locked_at, 1 FROM maven_artifacts p
+			'', 'write', d.health_lock_reason, '', d.health_locked_at, 1 FROM maven_artifacts p
 			JOIN maven_domains d ON d.repository = '' AND d.domain = p.domain WHERE d.health_locked_at > 0`
 		query += ` UNION ALL SELECT 'maven-reclaim', 'system', '', 'maven', p.repository, ` + name + `,
-			'', 'write', 'prohibited', p.reclaim_hold_at, 0 FROM maven_artifacts p WHERE p.reclaim_hold_at > 0`
+			'', 'write', 'prohibited', '', p.reclaim_hold_at, 0 FROM maven_artifacts p WHERE p.reclaim_hold_at > 0`
 	}
 	if format == "maven-domain" {
 		query += ` UNION ALL SELECT 'maven-domain-health', 'system', '', 'maven-domain', '', p.domain,
-			'', 'write', p.health_lock_reason, p.health_locked_at, 0 FROM maven_domains p
+			'', 'write', p.health_lock_reason, '', p.health_locked_at, 0 FROM maven_domains p
 			WHERE p.repository = '' AND p.health_locked_at > 0`
 	}
 	return `(` + query + `)`
@@ -144,6 +144,10 @@ func (db *DB) SetResourceLock(lock *core.ResourceLock, actor, session string) er
 		(lock.Source != core.ResourceLockManual && lock.Source != core.ResourceLockSystem) {
 		return core.ErrResourceLockInvalid
 	}
+	reasonText, validReasonText := core.NormalizeSuperTeamText(lock.ReasonText, 256, lock.Reason != "custom")
+	if !validReasonText || lock.Reason != "custom" && reasonText != "" {
+		return core.ErrResourceLockInvalid
+	}
 	target, err := normalizeResourceLockTarget(lock.ResourceLockTarget)
 	if err != nil {
 		return err
@@ -183,10 +187,10 @@ func (db *DB) SetResourceLock(lock *core.ResourceLock, actor, session string) er
 		return err
 	}
 	if _, err := tx.Exec(`INSERT INTO resource_locks
-		(id, source, package_id, format, repository, resource_name, version, mode, reason, locked_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, id, lock.Source,
+		(id, source, package_id, format, repository, resource_name, version, mode, reason, reason_text, locked_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, id, lock.Source,
 		packageDeprecationID(target.Format, target.Repository, target.Name), target.Format,
-		target.Repository, target.Name, target.Version, lock.Mode, lock.Reason, lock.LockedAt); err != nil {
+		target.Repository, target.Name, target.Version, lock.Mode, lock.Reason, reasonText, lock.LockedAt); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -268,7 +272,7 @@ func (db *DB) GetResourceLocks(target core.ResourceLockTarget, allVersions bool)
 	if err != nil {
 		return nil, err
 	}
-	query := `SELECT format, repository, resource_name, version, source, mode, reason, locked_at, inherited
+	query := `SELECT format, repository, resource_name, version, source, mode, reason, reason_text, locked_at, inherited
 		FROM ` + resourceLocksQuery(target.Format) + ` l WHERE format = ? AND repository = ? AND resource_name = ?`
 	args := []any{target.Format, target.Repository, target.Name}
 	if !allVersions {
@@ -285,7 +289,7 @@ func (db *DB) GetResourceLocks(target core.ResourceLockTarget, allVersions bool)
 		lock := &core.ResourceLock{}
 		var inherited int
 		if err := rows.Scan(&lock.Format, &lock.Repository, &lock.Name, &lock.Version,
-			&lock.Source, &lock.Mode, &lock.Reason, &lock.LockedAt, &inherited); err != nil {
+			&lock.Source, &lock.Mode, &lock.Reason, &lock.ReasonText, &lock.LockedAt, &inherited); err != nil {
 			return nil, err
 		}
 		lock.Inherited = inherited != 0

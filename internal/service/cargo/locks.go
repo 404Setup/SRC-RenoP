@@ -167,9 +167,10 @@ func (h Handler) setResourceLock(c fiber.Ctx, state *core.AppState, repo *config
 		return cargoError(c, core.ErrCargoPermissionDenied)
 	}
 	var request struct {
-		Version string `json:"version"`
-		Mode    string `json:"mode"`
-		Reason  string `json:"reason"`
+		Version    string `json:"version"`
+		Mode       string `json:"mode"`
+		Reason     string `json:"reason"`
+		ReasonText string `json:"reason_text"`
 	}
 	if decodeJSON(c, &request) != nil || validateCrateName(name) != nil ||
 		(request.Version != "" && validatePackage(name, request.Version) != nil) {
@@ -189,7 +190,7 @@ func (h Handler) setResourceLock(c fiber.Ctx, state *core.AppState, repo *config
 		err = state.GetDB().DeleteResourceLock(target, core.ResourceLockManual, user.Username, session)
 	} else {
 		err = state.GetDB().SetResourceLock(&core.ResourceLock{ResourceLockTarget: target,
-			Source: core.ResourceLockManual, Mode: request.Mode, Reason: request.Reason, LockedAt: time.Now().UnixMilli()}, user.Username, session)
+			Source: core.ResourceLockManual, Mode: request.Mode, Reason: request.Reason, ReasonText: request.ReasonText, LockedAt: time.Now().UnixMilli()}, user.Username, session)
 	}
 	if err != nil {
 		return cargoError(c, err)

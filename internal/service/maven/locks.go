@@ -301,9 +301,10 @@ func setResourceLockAPI(c fiber.Ctx, state *core.AppState) error {
 	}
 	group, artifact := c.Query("group"), c.Query("artifact")
 	var request struct {
-		Version string `json:"version"`
-		Mode    string `json:"mode"`
-		Reason  string `json:"reason"`
+		Version    string `json:"version"`
+		Mode       string `json:"mode"`
+		Reason     string `json:"reason"`
+		ReasonText string `json:"reason_text"`
 	}
 	if utils.ReadJSONLimited(c, &request, 4096) != nil || group == "" || artifact == "" {
 		return apiError(c, core.ErrResourceLockInvalid)
@@ -330,7 +331,7 @@ func setResourceLockAPI(c fiber.Ctx, state *core.AppState) error {
 		err = state.GetDB().DeleteResourceLock(target, core.ResourceLockManual, user.Username, session)
 	} else {
 		err = state.GetDB().SetResourceLock(&core.ResourceLock{ResourceLockTarget: target, Source: core.ResourceLockManual,
-			Mode: request.Mode, Reason: request.Reason, LockedAt: time.Now().UnixMilli()}, user.Username, session)
+			Mode: request.Mode, Reason: request.Reason, ReasonText: request.ReasonText, LockedAt: time.Now().UnixMilli()}, user.Username, session)
 	}
 	if err != nil {
 		return apiError(c, err)
@@ -351,8 +352,9 @@ func setDomainLock(c fiber.Ctx, state *core.AppState) error {
 		return apiError(c, core.ErrResourceLockInvalid)
 	}
 	var request struct {
-		Mode   string `json:"mode"`
-		Reason string `json:"reason"`
+		Mode       string `json:"mode"`
+		Reason     string `json:"reason"`
+		ReasonText string `json:"reason_text"`
 	}
 	if utils.ReadJSONLimited(c, &request, 4096) != nil {
 		return apiError(c, core.ErrResourceLockInvalid)
@@ -366,7 +368,7 @@ func setDomainLock(c fiber.Ctx, state *core.AppState) error {
 		err = state.GetDB().DeleteResourceLock(target, core.ResourceLockManual, user.Username, session)
 	} else {
 		err = state.GetDB().SetResourceLock(&core.ResourceLock{ResourceLockTarget: target,
-			Source: core.ResourceLockManual, Mode: request.Mode, Reason: request.Reason,
+			Source: core.ResourceLockManual, Mode: request.Mode, Reason: request.Reason, ReasonText: request.ReasonText,
 			LockedAt: time.Now().UnixMilli()}, user.Username, session)
 	}
 	if err != nil {

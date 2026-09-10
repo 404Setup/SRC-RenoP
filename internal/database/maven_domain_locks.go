@@ -29,7 +29,7 @@ func (db *DB) attachMavenDomainLocks(domains []*core.MavenDomain) error {
 			byName[domain.Domain] = domain
 			args = append(args, domain.Domain)
 		}
-		rows, err := db.Query(`SELECT resource_name, source, mode, reason, locked_at, inherited FROM `+
+		rows, err := db.Query(`SELECT resource_name, source, mode, reason, reason_text, locked_at, inherited FROM `+
 			resourceLocksQuery("maven-domain")+` WHERE format = 'maven-domain' AND resource_name IN (`+
 			strings.TrimSuffix(strings.Repeat("?,", len(batch)), ",")+`) ORDER BY resource_name, source`, args...)
 		if err != nil {
@@ -38,7 +38,7 @@ func (db *DB) attachMavenDomainLocks(domains []*core.MavenDomain) error {
 		for rows.Next() {
 			lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "maven-domain"}}
 			var inherited int
-			if err := rows.Scan(&lock.Name, &lock.Source, &lock.Mode, &lock.Reason, &lock.LockedAt, &inherited); err != nil {
+			if err := rows.Scan(&lock.Name, &lock.Source, &lock.Mode, &lock.Reason, &lock.ReasonText, &lock.LockedAt, &inherited); err != nil {
 				_ = rows.Close()
 				return err
 			}
@@ -158,7 +158,7 @@ func (db *DB) mavenPathDomainLocks(path string, descendants bool) ([]*core.Resou
 			args = append(args, name, name)
 		}
 	}
-	rows, err := db.Query(`SELECT resource_name, source, mode, reason, locked_at, inherited
+	rows, err := db.Query(`SELECT resource_name, source, mode, reason, reason_text, locked_at, inherited
 		FROM `+resourceLocksQuery("maven-domain")+` l WHERE format = 'maven-domain' AND (`+where+`)
 		AND NOT EXISTS (SELECT 1 FROM maven_domains specific WHERE specific.repository = '' AND specific.verified = 1
 			AND LENGTH(specific.domain) > LENGTH(l.resource_name)
@@ -172,7 +172,7 @@ func (db *DB) mavenPathDomainLocks(path string, descendants bool) ([]*core.Resou
 	for rows.Next() {
 		lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "maven-domain"}}
 		var inherited int
-		if err := rows.Scan(&lock.Name, &lock.Source, &lock.Mode, &lock.Reason, &lock.LockedAt, &inherited); err != nil {
+		if err := rows.Scan(&lock.Name, &lock.Source, &lock.Mode, &lock.Reason, &lock.ReasonText, &lock.LockedAt, &inherited); err != nil {
 			return nil, err
 		}
 		lock.Inherited = inherited != 0

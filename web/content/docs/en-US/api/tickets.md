@@ -191,3 +191,5 @@ Approval atomically rechecks the domain claim, live ownership, and independent l
 and the current domain-team binding. A changed claim cancels the stale request. Rejection or cancellation preserves
 the artifact's restriction and downloads. Pending requests are limited to 64 per account and 4096 overall.
 These tasks have no downloadable review bundle.
+
+The report composer offers editable subjects for spam, abuse, malware, copyright, impersonation, and other concerns. Own-profile report actions remain hidden, and the server independently rejects self-reports using immutable account IDs. Ticket category and scope selectors use the same labeled controls as settings.

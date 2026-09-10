@@ -18,20 +18,20 @@ mail:
   public_url: https://packages.example.com
   site_name: RenoP
   template_style: card
-  delay: { value: 5, unit: second }
-  manual_rate: { limit: 1, interval: { value: 2, unit: minute } }
-  account_rate: { limit: 50, interval: { value: 1, unit: minute } }
-  calibration: { value: 5, unit: minute }
+  delay: {value: 5, unit: second}
+  manual_rate: {limit: 1, interval: {value: 2, unit: minute}}
+  account_rate: {limit: 50, interval: {value: 1, unit: minute}}
+  calibration: {value: 5, unit: minute}
   list_mode: blacklist
   use_disposable_blacklist: false
-  addresses: [ ]
+  addresses: []
   accounts:
     - id: primary
       name: Main mailbox
       enabled: true
       provider: smtp
       preset: smtp-custom
-      scenes: [ "*" ]
+      scenes: ["*"]
       from: noreply@example.com
       from_name: RenoP
       smtp_host: smtp.example.com
@@ -39,16 +39,16 @@ mail:
       smtp_security: starttls
       username: noreply@example.com
       password: ""
-      quota: { limit: 0, period: month }
+      quota: {limit: 0, period: month}
       force_send: false
-      overage: { limit: -1, period: month }
+      overage: {limit: -1, period: month}
       balance_micros: null
       fetch_balance: false
       pricing:
         currency: USD
         rounding: proportional
         tiers:
-          - { up_to: 0, amount_micros: 100000, batch_size: 1000 }
+          - {up_to: 0, amount_micros: 100000, batch_size: 1000}
 ```
 
 仅启用一个账号时，所有场景均使用该账号。启用多个账号时，明确分配的场景优先于唯一的 `*` 默认账号。

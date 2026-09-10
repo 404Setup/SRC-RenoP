@@ -15,6 +15,8 @@ import {openTicketComposer} from './tickets.js';
 export function createTicketReportButton(target, unavailable = false) {
     return el('button', {
         type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm', hidden: unavailable || !cachedIsLoggedIn,
-        onclick: event => runButtonAction(event.currentTarget, () => openTicketComposer(target))
+        onclick: event => {
+            if (!unavailable && cachedIsLoggedIn) return runButtonAction(event.currentTarget, () => openTicketComposer(target));
+        }
     }, t(target.version ? 'ticket.reportVersion' : 'ticket.report'));
 }

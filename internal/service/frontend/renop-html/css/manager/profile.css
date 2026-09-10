@@ -188,6 +188,10 @@
 }
 
 .profile-public-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem;
     grid-column: 2;
     grid-row: 1;
     align-self: start;

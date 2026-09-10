@@ -182,3 +182,15 @@ Mirrored and permanently deprecated artifacts cannot be restored. See [Review AP
 Claim preparation streams disk or S3 metadata with a one-minute deadline. A storage error or timeout leaves the current
 claim unchanged.
 Pending publications remain in their existing review workflow and are excluded from public catalog import.
+
+Package pages provide a Manage domain team action for administrators and L3/L4 collaborators. It opens the existing publishing-domain team page; membership changes apply to every package under that domain, including imported legacy packages. Long coordinates wrap separately from the action buttons. Artifact and latest-POM information use the full content width; dependency formats support animated switching and keyboard navigation.
+
+The lock dialog provides a direct Remove manual lock action for a lock on the selected resource. Inherited restrictions must be changed at the publishing domain or global team; system security locks retain their existing redemption and restoration workflows.
+
+Maven catalog and detail responses include package lock state, including inherited restrictions. The interface shows a lock badge and an explicit Unlock action for the selected resource’s manual lock. Unlocked means removing that manual lock; it does not remove parent or system restrictions.
+
+Every lock API also accepts `reason: custom` with non-empty `reason_text` of up to 256 characters. Text is visible to authorized resource viewers, is rendered as plain text, and cannot contain control characters. Omit `reason_text` for predefined reasons.
+
+```json
+{"mode":"write","reason":"custom","reason_text":"Awaiting source verification"}
+```

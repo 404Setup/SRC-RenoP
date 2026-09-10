@@ -137,9 +137,10 @@ func setResourceLockAPI(c fiber.Ctx, state *core.AppState) error {
 		return npmManagementError(c, core.ErrResourceLockPermission)
 	}
 	var request struct {
-		Version string `json:"version"`
-		Mode    string `json:"mode"`
-		Reason  string `json:"reason"`
+		Version    string `json:"version"`
+		Mode       string `json:"mode"`
+		Reason     string `json:"reason"`
+		ReasonText string `json:"reason_text"`
 	}
 	if utils.ReadJSONLimited(c, &request, 4096) != nil || request.Version != "" && (!validNPMVersion(request.Version) || strings.TrimSpace(request.Version) != request.Version) {
 		return npmManagementError(c, core.ErrResourceLockInvalid)
@@ -169,7 +170,7 @@ func setResourceLockAPI(c fiber.Ctx, state *core.AppState) error {
 		err = state.GetDB().DeleteResourceLock(target, core.ResourceLockManual, user.Username, session)
 	} else {
 		err = state.GetDB().SetResourceLock(&core.ResourceLock{ResourceLockTarget: target, Source: core.ResourceLockManual,
-			Mode: request.Mode, Reason: request.Reason, LockedAt: time.Now().UnixMilli()}, user.Username, session)
+			Mode: request.Mode, Reason: request.Reason, ReasonText: request.ReasonText, LockedAt: time.Now().UnixMilli()}, user.Username, session)
 	}
 	if err != nil {
 		return npmManagementError(c, err)

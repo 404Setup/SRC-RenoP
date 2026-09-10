@@ -65,6 +65,7 @@ test('shared select supports keyboard selection, Escape, and focus restoration',
             await evaluate('selectUnderTest.focus()');
         }
         const original = await evaluate('selectUnderTest.textContent.trim()');
+        assert.equal(await evaluate('document.getElementById(selectUnderTest.getAttribute("aria-controls"))'), null);
         await key('ArrowDown');
         assert.equal(await evaluate('document.activeElement.getAttribute("role")'), 'option');
         await key('ArrowDown');
@@ -76,6 +77,10 @@ test('shared select supports keyboard selection, Escape, and focus restoration',
         await key('Escape');
         assert.equal(await evaluate('selectUnderTest.getAttribute("aria-expanded")'), 'false');
         assert.equal(await evaluate('document.activeElement === selectUnderTest'), true);
+        assert.equal(await evaluate('document.getElementById(selectUnderTest.getAttribute("aria-controls"))'), null);
+        await evaluate('window.selectWrap = selectUnderTest.closest(".custom-select-wrapper"); window.selectParent = selectWrap.parentNode; window.selectNext = selectWrap.nextSibling; selectWrap.remove()');
+        await new Promise(resolve => setTimeout(resolve, 200));
+        await evaluate('selectParent.insertBefore(selectWrap, selectNext); selectUnderTest.focus()');
         await key('ArrowDown');
         await evaluate('Array.from(document.getElementById(selectUnderTest.getAttribute("aria-controls")).children).find(item => item.textContent.trim() === ' + JSON.stringify(original) + ').click()');
         assert.equal(await evaluate('selectUnderTest.textContent.trim()'), original);

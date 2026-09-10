@@ -202,3 +202,5 @@ Une revendication modifiée annule la demande obsolète. Le rejet ou l’annulat
 téléchargements.
 Les demandes en attente sont limitées à 64 par compte et 4096 au total. Ces tâches ne proposent aucune archive de revue
 à télécharger.
+
+Le formulaire de signalement propose des sujets modifiables pour le spam, les abus, les logiciels malveillants, le droit d’auteur, l’usurpation et les autres problèmes. Le bouton est masqué sur son propre profil et le serveur refuse indépendamment les auto-signalements par identifiant immuable. Les sélecteurs de type et de portée partagent les contrôles étiquetés des paramètres.

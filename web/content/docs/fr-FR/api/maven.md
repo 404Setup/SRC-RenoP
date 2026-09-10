@@ -192,3 +192,15 @@ Les miroirs et les paquets définitivement abandonnés ne peuvent pas être rét
 La préparation lit les métadonnées du disque ou de S3 en flux, avec un délai d’une minute. Une erreur de stockage ou un
 dépassement laisse la revendication actuelle inchangée.
 Les publications en attente restent dans leur procédure de revue et sont exclues de l’importation du catalogue public.
+
+Les pages de paquets proposent la gestion de l’équipe du domaine aux administrateurs et collaborateurs L3/L4. Elles ouvrent la page existante du domaine de publication ; les modifications concernent tous ses paquets, y compris ceux importés. Les longues coordonnées et les actions passent à la ligne séparément. Les informations sur les artefacts et le dernier POM occupent toute la largeur ; les formats de dépendance acceptent les transitions et le clavier.
+
+La boîte de verrouillage propose une action directe pour retirer le verrou manuel de la ressource sélectionnée. Les restrictions héritées se modifient sur le domaine ou l’équipe globale ; les verrous système conservent les procédures de récupération et de restauration.
+
+Le catalogue et les détails Maven incluent les verrous du paquet et les restrictions héritées. L’interface affiche un badge et une action Déverrouiller explicite pour son verrou manuel. Non verrouillé retire ce verrou manuel sans retirer les restrictions parentes ou système.
+
+Toutes les API de verrouillage acceptent `reason: custom` avec un `reason_text` non vide, de 256 caractères maximum. Ce texte est visible par les lecteurs autorisés, rendu comme texte brut et ne peut contenir de caractères de contrôle. Omettez `reason_text` pour les motifs prédéfinis.
+
+```json
+{"mode":"write","reason":"custom","reason_text":"Awaiting source verification"}
+```

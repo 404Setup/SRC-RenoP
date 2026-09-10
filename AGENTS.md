@@ -129,6 +129,7 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   Global publishing-domain lock routes live in `internal/service/maven/locks.go`; repository changes also inspect
   uncatalogued domain namespaces through `EnsureRepositoryMutable`.
   Preserve retained memberships, independent verified child domains, and current-request moderator scopes.
+  Store bounded custom reasons in `resource_locks.reason_text` and render them as plain text.
   Keep manual and system locks independent. Read locks freeze writes, restrict metadata to live staff/members, and deny
   files to everyone. Include index/search/profile visibility, cached files, mirror refreshes, and repository changes.
 - **Maven lifecycle:** Domains are global across repositories. Closure blocks mutations, preserves downloads, and holds
@@ -171,6 +172,8 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   Keep bounded safe rendering and public access with expired credentials. Account entry requires the current privacy/terms
   revision; optional browser services require explicit category consent, with preferences available from the footer.
 - **Frontend:** Reuse the shared UI, jQuery runtime, error, identity, clipboard, time, and animation helpers.
+  Embedded static assets stream from `embed.FS`; cache representation metadata rather than duplicate payload bytes.
+  Shared custom selects create menus and global listeners only while open; preserve detach/remount and keyboard behavior.
   Keep streaming/observers/native APIs where appropriate. Preserve keyboard/focus behavior, responsive layouts,
   viewport-bounded dialogs, and loading/empty/error states. A valid authenticated 403 must not log out the user.
   Render untrusted Markdown through the inert allowlist; never show raw backend errors or runtime exceptions.

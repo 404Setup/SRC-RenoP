@@ -38,9 +38,10 @@ func setDockerResourceLockAPI(c fiber.Ctx, state *core.AppState) error {
 		return dockerAPIError(c, fiber.StatusForbidden, "permission_denied", "A moderator browser session is required")
 	}
 	var request struct {
-		Version string `json:"version"`
-		Mode    string `json:"mode"`
-		Reason  string `json:"reason"`
+		Version    string `json:"version"`
+		Mode       string `json:"mode"`
+		Reason     string `json:"reason"`
+		ReasonText string `json:"reason_text"`
 	}
 	if utils.ReadJSONLimited(c, &request, 4096) != nil {
 		return dockerAPIError(c, fiber.StatusBadRequest, "invalid_request", "Invalid resource lock")
@@ -86,7 +87,7 @@ func setDockerResourceLockAPI(c fiber.Ctx, state *core.AppState) error {
 		err = db.DeleteResourceLock(target, core.ResourceLockManual, user.Username, session)
 	} else {
 		err = db.SetResourceLock(&core.ResourceLock{ResourceLockTarget: target, Source: core.ResourceLockManual,
-			Mode: request.Mode, Reason: request.Reason, LockedAt: time.Now().UnixMilli()}, user.Username, session)
+			Mode: request.Mode, Reason: request.Reason, ReasonText: request.ReasonText, LockedAt: time.Now().UnixMilli()}, user.Username, session)
 	}
 	if errors.Is(err, core.ErrResourceLockPermission) {
 		return dockerAPIError(c, fiber.StatusForbidden, "permission_denied", "Moderator permission is required")

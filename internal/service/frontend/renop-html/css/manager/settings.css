@@ -2168,3 +2168,22 @@ html.dark .cfg-warning-banner {
     width: 100%;
     box-sizing: border-box;
 }
+
+#settings-form-container > *,
+#settings-form-container .cfg-fields > renop-callout {
+    animation: settingsPageIn 220ms ease-out;
+}
+
+#settings-form-container[aria-busy="true"] {
+    opacity: 0.65;
+}
+
+@keyframes settingsPageIn {
+    from { opacity: 0; transform: translateY(0.35rem); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #settings-form-container > *,
+    #settings-form-container .cfg-fields > renop-callout { animation: none; }
+}

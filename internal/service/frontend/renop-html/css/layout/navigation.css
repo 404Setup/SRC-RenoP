@@ -189,7 +189,6 @@
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
     transform-origin: top right;
-    animation: navProfileMenuIn 0.16s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .nav-profile-menu[hidden] {
@@ -302,17 +301,6 @@ html.dark .nav-controls-group .nav-profile-menu-item.is-danger:focus-visible {
     border: 2px solid var(--bg-color);
     line-height: 0.85rem;
     pointer-events: none;
-}
-
-@keyframes navProfileMenuIn {
-    from {
-        opacity: 0;
-        transform: translateY(-0.35rem) scale(0.98);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
 }
 
 #user-info:hover .user-dropdown {

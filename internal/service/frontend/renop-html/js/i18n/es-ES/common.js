@@ -13,7 +13,7 @@ export default Object.freeze({
     "resourceLock.manage": "Gestionar bloqueo",
     "resourceLock.mode": "Tipo de bloqueo",
     "resourceLock.reason": "Motivo público",
-    "resourceLock.none": "Sin bloqueo manual",
+    "resourceLock.none": "Sin bloqueo",
     "resourceLock.write": "Escritura prohibida",
     "resourceLock.read": "Lectura prohibida",
     "resourceLock.explanation": "Los bloqueos de escritura impiden cambios. Los de lectura también restringen los metadatos al personal y los colaboradores e impiden que cualquiera descargue archivos.",

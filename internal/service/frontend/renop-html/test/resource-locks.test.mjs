@@ -32,7 +32,7 @@ test('Maven version locks hide deletion while retaining staff lock controls and 
     });
     const locks = readFileSync(new URL('../js/resource-locks.js', import.meta.url), 'utf8');
     const maven = readFileSync(new URL('../js/browser/maven.js', import.meta.url), 'utf8');
-    vm.runInContext(['resourceWriteLocked', 'resourceReadLocked'].map(name =>
+    vm.runInContext(['resourceWriteLocked', 'resourceReadLocked', 'createResourceLockBadge'].map(name =>
             locks.match(new RegExp(`export function ${name}\\([^]*?\\n}`))[0].replace('export ', '')).join('\n') + '\n' +
         maven.match(/function mavenVersionEntry\([^]*?\n}(?=\r?\n)/)[0], context);
     const locked = {version: '2.0', locks: [{mode: 'read', reason: 'trojan'}], files: [{name: 'demo.jar'}]};
@@ -53,7 +53,8 @@ test('lock controls submit only a manual restriction and retain the dialog on fa
     let dialog, closed = false, refreshed = 0, accepted = true;
     const selections = [], requests = [], alerts = [];
     const context = vm.createContext({
-        el: (tag, attributes, ...children) => ({tag, ...attributes, children}),
+        el: (tag, attributes, ...children) => ({tag, ...attributes, children, reportValidity() { return !this.required || Boolean(this.value.trim()); }}),
+        createFieldRow: (_label, _hint, control) => ({control}),
         makeCustomSelect: (_options, current, change) => {
             const id = 'select-' + selections.length;
             selections.push({current, change});
@@ -77,8 +78,8 @@ test('lock controls submit only a manual restriction and retain the dialog on fa
     const button = context.createResourceLockButton({
         locks: [system, {mode: 'read', source: 'manual', inherited: true}],
         name: 'demo',
-        request: async (mode, reason) => {
-            requests.push([mode, reason]);
+        request: async (mode, reason, text) => {
+            requests.push([mode, reason, text]);
             return {ok: accepted};
         },
         onSuccess: () => {
@@ -94,7 +95,7 @@ test('lock controls submit only a manual restriction and retain the dialog on fa
             closed = true;
         }
     });
-    assert.deepEqual(requests, [['read', 'trojan']]);
+    assert.deepEqual(requests, [['read', 'trojan', '']]);
     assert.equal(closed, true);
     assert.equal(refreshed, 1);
     accepted = false;
@@ -107,6 +108,23 @@ test('lock controls submit only a manual restriction and retain the dialog on fa
     assert.equal(closed, false);
     assert.equal(refreshed, 1);
     assert.equal(alerts.at(-1), 'safe');
+    const manual = context.createResourceLockButton({
+        locks: [{mode: 'write', source: 'manual', reason: 'custom', reason_text: 'Review source'}], name: 'demo',
+        request: async (...args) => { requests.push(args); return {ok: true}; },
+    });
+    assert.equal(manual.children[0], 'resourceLock.unlock');
+    manual.onclick();
+    const input = dialog.body.find(field => field.control?.tag === 'input').control;
+    assert.equal(input.value, 'Review source');
+    input.value = '';
+    const count = requests.length;
+    await dialog.footer.at(-1).onClick({currentTarget: {}}, {close() {}});
+    assert.equal(requests.length, count, 'empty custom reasons must not be submitted');
+    input.value = '  请核对 <script>plain text</script>  ';
+    await dialog.footer.at(-1).onClick({currentTarget: {}}, {close() {}});
+    assert.deepEqual(requests.at(-1), ['write', 'custom', '请核对 <script>plain text</script>']);
+    await dialog.footer.find(button => button.text === 'resourceLock.unlock').onClick({currentTarget: {}}, {close() {}});
+    assert.equal(requests.at(-1)[0], '');
 });
 
 test('Docker lock refreshes discard responses after navigation or view dismissal', async () => {

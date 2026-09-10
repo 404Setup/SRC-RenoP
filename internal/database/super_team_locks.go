@@ -26,7 +26,7 @@ func (db *DB) attachSuperTeamLocks(teams []*core.SuperTeam) error {
 		byPrefix[team.Prefix] = team
 		args = append(args, team.Prefix)
 	}
-	rows, err := db.Query(`SELECT resource_name, source, mode, reason, locked_at FROM resource_locks
+	rows, err := db.Query(`SELECT resource_name, source, mode, reason, reason_text, locked_at FROM resource_locks
 		WHERE format = 'superteam' AND repository = '' AND resource_name IN (`+
 		strings.TrimSuffix(strings.Repeat("?,", len(teams)), ",")+`) ORDER BY resource_name, source`, args...)
 	if err != nil {
@@ -35,7 +35,7 @@ func (db *DB) attachSuperTeamLocks(teams []*core.SuperTeam) error {
 	defer rows.Close()
 	for rows.Next() {
 		lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "superteam"}}
-		if err := rows.Scan(&lock.Name, &lock.Source, &lock.Mode, &lock.Reason, &lock.LockedAt); err != nil {
+		if err := rows.Scan(&lock.Name, &lock.Source, &lock.Mode, &lock.Reason, &lock.ReasonText, &lock.LockedAt); err != nil {
 			return err
 		}
 		team := byPrefix[lock.Name]

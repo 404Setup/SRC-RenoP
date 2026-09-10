@@ -12,6 +12,7 @@ import {el} from '@renop/ui/dom';
 import {$} from './jquery.js';
 
 let customSelectSequence = 0;
+let closeActiveSelect;
 
 /**
  * Dropdown chevron icon (SVG).
@@ -108,7 +109,6 @@ export function makeCustomSelect(options, current, onChange) {
     btn.appendChild(arrow);
 
     const dropdown = el('div', {class: 'custom-select-dropdown'});
-    $('body').append(dropdown);
     const eventNamespace = `.renopCustomSelect${++customSelectSequence}`;
     btn.id = `renop-select-${customSelectSequence}`;
     dropdown.id = `${btn.id}-options`;
@@ -123,6 +123,7 @@ export function makeCustomSelect(options, current, onChange) {
      * @returns {void}
      */
     function renderItems() {
+        if (!dropdown.isConnected) return;
         $(dropdown).empty();
         normalized.forEach((opt) => {
             const isSelected = selectedOpt && opt.value === selectedOpt.value;
@@ -142,7 +143,6 @@ export function makeCustomSelect(options, current, onChange) {
                 currentVal = opt.value;
                 $(textSpan).text(opt.label);
                 closeDropdown();
-                renderItems();
                 btn.focus({preventScroll: true});
                 if (typeof onChange === 'function') onChange(opt.value);
             });
@@ -192,48 +192,49 @@ export function makeCustomSelect(options, current, onChange) {
      */
     function closeDropdown(immediate = false) {
         btn.setAttribute('aria-expanded', 'false');
-        $(btn).removeClass('is-open');
-        $(wrap).removeClass('is-open');
-        if (!dropdown || dropdown.style.display === 'none' || $(dropdown).hasClass('is-leaving')) return;
-
-        if (immediate) {
-            $(dropdown).css('display', 'none').removeClass('is-leaving');
-            return;
-        }
-
-        $(dropdown).addClass('is-leaving');
+        btn.classList.remove('is-open');
+        wrap.classList.remove('is-open');
+        dropdown.inert = true;
+        if (closeActiveSelect === closeDropdown) closeActiveSelect = undefined;
+        $(document).off(`click${eventNamespace}`, onDocClick);
+        window.removeEventListener('scroll', onScroll, true);
+        $(window).off(`resize${eventNamespace}`, onResize);
+        observer?.disconnect();
         if (closeTimeout) clearTimeout(closeTimeout);
-        closeTimeout = setTimeout(() => {
-            $(dropdown).css('display', 'none').removeClass('is-leaving');
+        const finish = () => {
+            dropdown.remove();
+            $(dropdown).empty().css('display', 'none').removeClass('is-leaving');
             closeTimeout = null;
-        }, 150);
+        };
+        if (immediate || !dropdown.isConnected || window.matchMedia('(prefers-reduced-motion: reduce)').matches) finish();
+        else {
+            dropdown.classList.add('is-leaving');
+            closeTimeout = setTimeout(finish, 150);
+        }
     }
 
-    /**
-     * Open this select, closing any other custom-select dropdowns first.
-     * @returns {void}
-     */
+    /** Open the only active menu; closed controls retain no body menu or global listeners. */
     function openDropdown() {
-        if (closeTimeout) {
-            clearTimeout(closeTimeout);
-            closeTimeout = null;
-        }
-        $('.custom-select-dropdown').each((index, d) => {
-            if (d !== dropdown) {
-                $(d).css('display', 'none').removeClass('is-leaving');
-            }
-        });
-        $('.custom-select-wrapper, .custom-select-btn').each((index, b) => {
-            if (b !== wrap && b !== btn) {
-                $(b).removeClass('is-open');
-                if (b.matches('.custom-select-btn')) b.setAttribute('aria-expanded', 'false');
-            }
-        });
+        if (destroyed || !wrap.isConnected || btn.disabled || btn.closest('[inert]')) return;
+        if (closeActiveSelect && closeActiveSelect !== closeDropdown) closeActiveSelect(true);
+        closeActiveSelect = closeDropdown;
+        if (closeTimeout) clearTimeout(closeTimeout);
+        closeTimeout = null;
+        document.body.appendChild(dropdown);
+        dropdown.inert = false;
+        renderItems();
         $(dropdown).removeClass('is-leaving').css('display', 'block');
-        $(btn).addClass('is-open');
-        $(wrap).addClass('is-open');
+        btn.classList.add('is-open');
+        wrap.classList.add('is-open');
         positionDropdown();
         btn.setAttribute('aria-expanded', 'true');
+        $(document).on(`click${eventNamespace}`, onDocClick);
+        window.addEventListener('scroll', onScroll, {passive: true, capture: true});
+        $(window).on(`resize${eventNamespace}`, onResize);
+        observer ||= new MutationObserver(() => {
+            if (!wrap.isConnected || btn.closest('[inert]')) closeDropdown(true);
+        });
+        observer.observe(document.body, {childList: true, subtree: true, attributes: true, attributeFilter: ['inert']});
         dropdown.querySelector('.is-selected, .custom-select-dropdown-item')?.focus({preventScroll: true});
     }
 
@@ -279,34 +280,21 @@ export function makeCustomSelect(options, current, onChange) {
             closeDropdown();
         }
     };
-    const onScroll = () => {
-        if ($(btn).hasClass('is-open')) positionDropdown();
+    const onScroll = event => {
+        if (!(event.target instanceof Node) || !dropdown.contains(event.target)) positionDropdown();
     };
     const onResize = () => closeDropdown();
 
-    $(document).on(`click${eventNamespace}`, onDocClick);
-    window.addEventListener('scroll', onScroll, {passive: true});
-    $(window).on(`resize${eventNamespace}`, onResize);
+    let observer, destroyed = false;
 
-    // MutationObserver to clean up dropdown if `wrap` is removed from DOM
-    const observer = new MutationObserver(() => {
-        if (!document.body.contains(wrap)) {
-            destroy();
-        }
-    });
-    observer.observe(document.body, {childList: true, subtree: true});
-
+    /** Release an explicitly discarded control, including an in-flight close animation. */
     function destroy() {
-        $(document).off(`click${eventNamespace}`, onDocClick);
-        window.removeEventListener('scroll', onScroll);
-        $(window).off(`resize${eventNamespace}`, onResize);
-        observer.disconnect();
-        if (dropdown && dropdown.parentNode) {
-            $(dropdown).remove();
-        }
+        destroyed = true;
+        closeDropdown(true);
+        $(btn).off();
+        $(dropdown).off();
     }
 
-    renderItems();
     wrap.appendChild(btn);
 
     wrap.wrap = wrap;

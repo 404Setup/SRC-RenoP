@@ -31,7 +31,7 @@ import {npmResponseError} from '../npm-errors.js';
 import {openSuperTeamTransferDialog, openTicketCenter} from '../tickets.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {createSuperTeamPublicLink} from '../profile-links.js';
-import {createDeprecatePackageButton, createPackageDeprecationNotice} from '../package-deprecation.js';
+import {createDeprecatePackageButton, createPackageDeprecationBadge, createPackageDeprecationNotice} from '../package-deprecation.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {createPackageDetailTabs} from './package-detail-tabs.js';
 import {
@@ -75,10 +75,11 @@ function npmResourceLockButton(pkg, version = null) {
     const repository = activeRepository;
     return createResourceLockButton({
         locks: version?.locks || pkg.locks || [],
+        inheritedLocks: version ? pkg.locks || [] : [],
         name: version ? `${pkg.name} ${version.version}` : pkg.name,
-        request: (mode, reason) => apiRequest(endpoint, {
+        request: (mode, reason, reasonText) => apiRequest(endpoint, {
             method: mode ? 'PUT' : 'DELETE', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({version: version?.version || '', mode, reason})
+            body: JSON.stringify({version: version?.version || '', mode, reason, reason_text: reasonText})
         }),
         onSuccess: () => {
             if (activeRepository === repository && packageDetails?.package?.name === pkg.name) return refreshPackage();
@@ -342,6 +343,7 @@ function catalogHero() {
  */
 function packageCard(pkg) {
     const badges = el('div', {class: 'npm-card-badges'});
+    if (pkg.deprecated) badges.appendChild(createPackageDeprecationBadge());
     if (pkg.private) badges.appendChild(statusBadge(t('npm.private'), 'is-private'));
     if (pkg.mirrored) badges.appendChild(createRepositoryMirrorBadge(t('common.fromMirror')));
     if (pkg.archived) badges.appendChild(statusBadge(t('npm.archived'), 'is-archived'));

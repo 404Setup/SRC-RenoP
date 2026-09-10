@@ -1984,7 +1984,11 @@ components:
           enum: [ write, read ]
         reason:
           type: string
-          enum: [ hold, prohibited, expired, trojan, abuse, dmca, reup, squatting, quality ]
+          enum: [ hold, prohibited, expired, trojan, abuse, dmca, reup, squatting, quality, custom ]
+        reason_text:
+          type: string
+          maxLength: 256
+          description: Required non-empty plain text for custom; omit for predefined reasons. Control characters are rejected.
         source:
           type: string
           enum: [ manual, system ]
@@ -4634,7 +4638,8 @@ paths:
               required: [ mode, reason ]
               properties:
                 mode: { type: string, enum: [ write, read ] }
-                reason: { type: string, enum: [ hold, prohibited, expired, trojan, abuse, dmca, reup, squatting, quality ] }
+                reason: { type: string, enum: [ hold, prohibited, expired, trojan, abuse, dmca, reup, squatting, quality, custom ] }
+                reason_text: { type: string, maxLength: 256, description: 'Required non-empty plain text for custom; omit for predefined reasons.' }
       responses:
         "204": { description: Manual team lock saved. }
         "400": { $ref: "#/components/responses/PlainBadRequest" }
@@ -5388,7 +5393,8 @@ paths:
               required: [ mode, reason ]
               properties:
                 mode: { type: string, enum: [ write, read ] }
-                reason: { type: string, enum: [ hold, prohibited, expired, trojan, abuse, dmca, reup, squatting, quality ] }
+                reason: { type: string, enum: [ hold, prohibited, expired, trojan, abuse, dmca, reup, squatting, quality, custom ] }
+                reason_text: { type: string, maxLength: 256, description: 'Required non-empty plain text for custom; omit for predefined reasons.' }
       responses:
         "204": { description: Manual domain lock saved. }
         "400": { $ref: "#/components/responses/PlainBadRequest" }
@@ -5770,7 +5776,11 @@ paths:
                   enum: [ write, read ]
                 reason:
                   type: string
-                  enum: [ hold, prohibited, expired, trojan, abuse, dmca, reup, squatting, quality ]
+                  enum: [ hold, prohibited, expired, trojan, abuse, dmca, reup, squatting, quality, custom ]
+                reason_text:
+                  type: string
+                  maxLength: 256
+                  description: Required non-empty plain text for custom; omit for predefined reasons. Control characters are rejected.
       responses:
         "200":
           description: Manual lock saved.

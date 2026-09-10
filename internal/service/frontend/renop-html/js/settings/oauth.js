@@ -9,9 +9,10 @@
  */
 
 import {el} from '@renop/ui/dom';
+import {morphElementHeight} from '@renop/ui/height-anim';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {buildInput, createSection} from '../cfg-ui.js';
-import {createFieldRow, createIcon, createToggleRow} from '../components.js';
+import {createCallout, createFieldRow, createIcon, createToggleRow} from '../components.js';
 import {t} from '../i18n.js';
 
 /** Render provider presets and one bounded OAuth client editor with write-only credentials. */
@@ -64,12 +65,17 @@ export function renderOAuthSettings(container, data, changed) {
 
     /** Rebuild the selected provider after list changes or a successful secret write. */
     function render() {
+        void morphElementHeight(editor, renderContent, {duration: 240});
+    }
+
+    /** Build the active editor while keeping its draft and selection. */
+    function renderContent() {
         add.disabled = data.providers.length >= 32;
         picker.replaceChildren();
         editor.replaceChildren();
         if (!selected || !data.providers.includes(selected)) selected = data.providers[0];
         if (!selected) {
-            editor.append(el('p', {class: 'cfg-hint'}, t('oauth.none')));
+            editor.append(createCallout('info', t('oauth.none')));
             return;
         }
         const select = makeCustomSelect(data.providers.map((value, index) => ({

@@ -14,7 +14,7 @@ import {morphElementHeight} from '@renop/ui/height-anim';
 import {apiRequest, fetchProto} from './api.js';
 import {FileDetails} from './proto/index.js';
 import {showAlert, showConfirm} from './alert.js';
-import {createIcon, RenopDialog, runButtonAction} from './components.js';
+import {createFieldRow, createIcon, RenopDialog, runButtonAction} from './components.js';
 import {t} from './i18n.js';
 import {REVIEW_ERROR_KEYS} from './review-errors.js';
 import {caughtErrorMessage, localizedResponseError} from './response-errors.js';
@@ -495,6 +495,7 @@ function openResolutionDialog(task, action, onChanged) {
 
 /** @param {object|null} target - Optional report resource. @returns {Promise<void>} Composer loaded. */
 export async function openTicketComposer(target = null) {
+    if (target?.format === 'user' && String(target.name).toLowerCase() === String(localStorage.getItem('username') || '').toLowerCase()) return;
     try {
         let repository = target?.repository || '';
         let kind = target ? 'report' : 'feedback';
@@ -510,6 +511,12 @@ export async function openTicketComposer(target = null) {
         }
         const title = el('input', {type: 'text', class: 'profile-input', maxlength: '160', required: true});
         const description = el('textarea', {class: 'profile-input', rows: '7', maxlength: '8000', required: true});
+        const reason = target ? makeCustomSelect(['', 'spam', 'abuse', 'malware', 'copyright', 'impersonation', 'other'].map(value => ({
+            value, label: t(`ticket.reason.${value || 'choose'}`)
+        })), '', value => {
+            if (value) title.value = t(`ticket.reason.${value}`);
+            title.focus();
+        }) : null;
         const kindSelect = target ? null : makeCustomSelect(['feedback', 'suggestion'].map(value => ({
             value, label: t(`ticket.kind.${value}`)
         })), kind, value => {
@@ -520,8 +527,9 @@ export async function openTicketComposer(target = null) {
             body: el('div', {class: 'review-reject-form'},
                 target ? el('p', {class: 'review-transfer-resource'}, target.name,
                     target.version ? ` · ${target.version}` : '') : null,
-                kindSelect ? el('label', {class: 'review-reject-field'}, el('span', {}, t('ticket.kind')), kindSelect) : null,
-                scope ? el('label', {class: 'review-reject-field'}, el('span', {}, t('ticket.scope')), scope) : null,
+                kindSelect ? createFieldRow(t('ticket.kind'), '', kindSelect) : null,
+                scope ? createFieldRow(t('ticket.scope'), '', scope) : null,
+                reason ? createFieldRow(t('ticket.reasonTitle'), '', reason) : null,
                 el('label', {class: 'review-reject-field'}, el('span', {}, t('ticket.subject')), title),
                 el('label', {class: 'review-reject-field'}, el('span', {}, t('ticket.body')), description),
                 el('p', {class: 'review-transfer-copy'}, t(target ? 'ticket.reportPrivacy' : 'ticket.createHint'))),

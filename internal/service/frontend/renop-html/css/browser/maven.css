@@ -222,8 +222,20 @@
 }
 
 .maven-hero-heading {
+    flex-wrap: wrap;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
+}
+
+.maven-hero-heading > div:first-child {
+    flex: 1 1 18rem;
+    min-width: 0;
+}
+
+.maven-hero h2 span {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .maven-hero h2 {
@@ -266,7 +278,7 @@
     margin-top: 1rem;
 }
 
-.maven-stats > span,
+.maven-stats > span:not([class]),
 .maven-status-badge,
 .maven-permission-badge,
 .maven-artifact-count {
@@ -658,11 +670,14 @@ button.maven-artifact-card:focus-visible {
 }
 
 .maven-domain-actions {
+    flex-wrap: wrap;
+    gap: 0.5rem;
     min-width: 0;
     max-width: 100%;
 }
 
 .maven-domain-actions .pill-btn {
+    min-height: 1.8rem;
     max-width: 100%;
     white-space: normal;
     overflow-wrap: anywhere;
@@ -893,6 +908,11 @@ button.maven-artifact-card:focus-visible {
         flex-direction: column;
     }
 
+    .maven-hero-heading > div:first-child {
+        flex-basis: auto;
+        width: 100%;
+    }
+
     .maven-domain-card-meta,
     .maven-artifact-meta,
     .maven-team-controls,
@@ -931,4 +951,9 @@ button.maven-artifact-card:focus-visible {
     .maven-domain-results.is-entering > * {
         animation: none;
     }
+}
+
+.maven-repository-view .package-detail-panel > .repository-facts-section,
+.maven-repository-view .package-detail-panel > .maven-import-section {
+    grid-column: 1 / -1;
 }

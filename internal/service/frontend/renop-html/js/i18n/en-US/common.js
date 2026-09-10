@@ -13,7 +13,7 @@ export default Object.freeze({
     "resourceLock.manage": "Manage lock",
     "resourceLock.mode": "Lock type",
     "resourceLock.reason": "Public reason",
-    "resourceLock.none": "No manual lock",
+    "resourceLock.none": "Unlocked",
     "resourceLock.write": "Writes prohibited",
     "resourceLock.read": "Reads prohibited",
     "resourceLock.explanation": "Write locks freeze changes. Read locks also restrict metadata to staff and collaborators and block file downloads for everyone.",

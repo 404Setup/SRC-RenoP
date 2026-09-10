@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,6 +26,40 @@ import (
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestCustomResourceLockReasonSurvivesMigrationAndRestart(t *testing.T) {
+	cfg := config.DatabaseConfig{Driver: "sqlite3", Dsn: filepath.Join(testutil.TempDir(t), "custom-lock.db")}
+	db, err := database.InitDB(cfg)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	lock := &core.ResourceLock{ResourceLockTarget: core.ResourceLockTarget{Format: "cargo", Repository: "cargo", Name: "demo"},
+		Source: core.ResourceLockSystem, Mode: core.ResourceLockWrite, Reason: "hold", LockedAt: time.Now().UnixMilli()}
+	require.NoError(t, db.SetResourceLock(lock, "", ""))
+	_, err = db.Exec(`ALTER TABLE resource_locks DROP COLUMN reason_text`)
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+	db, err = database.InitDB(cfg)
+	require.NoError(t, err)
+	locks, err := db.GetResourceLocks(lock.ResourceLockTarget, false)
+	require.NoError(t, err)
+	require.Len(t, locks, 1)
+	require.Equal(t, "hold", locks[0].Reason)
+	require.Empty(t, locks[0].ReasonText)
+	lock.Reason, lock.ReasonText = "custom", "需要核对来源 <script>plain text</script>"
+	require.NoError(t, db.SetResourceLock(lock, "", ""))
+	require.NoError(t, db.Close())
+	db, err = database.InitDB(cfg)
+	require.NoError(t, err)
+	for _, invalid := range []string{"", " ", "line\nbreak", "\x00", "\xff", strings.Repeat("界", 257)} {
+		copy := *lock
+		copy.ReasonText = invalid
+		require.ErrorIs(t, db.SetResourceLock(&copy, "", ""), core.ErrResourceLockInvalid)
+	}
+	locks, err = db.GetResourceLocks(lock.ResourceLockTarget, false)
+	require.NoError(t, err)
+	require.Len(t, locks, 1)
+	require.Equal(t, lock.ReasonText, locks[0].ReasonText)
+}
 
 func TestMavenLocksCoverMetadataCompanionsAndCatalogMutations(t *testing.T) {
 	db := newMavenDB(t)

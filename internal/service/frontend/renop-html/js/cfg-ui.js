@@ -9,6 +9,7 @@
  */
 
 import {el} from '@renop/ui/dom';
+import {expandElement, collapseElement} from '@renop/ui/height-anim';
 import {t} from './i18n.js';
 import {createIcon, createToggle} from './components.js';
 
@@ -463,99 +464,14 @@ export function createSection(iconSvg, title, subtitle, options = {}) {
     return section;
 }
 
-/**
- * Smoothly animates the appearance or disappearance of a fields container
- * matching the database engine DSN transition in Settings (using height + field entering/leaving keyframes).
- * @param {HTMLElement} container - Fields container element
- * @param {boolean} show - Target visibility state
- * @returns {void}
- */
+/** Toggle dependent settings with the shared cancellable height animation. */
 export function animateFieldsToggle(container, show) {
     if (!container) return;
-
-    const knownVisible = typeof container._fieldsVisible === 'boolean'
-        ? container._fieldsVisible
-        : container.style.display !== 'none' && container.offsetHeight > 0;
+    const visible = typeof container._fieldsVisible === 'boolean' ? container._fieldsVisible
+        : !container.hidden && container.style.display !== 'none';
+    container.inert = !show;
     container._fieldsVisible = show;
-
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        container.style.display = show ? '' : 'none';
-        container.style.height = '';
-        container.style.transition = '';
-        container.style.overflow = '';
-        container.style.visibility = '';
-        container.style.boxSizing = '';
-        container.style.minHeight = '';
-        return;
-    }
-
-    if (show === knownVisible && !container._animTimer1) return;
-
-    if (container._animTimer1) clearTimeout(container._animTimer1);
-    if (container._animTimer2) clearTimeout(container._animTimer2);
-    container._animTimer1 = null;
-    container._animTimer2 = null;
-
-    if (!show) {
-        const startHeight = container.getBoundingClientRect().height;
-        const rows = Array.from(container.children);
-        rows.forEach(row => {
-            row.classList.remove('cfg-field-row--entering');
-            row.classList.add('cfg-field-row--leaving');
-        });
-
-        container.style.height = `${startHeight}px`;
-        container.style.boxSizing = 'border-box';
-        container.style.minHeight = '0';
-        container.style.visibility = 'visible';
-        container.style.overflow = 'hidden';
-        void container.offsetHeight;
-
-        container.style.transition = 'height 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
-        container.style.height = '0px';
-
-        container._animTimer1 = setTimeout(() => {
-            container.style.display = 'none';
-            container.style.height = '';
-            container.style.transition = '';
-            container.style.overflow = '';
-            container.style.visibility = '';
-            container.style.boxSizing = '';
-            container.style.minHeight = '';
-            rows.forEach(row => row.classList.remove('cfg-field-row--leaving'));
-        }, 300);
-    } else {
-        container.style.display = '';
-        container.style.visibility = 'hidden';
-        container.style.boxSizing = 'border-box';
-        container.style.minHeight = '0';
-        container.style.overflow = 'hidden';
-        container.style.height = 'auto';
-        const targetHeight = container.getBoundingClientRect().height;
-        container.style.height = '0px';
-
-        const rows = Array.from(container.children);
-        rows.forEach((row, idx) => {
-            row.style.setProperty('--field-index', idx);
-            row.classList.remove('cfg-field-row--leaving');
-            row.classList.add('cfg-field-row--entering');
-        });
-
-        void container.offsetHeight;
-
-        container.style.visibility = 'visible';
-        container.style.transition = 'height 0.35s cubic-bezier(0.16, 1, 0.3, 1)';
-        container.style.height = `${targetHeight}px`;
-
-        container._animTimer1 = setTimeout(() => {
-            container.style.height = '';
-            container.style.transition = '';
-            container.style.overflow = '';
-            container.style.visibility = '';
-            container.style.boxSizing = '';
-            container.style.minHeight = '';
-            rows.forEach(row => row.classList.remove('cfg-field-row--entering'));
-        }, 350);
-    }
+    if (visible === show) return;
+    if (show) void expandElement(container, {duration: 280});
+    else void collapseElement(container, {duration: 240, marginTop: false});
 }
-

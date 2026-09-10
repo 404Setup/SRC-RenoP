@@ -29,8 +29,9 @@ func setResourceLock(c fiber.Ctx, state *core.AppState) error {
 		return apiError(c, core.ErrResourceLockPermission)
 	}
 	var request struct {
-		Mode   string `json:"mode"`
-		Reason string `json:"reason"`
+		Mode       string `json:"mode"`
+		Reason     string `json:"reason"`
+		ReasonText string `json:"reason_text"`
 	}
 	if utils.ReadJSONLimited(c, &request, 4096) != nil {
 		return apiError(c, core.ErrResourceLockInvalid)
@@ -50,7 +51,7 @@ func setResourceLock(c fiber.Ctx, state *core.AppState) error {
 		action = audit.ActionResourceUnlock
 	} else {
 		err = state.GetDB().SetResourceLock(&core.ResourceLock{ResourceLockTarget: target,
-			Mode: request.Mode, Reason: request.Reason, Source: core.ResourceLockManual,
+			Mode: request.Mode, Reason: request.Reason, ReasonText: request.ReasonText, Source: core.ResourceLockManual,
 			LockedAt: time.Now().UnixMilli()}, user.Username, session)
 	}
 	if err != nil {

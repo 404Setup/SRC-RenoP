@@ -259,7 +259,7 @@ func clickHouseSchemas() []clickHouseTableSchema {
 		{name: "resource_locks", keyColumns: []string{"id", "source"}, columns: []string{
 			"`id` String", "`source` String", "`package_id` String", "`format` String",
 			"`repository` String", "`resource_name` String", "`version` String", "`mode` String",
-			"`reason` String", "`locked_at` Int64",
+			"`reason` String", "`reason_text` String DEFAULT ''", "`locked_at` Int64",
 		}},
 		{name: "download_statistics", keyColumns: []string{"id"}, columns: []string{
 			"`id` String", "`user_id` String", "`username` String", "`repository` String", "`format` String",

@@ -11,6 +11,7 @@
 import {t} from './i18n.js';
 import {showAlert, showConfirm} from './alert.js';
 import {el} from '@renop/ui/dom';
+import {morphElementHeight} from '@renop/ui/height-anim';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {apiRequest, fetchProto, postProto, putProto} from './api.js';
 import {buildInput, createSection, makeTagListInput} from './cfg-ui.js';
@@ -216,7 +217,8 @@ async function loadDomainSettings(domain, focus = false) {
     const container = document.getElementById('settings-form-container');
     if (!container) return;
     container.setAttribute('aria-busy', 'true');
-    container.replaceChildren(createSkeleton('form', 2));
+    container.inert = true;
+    if (!container.firstElementChild) container.replaceChildren(createSkeleton('form', 2));
     try {
         let draft = drafts.get(domain);
         const fresh = !dirtyDraft(draft);
@@ -241,6 +243,7 @@ async function loadDomainSettings(domain, focus = false) {
     } finally {
         if (fetchId === activeFetchId) {
             container.setAttribute('aria-busy', 'false');
+            container.inert = false;
             if (focus) document.getElementById('settings-page-title')?.focus();
         }
     }
@@ -250,10 +253,12 @@ async function loadDomainSettings(domain, focus = false) {
 function renderSettingsForm(domain, data) {
     const container = document.getElementById('settings-form-container');
     if (!container) return;
-    container.replaceChildren();
-    SETTINGS_PAGES[domain].render(container, data, enableSave);
-    const firstSection = container.querySelector('.cfg-section');
-    if (firstSection?.classList.contains('is-collapsed')) firstSection.querySelector('.cfg-section-header')?.click();
+    void morphElementHeight(container, () => {
+        container.replaceChildren();
+        SETTINGS_PAGES[domain].render(container, data, enableSave);
+        const firstSection = container.querySelector('.cfg-section');
+        if (firstSection?.classList.contains('is-collapsed')) firstSection.querySelector('.cfg-section-header')?.click();
+    }, {duration: 280});
 }
 
 
@@ -1058,8 +1063,6 @@ function renderServerSettings(container, data) {
     ];
 
     const dsnContainer = el('div', {class: 'cfg-dsn-container'});
-    let dsnAnimTimer1 = null;
-    let dsnAnimTimer2 = null;
 
     function buildDsnFields(driver) {
         const fragment = document.createDocumentFragment();
@@ -1196,64 +1199,11 @@ function renderServerSettings(container, data) {
         return fragment;
     }
 
+    /** Replace driver fields immediately so rapid changes cannot restore stale controls. */
     function updateDsnUI(driver, animate = false) {
-        if (dsnAnimTimer1) clearTimeout(dsnAnimTimer1);
-        if (dsnAnimTimer2) clearTimeout(dsnAnimTimer2);
-        dsnAnimTimer1 = null;
-        dsnAnimTimer2 = null;
-
-        if (!animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            dsnContainer.innerHTML = '';
-            dsnContainer.style.height = '';
-            dsnContainer.style.transition = '';
-            dsnContainer.style.overflow = '';
-            dsnContainer.appendChild(buildDsnFields(driver));
-            return;
-        }
-
-        const oldRows = Array.from(dsnContainer.children);
-        const startHeight = dsnContainer.getBoundingClientRect().height;
-
-        oldRows.forEach(row => {
-            row.classList.remove('cfg-field-row--entering');
-            row.classList.add('cfg-field-row--leaving');
-        });
-
-        if (startHeight > 0) {
-            dsnContainer.style.height = `${startHeight}px`;
-            dsnContainer.style.overflow = 'hidden';
-        }
-
-        dsnAnimTimer1 = setTimeout(() => {
-            dsnContainer.innerHTML = '';
-            const fragment = buildDsnFields(driver);
-            const newRows = Array.from(fragment.children);
-
-            newRows.forEach((row, idx) => {
-                row.style.setProperty('--field-index', idx);
-                row.classList.add('cfg-field-row--entering');
-            });
-
-            dsnContainer.appendChild(fragment);
-
-            dsnContainer.style.height = 'auto';
-            const targetHeight = dsnContainer.getBoundingClientRect().height;
-            dsnContainer.style.height = `${startHeight}px`;
-
-            void dsnContainer.offsetHeight; // force reflow
-
-            dsnContainer.style.transition = 'height 0.35s cubic-bezier(0.16, 1, 0.3, 1)';
-            dsnContainer.style.height = `${targetHeight}px`;
-
-            dsnAnimTimer2 = setTimeout(() => {
-                dsnContainer.style.height = '';
-                dsnContainer.style.transition = '';
-                dsnContainer.style.overflow = '';
-                newRows.forEach(row => row.classList.remove('cfg-field-row--entering'));
-                dsnAnimTimer1 = null;
-                dsnAnimTimer2 = null;
-            }, 360);
-        }, 120);
+        const replace = () => dsnContainer.replaceChildren(buildDsnFields(driver));
+        if (animate) void morphElementHeight(dsnContainer, replace, {duration: 280});
+        else replace();
     }
 
     const driverSelect = makeCustomSelect(driverOptions, currentConfig.database.driver || 'sqlite3', val => {

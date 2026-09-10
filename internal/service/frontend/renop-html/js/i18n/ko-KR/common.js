@@ -13,7 +13,7 @@ export default Object.freeze({
     "resourceLock.manage": "잠금 관리",
     "resourceLock.mode": "잠금 유형",
     "resourceLock.reason": "공개 사유",
-    "resourceLock.none": "수동 잠금 없음",
+    "resourceLock.none": "잠금 해제됨",
     "resourceLock.write": "쓰기 금지",
     "resourceLock.read": "읽기 금지",
     "resourceLock.explanation": "쓰기 잠금은 변경을 차단합니다. 읽기 잠금은 메타데이터 열람도 담당자와 공동 작업자로 제한하며 모든 사용자의 파일 다운로드를 차단합니다.",

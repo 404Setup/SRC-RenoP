@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import test from 'node:test';
+import vm from 'node:vm';
 import {fileURLToPath} from 'node:url';
 
 const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -83,4 +84,42 @@ test('authorized private panels render on the profile home instead of the editor
     assert.match(styles, /\.profile-private-grid\s*\{[^}]*grid-template-columns: repeat\(2,/s);
     assert.match(styles, /@media \(max-width: 820px\)[\s\S]*?\.profile-private-grid\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
     assert.doesNotMatch(page, /id="btn-profile-gpg(?:-releases)?"/);
+});
+
+test('account menu closes visibly and reopening cancels stale close callbacks', () => {
+    const animations = [];
+    let expanded = 'false', reduced = false;
+    const menu = {hidden: true, animate() {
+        const animation = {cancel() {}};
+        animations.push(animation);
+        return animation;
+    }};
+    const main = readFileSync(join(frontendRoot, 'js/main.js'), 'utf8');
+    const declaration = main.match(/^function setProfileMenuOpen\([\s\S]*?^}/m)[0];
+    const toggle = vm.runInNewContext('let profileMenuAnimation; ' + declaration + '; setProfileMenuOpen', {
+        profileMenu: menu,
+        profileTrigger: {getAttribute: () => expanded, setAttribute: (_key, value) => { expanded = value; }},
+        getComputedStyle: () => ({opacity: '1', transform: 'none'}),
+        window: {matchMedia: () => ({matches: reduced})},
+    });
+    toggle(false);
+    assert.equal(animations.length, 0);
+    toggle(true);
+    assert.equal(menu.hidden, false);
+    toggle(false);
+    const closing = animations.at(-1);
+    assert.equal(menu.hidden, false);
+    assert.equal(menu.inert, true);
+    toggle(true);
+    closing.onfinish();
+    assert.equal(menu.hidden, false);
+    assert.equal(menu.inert, false);
+    toggle(false);
+    animations.at(-1).onfinish();
+    assert.equal(menu.hidden, true);
+    reduced = true;
+    toggle(true);
+    assert.equal(menu.hidden, false);
+    toggle(false);
+    assert.equal(menu.hidden, true);
 });

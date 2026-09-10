@@ -518,6 +518,7 @@ func applySharedIndexMigrations(db *sql.DB) error {
 }
 
 var sharedColumnMigrations = []SchemaMigration{
+	{Name: "resource_locks.reason_text", Query: "ALTER TABLE resource_locks ADD COLUMN reason_text VARCHAR(1024) NOT NULL DEFAULT '';"},
 	{Name: "user_messages.email_processed_at", Query: "ALTER TABLE user_messages ADD COLUMN email_processed_at BIGINT NOT NULL DEFAULT 0;"},
 	{Name: "audit_logs.initiator", Query: "ALTER TABLE audit_logs ADD COLUMN initiator VARCHAR(255) NOT NULL DEFAULT '';"},
 	{Name: "audit_logs.kind", Query: "ALTER TABLE audit_logs ADD COLUMN kind VARCHAR(16) NOT NULL DEFAULT 'audit';"},

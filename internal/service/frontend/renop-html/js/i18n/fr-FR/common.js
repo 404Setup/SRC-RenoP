@@ -13,7 +13,7 @@ export default Object.freeze({
     "resourceLock.manage": "Gérer le verrouillage",
     "resourceLock.mode": "Type de verrouillage",
     "resourceLock.reason": "Motif public",
-    "resourceLock.none": "Aucun verrouillage manuel",
+    "resourceLock.none": "Non verrouillé",
     "resourceLock.write": "Écriture interdite",
     "resourceLock.read": "Lecture interdite",
     "resourceLock.explanation": "Le verrouillage en écriture empêche les modifications. Celui en lecture réserve aussi les métadonnées au personnel et aux collaborateurs et interdit le téléchargement de fichiers à tous.",

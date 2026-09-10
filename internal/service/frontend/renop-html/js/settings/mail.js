@@ -9,10 +9,11 @@
  */
 
 import {el} from '@renop/ui/dom';
+import {morphElementHeight} from '@renop/ui/height-anim';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {apiRequest} from '../api.js';
 import {buildInput, createSection, makeTagListInput} from '../cfg-ui.js';
-import {createFieldRow, createIcon, createToggleRow, runButtonAction} from '../components.js';
+import {createCallout, createFieldRow, createIcon, createToggleRow, runButtonAction} from '../components.js';
 import {showAlert} from '../alert.js';
 import {LocalizedResponseError, responseErrorMessage} from '../response-errors.js';
 import {formatTimestamp} from '../time.js';
@@ -215,6 +216,11 @@ export function renderMailSettings(container, data, changed) {
 
     /** Display the selected provider with only its relevant transport fields. */
     function renderAccounts() {
+        void morphElementHeight(accountEditor, renderAccountsContent, {duration: 240});
+    }
+
+    /** Build the active editor while keeping its draft and selection. */
+    function renderAccountsContent() {
         accountPicker.replaceChildren();
         accountEditor.replaceChildren();
         accountStatus.replaceChildren();
@@ -223,7 +229,7 @@ export function renderMailSettings(container, data, changed) {
         const account = data.accounts.find(value => value.id === selectedID) || data.accounts[0];
         selectedID = account?.id || '';
         if (!account) {
-            accountEditor.appendChild(el('p', {}, t('mail.noAccounts')));
+            accountEditor.appendChild(createCallout('info', t('mail.noAccounts')));
             return;
         }
         accountPicker.appendChild(makeCustomSelect(data.accounts.map(value => ({

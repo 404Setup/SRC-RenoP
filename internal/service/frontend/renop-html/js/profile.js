@@ -925,7 +925,7 @@ function renderPublicProfile(profile) {
     if (profile.own_profile) {
         actions.appendChild(el('button', {
             type: 'button',
-            class: 'pill-btn pill-btn--primary',
+            class: 'pill-btn pill-btn--primary pill-btn--sm',
             onclick: () => navigateToUserProfile(profile.username, 'edit')
         }, createIcon('edit'), el('span', {}, t('common.edit'))));
     }

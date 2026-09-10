@@ -450,8 +450,6 @@ function renderPaginationControls(startIdx, endIdx, totalItems, totalPages) {
         total: totalItems
     }) || `Showing ${startNum}-${endNum} of ${totalItems}`;
 
-    document.querySelectorAll('.pagination-custom-select-dropdown').forEach(d => d.remove());
-
     const selectOptions = [5, 10, 20, 30].map(size => ({
         value: size,
         label: t('users.paginationPerPage', {size}) || `${size} / page`
@@ -466,11 +464,6 @@ function renderPaginationControls(startIdx, endIdx, totalItems, totalPages) {
         }
     });
     sizeSelectWrapper.classList.add('pagination-size-custom-select');
-
-    const lastDropdown = document.body.lastElementChild;
-    if (lastDropdown && lastDropdown.classList.contains('custom-select-dropdown')) {
-        lastDropdown.classList.add('pagination-custom-select-dropdown');
-    }
 
     const infoWrapper = document.createElement('div');
     infoWrapper.className = 'pagination-info';

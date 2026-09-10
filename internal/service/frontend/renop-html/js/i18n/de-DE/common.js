@@ -13,7 +13,7 @@ export default Object.freeze({
     "resourceLock.manage": "Sperre verwalten",
     "resourceLock.mode": "Sperrtyp",
     "resourceLock.reason": "Öffentlicher Grund",
-    "resourceLock.none": "Keine manuelle Sperre",
+    "resourceLock.none": "Nicht gesperrt",
     "resourceLock.write": "Schreiben verboten",
     "resourceLock.read": "Lesen verboten",
     "resourceLock.explanation": "Schreibsperren verhindern Änderungen. Lesesperren erlauben Metadaten nur Mitarbeitern und Beteiligten und sperren Dateidownloads für alle.",

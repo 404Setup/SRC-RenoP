@@ -13,7 +13,7 @@ export default Object.freeze({
     "resourceLock.manage": "ロックを管理",
     "resourceLock.mode": "ロックの種類",
     "resourceLock.reason": "公開する理由",
-    "resourceLock.none": "手動ロックなし",
+    "resourceLock.none": "未ロック",
     "resourceLock.write": "書き込み禁止",
     "resourceLock.read": "読み取り禁止",
     "resourceLock.explanation": "書き込み禁止は変更を停止します。読み取り禁止では、メタデータの閲覧も担当者と共同作業者のみに制限され、すべての利用者がファイルをダウンロードできなくなります。",

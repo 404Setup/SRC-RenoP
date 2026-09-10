@@ -1314,7 +1314,7 @@ func (db *DB) listMavenArtifacts(repositories []string, domain, query string, li
 			return nil, 0, err
 		}
 	}
-	return artifacts, total, nil
+	return artifacts, total, db.attachMavenArtifactLocks(artifacts)
 }
 
 // GetMavenArtifactDetails loads one artifact and all versions.

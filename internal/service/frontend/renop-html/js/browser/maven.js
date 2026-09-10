@@ -10,6 +10,7 @@
 
 import {createTicketReportButton} from '../ticket-report.js';
 import {el} from '@renop/ui/dom';
+import {morphElementHeight} from '@renop/ui/height-anim';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {bindAnimatedDetails} from '@renop/ui/disclosure';
 import {createPaginatedCollection} from '@renop/ui/pagination';
@@ -32,6 +33,8 @@ import {
 import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '../response-errors.js';
 import {
     createResourceLockButton,
+    createResourceLockBadge,
+    resourceLockReason,
     createResourceLockNotices,
     resourceReadLocked,
     resourceWriteLocked
@@ -268,8 +271,8 @@ function domainLockButton(details, refresh) {
     const domain = details.domain;
     return createResourceLockButton({
         locks: domain.locks, name: domain.domain,
-        request: (mode, reason) => apiRequest(`/api/maven/domains/${encodeURIComponent(domain.domain)}/locks`, {
-            method: mode ? 'PUT' : 'DELETE', body: JSON.stringify({mode, reason})
+        request: (mode, reason, reasonText) => apiRequest(`/api/maven/domains/${encodeURIComponent(domain.domain)}/locks`, {
+            method: mode ? 'PUT' : 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({mode, reason, reason_text: reasonText})
         }),
         onSuccess: refresh,
     });
@@ -296,7 +299,7 @@ function mavenDomainStatus(domain) {
         const lock = domain.locks.find(lock => lock.mode === 'read') || domain.locks[0];
         return {
             tone: 'pending', icon: 'fileLock', label: t(`resourceLock.${lock.mode}`),
-            description: t(`resourceLock.reason.${lock.reason}`)
+            description: resourceLockReason(lock)
         };
     }
     if (Number(domain?.closed_at) > 0) {
@@ -365,6 +368,7 @@ function artifactCard(repository, artifact, {navigate = activeNavigate, showRepo
             el('span', {}, artifact.description || t('maven.noDescription'))
         ),
         el('span', {class: 'maven-artifact-meta'},
+            createResourceLockBadge(artifact),
             showRepository ? el('code', {}, repository) : null,
             artifact.mirrored ? createRepositoryMirrorBadge(t('common.fromMirror')) : null,
             artifact.latest_version ? el('code', {}, artifact.latest_version) : null,
@@ -604,6 +608,7 @@ function mavenImportSection(artifact) {
     ];
     const tabs = el('div', {class: 'maven-import-tabs', role: 'tablist'});
     const code = el('code', {});
+    const block = el('div', {class: 'maven-import-code', role: 'tabpanel', id: 'maven-import-panel'}, el('pre', {}, code));
     const copy = el('button', {
         type: 'button', class: 'maven-icon-btn', title: t('details.copy'), 'aria-label': t('details.copy')
     }, createIcon('copy'));
@@ -611,34 +616,56 @@ function mavenImportSection(artifact) {
     const buttons = [];
 
     /** Synchronize dependency format controls and code. */
-    function update() {
+    function update(animate = false) {
         current = formats.find(format => format.id === mavenImportFormat) || formats[0];
         for (const entry of buttons) {
             const selected = entry.id === current.id;
             entry.button.classList.toggle('is-active', selected);
             entry.button.setAttribute('aria-selected', String(selected));
+            entry.button.tabIndex = selected ? 0 : -1;
         }
-        code.textContent = current.value;
+        block.setAttribute('aria-labelledby', 'maven-import-tab-' + current.id);
+        const replace = () => { code.textContent = current.value; };
+        if (animate) {
+            void morphElementHeight(block, replace, {duration: 240});
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                code.getAnimations().forEach(animation => animation.cancel());
+                code.animate([{opacity: 0}, {opacity: 1}], {duration: 220});
+            }
+        } else replace();
     }
 
     for (const format of formats) {
         const button = el('button', {
-            type: 'button', class: 'maven-import-tab', role: 'tab'
+            type: 'button', class: 'maven-import-tab', role: 'tab',
+            id: 'maven-import-tab-' + format.id, 'aria-controls': block.id
         }, format.label);
         button.addEventListener('click', () => {
+            if (mavenImportFormat === format.id) return;
             mavenImportFormat = format.id;
-            update();
+            update(true);
+        });
+        button.addEventListener('keydown', event => {
+            const index = formats.findIndex(value => value.id === current.id);
+            const next = event.key === 'ArrowRight' ? (index + 1) % formats.length
+                : event.key === 'ArrowLeft' ? (index + formats.length - 1) % formats.length
+                    : event.key === 'Home' ? 0 : event.key === 'End' ? formats.length - 1 : -1;
+            if (next < 0) return;
+            event.preventDefault();
+            buttons[next].button.focus();
+            buttons[next].button.click();
         });
         buttons.push({id: format.id, button});
         tabs.appendChild(button);
     }
+    block.appendChild(copy);
     copy.addEventListener('click', () => void copyText(copy, current.value));
     update();
     return el('section', {class: 'maven-section maven-import-section'},
         el('h3', {}, t('maven.addDependency')),
         el('p', {class: 'maven-section-summary'}, t('maven.addDependencyHint')),
         tabs,
-        el('div', {class: 'maven-import-code'}, el('pre', {}, code), copy)
+        block
     );
 }
 
@@ -917,7 +944,7 @@ function teamPanel(details, refresh) {
             }
         }, input, selector, submit);
     }
-    return el('section', {class: 'maven-section'}, el('h3', {}, t('maven.teamTitle')), list, invite);
+    return el('section', {class: 'maven-section'}, el('h3', {}, t('maven.teamTitle')), el('p', {class: 'maven-section-summary'}, t('maven.domainTeamHint')), list, invite);
 }
 
 /**
@@ -1670,6 +1697,7 @@ function mavenVersionEntry(version, {
         el('div', {class: 'maven-version-main'}, el('code', {}, version.version),
             el('span', {}, formatDate(version.created_at))),
         el('div', {class: 'maven-version-meta'},
+            createResourceLockBadge(artifact, version),
             pendingReview
                 ? el('span', {class: 'review-status is-pending'}, t('maven.reviewPending'))
                 : null,
@@ -1727,16 +1755,23 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
             (details.administrator || Number(artifact.permission_level) >= 4);
         const manageLock = details.moderator && cachedIsLoggedIn ? version => createResourceLockButton({
             locks: version?.locks || artifact.locks || [],
+            inheritedLocks: version ? artifact.locks || [] : [],
             name: `${artifact.group_id}:${artifact.artifact_id}${version ? ` ${version.version}` : ''}`,
-            request: (mode, reason) => apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/package/locks?${query}`, {
+            request: (mode, reason, reasonText) => apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/package/locks?${query}`, {
                 method: mode ? 'PUT' : 'DELETE', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({version: version?.version || '', mode, reason})
+                body: JSON.stringify({version: version?.version || '', mode, reason, reason_text: reasonText})
             }),
             onSuccess: () => {
                 if (sequence === mavenLoadSequence) return renderArtifact(container, repository, groupID, artifactID, sequence);
             }
         }) : null;
         const artifactActions = el('div', {class: 'maven-domain-actions'});
+        if (!artifact.mirrored && artifact.domain && (cachedIsManager || Number(artifact.permission_level) >= 3)) {
+            artifactActions.appendChild(el('button', {
+                type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
+                title: t('maven.domainTeamHint'), onclick: () => navigateMavenDomainCenter(artifact.domain)
+            }, createIcon('user'), el('span', {}, t('maven.manageDomainTeam'))));
+        }
         if (details.can_request_restore) artifactActions.appendChild(el('button', {
             type: 'button', class: 'pill-btn pill-btn--soft',
             onclick: event => runButtonAction(event.currentTarget, async () => {
@@ -1772,11 +1807,11 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
             ));
         }
         if (canManageVersions) artifactActions.appendChild(el('button', {
-            type: 'button', class: 'pill-btn pill-btn--soft',
+            type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
             onclick: () => openDescriptionEditor(container, repository, artifact, sequence)
         }, createIcon('edit'), el('span', {}, t('maven.editDescription'))));
         if (canOwnArtifact && !artifact.mirrored) artifactActions.appendChild(el('button', {
-            type: 'button', class: 'pill-btn pill-btn--soft',
+            type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
             onclick: () => openSuperTeamTransferDialog({
                 resourceType: 'maven_artifact', repository,
                 resourceKey: `${artifact.group_id}:${artifact.artifact_id}`,
@@ -1801,6 +1836,7 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
                 }, createIcon('copy'))
             ),
             el('div', {class: 'maven-stats'},
+                createResourceLockBadge(artifact),
                 el('span', {}, artifact.domain),
                 el('span', {}, t('maven.versionCount', {
                     count: Number(artifact.version_count) || versions.length

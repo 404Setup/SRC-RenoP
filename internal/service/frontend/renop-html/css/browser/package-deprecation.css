@@ -8,7 +8,8 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-.package-deprecation-badge {
+.package-deprecation-badge,
+.resource-lock-badge {
     display: inline-flex;
     align-items: center;
     padding: 0.22rem 0.55rem;

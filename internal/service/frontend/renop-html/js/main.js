@@ -242,6 +242,7 @@ const tabContents = document.querySelectorAll('.tab-content');
 const profileMenu = document.getElementById('profile-menu');
 const profileMenuWrap = document.getElementById('profile-menu-wrap');
 const profileTrigger = document.getElementById('profile-trigger');
+let profileMenuAnimation;
 
 /**
  * Open or close the signed-in account navigation menu.
@@ -251,8 +252,28 @@ const profileTrigger = document.getElementById('profile-trigger');
  */
 function setProfileMenuOpen(open, focusFirst = false) {
     if (!profileMenu || !profileTrigger) return;
-    profileMenu.hidden = !open;
+    const changed = profileTrigger.getAttribute('aria-expanded') !== String(open);
     profileTrigger.setAttribute('aria-expanded', String(open));
+    profileMenu.inert = !open;
+    if (!open && profileMenu.hidden) return;
+    if (changed) {
+        const style = getComputedStyle(profileMenu);
+        const from = profileMenu.hidden ? {opacity: 0, transform: 'translateY(-0.35rem) scale(0.98)'}
+            : {opacity: style.opacity, transform: style.transform};
+        profileMenuAnimation?.cancel();
+        profileMenu.hidden = false;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) profileMenu.hidden = !open;
+        else {
+            const animation = profileMenu.animate([from, open ? {opacity: 1, transform: 'none'}
+                : {opacity: 0, transform: 'translateY(-0.35rem) scale(0.98)'}], {duration: 160, easing: 'ease-out'});
+            profileMenuAnimation = animation;
+            animation.onfinish = () => {
+                if (profileMenuAnimation !== animation) return;
+                profileMenu.hidden = !open;
+                profileMenuAnimation = undefined;
+            };
+        }
+    }
     if (open && focusFirst) {
         requestAnimationFrame(() => profileMenu.querySelector('.nav-profile-menu-item:not([style*="display: none"])')?.focus());
     }
@@ -592,7 +613,7 @@ async function initializeApplication() {
         if (profileTrigger && profileMenu && profileMenuWrap) {
             profileTrigger.addEventListener('click', event => {
                 event.stopPropagation();
-                setProfileMenuOpen(profileMenu.hidden);
+                setProfileMenuOpen(profileTrigger.getAttribute('aria-expanded') !== 'true');
             });
             profileTrigger.addEventListener('keydown', event => {
                 if (event.key !== 'ArrowDown') return;

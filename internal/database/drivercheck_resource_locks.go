@@ -54,8 +54,19 @@ func checkMavenLocks(db *DB, repository, domain, owner, moderator, session strin
 		}
 	}
 	lock.Version = ""
+	lock.Reason, lock.ReasonText = "custom", "Awaiting source verification"
 	if err := db.SetResourceLock(lock, moderator, session); err != nil {
 		return err
+	}
+	artifacts, total, err := db.ListReadableMavenArtifacts([]string{repository}, "", pkg.ArtifactID, owner, nil, 10, 0)
+	if err != nil || total != 1 || len(artifacts) != 1 || len(artifacts[0].Locks) != 1 || !artifacts[0].VersionLocked ||
+		artifacts[0].Locks[0].ReasonText != lock.ReasonText {
+		return errorsOrMissing(err, "Maven catalog custom lock state")
+	}
+	invalid := *lock
+	invalid.ReasonText = strings.Repeat("x", 257)
+	if err := db.SetResourceLock(&invalid, moderator, session); !errors.Is(err, core.ErrResourceLockInvalid) {
+		return errorsOrMissing(err, "custom lock reason bound")
 	}
 	if err := db.UpdateMavenArtifactReadme(repository, domain, pkg.ArtifactID, "blocked"); !errors.Is(err, core.ErrResourceLocked) {
 		return errorsOrMissing(err, "Maven locked README mutation")
