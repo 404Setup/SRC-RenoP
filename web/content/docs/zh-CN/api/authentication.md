@@ -41,7 +41,7 @@ Passkey 不算作初次登录方式。离线恢复会移除验证器并关闭 Pa
 
 - **Passkey 开始**：`POST /api/auth/fido/login/begin`
 - **Passkey 完成**：`POST /api/auth/fido/login/finish`
-- **GitHub 开始**：`GET /api/auth/github/start`
+- **GitHub 开始**：`GET /api/auth/oauth/github/start` (`GET /api/auth/github/start`)
 - **GitHub 回调**：`GET /api/auth/github/callback`
 - **GitHub 可用状态**：`GET /api/auth/github/status`
 
@@ -132,7 +132,7 @@ Cookie，页面返回登录；其他凭据保持绑定，封禁仍然有效。`A
   `POST /api/auth/profile/fido/register/finish`
 - **删除 Passkey**：`DELETE /api/auth/profile/fido/:device_id`
 - **查询已关联 GitHub**：`GET /api/auth/profile/github`
-- **断开 GitHub**：`DELETE /api/auth/profile/github`
+- **断开 GitHub**：`DELETE /api/auth/profile/oauth/github` (`DELETE /api/auth/profile/github`)
 
 最后一种可用登录方式不可删除或禁用。
 

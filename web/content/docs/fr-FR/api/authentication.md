@@ -47,7 +47,7 @@ contient les droits et routes du compte, mais laisse `session_token` vide.
 
 - **Début Passkey** : `POST /api/auth/fido/login/begin`
 - **Fin Passkey** : `POST /api/auth/fido/login/finish`
-- **Début GitHub** : `GET /api/auth/github/start`
+- **Début GitHub** : `GET /api/auth/oauth/github/start` (`GET /api/auth/github/start`)
 - **Callback GitHub** : `GET /api/auth/github/callback`
 - **Disponibilité GitHub** : `GET /api/auth/github/status`
 
@@ -156,7 +156,7 @@ conservés dans l’historique du navigateur.
   `POST /api/auth/profile/fido/register/finish`
 - **Supprimer** : `DELETE /api/auth/profile/fido/:device_id`
 - **Lire l’identité GitHub** : `GET /api/auth/profile/github`
-- **Déconnecter GitHub** : `DELETE /api/auth/profile/github`
+- **Déconnecter GitHub** : `DELETE /api/auth/profile/oauth/github` (`DELETE /api/auth/profile/github`)
 
 La dernière méthode de connexion fonctionnelle ne peut être supprimée ni désactivée.
 

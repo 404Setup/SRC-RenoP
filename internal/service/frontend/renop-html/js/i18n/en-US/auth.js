@@ -17,7 +17,7 @@ export default Object.freeze({
     "fido.insecure": "Passkeys require a secure connection and a permitted site origin.",
     "fido.verificationUnavailable": "The authenticator cannot meet the required verification policy. Use another Passkey.",
     "oauth.settingsTitle": "Third-party login",
-    "oauth.settingsHint": "Configure up to 32 OAuth clients. GitHub has its own settings section. New sign-ins use the saved configuration immediately.",
+    "oauth.settingsHint": "Configure GitHub and up to 32 other OAuth clients. Saved settings apply to new sign-ins immediately.",
     "oauth.provider": "Provider",
     "oauth.add": "Add provider",
     "oauth.none": "No providers configured.",

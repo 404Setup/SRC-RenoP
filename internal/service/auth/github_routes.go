@@ -53,11 +53,27 @@ func setupGitHubRoutesWithProvider(auth fiber.Router, state *core.AppState, opCh
 	provider githubOAuthProvider) {
 	auth.Get("/github/status", func(c fiber.Ctx) error { return getGitHubStatus(c, state) })
 	auth.Get("/github/start", func(c fiber.Ctx) error { return startGitHubOAuth(c, state, provider) })
+	auth.Get("/oauth/github/start", func(c fiber.Ctx) error {
+		intent := c.Query("intent", "login")
+		switch intent {
+		case "login", "register":
+		case "link", "email":
+			profile, err := currentSessionProfile(c, state)
+			if err != nil || profile == nil {
+				return c.SendStatus(fiber.StatusForbidden)
+			}
+		default:
+			return passwordResetError(c, 400, "oauth_invalid")
+		}
+		c.Request().URI().QueryArgs().Set("intent", intent)
+		return startGitHubOAuth(c, state, provider)
+	})
 	auth.Get("/github/callback", func(c fiber.Ctx) error {
 		return finishGitHubOAuth(c, state, opChan, provider)
 	})
 	auth.Get("/profile/github", func(c fiber.Ctx) error { return getProfileGitHub(c, state) })
 	auth.Delete("/profile/github", func(c fiber.Ctx) error { return deleteProfileGitHub(c, state) })
+	auth.Delete("/profile/oauth/github", func(c fiber.Ctx) error { return deleteProfileGitHub(c, state) })
 	auth.Post("/profile/avatar/github", func(c fiber.Ctx) error { return syncGitHubAvatar(c, state, provider) })
 }
 
@@ -363,7 +379,7 @@ func deleteProfileGitHub(c fiber.Ctx, state *core.AppState) error {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 	currentSession, ok := c.Locals("current_session_id").(string)
-	if !ok || strings.TrimSpace(currentSession) == "" {
+	if !ok || strings.TrimSpace(currentSession) == "" || c.Cookies(sessionCookieName) != currentSession {
 		return c.Status(fiber.StatusForbidden).SendString("A browser session is required")
 	}
 	canDisconnect, err := canDisconnectGitHub(state, user.Username)

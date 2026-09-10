@@ -53,7 +53,6 @@ test('shared UI and application interaction layers use the jQuery 4 boundary', (
         'packages/renop-ui/js/scroll.js',
         'packages/renop-ui/js/i18n-util.js',
         'internal/service/frontend/renop-html/js/account-security.js',
-        'internal/service/frontend/renop-html/js/github-auth.js',
         'web/js/router.js',
     ];
     const removedAPIs = /\$\.(?:trim|isArray|parseJSON|now|camelCase|isFunction|isNumeric|type|proxy|holdReady)\s*\(|\.(?:size|andSelf|bind|unbind|delegate|undelegate)\s*\(/;

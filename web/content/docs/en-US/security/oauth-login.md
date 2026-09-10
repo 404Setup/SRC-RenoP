@@ -9,11 +9,11 @@ description: Configure Microsoft, Google, GitLab, Cloudflare, Stack Exchange, an
 
 ## Configure providers
 
-In the administrator service settings, open **Third-party login**, select a provider, and add a client. Configure its
-credentials and exact callback URL, then enable and save it. Each client has a unique lowercase `id` of up to 32
-characters; use letters, digits, underscores, and hyphens, starting with a letter. `github` is reserved. The ID
-identifies existing bindings and cannot be edited in the UI after saving. Up to 32 providers and 32 bindings per account
-are supported. GitHub retains its separate settings section.
+In administrator settings, open **Third-party login** to configure GitHub and other providers. GitHub is the built-in entry with the fixed ID `github`; enable or disable it there. Add up to 32 other clients with unique lowercase IDs of up to 32 characters, starting with a letter and using letters, digits, underscores, or hyphens. Saved IDs identify existing bindings and cannot be edited. Each account supports one GitHub binding and up to 32 other provider bindings.
+
+GitHub retains `server.github_oauth` and the callback `/api/auth/github/callback` for compatibility. Existing settings and bindings appear automatically in the unified interface. Its client ID is limited to 128 bytes and secret to 512 bytes; a blank secret is retained only for the same client ID. GitHub user and organization authorization, verified email, and manual avatar synchronization remain available.
+
+The remaining provider configuration and protocol details below describe the additional OAuth clients; GitHub retains its existing authorization flow and compatibility callback.
 
 Register a web application with the provider and allow the exact callback
 `https://renop.example/api/auth/oauth/<provider-id>/callback`. OAuth endpoints and callbacks require HTTPS, except HTTP
@@ -35,7 +35,7 @@ enable [email delivery](../configuration/mail.md) first.
 
 ## Configuration and credentials
 
-Providers are stored in `server.oauth_providers`. The following example keeps clients disabled until their credentials
+Additional providers are stored in `server.oauth_providers`. The following example keeps clients disabled until their credentials
 are replaced:
 
 ```yaml

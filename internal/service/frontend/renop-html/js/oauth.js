@@ -50,9 +50,10 @@ function renderPublicProviders() {
 export async function initializeOAuth() {
     const revision = ++publicRevision;
     const current = new URL(window.location.href);
-    const result = current.searchParams.get('oauth');
+    const result = current.searchParams.get('oauth') || current.searchParams.get('github_oauth');
     if (result) {
         current.searchParams.delete('oauth');
+        current.searchParams.delete('github_oauth');
         current.searchParams.delete('provider');
         window.history.replaceState(window.history.state, '', current.pathname + current.search + current.hash);
         const messages = {
@@ -64,6 +65,8 @@ export async function initializeOAuth() {
             session_changed: ['oauth.expired', 'error'],
             configuration_changed: ['oauth.expired', 'error'],
             identity_linked: ['oauth.alreadyLinked', 'error'],
+            scope_missing: ['login.githubScopeMissing', 'error'],
+            email_failed: ['profile.githubEmailFailed', 'error'],
             account_banned: ['login.accountBanned', 'error'],
             account_deleted: ['login.accountDeleted', 'error'],
             email_updated: ['profile.privateEmailSaved', 'success'],
@@ -129,7 +132,9 @@ function renderPrivateProviders() {
             }));
             actions.appendChild(disconnect);
         }
-        const status = provider.linked ? t('oauth.connectedAs', {login: provider.login || provider.name}) : t('oauth.notConnected');
+        const status = provider.linked ? (provider.id === 'github'
+            ? t('profile.githubConnectedAs', {login: provider.login, count: provider.principal_count || 1})
+            : t('oauth.connectedAs', {login: provider.login || provider.name})) : t('oauth.notConnected');
         container.appendChild(el('div', {class: 'profile-settings-section'},
             el('div', {class: 'profile-section-card-header'},
                 el('div', {class: 'profile-section-icon'}, createIcon('user')),
@@ -176,12 +181,14 @@ window.addEventListener('authChanged', event => {
 window.addEventListener('accountSecurityUpdated', event => {
     if (!privateProviders.length || !event.detail) return;
     const security = event.detail;
-    const canDisconnect = (security.password_configured && security.password_login_enabled) || security.github_linked ||
-        Number(security.oauth_identity_count) > 1 || (Number(security.fido_device_count) > 0 && !security.passkey_second_factor);
-    if (privateProviders.every(provider => !provider.linked || provider.can_disconnect === Boolean(canDisconnect))) return;
+    const canDisconnect = provider => Boolean((security.password_configured && security.password_login_enabled) ||
+        (Number(security.fido_device_count) > 0 && !security.passkey_second_factor) ||
+        (provider.id === 'github' ? Number(security.oauth_identity_count) > 0
+            : security.github_linked || Number(security.oauth_identity_count) > 1));
+    if (privateProviders.every(provider => !provider.linked || provider.can_disconnect === canDisconnect(provider))) return;
     privateProviders = privateProviders.map(provider => ({
         ...provider,
-        can_disconnect: provider.linked && Boolean(canDisconnect)
+        can_disconnect: provider.linked && canDisconnect(provider)
     }));
     renderPrivateProviders();
 });

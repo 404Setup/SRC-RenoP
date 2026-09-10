@@ -69,7 +69,6 @@ const SETTINGS_PAGES = Object.freeze({
     server: {label: 'settings.domainServer', render: renderServerSettings},
     proxy: {label: 'settings.domainProxy', render: renderProxySettings},
     storage: {label: 'settings.domainStorage', render: renderStorageSettings},
-    github_oauth: {label: 'settings.githubOAuthTitle', render: renderGitHubOAuthSettings},
     oauth_providers: {label: 'oauth.settingsTitle', render: renderOAuthSettings},
     super_teams: {label: 'superTeam.settingsTitle', render: renderSuperTeamSettings},
     publication_quota: {label: 'publicationQuota.settingsTitle', render: renderPublicationQuotaSettings},
@@ -566,73 +565,6 @@ function renderPublicationQuotaSettings(container, data) {
         createFieldRow(t('publicationQuota.publicationLimit'), t('publicationQuota.publicationLimitHint'), publicationLimit),
         createFieldRow(t('publicationQuota.period'), t('publicationQuota.periodHint'), period)
     );
-    wrap.appendChild(section);
-    container.appendChild(wrap);
-}
-
-/**
- * Render administrator-managed GitHub OAuth credentials without reading the stored secret.
- * @param {HTMLElement} container - Settings form container.
- * @param {object} data - Write-only GitHub OAuth settings view.
- * @returns {void}
- */
-function renderGitHubOAuthSettings(container, data) {
-    const wrap = el('div', {class: 'cfg-layout'});
-    const section = createSection(
-        createIcon('user'),
-        t('settings.githubOAuthTitle'),
-        t('settings.githubOAuthSubtitle'),
-        {defaultCollapsed: true}
-    );
-    const fields = section.querySelector('.cfg-fields');
-    fields.appendChild(createToggleRow(
-        t('settings.githubOAuthEnabled'),
-        t('settings.githubOAuthEnabledHint'),
-        data.enabled === true,
-        checked => {
-            data.enabled = checked;
-            enableSave();
-        }
-    ));
-    const clientID = buildInput('text', data.client_id || '', 'Iv1.…', event => {
-        data.client_id = event.target.value;
-        enableSave();
-    });
-    clientID.autocomplete = 'off';
-    fields.appendChild(createFieldRow(
-        t('settings.githubOAuthClientId'),
-        t('settings.githubOAuthClientIdHint'),
-        clientID
-    ));
-    const clientSecret = buildInput('password', '', t('settings.githubOAuthSecretPlaceholder'), event => {
-        data.client_secret = event.target.value;
-        enableSave();
-    });
-    clientSecret.id = 'settings-github-oauth-secret';
-    clientSecret.autocomplete = 'new-password';
-    fields.appendChild(createFieldRow(
-        t('settings.githubOAuthClientSecret'),
-        data.client_secret_configured
-            ? t('settings.githubOAuthSecretKeepHint')
-            : t('settings.githubOAuthSecretRequiredHint'),
-        clientSecret
-    ));
-    const callback = buildInput('url', data.callback_url || '', 'https://repo.example/api/auth/github/callback', event => {
-        data.callback_url = event.target.value;
-        enableSave();
-    });
-    fields.appendChild(createFieldRow(
-        t('settings.githubOAuthCallback'),
-        t('settings.githubOAuthCallbackHint'),
-        callback
-    ));
-    section.appendChild(createCallout(
-        data.client_secret_configured ? 'success' : 'warning',
-        data.client_secret_configured
-            ? t('settings.githubOAuthConfigured')
-            : t('settings.githubOAuthNotConfigured'),
-        data.client_secret_configured ? 'success' : 'warning'
-    ));
     wrap.appendChild(section);
     container.appendChild(wrap);
 }
@@ -1438,7 +1370,6 @@ export async function saveDomainSettings() {
         if (!response.ok) throw new LocalizedResponseError(await responseErrorMessage(response, 'settings.saveFailed'), response.status);
         draft.config = savedData || submitted;
         if (domain === 'cache') Object.assign(draft.config, {password: '', clear_password: false});
-        if (domain === 'github_oauth') Object.assign(draft.config, {client_secret: '', clear_client_secret: false});
         if (domain === 'mail') draft.config.clear_secrets = {};
         currentConfig = draft.config;
         renderSettingsForm(domain, currentConfig);

@@ -30,7 +30,6 @@ import {closeModalWithAnim} from './app-ui.js';
 import {openAuditLogsDialog} from './audit.js';
 import {formatTimestamp} from './time.js';
 import {getRepositoryFormat} from './repository-formats.js';
-import {renderGitHubConnection} from './github-auth.js';
 import {refreshOAuthProfile} from './oauth.js';
 import {refreshAccountSecurity} from './account-security.js';
 import './account-retirement.js';
@@ -1192,7 +1191,7 @@ function buildProfileIdentityEditor(profile) {
             rateHint.textContent = profileRenameHint(updated);
             updateCounter();
             updateProfileEditHeading(updated);
-            renderGitHubConnection(updated.github);
+            void refreshOAuthProfile(updated.username);
         } catch (error) {
             console.error('Failed to update profile identity', error);
             showAlert(caughtErrorMessage(error, 'profile.updateFailed'), 'error');
@@ -1289,7 +1288,6 @@ function showProfileEdit(profile) {
         wireProfileDisclosure(card);
     });
     wireProfileEditActions(profile);
-    renderGitHubConnection(profile.github);
     void refreshOAuthProfile(profile.username);
     void refreshAccountSecurity();
     void refreshAPITokenSummary();

@@ -31,7 +31,6 @@ const availability = document.getElementById('registration-availability');
 const delivery = document.getElementById('registration-delivery');
 const send = document.getElementById('registration-send');
 const importProfile = document.getElementById('registration-import');
-const github = document.getElementById('registration-github');
 let active = false, epoch = 0, availabilityEpoch = 0, pending, receipt, timer, expiryTimer, strength;
 
 /** Read public auth results without treating a rejected confirmation as an expired login. */
@@ -180,11 +179,6 @@ importProfile.addEventListener('change', () => {
     if (!pending?.provider) return;
     username.value = importProfile.checked && pending.username_available ? pending.username : '';
     nickname.value = importProfile.checked ? pending.nickname : '';
-});
-github.addEventListener('click', async () => {
-    if (!active || fields.disabled) return;
-    if (!(await ensureLegalConsent('registration'))) return;
-    window.location.assign('/api/auth/github/start?intent=register&return_to=' + encodeURIComponent(loginReturnTo()));
 });
 send.addEventListener('click', () => runButtonAction(send, async () => {
     if (!active || fields.disabled || !email.reportValidity() || !(await ensureLegalConsent('registration'))) return;

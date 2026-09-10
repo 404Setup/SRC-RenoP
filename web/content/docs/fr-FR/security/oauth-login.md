@@ -9,12 +9,11 @@ description: Configurer Microsoft, Google, GitLab, Cloudflare, Stack Exchange et
 
 ## Configurer les fournisseurs
 
-Dans les paramètres de service de l’administrateur, ouvrez **Connexion via un service tiers**, sélectionnez un
-fournisseur et ajoutez un client. Renseignez ses identifiants et l’URL de rappel exacte, puis activez-le et enregistrez.
-Chaque client possède un `id` unique en minuscules, de 32 caractères maximum : lettres, chiffres, traits de soulignement
-et traits d’union, avec une lettre en premier. `github` est réservé. Cet ID identifie les associations existantes et ne
-peut plus être modifié dans l’interface après enregistrement. Jusqu’à 32 fournisseurs et 32 associations par compte sont
-autorisés. GitHub conserve sa section dédiée.
+Dans les paramètres administrateur, ouvrez **Connexion tierce** pour configurer GitHub et les autres fournisseurs. GitHub est une entrée intégrée avec l’ID fixe `github`, que vous pouvez activer ou désactiver. Ajoutez jusqu’à 32 autres clients avec des ID uniques de 32 caractères maximum, commençant par une lettre minuscule et contenant des lettres minuscules, chiffres, traits de soulignement ou traits d’union. Les ID enregistrés identifient les associations existantes et ne sont pas modifiables. Chaque compte accepte une association GitHub et jusqu’à 32 autres associations.
+
+Pour la compatibilité, GitHub conserve `server.github_oauth` et le rappel `/api/auth/github/callback`. Les paramètres et associations existants apparaissent automatiquement dans l’interface unifiée. L’ID client est limité à 128 octets et le secret à 512 octets ; un secret vide conserve la valeur enregistrée uniquement pour le même ID client. Les autorisations GitHub des utilisateurs et organisations, les e-mails vérifiés et la synchronisation manuelle de l’avatar restent disponibles.
+
+Les détails de configuration et de protocole ci-dessous concernent les clients OAuth supplémentaires ; GitHub conserve son flux d’autorisation existant et son rappel compatible.
 
 Enregistrez une application web chez le fournisseur et autorisez exactement le rappel
 `https://renop.example/api/auth/oauth/<provider-id>/callback`. Les points de terminaison OAuth et les rappels exigent

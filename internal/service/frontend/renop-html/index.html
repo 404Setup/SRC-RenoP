@@ -234,14 +234,6 @@
                             </svg>
                             <span data-i18n="login.fidoLogin">Continue with Passkey</span>
                         </button>
-                        <div hidden id="github-login-wrapper">
-                            <button class="account-provider" id="btn-github-login" type="button">
-                                <svg aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.71.5.1.68-.22.68-.49 0-.24-.01-.89-.02-1.75-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.35 1.12 2.92.86.09-.66.35-1.12.64-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.34 9.34 0 0 1 12 6.97c.85 0 1.69.12 2.5.35 1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.59.69.49A10.23 10.23 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z"/>
-                                </svg>
-                                <span data-i18n="login.githubLogin">Continue with GitHub</span>
-                            </button>
-                        </div>
                         <div class="account-providers" hidden id="oauth-login-providers"></div>
                     </div>
                 </form>
@@ -406,9 +398,6 @@
                 <form class="account-page-form" id="registration-form">
                     <p class="account-form-error" id="registration-availability" role="status"></p>
                     <fieldset class="account-reset-fields" disabled id="registration-fields">
-                        <button class="account-provider" data-i18n="login.githubLogin" hidden id="registration-github"
-                                type="button">Continue with GitHub
-                        </button>
                         <div class="account-providers" hidden id="oauth-register-providers"></div>
                         <div hidden id="registration-provider-info">
                             <p id="registration-provider-hint" role="status"></p>
@@ -1129,10 +1118,6 @@
                                     <p class="profile-security-hint" data-i18n="profile.privateEmailHint"
                                        id="profile-private-email-hint">This email is
                                         never shown publicly and can be used to sign in or recover your account.</p>
-                                    <button class="pill-btn pill-btn--soft profile-action-btn"
-                                            data-i18n="profile.githubVerifyEmail" hidden
-                                            id="profile-github-verify-email" type="button">Use verified GitHub email
-                                    </button>
                                 </form>
                                 <section aria-labelledby="profile-email-aliases-title"
                                          class="profile-security-email-form">
@@ -1301,37 +1286,6 @@
                                     id="btn-profile-fido" type="button">
                                 Manage Passkeys
                             </button>
-                        </div>
-                    </div>
-
-                    <div class="profile-settings-section" hidden id="profile-github-section">
-                        <div class="profile-section-card-header">
-                            <div aria-hidden="true" class="profile-section-icon profile-section-icon--github">
-                                <svg fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.71.5.1.68-.22.68-.49 0-.24-.01-.89-.02-1.75-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.35 1.12 2.92.86.09-.66.35-1.12.64-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.34 9.34 0 0 1 12 6.97c.85 0 1.69.12 2.5.35 1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.59.69.49A10.23 10.23 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z"/>
-                                </svg>
-                            </div>
-                            <div class="profile-section-meta">
-                                <h3 class="profile-section-title" data-i18n="profile.githubTitle">GitHub Account</h3>
-                                <p class="profile-section-desc" data-i18n="profile.githubDesc">Connect GitHub to sign in
-                                    and authorize Maven namespaces owned by your account or organizations.</p>
-                            </div>
-                        </div>
-                        <div class="profile-section-body profile-github-body">
-                            <p class="profile-github-status" data-i18n="profile.githubLoading"
-                               id="profile-github-status">Loading GitHub connection…</p>
-                            <div class="profile-github-actions">
-                                <button class="pill-btn pill-btn--primary profile-action-btn"
-                                        data-i18n="profile.githubConnect"
-                                        hidden id="btn-profile-github-connect"
-                                        type="button">Connect GitHub
-                                </button>
-                                <button class="pill-btn pill-btn--soft profile-action-btn"
-                                        data-i18n="profile.githubDisconnect"
-                                        hidden id="btn-profile-github-disconnect"
-                                        type="button">Disconnect
-                                </button>
-                            </div>
                         </div>
                     </div>
 

@@ -17,7 +17,7 @@ description: 按域管理服务设置、存储库与索引重建
 
 ## 浏览器设置分页
 
-设置界面为服务器公布的 16 类配置分别提供独立页面。桌面端在表单旁显示分类导航，小屏幕使用分类选择器。
+设置界面为服务器公布的 15 类配置分别提供独立页面。桌面端在表单旁显示分类导航，小屏幕使用分类选择器。
 上一页和下一页按相同顺序切换。打开一个页面只读取该类配置，不会同时拉取全部服务配置。
 
 切换分类或语言时，每页都会保留未保存的草稿。保存只更新当前页，提交期间暂时禁止编辑和切页。
@@ -36,12 +36,10 @@ GPG 仍属于服务配置。全局团队限制、发布配额、注册、缓存�
 - **更新**：`PUT /api/settings/domain/:name`
 - **行为**：请求与响应结构取决于 `:name`。未知字段和无效值会被拒绝。主机、端口、TLS、数据库及部分运行时
   参数变更可能要求重启服务。
-- **GitHub OAuth**：`GET /api/settings/github-oauth` 返回脱敏状态；`PUT /api/settings/github-oauth` 更新
-  Client ID 与只写 Secret。
 
-**其他 OAuth 服务**：`GET /api/settings/oauth-providers` 返回隐藏密钥的客户端配置和预设；
-`PUT /api/settings/oauth-providers` 替换列表。必须提供 `providers` 数组，显式空数组会移除全部已配置客户端。最多支持 32
-个客户端，请求体上限为 128 KiB。凭据、预设和账号绑定详见[第三方登录](../security/oauth-login.md)。
+**第三方登录**：`GET /api/settings/oauth-providers` 返回内置 GitHub 条目、脱敏客户端和预设。`PUT /api/settings/oauth-providers` 必须包含 `providers` 数组，并原子保存两组配置。支持 GitHub 加最多 32 个其他客户端，请求上限为 128 KiB。为兼容旧客户端，省略 GitHub 会保留其配置；应关闭该条目并使用 `clear_client_secret` 清除密钥。空数组仅移除其他客户端。兼容端点 `GET /api/settings/github-oauth` 和 `PUT /api/settings/github-oauth` 继续管理同一份 GitHub 配置。
+
+[OAuth](../security/oauth-login.md)
 
 ## 存储库设置
 

@@ -46,7 +46,7 @@ Passkey, ожидающие ответы входа и восстановлен�
 
 - **Начало Passkey**: `POST /api/auth/fido/login/begin`
 - **Завершение Passkey**: `POST /api/auth/fido/login/finish`
-- **Начало GitHub**: `GET /api/auth/github/start`
+- **Начало GitHub**: `GET /api/auth/oauth/github/start` (`GET /api/auth/github/start`)
 - **Callback GitHub**: `GET /api/auth/github/callback`
 - **Доступность GitHub**: `GET /api/auth/github/status`
 
@@ -149,7 +149,7 @@ Microsoft, Google, GitLab, Cloudflare, Stack Exchange и собственные 
   `POST /api/auth/profile/fido/register/finish`
 - **Удаление**: `DELETE /api/auth/profile/fido/:device_id`
 - **Связанный GitHub**: `GET /api/auth/profile/github`
-- **Отключить GitHub**: `DELETE /api/auth/profile/github`
+- **Отключить GitHub**: `DELETE /api/auth/profile/oauth/github` (`DELETE /api/auth/profile/github`)
 
 Последний рабочий способ входа нельзя удалить или отключить.
 

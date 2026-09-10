@@ -1057,11 +1057,11 @@ func TestGetDomainsProtobuf(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected GET 200, got %d", resp.StatusCode)
 	}
-	if len(got.Domains) != 16 || !slices.Contains(got.Domains, "captcha") || !slices.Contains(got.Domains, "legal") || !slices.Contains(got.Domains, "proxy") || !slices.Contains(got.Domains, "oauth_providers") ||
-		!slices.Contains(got.Domains, "github_oauth") || !slices.Contains(got.Domains, "super_teams") ||
+	if len(got.Domains) != 15 || !slices.Contains(got.Domains, "captcha") || !slices.Contains(got.Domains, "legal") || !slices.Contains(got.Domains, "proxy") || !slices.Contains(got.Domains, "oauth_providers") ||
+		slices.Contains(got.Domains, "github_oauth") || !slices.Contains(got.Domains, "super_teams") ||
 		!slices.Contains(got.Domains, "publication_quota") || !slices.Contains(got.Domains, "cache") ||
 		!slices.Contains(got.Domains, "mail") || !slices.Contains(got.Domains, "registration") || !slices.Contains(got.Domains, "maven_domains") || slices.Contains(got.Domains, "gpg") {
-		t.Fatalf("expected 16 domains including CAPTCHA, legal, OAuth, registration, cache, mail and Maven domain settings while excluding gpg, got %v", got.Domains)
+		t.Fatalf("expected 15 domains including CAPTCHA, legal, OAuth, registration, cache, mail and Maven domain settings while excluding gpg, got %v", got.Domains)
 	}
 }
 
@@ -1095,7 +1095,7 @@ func TestGitHubOAuthSettingsKeepSecretWriteOnly(t *testing.T) {
 
 	preserveRequest := httptest.NewRequest(http.MethodPut, "/github-oauth", strings.NewReader(`{
 		"enabled":true,
-		"client_id":"Iv1.changed",
+		"client_id":"Iv1.example",
 		"client_secret":"",
 		"callback_url":"https://repo.example/api/auth/github/callback"
 	}`))

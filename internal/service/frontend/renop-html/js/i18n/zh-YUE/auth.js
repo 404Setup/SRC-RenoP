@@ -17,7 +17,7 @@ export default Object.freeze({
     "fido.insecure": "Passkey 需要安全連線同獲准嘅網站來源。",
     "fido.verificationUnavailable": "驗證器未能符合所需嘅驗證要求，請用其他 Passkey。",
     "oauth.settingsTitle": "第三方登入",
-    "oauth.settingsHint": "最多設定 32 個 OAuth 客戶端。GitHub 使用獨立設定區域。儲存後，新的登入立即使用最新設定。",
+    "oauth.settingsHint": "統一設定 GitHub 同最多 32 個其他 OAuth 客戶端。儲存後，新登入即時用最新設定。",
     "oauth.provider": "服務提供者",
     "oauth.add": "新增服務",
     "oauth.none": "未設定服務。",

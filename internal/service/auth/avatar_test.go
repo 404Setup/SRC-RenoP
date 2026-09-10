@@ -165,7 +165,7 @@ func TestAvatarUploadQuotaServingAndManualGitHubSync(t *testing.T) {
 	assert.Equal(t, "avatar_unsafe", unsafeResponse.Header.Get("X-Renop-Error-Code"))
 	require.NoError(t, unsafeResponse.Body.Close())
 
-	syncResponse, err := app.Test(httptest.NewRequest(http.MethodPost, "/auth/profile/avatar/github", nil))
+	syncResponse, err := app.Test(httptest.NewRequest(http.MethodPost, "/auth/profile/avatar/github", nil), fiber.TestConfig{Timeout: 10 * time.Second})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, syncResponse.StatusCode)
 	require.NoError(t, syncResponse.Body.Close())

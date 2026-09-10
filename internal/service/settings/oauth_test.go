@@ -76,3 +76,45 @@ func TestOAuthSettingsKeepCredentialsPrivate(t *testing.T) {
 	require.Equal(t, 200, response.StatusCode)
 	require.Empty(t, state.Inner.Config.Load().Server.OAuthProviders)
 }
+
+func TestUnifiedOAuthSettingsPreserveLegacyGitHub(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.Server.GitHubOAuth = config.GitHubOAuthConfig{Enabled: true, ClientID: "legacy-client", ClientSecret: "legacy-secret", CallbackURL: "https://renop.example/api/auth/github/callback"}
+	app, state := setupSettingsTestApp(t, cfg)
+	response, err := app.Test(httptest.NewRequest("GET", "/oauth-providers", nil))
+	require.NoError(t, err)
+	var view struct {
+		Providers []oauthProviderSettings `json:"providers"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&view))
+	require.NoError(t, response.Body.Close())
+	require.Len(t, view.Providers, 1)
+	github := view.Providers[0]
+	require.Equal(t, "github", github.ID)
+	require.True(t, github.ClientSecretConfigured)
+	require.Empty(t, github.ClientSecret)
+	put := func(providers []oauthProviderSettings, status int) {
+		t.Helper()
+		data, err := json.Marshal(map[string]any{"providers": providers})
+		require.NoError(t, err)
+		request := httptest.NewRequest("PUT", "/oauth-providers", bytes.NewReader(data))
+		request.Header.Set("Content-Type", "application/json")
+		response, err := app.Test(request)
+		require.NoError(t, err)
+		require.NoError(t, response.Body.Close())
+		require.Equal(t, status, response.StatusCode)
+	}
+	put(view.Providers, 200)
+	require.Equal(t, cfg.Server.GitHubOAuth, state.Inner.Config.Load().Server.GitHubOAuth)
+	require.Empty(t, state.Inner.Config.Load().Server.OAuthProviders)
+	put([]oauthProviderSettings{}, 200)
+	require.True(t, state.Inner.Config.Load().Server.GitHubOAuth.Configured(), "legacy clients omitting GitHub must preserve it")
+	put([]oauthProviderSettings{github, github}, 400)
+	github.ClientID = "other-client"
+	put([]oauthProviderSettings{github}, 400)
+	require.Equal(t, "legacy-secret", state.Inner.Config.Load().Server.GitHubOAuth.ClientSecret)
+	github.Enabled, github.ClearClientSecret = false, true
+	put([]oauthProviderSettings{github}, 200)
+	require.Empty(t, state.Inner.Config.Load().Server.GitHubOAuth.ClientSecret)
+	require.False(t, state.Inner.Config.Load().Server.GitHubOAuth.Enabled)
+}

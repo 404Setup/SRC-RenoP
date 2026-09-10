@@ -44,7 +44,7 @@ Success sets `renop_session` with `HttpOnly`, `SameSite=Lax`, and `Secure` when 
 
 - **Passkey begin**: `POST /api/auth/fido/login/begin`
 - **Passkey finish**: `POST /api/auth/fido/login/finish`
-- **GitHub start**: `GET /api/auth/github/start`
+- **GitHub start**: `GET /api/auth/oauth/github/start` (`GET /api/auth/github/start`)
 - **GitHub callback**: `GET /api/auth/github/callback`
 - **GitHub availability**: `GET /api/auth/github/status`
 
@@ -147,7 +147,7 @@ the page and are never stored in browser history.
   `POST /api/auth/profile/fido/register/finish`
 - **Delete Passkey**: `DELETE /api/auth/profile/fido/:device_id`
 - **Read linked GitHub identity**: `GET /api/auth/profile/github`
-- **Disconnect GitHub**: `DELETE /api/auth/profile/github`
+- **Disconnect GitHub**: `DELETE /api/auth/profile/oauth/github` (`DELETE /api/auth/profile/github`)
 
 The last working login method cannot be removed or disabled.
 

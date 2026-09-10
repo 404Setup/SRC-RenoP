@@ -40,12 +40,16 @@ type oauthProfileStatus struct {
 	CanVerifyEmail  bool   `json:"can_verify_email"`
 	CanImportAvatar bool   `json:"can_import_avatar"`
 	AuthorizedAt    int64  `json:"authorized_at,omitempty"`
+	PrincipalCount  int    `json:"principal_count,omitempty"`
 }
 
 func setupOAuthRoutes(auth fiber.Router, state *core.AppState) {
 	auth.Get("/oauth/providers", func(c fiber.Ctx) error {
 		setPrivateResponseHeaders(c)
 		providers := []fiber.Map{}
+		if state.Inner.Config.Load().Server.GitHubOAuth.Configured() {
+			providers = append(providers, fiber.Map{"id": "github", "name": "GitHub"})
+		}
 		for _, p := range state.Inner.Config.Load().Server.OAuthProviders {
 			if p.Configured() {
 				providers = append(providers, fiber.Map{"id": p.ID, "name": p.Name})
@@ -339,6 +343,16 @@ func oauthProfileStatuses(state *core.AppState, username string) ([]oauthProfile
 		security.OAuthIdentityCount > 1 || security.FidoDeviceCount > 0 && !security.PasskeySecondFactor
 	for i := range statuses {
 		statuses[i].CanDisconnect = statuses[i].Linked && canDisconnect
+	}
+	github, err := githubProfileStatusForAccount(state, username)
+	if err != nil {
+		return nil, err
+	}
+	if github.Configured || github.Linked {
+		statuses = append([]oauthProfileStatus{{ID: "github", Name: "GitHub", Login: github.GitHubLogin,
+			Configured: github.Configured, Linked: github.Linked, CanDisconnect: github.CanDisconnect,
+			CanVerifyEmail: github.Configured, AuthorizedAt: github.AuthorizedAt,
+			PrincipalCount: github.PrincipalCount}}, statuses...)
 	}
 	return statuses, nil
 }

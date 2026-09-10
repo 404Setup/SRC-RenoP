@@ -9,9 +9,11 @@ description: 配置 Microsoft、Google、GitLab、Cloudflare、Stack Exchange �
 
 ## 配置服务
 
-在管理员的服务设置中打开“第三方登录”，选择服务并添加客户端。填写凭据和完整回调 URL，然后启用并保存。每个客户端使用唯一的小写
-`id`，最长 32 个字符，以字母开头，可包含字母、数字、下划线和连字符。`github` 为保留值。ID 用于识别现有绑定，保存后无法通过界面修改。最多支持
-32 个服务，每个账号最多保留 32 个绑定。GitHub 继续使用独立的设置区域。
+在管理员设置中打开**第三方登录**，统一配置 GitHub 和其他服务。GitHub 是内置条目，固定 ID 为 `github`，可在此启用或关闭。还可添加最多 32 个其他客户端，ID 最长 32 个字符，以小写字母开头，可包含小写字母、数字、下划线和连字符。已保存的 ID 用于识别现有绑定，不可编辑。每个账号支持一个 GitHub 绑定和最多 32 个其他服务绑定。
+
+为保持兼容，GitHub 继续使用 `server.github_oauth` 和回调 `/api/auth/github/callback`。现有配置和绑定自动显示在统一界面中。客户端 ID 最长 128 字节，密钥最长 512 字节；只有客户端 ID 不变时，空白密钥才保留原值。GitHub 用户与组织授权、已验证邮箱及手动同步头像功能继续可用。
+
+下文的服务配置与协议细节描述其他 OAuth 客户端；GitHub 保留现有授权流程和兼容回调。
 
 向服务提供商注册 Web 应用，并允许完整回调地址 `https://renop.example/api/auth/oauth/<provider-id>/callback`。OAuth
 端点及回调必须使用 HTTPS，开发时的 HTTP 回环地址除外。保存的配置立即用于新的授权；配置变更会使正在进行的授权失效。
@@ -30,7 +32,7 @@ Microsoft 根据租户和应用注册设置支持个人账号与 Entra ID 账号
 
 ## 配置与凭据
 
-服务保存在 `server.oauth_providers` 中。以下示例在替换凭据之前保持客户端禁用：
+其他服务保存在 `server.oauth_providers` 中。以下示例在替换凭据之前保持客户端禁用：
 
 ```yaml
 server:

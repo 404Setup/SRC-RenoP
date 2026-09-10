@@ -17,7 +17,7 @@ export default Object.freeze({
     "fido.insecure": "Passkey에는 보안 연결과 허용된 사이트 출처가 필요합니다.",
     "fido.verificationUnavailable": "인증 장치가 필요한 검증 정책을 충족하지 못합니다. 다른 Passkey를 사용하세요.",
     "oauth.settingsTitle": "외부 서비스 로그인",
-    "oauth.settingsHint": "OAuth 클라이언트를 최대 32개 설정할 수 있습니다. GitHub는 별도 설정 영역을 사용합니다. 저장한 설정은 새 로그인에 즉시 적용됩니다.",
+    "oauth.settingsHint": "GitHub와 최대 32개의 다른 OAuth 클라이언트를 함께 설정합니다. 저장한 설정은 새 로그인에 즉시 적용됩니다.",
     "oauth.provider": "제공업체",
     "oauth.add": "제공업체 추가",
     "oauth.none": "설정된 제공업체가 없습니다.",

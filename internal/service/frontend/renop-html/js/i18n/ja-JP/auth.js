@@ -17,7 +17,7 @@ export default Object.freeze({
     "fido.insecure": "Passkey には安全な接続と許可されたサイトのオリジンが必要です。",
     "fido.verificationUnavailable": "認証器が必要な検証条件を満たせません。別の Passkey を使用してください。",
     "oauth.settingsTitle": "外部サービスでログイン",
-    "oauth.settingsHint": "OAuth クライアントを最大 32 件設定できます。GitHub は専用の設定欄を使用します。保存後のログインには新しい設定がすぐに適用されます。",
+    "oauth.settingsHint": "GitHub と最大 32 件の他の OAuth クライアントをまとめて設定します。保存後のログインには新しい設定がすぐに適用されます。",
     "oauth.provider": "プロバイダー",
     "oauth.add": "プロバイダーを追加",
     "oauth.none": "プロバイダーが設定されていません。",

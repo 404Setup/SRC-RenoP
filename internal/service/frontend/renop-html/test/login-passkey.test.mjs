@@ -39,16 +39,16 @@ test('sign-in return paths stay local and cannot reenter authentication endpoint
     assert.match(index, /<section[^>]*id="tab-content-login"/);
     assert.ok(index.indexOf('id="login-form"') < index.indexOf('</main>'));
     assert.doesNotMatch(index, /id="login-modal"|id="close-login-modal"/);
-    const github = readFileSync(join(frontendRoot, 'js/github-auth.js'), 'utf8');
-    assert.match(github, /isLoginPath\(\) \? loginReturnTo\(\)/);
+    const oauth = readFileSync(join(frontendRoot, 'js/oauth.js'), 'utf8');
+    assert.match(oauth, /loginReturnTo\(\)/);
 });
 
-test('login alternatives place Passkey before optional GitHub below the divider', () => {
+test('login alternatives place Passkey before optional third-party providers below the divider', () => {
     const index = readFileSync(join(frontendRoot, 'index.html'), 'utf8');
     const submit = index.indexOf('class="account-submit"');
     const divider = index.indexOf('class="account-provider-divider"');
     const passkey = index.indexOf('id="btn-fido-login"');
-    const github = index.indexOf('id="btn-github-login"');
+    const github = index.indexOf('id="oauth-login-providers"');
     assert.ok(submit >= 0 && divider > submit && passkey > divider && github > passkey);
     assert.match(index, /<button(?=[^>]*id="btn-fido-login")(?=[^>]*class="account-provider")[^>]*>/);
     assert.doesNotMatch(index, /Username, email, or token name|Password \/ Secret|password or secret/i);

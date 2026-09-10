@@ -11,11 +11,13 @@
 package auth
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
@@ -86,7 +88,14 @@ func TestGitHubOAuthExistingAccountAndSingleUseSession(t *testing.T) {
 		TokenURL:     providerServer.URL + "/token",
 		APIURL:       providerServer.URL + "/api",
 	})
-	startRequest := httptest.NewRequest(http.MethodGet, "/auth/github/start?return_to=%2Fpackages", nil)
+	setupOAuthRoutes(app.Group("/auth"), state)
+	for _, intent := range []string{"link", "email", "avatar"} {
+		denied, err := app.Test(httptest.NewRequest("GET", "/auth/oauth/github/start?intent="+intent, nil))
+		require.NoError(t, err)
+		require.NoError(t, denied.Body.Close())
+		require.Contains(t, []int{400, 403}, denied.StatusCode)
+	}
+	startRequest := httptest.NewRequest(http.MethodGet, "/auth/oauth/github/start?return_to=%2Fpackages", nil)
 	startRequest.Header.Set("X-Renop-Legal-Revision", cfg.Legal.Revision())
 	startResponse, err := app.Test(startRequest)
 	require.NoError(t, err)
@@ -108,7 +117,7 @@ func TestGitHubOAuthExistingAccountAndSingleUseSession(t *testing.T) {
 	for _, cookie := range startResponse.Cookies() {
 		callbackRequest.AddCookie(cookie)
 	}
-	callbackResponse, err := app.Test(callbackRequest)
+	callbackResponse, err := app.Test(callbackRequest, fiber.TestConfig{Timeout: 10 * time.Second})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusSeeOther, callbackResponse.StatusCode)
 	assert.Equal(t, "/packages?github_oauth=success", callbackResponse.Header.Get("Location"))
@@ -132,6 +141,20 @@ func TestGitHubOAuthExistingAccountAndSingleUseSession(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, sessions, 1)
 	assert.Equal(t, "github", sessions[0].LoginMethod)
+
+	statuses, err := oauthProfileStatuses(state, identity.Username)
+	require.NoError(t, err)
+	require.Len(t, statuses, 1)
+	require.Equal(t, "github", statuses[0].ID)
+	require.True(t, statuses[0].Linked)
+	require.False(t, statuses[0].CanDisconnect)
+	publicResponse, err := app.Test(httptest.NewRequest("GET", "/auth/oauth/providers", nil))
+	require.NoError(t, err)
+	publicBody, err := io.ReadAll(publicResponse.Body)
+	require.NoError(t, err)
+	require.NoError(t, publicResponse.Body.Close())
+	require.Contains(t, string(publicBody), `"id":"github"`)
+	require.NotContains(t, string(publicBody), "client-secret")
 
 	replayResponse, err := app.Test(httptest.NewRequest(http.MethodGet,
 		"/auth/github/callback?state="+url.QueryEscape(stateValue)+"&code=test-code", nil))
@@ -158,7 +181,7 @@ func TestGitHubOAuthExistingAccountAndSingleUseSession(t *testing.T) {
 	for _, cookie := range reauthStart.Cookies() {
 		reauthCallback.AddCookie(cookie)
 	}
-	secondFactor, err := app.Test(reauthCallback)
+	secondFactor, err := app.Test(reauthCallback, fiber.TestConfig{Timeout: 10 * time.Second})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusSeeOther, secondFactor.StatusCode)
 	secondFactorURL, err := url.Parse(secondFactor.Header.Get("Location"))
@@ -173,7 +196,7 @@ func TestGitHubOAuthExistingAccountAndSingleUseSession(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, sessions, 1, "OAuth reauthentication must not issue a session before its second factor")
 
-	disconnectRequest := httptest.NewRequest(http.MethodDelete, "/auth/profile/github", nil)
+	disconnectRequest := httptest.NewRequest(http.MethodDelete, "/auth/profile/oauth/github", nil)
 	disconnectRequest.AddCookie(sessionCookie)
 	disconnectResponse, err := app.Test(disconnectRequest)
 	require.NoError(t, err)
@@ -183,7 +206,7 @@ func TestGitHubOAuthExistingAccountAndSingleUseSession(t *testing.T) {
 	require.NoError(t, token.UpdateTokenSync(operations, identity.Username, func(accessToken *core.AccessToken) {
 		accessToken.EncryptedSecret = "configured-password-hash"
 	}))
-	disconnectRequest = httptest.NewRequest(http.MethodDelete, "/auth/profile/github", nil)
+	disconnectRequest = httptest.NewRequest(http.MethodDelete, "/auth/profile/oauth/github", nil)
 	disconnectRequest.AddCookie(sessionCookie)
 	disconnectResponse, err = app.Test(disconnectRequest)
 	require.NoError(t, err)

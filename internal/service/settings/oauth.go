@@ -30,9 +30,13 @@ type oauthProviderSettings struct {
 	ClearAPIKey            bool `json:"clear_api_key,omitempty"`
 }
 
-func oauthSettings(providers []config.OAuthProviderConfig) fiber.Map {
-	values := make([]oauthProviderSettings, 0, len(providers))
-	for _, p := range providers {
+func oauthSettings(server config.ServerConfig) fiber.Map {
+	github := server.GitHubOAuth
+	values := []oauthProviderSettings{{OAuthProviderConfig: config.OAuthProviderConfig{
+		ID: "github", Type: "github", Name: "GitHub", Enabled: github.Enabled,
+		ClientID: github.ClientID, CallbackURL: github.CallbackURL,
+	}, ClientSecretConfigured: github.ClientSecret != ""}}
+	for _, p := range server.OAuthProviders {
 		value := oauthProviderSettings{OAuthProviderConfig: p.Resolved(), ClientSecretConfigured: p.ClientSecret != "", APIKeyConfigured: p.APIKey != ""}
 		value.ClientSecret, value.APIKey = "", ""
 		values = append(values, value)
@@ -50,7 +54,7 @@ func getOAuthSettings(c fiber.Ctx, state *core.AppState) error {
 		return c.SendStatus(fiber.StatusForbidden)
 	}
 	c.Set(fiber.HeaderCacheControl, "no-store")
-	return c.JSON(oauthSettings(state.Inner.Config.Load().Server.OAuthProviders))
+	return c.JSON(oauthSettings(state.Inner.Config.Load().Server))
 }
 
 func normalizeOAuthSettings(current []config.OAuthProviderConfig, request []oauthProviderSettings) ([]config.OAuthProviderConfig, error) {
@@ -111,12 +115,34 @@ func putOAuthSettings(c fiber.Ctx, state *core.AppState) error {
 	state.Inner.ConfigWriteLock.Lock()
 	defer state.Inner.ConfigWriteLock.Unlock()
 	current := state.Inner.Config.Load()
-	providers, err := normalizeOAuthSettings(current.Server.OAuthProviders, request.Providers)
+	github := current.Server.GitHubOAuth
+	providersRequest := make([]oauthProviderSettings, 0, len(request.Providers))
+	seenGitHub := false
+	for _, value := range request.Providers {
+		if value.Type != "github" {
+			providersRequest = append(providersRequest, value)
+			continue
+		}
+		if seenGitHub || value.ID != "github" || value.Name != "GitHub" {
+			return cacheSettingsError(c, 400, "oauth_settings_invalid")
+		}
+		seenGitHub = true
+		var err error
+		github, err = normalizeGitHubOAuthSettings(github, githubOAuthSettingsRequest{
+			ClientID: value.ClientID, ClientSecret: value.ClientSecret, CallbackURL: value.CallbackURL,
+			Enabled: value.Enabled, ClearClientSecret: value.ClearClientSecret,
+		})
+		if err != nil {
+			return cacheSettingsError(c, 400, "oauth_settings_invalid")
+		}
+	}
+	providers, err := normalizeOAuthSettings(current.Server.OAuthProviders, providersRequest)
 	if err != nil {
 		return cacheSettingsError(c, 400, "oauth_settings_invalid")
 	}
 	next := current.DeepCopy()
 	next.Server.OAuthProviders = providers
+	next.Server.GitHubOAuth = github
 	if persistConfigSnapshot(next) != nil {
 		return cacheSettingsError(c, 500, "oauth_settings_save_failed")
 	}
@@ -125,5 +151,5 @@ func putOAuthSettings(c fiber.Ctx, state *core.AppState) error {
 	audit.Log(state, &core.AuditLogEntry{Username: username, Operator: operator, AuthMethod: method,
 		SessionID: sessionID, IP: ip, Action: audit.ActionSettingsUpdate, Details: "Updated OAuth providers"})
 	c.Set(fiber.HeaderCacheControl, "no-store")
-	return c.JSON(oauthSettings(providers))
+	return c.JSON(oauthSettings(next.Server))
 }

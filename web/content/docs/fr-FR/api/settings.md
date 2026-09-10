@@ -17,7 +17,7 @@ l’opération. Les réponses utilisent protobuf lorsque `proto/api/v1/api.proto
 
 ## Pages de paramètres dans le navigateur
 
-Chaque domaine parmi les 16 annoncés dispose de sa propre page. Sur ordinateur, les catégories figurent à côté
+Chaque domaine parmi les 15 annoncés dispose de sa propre page. Sur ordinateur, les catégories figurent à côté
 du formulaire ; sur petit écran, un sélecteur les remplace. Précédent et suivant suivent le même ordre. Ouvrir une
 page charge uniquement sa configuration, sans charger tous les paramètres du service.
 
@@ -41,13 +41,10 @@ et sombre.
 - **Modifier** : `PUT /api/settings/domain/:name`
 - **Comportement** : le schéma dépend de `:name`. Les champs inconnus et valeurs invalides sont refusés. Les changements
   d’hôte, port, TLS, base de données ou certains paramètres d’exécution peuvent imposer un redémarrage.
-- **GitHub OAuth** : `GET /api/settings/github-oauth` renvoie un état masqué et `PUT /api/settings/github-oauth` modifie
-  l’identifiant client et le secret en écriture seule.
 
-**Autres fournisseurs OAuth** : `GET /api/settings/oauth-providers` renvoie les clients et préréglages sans secrets ;
-`PUT /api/settings/oauth-providers` remplace la liste. Le tableau `providers` est obligatoire ; un tableau explicitement
-vide supprime tous les clients configurés. Jusqu’à 32 clients et un corps de 128 KiB sont acceptés.
-Voir [Connexion via un service tiers](../security/oauth-login.md) pour les identifiants, préréglages et associations.
+**Connexion tierce** : `GET /api/settings/oauth-providers` renvoie l’entrée GitHub intégrée, les clients expurgés et les préréglages. `PUT /api/settings/oauth-providers` exige un tableau `providers` et enregistre les deux groupes atomiquement. GitHub et jusqu’à 32 autres clients sont acceptés, avec une limite de 128 KiB par requête. Omettre GitHub conserve sa configuration pour les anciens clients ; désactivez son entrée et utilisez `clear_client_secret` pour effacer ses identifiants. Un tableau vide ne supprime que les autres clients. Les points de compatibilité `GET /api/settings/github-oauth` et `PUT /api/settings/github-oauth` gèrent toujours la même configuration GitHub.
+
+[OAuth](../security/oauth-login.md)
 
 ## Paramètres des dépôts
 

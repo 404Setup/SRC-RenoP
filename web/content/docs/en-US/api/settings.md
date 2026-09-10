@@ -18,7 +18,7 @@ to the operation. Responses use protobuf where defined in `proto/api/v1/api.prot
 
 ## Settings pages in the browser
 
-The settings interface provides a separate page for each of the 16 advertised domains. Desktop navigation lists
+The settings interface provides a separate page for each of the 15 advertised domains. Desktop navigation lists
 the sections beside the form; smaller screens use a section selector. Previous and next controls follow the same
 ordered pages. Opening a page fetches its configuration only, rather than fetching every service configuration.
 
@@ -40,14 +40,10 @@ Selected sections, unsaved markers, and muted text use the shared theme colors i
 - **Update**: `PUT /api/settings/domain/:name`
 - **Behavior**: The request and response schema depends on `:name`. Unknown fields and invalid values are rejected.
   Host, port, TLS, database, and selected runtime changes may require a service restart.
-- **GitHub OAuth**: `GET /api/settings/github-oauth` reads redacted state and `PUT /api/settings/github-oauth` updates
-  the
-  client ID and write-only secret.
 
-**Other OAuth providers**: `GET /api/settings/oauth-providers` returns redacted clients and presets;
-`PUT /api/settings/oauth-providers` replaces the list. A `providers` array is required, and an explicit empty array
-removes all configured clients. Up to 32 clients and a 128 KiB request are supported.
-See [Third-party Login](../security/oauth-login.md) for credentials, provider presets, and account binding.
+**Third-party login**: `GET /api/settings/oauth-providers` returns the built-in GitHub entry, redacted clients, and presets. `PUT /api/settings/oauth-providers` requires a `providers` array and saves both groups atomically. Up to 32 other clients plus GitHub and a 128 KiB request are supported. Omitting GitHub preserves it for older clients; disable its entry and use `clear_client_secret` to remove its credentials. An empty list removes only the other clients. The compatibility endpoints `GET /api/settings/github-oauth` and `PUT /api/settings/github-oauth` continue to manage the same GitHub configuration.
+
+[OAuth](../security/oauth-login.md)
 
 ## Repository settings
 

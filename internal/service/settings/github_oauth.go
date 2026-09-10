@@ -88,9 +88,10 @@ func normalizeGitHubOAuthSettings(current config.GitHubOAuthConfig,
 	next.Enabled = request.Enabled
 	next.ClientID = strings.TrimSpace(request.ClientID)
 	next.CallbackURL = strings.TrimSpace(request.CallbackURL)
-	if request.ClearClientSecret {
+	if request.ClearClientSecret || next.ClientID != current.ClientID {
 		next.ClientSecret = ""
-	} else if secret := strings.TrimSpace(request.ClientSecret); secret != "" {
+	}
+	if secret := strings.TrimSpace(request.ClientSecret); secret != "" && !request.ClearClientSecret {
 		next.ClientSecret = secret
 	}
 	if next.ClientID != "" && !validGitHubCredential(next.ClientID, 128) {

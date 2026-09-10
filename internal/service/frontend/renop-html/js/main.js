@@ -54,7 +54,6 @@ import './updater-messages.js';
 import './ticket-messages.js';
 import {navigateToUserProfile, profileRouteFromPath} from './user-profiles.js';
 import {installBackendAvailabilityMonitor} from './backend-availability.js';
-import {initializeGitHubAuth} from './github-auth.js';
 import {initializeOAuth} from './oauth.js';
 import {updateAccountRecoveryPage} from './account-recovery.js';
 import {refreshRegistrationAvailability, updateRegistrationPage} from './registration.js';
@@ -586,7 +585,6 @@ async function initializeApplication() {
         updateCopyrightFooter();
 
         await initializeSession();
-        await initializeGitHubAuth();
         await initializeOAuth();
         const loginQuery = new URLSearchParams(window.location.search);
         if (isLoginPath() && cachedIsLoggedIn && !loginQuery.has('reauth') && !loginQuery.has('mfa')) leaveLoginPage();

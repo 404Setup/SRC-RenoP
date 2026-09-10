@@ -33,7 +33,7 @@ export function renderOAuthSettings(container, data, changed) {
     presetSelect.querySelector('button')?.setAttribute('aria-label', t('oauth.provider'));
     const add = el('button', {type: 'button', class: 'pill-btn pill-btn--soft'}, t('oauth.add'));
     add.addEventListener('click', () => {
-        if (data.providers.length >= 32) return;
+        if (data.providers.filter(value => value.type !== 'github').length >= 32) return;
         let id = preset.type, suffix = 2;
         while (data.providers.some(value => value.id === id)) id = preset.type + '-' + suffix++;
         selected = {
@@ -70,7 +70,7 @@ export function renderOAuthSettings(container, data, changed) {
 
     /** Build the active editor while keeping its draft and selection. */
     function renderContent() {
-        add.disabled = data.providers.length >= 32;
+        add.disabled = data.providers.filter(value => value.type !== 'github').length >= 32;
         picker.replaceChildren();
         editor.replaceChildren();
         if (!selected || !data.providers.includes(selected)) selected = data.providers[0];
@@ -98,7 +98,7 @@ export function renderOAuthSettings(container, data, changed) {
             }));
         const id = input(selected, 'id', {max: 32, required: true, hint: t('oauth.idHint')});
         id.pattern = '[a-z][a-z0-9_\\-]{0,31}';
-        id.disabled = savedIDs.has(selected.id);
+        id.disabled = selected.type === 'github' || savedIDs.has(selected.id);
         let previousID = id.value;
         id.addEventListener('input', () => {
             const callback = editor.querySelector('[data-oauth-field="callback_url"]');
@@ -108,11 +108,11 @@ export function renderOAuthSettings(container, data, changed) {
             }
             previousID = selected.id;
         });
-        input(selected, 'name', {max: 80, required: true});
-        input(selected, 'client_id', {max: 512, required: selected.enabled});
+        input(selected, 'name', {max: 80, required: true}).disabled = selected.type === 'github';
+        input(selected, 'client_id', {max: selected.type === 'github' ? 128 : 512, required: selected.enabled});
         input(selected, 'client_secret', {
             type: 'password',
-            max: 4096,
+            max: selected.type === 'github' ? 512 : 4096,
             hint: t(selected.client_secret_configured ? 'oauth.secretSaved' : 'oauth.secretHint')
         });
         if (selected.client_secret_configured) editor.appendChild(createToggleRow(t('oauth.clearSecret'), '', selected.clear_client_secret === true,
@@ -120,7 +120,9 @@ export function renderOAuthSettings(container, data, changed) {
                 selected.clear_client_secret = value;
                 changed();
             }));
-        input(selected, 'callback_url', {type: 'url', required: selected.enabled, hint: t('oauth.callbackHint')});
+        if (selected.type === 'github' && !selected.callback_url) selected.callback_url = window.location.origin + '/api/auth/github/callback';
+        input(selected, 'callback_url', {type: 'url', required: selected.enabled,
+            hint: t(selected.type === 'github' ? 'settings.githubOAuthCallbackHint' : 'oauth.callbackHint')});
         if (selected.type === 'microsoft') input(selected, 'tenant', {max: 253, hint: t('oauth.tenantHint')});
         if (selected.type === 'gitlab') input(selected, 'base_url', {type: 'url', hint: t('oauth.gitlabHint')});
         if (selected.type === 'stackexchange') {
@@ -136,7 +138,7 @@ export function renderOAuthSettings(container, data, changed) {
                     changed();
                 }));
         }
-        input(selected, 'scopes', {max: 1024, hint: t('oauth.scopesHint')});
+        if (selected.type !== 'github') input(selected, 'scopes', {max: 1024, hint: t('oauth.scopesHint')});
         if (selected.type === 'custom') {
             for (const key of ['authorize_url', 'token_url', 'userinfo_url', 'issuer', 'jwks_url']) {
                 input(selected, key, {
@@ -169,6 +171,7 @@ export function renderOAuthSettings(container, data, changed) {
                 });
             }
         }
+        if (selected.type === 'github') return;
         const remove = el('button', {type: 'button', class: 'pill-btn pill-btn--soft'}, t('oauth.remove'));
         remove.addEventListener('click', async () => {
             const target = selected;

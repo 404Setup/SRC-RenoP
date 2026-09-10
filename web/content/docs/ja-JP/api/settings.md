@@ -17,7 +17,7 @@ description: ドメイン別サービス設定、リポジトリ管理、イン�
 
 ## ブラウザーの設定ページ
 
-サーバーが公開する 16 種類の設定にそれぞれ独立したページを用意します。デスクトップではフォームの横に分類を表示し、
+サーバーが公開する 15 種類の設定にそれぞれ独立したページを用意します。デスクトップではフォームの横に分類を表示し、
 小さい画面では分類セレクターを使います。前へ・次へも同じ順序で移動します。ページを開くとその設定だけを読み込み、
 サービス全体の設定を同時には取得しません。
 
@@ -39,13 +39,10 @@ GPG は引き続きサービス設定に含まれます。チーム上限、公�
 - **更新**: `PUT /api/settings/domain/:name`
 - **動作**: スキーマは `:name` ごとに異なります。不明なフィールドと不正値は拒否されます。ホスト、ポート、
   TLS、データベース、一部ランタイム設定の変更には再起動が必要な場合があります。
-- **GitHub OAuth**: `GET /api/settings/github-oauth` はマスク済み状態を返し、
-  `PUT /api/settings/github-oauth` は Client ID と書き込み専用 Secret を更新します。
 
-**その他の OAuth プロバイダー**：`GET /api/settings/oauth-providers` はシークレットを伏せたクライアントとプリセットを返し、
-`PUT /api/settings/oauth-providers` は一覧を置き換えます。`providers` 配列は必須で、明示的な空配列は設定済みクライアントをすべて削除します。クライアントは最大
-32 件、本文は最大 128 KiB です。認証情報、プリセット、アカウント連携は[外部サービスでログイン](../security/oauth-login.md)
-を参照してください。
+**外部ログイン**：`GET /api/settings/oauth-providers` は組み込みの GitHub 項目、秘匿化したクライアント、プリセットを返します。`PUT /api/settings/oauth-providers` は `providers` 配列を必須とし、両方の設定を原子的に保存します。GitHub と最大 32 件の他のクライアントに対応し、リクエスト上限は 128 KiB です。旧クライアントとの互換性のため GitHub の省略は設定を保持します。無効化して `clear_client_secret` で資格情報を削除してください。空の配列は他のクライアントのみを削除します。互換エンドポイント `GET /api/settings/github-oauth` と `PUT /api/settings/github-oauth` は同じ GitHub 設定を管理します。
+
+[OAuth](../security/oauth-login.md)
 
 ## リポジトリ設定
 

@@ -17,7 +17,7 @@ export default Object.freeze({
     "fido.insecure": "As Passkeys exigem uma ligação segura e uma origem de site permitida.",
     "fido.verificationUnavailable": "O autenticador não consegue cumprir a política de verificação exigida. Utilize outra Passkey.",
     "oauth.settingsTitle": "Início de sessão com terceiros",
-    "oauth.settingsHint": "Configure até 32 clientes OAuth. O GitHub tem uma secção própria. Os novos inícios de sessão usam imediatamente a configuração guardada.",
+    "oauth.settingsHint": "Configure o GitHub e até 32 outros clientes OAuth. As definições guardadas aplicam-se imediatamente aos novos inícios de sessão.",
     "oauth.provider": "Fornecedor",
     "oauth.add": "Adicionar fornecedor",
     "oauth.none": "Nenhum fornecedor configurado.",

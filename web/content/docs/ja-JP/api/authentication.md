@@ -43,7 +43,7 @@ Passkey は最初のログイン方法にはなりません。オフライン復
 
 - **Passkey 開始**: `POST /api/auth/fido/login/begin`
 - **Passkey 完了**: `POST /api/auth/fido/login/finish`
-- **GitHub 開始**: `GET /api/auth/github/start`
+- **GitHub 開始**: `GET /api/auth/oauth/github/start` (`GET /api/auth/github/start`)
 - **GitHub callback**: `GET /api/auth/github/callback`
 - **GitHub 利用可否**: `GET /api/auth/github/status`
 
@@ -138,7 +138,7 @@ ID、メール、パスワード、安全状態の版を再確認します。後
   `POST /api/auth/profile/fido/register/finish`
 - **Passkey 削除**: `DELETE /api/auth/profile/fido/:device_id`
 - **GitHub ID 取得**: `GET /api/auth/profile/github`
-- **GitHub 切断**: `DELETE /api/auth/profile/github`
+- **GitHub 切断**: `DELETE /api/auth/profile/oauth/github` (`DELETE /api/auth/profile/github`)
 
 最後の有効なログイン方式は削除または無効化できません。
 

@@ -33,7 +33,7 @@ test('OAuth controls preserve intent, enforce last-login state, and discard priv
     const text = value => typeof value === 'string' ? value : value.children.map(text).join('');
     const buttons = value => [value, ...value.children.flatMap(child => typeof child === 'string' ? [] : buttons(child))].filter(child => child.tag === 'button');
     const translate = (key, args = {}) => key + Object.values(args).join('');
-    let release, delay = false;
+    let release, delay = false, privateID = 'demo';
     const publicChoices = [{id: 'demo', name: '<Example>'}];
     const context = vm.createContext({
         ensureLegalConsent: async () => true,
@@ -61,7 +61,7 @@ test('OAuth controls preserve intent, enforce last-login state, and discard priv
             return {
                 ok: true, json: async () => ({
                     providers: [{
-                        id: 'demo',
+                        id: privateID,
                         name: '<Example>',
                         login: '<Alice>',
                         configured: true,
@@ -89,7 +89,7 @@ test('OAuth controls preserve intent, enforce last-login state, and discard priv
         assert.equal(url.searchParams.get('intent'), intent);
         assert.equal(url.searchParams.get('return_to'), '/packages');
     }
-    publicChoices.push({id: 'new', name: 'New provider'});
+    publicChoices.push({id: 'github', name: 'GitHub'});
     await events.oauthProvidersChanged();
     assert.equal(buttons(element('oauth-login-providers')).length, 2);
     assert.equal(buttons(element('oauth-register-providers')).length, 2);
@@ -101,6 +101,14 @@ test('OAuth controls preserve intent, enforce last-login state, and discard priv
     const email = buttons(element('profile-oauth-providers')).find(button => text(button) === 'oauth.useEmail');
     email.onclick();
     assert.equal(new URL(destinations.at(-1), 'https://renop.example').searchParams.get('intent'), 'email');
+    privateID = 'github';
+    await context.refreshOAuthProfile('alice');
+    events.accountSecurityUpdated({detail: {github_linked: true, oauth_identity_count: 0}});
+    assert.ok(!buttons(element('profile-oauth-providers')).some(button => text(button) === 'oauth.disconnect'));
+    events.accountSecurityUpdated({detail: {github_linked: true, oauth_identity_count: 1}});
+    assert.ok(buttons(element('profile-oauth-providers')).some(button => text(button) === 'oauth.disconnect'));
+    await buttons(element('oauth-login-providers'))[1].onclick();
+    assert.equal(new URL(destinations.at(-1), 'https://renop.example').pathname, '/api/auth/oauth/github/start');
     delay = true;
     const loading = context.refreshOAuthProfile('alice');
     events.authChanged({detail: {isLoggedIn: false}});

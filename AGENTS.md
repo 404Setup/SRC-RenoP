@@ -97,6 +97,8 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   owner permissions; cookie-only sessions gate browser-only operations. Basic/password authentication is protocol-only.
   Moderator roles do not imply write or manager authority. Never expose secrets or private profile/team fields publicly.
   OAuth subjects are scoped to the provider configuration authority; never merge accounts by email.
+  GitHub shares the third-party login settings and provider lists; preserve its legacy configuration, callback,
+  identity bindings, organization authorization, and compatibility endpoints when changing the unified UI.
   Primary and provider email addresses share immutable account ownership; binding and email reservations commit
   together. Unverified provider addresses require existing ownership or email proof; retained aliases survive unlinking.
   Preserve PKCE, OIDC signature/issuer/audience/nonce verification, browser-bound state, and mandatory email proof

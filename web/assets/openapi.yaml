@@ -327,11 +327,13 @@ components:
       description: >-
         Built-in providers resolve official endpoints and claim mappings. Enabled clients require credentials,
         an exact callback path /api/auth/oauth/{id}/callback, and valid HTTPS or loopback HTTP endpoints.
+        GitHub uses the fixed name GitHub, the existing /api/auth/github/callback URL, a 128-byte client ID,
+        and a 512-byte secret; its credentials remain in server.github_oauth.
         Stored credentials are returned as empty strings. Empty writes retain credentials only for the same
-        ID, type, client ID, and token endpoint. Changing the configuration invalidates pending authorizations.
+        ID, type, client ID, and token endpoint. GitHub also requires the same client ID when retaining a secret.
       properties:
-        id: { type: string, pattern: '^[a-z][a-z0-9_-]{0,31}$', description: Unique local provider ID. The value github is reserved. }
-        type: { type: string, enum: [ microsoft, google, gitlab, cloudflare, stackexchange, custom ] }
+        id: { type: string, pattern: '^[a-z][a-z0-9_-]{0,31}$', description: Unique local provider ID. The fixed github ID belongs to the built-in GitHub entry. }
+        type: { type: string, enum: [ github, microsoft, google, gitlab, cloudflare, stackexchange, custom ] }
         name: { type: string, maxLength: 80, description: Display name; limited to 80 UTF-8 bytes. }
         enabled: { type: boolean, default: false }
         client_id: { type: string, maxLength: 512 }
@@ -358,7 +360,7 @@ components:
       type: object
       required: [ providers ]
       properties:
-        providers: { type: array, maxItems: 32, items: { $ref: '#/components/schemas/OAuthProvider' } }
+        providers: { type: array, maxItems: 33, description: 'GitHub plus up to 32 other clients. Omission preserves GitHub; disable its entry explicitly.', items: { $ref: '#/components/schemas/OAuthProvider' } }
         presets: { type: array, readOnly: true, items: { $ref: '#/components/schemas/OAuthProvider' } }
     OAuthProfileStatus:
       type: object
@@ -2926,7 +2928,7 @@ paths:
                 properties:
                   providers:
                     type: array
-                    maxItems: 32
+                    maxItems: 33
                     items:
                       type: object
                       properties:
@@ -2938,7 +2940,9 @@ paths:
       summary: Begin third-party authorization
       operationId: startOAuth
       description: >-
-        Creates single-use state and an HttpOnly browser cookie valid for ten minutes, then redirects with PKCE.
+        Creates single-use state and an HttpOnly browser cookie valid for ten minutes. Other providers use PKCE;
+        github uses the existing GitHub authorization flow and /api/auth/github/callback. Its avatar synchronization
+        remains POST /api/auth/profile/avatar/github rather than an avatar intent on this route.
         Link, email, and avatar intents require the initiating browser session. Register requires registration enabled.
         Unbound login identities also enter registration. Email matching never selects an existing local account.
       security: [ ]
@@ -2961,6 +2965,7 @@ paths:
         Requires the initiating OAuth state cookie. Profile actions also recheck the initiating session and security revision.
         OIDC verifies the signed ID token and the authenticated user-info subject. Login requires any configured second factor.
         Returns a stable oauth result marker or redirects to registration or /account/login?mfa=1.
+        GitHub continues to use /api/auth/github/callback and its compatible github_oauth result marker.
       security: [ ]
       parameters:
         - { name: provider, in: path, required: true, schema: { type: string, maxLength: 32 } }
@@ -3019,7 +3024,8 @@ paths:
       summary: Replace the configured OAuth client list
       operationId: updateOAuthSettings
       description: >-
-        Administrator only; requires a providers array. Missing or null providers are rejected; an explicit empty array clears the list.
+        Administrator only; requires a providers array. Missing or null providers are rejected; an explicit empty array clears other clients.
+        The built-in github entry shares the legacy GitHub configuration. Omitting it preserves it; disable it explicitly and use clear_client_secret.
         JSON body is limited to 128 KiB. Secrets are write-only and are preserved only for an unchanged client and token endpoint.
         Applies to new authorizations immediately. Removing configuration does not delete existing account bindings.
       security: [ { sessionCookie: [ ] }, { bearerAuth: [ ] } ]
