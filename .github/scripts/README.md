@@ -26,9 +26,17 @@ A full checkout and PowerShell 7.5 or later are required. Remote JSON dates rema
 Git history failures stop publication. A build whose commit is an ancestor of
 an already published nightly is rejected, so a delayed job cannot replace a newer download. Historical
 package directories for the first nine entries may remain on the update host, but only the current build
-advertises targets. Existing bounded cleanup removes at most five obsolete directories per publication.
-Stable release metadata and its current/previous package retention are unchanged.
+advertises targets. Cleanup walks obsolete entries in this same newest-first order, after all packages and
+`info.json` have been uploaded successfully. It never removes the current tree before uploading. Unknown
+remote records are not deletion candidates. HTTP 404 responses do not consume the five-directory deletion
+budget; each publication examines at most 100 obsolete entries. Other deletion failures fail the workflow
+with their status, so a denied or failed deletion cannot silently report success. Failed metadata reads
+also stop publication; only HTTP 404 is treated as an initial publication.
+Stable releases still retain their current and previous package trees and use the same bounded cleanup.
 
 Run `pwsh -NoProfile -File .github/scripts/test-nightly-info.ps1` to test ordering, backfill, retention, legacy
 metadata, target replacement, repeatability, and stale-build rejection against a disposable Git repository.
 The same check runs through `pnpm run test:web`.
+
+`web/test/update-package.test.mjs` exercises publication against an isolated HTTP server, including reversed
+remote history, missing directories, deletion denial, and upload/metadata failures.

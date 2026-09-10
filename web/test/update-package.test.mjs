@@ -10,11 +10,13 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import {resolve} from 'node:path';
+import {readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {createServer} from 'node:http';
+import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {brotliCompressSync} from 'node:zlib';
-import {spawnSync} from 'node:child_process';
+import {spawn, spawnSync} from 'node:child_process';
 import {unzipSync} from 'fflate';
 
 import {chooseUpdateDownloadWorkers, isBrotliUpdateTarget, legacyZipFilename,} from '../js/lib/update-package.js';
@@ -78,7 +80,79 @@ test('release tooling decouples bounded compilation from raw Brotli packaging', 
     assert.match(workflow, /previous_commit/);
     assert.match(publish, /\$nightlyPackageRetention = 9/);
     assert.match(publish, /Get-NightlyReleases -CurrentRelease \$currentRelease -ExistingReleases/);
-    assert.match(publish, /\[Math\]::Min\(\$updatedReleases\.Count, \$nightlyPackageRetention\)/);
+});
+
+test('publishing cleans newest obsolete trees after publication and skips missing directories', async () => {
+    const repositoryRoot = resolve(fileURLToPath(new URL('../..', import.meta.url)));
+    const directory = mkdtempSync(resolve(tmpdir(), 'renop-publish-test-'));
+    const requests = [], commits = [];
+    let mode = 'success', published, deleteCount = 0;
+    const git = (...args) => {
+        const result = spawnSync('git', args, {cwd: directory, encoding: 'utf8'});
+        assert.equal(result.status, 0, result.stderr);
+        return result.stdout.trim();
+    };
+    const server = createServer(async (request, response) => {
+        let body = '';
+        for await (const chunk of request) body += chunk;
+        requests.push([request.method, request.url]);
+        if (request.method === 'GET') {
+            response.writeHead(mode === 'read-failure' ? 503 : 200, {'Content-Type': 'application/json'});
+            response.end(JSON.stringify({releases: [
+                {version: 'unknown', commit: 'a'.repeat(40)},
+                ...commits.map(commit => ({commit, version: commit.slice(0, 7)})),
+            ]}));
+        } else if (request.method === 'PUT') {
+            if (request.url.endsWith('/info.json')) published = JSON.parse(body);
+            response.writeHead(mode === 'upload-failure' ? 500 : 201).end();
+        } else {
+            assert.equal(request.method, 'DELETE');
+            response.writeHead(mode === 'delete-failure' ? 403 : (++deleteCount <= 2 ? 404 : 204)).end();
+        }
+    });
+    try {
+        git('init', '--quiet');
+        git('config', 'core.abbrev', '7');
+        for (let i = 0; i < 20; i++) {
+            git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false',
+                'commit', '--quiet', '--allow-empty', '-m', `fix: published ${i}`);
+            commits.push(git('rev-parse', 'HEAD'));
+        }
+        mkdirSync(resolve(directory, 'dist'));
+        writeFileSync(resolve(directory, 'dist/renop-test-linux-amd64.br'), brotliCompressSync(Buffer.from('fixture')));
+        await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+        const run = () => new Promise((resolve, reject) => {
+            const child = spawn('pwsh', ['-NoProfile', '-File', `${repositoryRoot}/.github/scripts/publish-update.ps1`,
+                '-Channel', 'nightly', '-DistDir', `${directory}/dist`, '-Version', commits.at(-1).slice(0, 7),
+                '-Commit', commits.at(-1), '-Changelog', 'fixture', '-BaseUrl', `http://127.0.0.1:${server.address().port}`],
+            {cwd: directory, env: {...process.env, RENOP_PUBLISH_TOKEN: 'isolated-test-token'}, timeout: 30_000});
+            let output = '';
+            child.stdout.on('data', chunk => { output += chunk; });
+            child.stderr.on('data', chunk => { output += chunk; });
+            child.on('error', reject);
+            child.on('close', code => resolve({code, output}));
+        });
+        const success = await run();
+        assert.equal(success.code, 0, success.output);
+        assert.equal(published.releases[0].commit, commits.at(-1));
+        const obsolete = commits.toReversed().slice(9, 16).map(commit => `/update/renop/nightly/${commit.slice(0, 7)}`);
+        assert.deepEqual(requests.filter(([method]) => method === 'DELETE').map(([, path]) => path), obsolete);
+        const firstDelete = requests.findIndex(([method]) => method === 'DELETE');
+        assert.ok(firstDelete > requests.findIndex(([method, path]) => method === 'PUT' && path.endsWith('/info.json')));
+        for (const failure of ['read-failure', 'upload-failure', 'delete-failure']) {
+            mode = failure;
+            requests.length = 0;
+            const result = await run();
+            assert.notEqual(result.code, 0, `${failure} must fail the workflow`);
+            if (failure !== 'delete-failure') assert.ok(!requests.some(([method]) => method === 'DELETE'));
+            if (failure === 'read-failure') assert.ok(!requests.some(([method]) => method === 'PUT'));
+        }
+    } finally {
+        await new Promise(resolve => server.close(resolve));
+        assert.equal(dirname(directory), resolve(tmpdir()));
+        assert.match(directory.split(/[\\/]/).at(-1), /^renop-publish-test-/);
+        rmSync(directory, {recursive: true, force: true});
+    }
 });
 
 test('Go protobuf generation includes API and durable session schemas', () => {

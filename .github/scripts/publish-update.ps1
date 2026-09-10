@@ -70,8 +70,8 @@ if ([string]::IsNullOrWhiteSpace($token)) {
 $DistDir = (Resolve-Path -LiteralPath $DistDir).Path
 $BaseUrl = $BaseUrl.TrimEnd('/')
 $Version = $Version.Trim()
-if ([string]::IsNullOrWhiteSpace($Version)) {
-    throw 'Version must not be empty'
+if ($Version -notmatch '^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$') {
+    throw 'Version must be a single safe directory name'
 }
 
 if ([string]::IsNullOrWhiteSpace($Changelog) -and -not [string]::IsNullOrWhiteSpace($ChangelogFile) -and (Test-Path -LiteralPath $ChangelogFile)) {
@@ -122,28 +122,20 @@ $httpClient.DefaultRequestHeaders.Authorization = [System.Net.Http.Headers.Authe
 
 function Get-RemoteInfoJson {
     param([string]$Url)
+    $req = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Get, $Url)
+    $resp = $null
     try {
-        $req = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Get, $Url)
         $resp = $httpClient.SendAsync($req).GetAwaiter().GetResult()
-        if ($resp.StatusCode -eq [System.Net.HttpStatusCode]::NotFound) {
-            return $null
-        }
-        if (-not $resp.IsSuccessStatusCode) {
-            Write-Warning "Failed to read remote info.json from $Url (HTTP $([int]$resp.StatusCode))."
-            return $null
-        }
+        if ($resp.StatusCode -eq [System.Net.HttpStatusCode]::NotFound) { return $null }
+        if (-not $resp.IsSuccessStatusCode) { throw "Read info.json returned HTTP $([int]$resp.StatusCode)" }
         $jsonStr = $resp.Content.ReadAsStringAsync().GetAwaiter().GetResult()
-        if ([string]::IsNullOrWhiteSpace($jsonStr)) {
-            return $null
-        }
+        if ([string]::IsNullOrWhiteSpace($jsonStr)) { throw 'Remote info.json is empty' }
         return ($jsonStr | ConvertFrom-Json -DateKind String)
-    } catch {
-        Write-Warning "Failed to read remote info.json: $($_.Exception.Message)"
-        return $null
+    } finally {
+        if ($null -ne $resp) { $resp.Dispose() }
+        $req.Dispose()
     }
 }
-
-
 
 $packageFiles = @(Get-ChildItem -LiteralPath $DistDir -Filter '*.br' -File | Sort-Object Name)
 if ($packageFiles.Count -eq 0) {
@@ -363,107 +355,17 @@ if ($Channel -eq 'nightly') {
     }
 }
 
-$allowedMvncVersions = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
-if ($Channel -eq 'nightly') {
-    for ($i = 0; $i -lt [Math]::Min($updatedReleases.Count, $nightlyPackageRetention); $i++) {
-        $retainedVersion = [string]$updatedReleases[$i].version
-        if (-not [string]::IsNullOrWhiteSpace($retainedVersion)) {
-            $allowedMvncVersions.Add($retainedVersion) | Out-Null
-        }
-    }
-} else {
-    $allowedMvncVersions.Add($Version) | Out-Null
-    if ($updatedReleases.Count -gt 1) {
-        $allowedMvncVersions.Add([string]$updatedReleases[1].version) | Out-Null
-    }
+$retention = if ($Channel -eq 'nightly') { $nightlyPackageRetention } else { 2 }
+$allowedMvncVersions = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+$allowedMvncVersions.Add($Version) | Out-Null
+foreach ($release in ($updatedReleases | Select-Object -First $retention)) {
+    $allowedMvncVersions.Add([string]$release.version) | Out-Null
 }
-
-$candidatesToDelete = [System.Collections.Generic.List[string]]::new()
-
-function Add-DeleteCandidate {
-    param([string]$ver)
-    $trimmed = if ($ver) { $ver.Trim() } else { '' }
-    if (-not [string]::IsNullOrWhiteSpace($trimmed) -and -not $candidatesToDelete.Contains($trimmed)) {
-        $candidatesToDelete.Add($trimmed)
-    }
-}
-
-foreach ($r in $existingReleases) {
-    if ($r.version) { Add-DeleteCandidate ([string]$r.version) }
-}
-if ($remoteInfo -and $remoteInfo.version) {
-    Add-DeleteCandidate ([string]$remoteInfo.version)
-}
-
-$freshRemoteInfo = Get-RemoteInfoJson -Url $infoUrl
-if ($null -ne $freshRemoteInfo) {
-    $freshReleases = Extract-ReleasesFromInfo -infoObj $freshRemoteInfo
-    foreach ($fr in $freshReleases) {
-        if ($fr.version) { Add-DeleteCandidate ([string]$fr.version) }
-    }
-    if ($freshRemoteInfo.version) {
-        Add-DeleteCandidate ([string]$freshRemoteInfo.version)
-    }
-}
-
-if ($Channel -eq 'nightly') {
-    try {
-        $recentCommits = & git log -n 5 --skip=1 --format=%h 2>$null
-        foreach ($s in $recentCommits) {
-            Add-DeleteCandidate $s
-        }
-    } catch {
-        Write-Warning "Could not inspect git commit log for old nightly versions: $($_.Exception.Message)"
-    }
-} else {
-    try {
-        $gitTags = & git tag -l --sort=-creatordate 2>$null | Select-Object -First 5
-        foreach ($t in $gitTags) {
-            Add-DeleteCandidate $t
-        }
-    } catch {
-        Write-Warning "Could not inspect git tags: $($_.Exception.Message)"
-    }
-}
-
-$oldDeletes = [System.Collections.Generic.List[string]]::new()
-foreach ($c in $candidatesToDelete) {
-    if (-not $allowedMvncVersions.Contains($c) -and $c -ne $Version -and -not [string]::IsNullOrWhiteSpace($c)) {
-        if (-not $oldDeletes.Contains($c)) {
-            $oldDeletes.Add($c)
-        }
-    }
-}
-
-$allDeletes = [System.Collections.Generic.List[string]]::new()
-$maxOldDeletes = 5
-for ($i = 0; $i -lt [Math]::Min($oldDeletes.Count, $maxOldDeletes); $i++) {
-    $allDeletes.Add($oldDeletes[$i])
-}
-
-if (-not [string]::IsNullOrWhiteSpace($Version) -and -not $allDeletes.Contains($Version)) {
-    $allDeletes.Add($Version)
-}
-
-if ($allDeletes.Count -gt 0) {
-    $allDeletes | ForEach-Object -Parallel {
-        $oldVer = $_
-        if ([string]::IsNullOrWhiteSpace($oldVer)) { return }
-        $dirUrl = "$using:BaseUrl/$using:channelRoot/$oldVer"
-        Write-Host "Deleting previous package tree from mvnc: $dirUrl"
-        try {
-            $client = $using:httpClient
-            $req = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Delete, $dirUrl)
-            $resp = $client.SendAsync($req).GetAwaiter().GetResult()
-            $code = [int]$resp.StatusCode
-            if ($code -ne 200 -and $code -ne 204 -and $code -ne 404) {
-                Write-Warning "DELETE $dirUrl returned unexpected status $code ($($resp.ReasonPhrase))"
-            }
-        } catch {
-            Write-Warning "DELETE $dirUrl failed: $($_.Exception.Message)"
-        }
-    } -ThrottleLimit 6
-}
+$candidatesToDelete = @(
+    $updatedReleases | Select-Object -Skip $retention -First 100 | ForEach-Object { [string]$_.version } |
+        Where-Object { $_ -match '^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$' -and -not $allowedMvncVersions.Contains($_) } |
+        Select-Object -Unique
+)
 
 $targets | ForEach-Object -Parallel {
     $t = $_
@@ -514,3 +416,25 @@ if ($infoCode -ne 200 -and $infoCode -ne 201 -and $infoCode -ne 204) {
 }
 
 Write-Host "Published $Channel $Version ($($targets.Count) targets) to $BaseUrl/$channelRoot/"
+
+# Retire obsolete trees only after the new packages and metadata are durable.
+$deleted = 0
+foreach ($oldVersion in $candidatesToDelete) {
+    $dirUrl = "$BaseUrl/$channelRoot/$oldVersion"
+    $request = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Delete, $dirUrl)
+    $response = $null
+    try {
+        $response = $httpClient.SendAsync($request).GetAwaiter().GetResult()
+        $code = [int]$response.StatusCode
+        if ($code -eq 404) { continue }
+        if ($code -notin @(200, 204)) { throw "DELETE $dirUrl returned HTTP $code" }
+        Write-Host "Deleted obsolete package tree: $dirUrl"
+        $deleted++
+        if ($deleted -eq 5) { break }
+    } finally {
+        if ($null -ne $response) { $response.Dispose() }
+        $request.Dispose()
+    }
+}
+Write-Host "Cleaned $deleted obsolete package tree(s)."
+$httpClient.Dispose()
