@@ -48,4 +48,3 @@ export function renderLegalSettings(container, data, changed) {
         container.appendChild(section);
     }
 }
-

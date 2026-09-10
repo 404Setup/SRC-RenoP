@@ -20,4 +20,3 @@ export function parseCookiePreferences(raw, revision, now = Date.now()) {
         return null;
     }
 }
-
