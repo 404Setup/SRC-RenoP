@@ -60,6 +60,9 @@ not generate checksums, POM files, or signature validation. Maven repositories c
 moving objects; returning to Maven rebuilds the catalog and restores saved Maven policy. Migration preserves the
 repository's effective download-statistics switch.
 
+Uploads and mirror downloads in `files` repositories preserve neighboring files even when paths contain `SNAPSHOT`
+or names end in `.md5`, `.asc`, or `-javadoc.jar`. Maven version cleanup and Javadoc extraction apply only to Maven.
+
 Publication review supports Maven, npm, Cargo, and Docker. Maven review forces `allow_redeployment` to `false`; npm
 keeps its immutable
 version and dist-tag transaction. Local files remain hidden until a repository moderator or system administrator

@@ -58,6 +58,10 @@ politique `new_packages` examine donc la première publication. Les imports de m
 signature. Maven peut migrer vers `files` puis revenir sans déplacer les objets ; le retour reconstruit le catalogue et
 restaure la politique Maven. La migration conserve l’état effectif des statistiques de téléchargement.
 
+Dans les dépôts `files`, les envois et téléchargements miroir préservent les fichiers voisins même si les chemins
+contiennent `SNAPSHOT` ou se terminent par `.md5`, `.asc` ou `-javadoc.jar`. Le nettoyage des versions et l’extraction
+Javadoc s’appliquent uniquement à Maven.
+
 L’examen des publications prend en charge Maven, npm, Cargo et Docker. Pour Maven, il force `allow_redeployment` à
 `false` ; npm
 conserve sa transaction de version et de dist-tags immuables. Les fichiers locaux restent masqués jusqu’à l’approbation

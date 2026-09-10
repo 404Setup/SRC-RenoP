@@ -153,6 +153,43 @@ func TestSnapshotOverwriteCleansCompanions(t *testing.T) {
 	}
 }
 
+func TestFilesUploadPreservesSnapshotNamedNeighbors(t *testing.T) {
+	for _, method := range []string{"put", "prepared", "mirror"} {
+		t.Run(method, func(t *testing.T) {
+			app, state, storagePath, repo := setupSnapshotPutApp(t)
+			repo.Format = config.RepositoryFormatFiles
+			dir := filepath.Join(storagePath, repo.Name, "1.0-SNAPSHOT")
+			target := filepath.Join(dir, "demo-1.0-2.jar")
+			mustWriteIndexed(t, state, target, []byte("old"))
+			neighbor := filepath.Join(dir, "demo-1.0-1.jar")
+			mustWriteIndexed(t, state, neighbor, []byte("keep"))
+			companionChild := filepath.Join(target+".md5", "keep.txt")
+			mustWriteIndexed(t, state, companionChild, []byte("keep"))
+			switch method {
+			case "prepared":
+				upload := preparedTestUpload(t, target, "", []byte("new"))
+				upload.Existed = true
+				if _, err := ProcessUploadedFile(t.Context(), state, repo, upload); err != nil {
+					t.Fatalf("prepared upload failed: %v", err)
+				}
+			case "mirror":
+				mustWriteIndexed(t, state, target, []byte("new"))
+				proxy.OnArtifactStoredWithState(state, repo, target)
+			default:
+				if code := putBytes(t, app, "/"+repo.Name+"/1.0-SNAPSHOT/demo-1.0-2.jar", []byte("new"), nil); code != fiber.StatusCreated {
+					t.Fatalf("PUT returned %d, want %d", code, fiber.StatusCreated)
+				}
+			}
+			for path, want := range map[string]string{target: "new", neighbor: "keep", companionChild: "keep"} {
+				got, err := os.ReadFile(path)
+				if err != nil || string(got) != want || !state.Inner.FileIndex.HasFile(path) {
+					t.Errorf("file %s = %q, %v; want %q and indexed", path, got, err, want)
+				}
+			}
+		})
+	}
+}
+
 func TestUniqueSnapshotUploadPurgesOlderBuild(t *testing.T) {
 	app, state, storagePath, _ := setupSnapshotPutApp(t)
 

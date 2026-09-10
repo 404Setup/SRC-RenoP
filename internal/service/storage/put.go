@@ -324,6 +324,16 @@ func HashFile(path string) (*ContentDigests, int64, error) {
 // CommitUploadedFile places a closed temp file at localFilePath and runs the same
 // post-upload bookkeeping as a normal PUT.
 func CommitUploadedFile(state *core.AppState, localFilePath, tmpPath string, fileSize, modTime int64, existed, generateChecksums bool, digests *ContentDigests) error {
+	repository, _, err := repositoryArtifactPath(state, localFilePath)
+	if err != nil {
+		return err
+	}
+	repo := state.Inner.Config.Load().Maven.Repositories[repository]
+	if repo == nil {
+		return ErrGPGRepositoryMissing
+	}
+	isMaven := repo.NormalizedFormat() == config.RepositoryFormatMaven
+	generateChecksums = generateChecksums && isMaven
 	if generateChecksums && digests == nil {
 		return errors.New("missing content digests")
 	}
@@ -347,7 +357,7 @@ func CommitUploadedFile(state *core.AppState, localFilePath, tmpPath string, fil
 	})
 	status.MarkStorageUpdated()
 
-	if isSnapshotArtifactPath(localFilePath) && !isArtifactCompanionPath(localFilePath) {
+	if isMaven && isSnapshotArtifactPath(localFilePath) && !isArtifactCompanionPath(localFilePath) {
 		if existed {
 			if err := removeArtifactCompanions(state, localFilePath); err != nil {
 				return err
@@ -391,7 +401,7 @@ func CommitUploadedFile(state *core.AppState, localFilePath, tmpPath string, fil
 		}
 	}
 
-	if strings.HasSuffix(localFilePath, "-javadoc.jar") {
+	if isMaven && strings.HasSuffix(localFilePath, "-javadoc.jar") {
 		javadocs.CleanupJavadoc(localFilePath)
 		if !IsS3Enabled(localFilePath) {
 			go func() {

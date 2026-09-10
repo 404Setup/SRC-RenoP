@@ -89,7 +89,7 @@ func init() {
 		}
 	}
 	proxy.OnArtifactStoredWithState = func(state *core.AppState, repo *config.Repository, localPath string) {
-		if state == nil || repo == nil {
+		if state == nil || repo == nil || repo.NormalizedFormat() != config.RepositoryFormatMaven {
 			return
 		}
 		if gpg.IsProtectedArtifact(filepath.ToSlash(localPath)) {

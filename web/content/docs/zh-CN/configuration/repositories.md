@@ -58,6 +58,9 @@ Manifest。Maven 与 Cargo 没有空包创建步骤，因此其 `new_packages` �
 签名校验。Maven 可迁移到 `files` 并反向迁移，存储对象保持原位；切回 Maven 时重建目录并恢复保存的策略。
 迁移前生效的下载统计开关会保持不变。
 
+`files` 仓库的上传和镜像下载会保留相邻文件，即使路径包含 `SNAPSHOT`，或名称以 `.md5`、`.asc`、
+`-javadoc.jar` 结尾。旧版本清理和 Javadoc 解压仅适用于 Maven 仓库。
+
 发布审核支持 Maven、npm、Cargo 与 Docker。Maven 会将 `allow_redeployment` 强制设为 `false`；npm 保持不可变版本与
 dist-tag 的事务。本地文件在仓库版主或系统管理员批准前保持隐藏，镜像内容不会进入审核。存在待审核发布时，
 不能修改、删除仓库或迁移引擎。
