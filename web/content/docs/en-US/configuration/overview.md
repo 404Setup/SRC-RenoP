@@ -15,11 +15,15 @@ administrator UI use the same validated structures and private-file permissions.
 | File                | Override             | Purpose                                                          |
 |:--------------------|:---------------------|:-----------------------------------------------------------------|
 | `config.yaml`       | `RENOP_CONFIG`       | Server, database, previews, proxy, frontend, audit, and updater  |
-| `repositories.yaml` | `RENOP_REPOSITORIES` | Repository engines, visibility, mirrors, Maven policy, and S3    |
+| Database | Database DSN | Repository engines, visibility, mirrors, Maven policy, and S3    |
 | `index.json`        | `RENOP_INDEX`        | Persisted file-index snapshot rebuilt from storage when required |
 
 Accounts, API tokens, sessions, teams, audit logs, and messages are database records. They are not configured in YAML.
-Keep configuration and repository files readable only by the service account because they may contain credentials.
+Keep configuration files and database backups readable only by the service account because they may contain credentials.
+
+Repository definitions are part of the database backup. Legacy YAML is imported only when the database has no
+repository configuration; it cannot override an existing snapshot. Preserve any migration archive separately if
+rollback to an older RenoP version is required.
 
 ## `config.yaml` schema
 

@@ -20,6 +20,8 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	"renop/internal/config"
+	"renop/internal/database"
+	"renop/internal/testutil"
 )
 
 func TestLoadConfig(t *testing.T) {
@@ -66,24 +68,89 @@ func TestLoadMaven(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, os.WriteFile(mavenPath, data, 0644))
 
-		settings := LoadMaven(mavenPath)
+		settings, err := readLegacyRepositories(mavenPath)
+		require.NoError(t, err)
 		assert.NotEmpty(t, settings)
 	})
 
-	t.Run("missing maven file returns default settings", func(t *testing.T) {
+	t.Run("missing maven file is reported", func(t *testing.T) {
 		dir := t.TempDir()
 		mavenPath := filepath.Join(dir, "missing.yaml")
 
-		settings := LoadMaven(mavenPath)
-		assert.NotEmpty(t, settings)
+		_, err := readLegacyRepositories(mavenPath)
+		require.ErrorIs(t, err, os.ErrNotExist)
 	})
 
-	t.Run("invalid maven file returns default settings", func(t *testing.T) {
+	t.Run("invalid maven file is rejected", func(t *testing.T) {
 		dir := t.TempDir()
 		mavenPath := filepath.Join(dir, "invalid.yaml")
 		require.NoError(t, os.WriteFile(mavenPath, []byte("invalid: : : yaml"), 0644))
 
-		settings := LoadMaven(mavenPath)
-		assert.NotEmpty(t, settings)
+		_, err := readLegacyRepositories(mavenPath)
+		require.Error(t, err)
 	})
+}
+
+func TestRepositoryMigrationSurvivesRestartAndPreservesEmptySet(t *testing.T) {
+	for _, source := range []string{"missing", "repositories: {}", "repositories:\n  snapshot:\n    format: files\n    visibility: PRIVATE\n"} {
+		t.Run(source, func(t *testing.T) {
+			dir := testutil.TempDir(t)
+			path := filepath.Join(dir, "repositories.yaml")
+			if source != "missing" {
+				require.NoError(t, os.WriteFile(path, []byte(source), 0600))
+			}
+			dbConfig := config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(dir, "settings.db"), MaxOpenConns: 1}
+			db, err := database.InitDB(dbConfig)
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = db.Close() })
+			loaded, err := loadRepositorySettings(db, path)
+			require.NoError(t, err)
+			switch source {
+			case "missing":
+				require.Len(t, loaded.Repositories, len(config.DefaultMavenSettings().Repositories))
+			case "repositories: {}":
+				require.Empty(t, loaded.Repositories)
+			default:
+				require.Len(t, loaded.Repositories, 1)
+				require.Equal(t, "snapshot", loaded.Repositories["snapshot"].Name)
+				require.Equal(t, "PRIVATE", loaded.Repositories["snapshot"].Visibility)
+			}
+			require.NoFileExists(t, path)
+			archives, err := filepath.Glob(path + ".migrated.*")
+			require.NoError(t, err)
+			if source != "missing" {
+				require.Len(t, archives, 1)
+				archived, err := os.ReadFile(archives[0])
+				require.NoError(t, err)
+				require.Equal(t, source, string(archived))
+			}
+			require.NoError(t, db.SaveRepositorySettings(config.MavenSettings{}))
+			require.NoError(t, db.Close())
+			db, err = database.InitDB(dbConfig)
+			require.NoError(t, err)
+			require.NoError(t, os.WriteFile(path, []byte("invalid: : : legacy"), 0600))
+			loaded, err = loadRepositorySettings(db, path)
+			require.NoError(t, err)
+			require.Empty(t, loaded.Repositories)
+		})
+	}
+}
+
+func TestRepositoryMigrationRejectsInvalidSourceWithoutCommitting(t *testing.T) {
+	dir := testutil.TempDir(t)
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(dir, "settings.db")})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	path := filepath.Join(dir, "repositories.yaml")
+	for _, source := range []string{"invalid: : : yaml", "{}", "repositories: null", "repositories: {}\n---\nrepositories: {}", "repositories:\n  bad: null"} {
+		require.NoError(t, os.WriteFile(path, []byte(source), 0600))
+		_, err := loadRepositorySettings(db, path)
+		require.Error(t, err)
+		stored, err := db.GetRepositorySettings()
+		require.NoError(t, err)
+		require.Nil(t, stored)
+		preserved, err := os.ReadFile(path)
+		require.NoError(t, err)
+		require.Equal(t, source, string(preserved))
+	}
 }

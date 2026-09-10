@@ -21,8 +21,6 @@ import (
 	"sync"
 	"time"
 
-	"go.yaml.in/yaml/v3"
-
 	"renop/internal/cache"
 	"renop/internal/config"
 	"renop/internal/core"
@@ -43,7 +41,6 @@ import (
 	"renop/internal/service/tasks"
 	"renop/internal/service/updater"
 	"renop/internal/service/upload"
-	"renop/internal/utils"
 )
 
 const (
@@ -130,21 +127,18 @@ func Initialize() (*core.AppState, BootstrapContext) {
 		repositoriesPath = "repositories.yaml"
 	}
 
-	if _, err := os.Stat(repositoriesPath); err == nil {
-		cfg.Maven = LoadMaven(repositoriesPath)
-	} else {
-		yamlData, err := yaml.Marshal(&cfg.Maven)
-		if err == nil {
-			_ = utils.WritePrivateFile(repositoriesPath, yamlData)
-		}
-	}
-
 	dbInstance, dbErr := database.InitDB(cfg.Database)
 	if dbErr != nil {
 		log.Fatalf("Database initialization failed: %v", dbErr)
 	}
 	if dbInstance == nil {
 		log.Fatal("Database initialization returned nil — check your database configuration.")
+	}
+	var err error
+	cfg.Maven, err = loadRepositorySettings(dbInstance, repositoriesPath)
+	if err != nil {
+		_ = dbInstance.Close()
+		log.Fatalf("Repository configuration initialization failed: %v", err)
 	}
 
 	indexPath := os.Getenv("RENOP_INDEX")

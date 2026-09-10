@@ -47,6 +47,8 @@ GPG 仍属于服务配置。全局团队限制、发布配额、注册、缓存�
 
 优先使用 `/api/settings/repositories`。带 Maven 前缀的旧接口继续用于兼容。
 
+仓库变更先提交数据库，再替换运行中的配置。删除最后一个仓库后，重启仍保留空集合；旧 YAML 仅作为首次迁移的来源。
+
 ### 查询存储库
 
 - **路径**：`GET /api/settings/repositories`

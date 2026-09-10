@@ -25,7 +25,7 @@ $env:RENOP_DEFAULT_ADMIN_PASSWORD='your-admin-password'
 
 ## 默认与新建存储库
 
-初始 `repositories.yaml` 包含三个用于向后兼容的 Maven 存储库：
+新数据库包含三个用于向后兼容的 Maven 仓库：
 
 | 路径         | 可见性    | 策略                |
 |:-------------|:----------|:--------------------|
@@ -51,7 +51,7 @@ protobuf 运行时指标位于 `/api/status/instance`。健康检查只说明进
 | 变量                           | 默认值              | 用途                       |
 |:-------------------------------|:--------------------|:---------------------------|
 | `RENOP_CONFIG`                 | `config.yaml`       | 主配置文件路径             |
-| `RENOP_REPOSITORIES`           | `repositories.yaml` | 存储库配置文件路径         |
+| `RENOP_REPOSITORIES`           | `repositories.yaml` | 旧配置导入路径；数据库初始化后忽略 |
 | `RENOP_INDEX`                  | `index.json`        | 持久化文件索引快照路径     |
 | `RENOP_DEFAULT_ADMIN_PASSWORD` | 首次生成            | `admin` 不存在时的初始密码 |
 

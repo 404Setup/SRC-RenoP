@@ -58,6 +58,8 @@ type StatusSnapshot struct {
 }
 
 type StateDB interface {
+	GetRepositorySettings() (*config.MavenSettings, error)
+	SaveRepositorySettings(settings config.MavenSettings) error
 	GetTokenByName(name string) (*AccessToken, error)
 	GetTokenByEmail(email string) (*AccessToken, error)
 	GetTokenBySecret(secret string) (*AccessToken, error)

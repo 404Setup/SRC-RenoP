@@ -42,7 +42,11 @@ aux garanties de RenoP ; S3 seul ne transforme pas un processus unique en cluste
 - **Cloudflare R2**
 - tout service implémentant l’API S3 requise
 
-### Exemple (`repositories.yaml`)
+### Exemple de migration héritée
+
+Les définitions des dépôts font partie de la sauvegarde de la base. Le YAML hérité est importé uniquement si
+aucune configuration des dépôts n’existe en base ; il ne remplace jamais un état existant. Conservez séparément
+les archives de migration pour un éventuel retour à une ancienne version de RenoP.
 
 ```yaml
 repositories:

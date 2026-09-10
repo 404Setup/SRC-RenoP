@@ -45,9 +45,14 @@ import (
 func setupSettingsTestApp(t *testing.T, cfg *config.Config) (*fiber.App, *core.AppState) {
 	t.Helper()
 	t.Setenv("RENOP_CONFIG", filepath.Join(testutil.TempDir(t), "config.yaml"))
-	t.Setenv("RENOP_REPOSITORIES", filepath.Join(testutil.TempDir(t), "repositories.yaml"))
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "sqlite", Dsn: filepath.Join(testutil.TempDir(t), "settings.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
 
 	appState := core.NewAppState()
+	appState.Inner.DB = db
 	appState.Inner.FileIndex = index.NewFileIndex()
 	appState.Inner.Config.Store(cfg)
 
@@ -612,6 +617,11 @@ func TestFullRepoUpdate(t *testing.T) {
 	if len(repo.Mirrors) != 1 || repo.Mirrors[0].Name != "central" {
 		t.Fatalf("expected existing mirrors to be preserved")
 	}
+	persisted, err := appState.GetDB().GetRepositorySettings()
+	require.NoError(t, err)
+	require.NotNil(t, persisted)
+	require.Equal(t, "PRIVATE", persisted.Repositories["releases"].Visibility)
+	require.True(t, persisted.Repositories["releases"].RequireGPGSignature)
 }
 
 func TestRepositoryUpdateNormalizesS3KeyPrefix(t *testing.T) {

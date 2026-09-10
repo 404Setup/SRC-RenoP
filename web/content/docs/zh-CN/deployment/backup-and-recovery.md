@@ -10,12 +10,15 @@ description: 一致性备份、恢复演练、后端迁移与灾难恢复验证
 只有当配置、仓库策略、数据库状态和不可重建的制品数据能够作为一个整体恢复时，RenoP 备份才算完整。只复制
 `index.json` 或一个 S3 存储桶并不充分。
 
+仓库定义包含在数据库备份中。只有数据库尚无仓库配置时才导入旧 YAML，已有配置不会被覆盖。
+如需回退到旧版 RenoP，请另外保留迁移归档。
+
 ## 对数据进行分类
 
 | 数据            | 常见位置                                    | 恢复作用                                       |
 |:----------------|:--------------------------------------------|:-----------------------------------------------|
 | 主配置          | `config.yaml` 或 `RENOP_CONFIG`             | 监听、数据库、代理、安全、预览、更新器         |
-| 仓库定义        | `repositories.yaml` 或 `RENOP_REPOSITORIES` | 格式、可见性、镜像、存储后端、策略             |
+| 仓库定义        | 数据库 | 格式、可见性、镜像、存储后端、策略             |
 | 数据库          | `renop.db` 或外部 DSN                       | 账户、权限、会话、令牌、团队、审核、审计、消息 |
 | 本地制品数据    | `storage_path`                              | 已发布包、上传内容、上游缓存                   |
 | S3 兼容制品数据 | 存储桶及各仓库前缀                          | S3 后端仓库的已发布包与缓存内容                |
@@ -39,11 +42,11 @@ description: 一致性备份、恢复演练、后端迁移与灾难恢复验证
 
 ```bash
 install -d /backup/renop
-cp config.yaml repositories.yaml renop.db index.json /backup/renop/
+cp config.yaml renop.db index.json /backup/renop/
 rsync -a storage/ /backup/renop/storage/
 ```
 
-实际路径应以 `RENOP_CONFIG`、`RENOP_REPOSITORIES`、`RENOP_INDEX`、数据库 DSN 与 `storage_path` 为准；示例中
+实际路径应以 `RENOP_CONFIG`、`RENOP_INDEX`、数据库 DSN 与 `storage_path` 为准；示例中
 使用的是默认名称。应保留文件所有者、权限和必要的扩展属性，并为临时上传文件预留足够空间。
 
 ## 备份外部数据库
@@ -73,7 +76,7 @@ rsync -a storage/ /backup/renop/storage/
 
 首先恢复到隔离主机或网络。使用创建备份时的 RenoP 版本，确认恢复后的服务正常，再将升级作为独立步骤执行。
 
-1. 恢复 `config.yaml`、`repositories.yaml`、证书和集成密钥，并设置严格权限。
+1. 恢复 `config.yaml`、证书和集成密钥，并设置严格权限。
 2. 恢复数据库，确认配置的主机名、凭据和 TLS 设置仍有效。
 3. 恢复本地存储，或重新连接完全相同的 S3 存储桶与前缀。
 4. 若有 `index.json` 则恢复；否则允许 RenoP 从权威存储重建索引。

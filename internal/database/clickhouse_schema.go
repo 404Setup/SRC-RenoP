@@ -72,6 +72,9 @@ func (schema clickHouseTableSchema) dataColumns() ([]string, error) {
 
 func clickHouseSchemas() []clickHouseTableSchema {
 	return []clickHouseTableSchema{
+		{name: "repository_settings", keyColumns: []string{"id"}, columns: []string{
+			"`id` Int64", "`payload` String",
+		}},
 		{name: "tokens", keyColumns: []string{"name"}, columns: []string{
 			"`name` String", "`type` String", "`type_value` Int64", "`encrypted_secret` String",
 			"`password_hash` String", "`tokens_json` String", "`created_at` String", "`description` String",

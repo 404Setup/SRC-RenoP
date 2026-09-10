@@ -25,7 +25,7 @@ description: Диагностика запуска, аутентификации
 
 ## Процесс не запускается
 
-Сначала проверьте пути и working directory. Относительные пути `config.yaml`, `repositories.yaml`, SQLite, `index.json`
+Сначала проверьте пути и working directory. Относительные пути `config.yaml`, SQLite, `index.json`
 и local storage разрешаются в окружении сервиса, которое может отличаться от shell.
 
 Частые причины: занятый порт, неверный YAML, недоступный DSN, отсутствие write permission, некорректные TLS files или

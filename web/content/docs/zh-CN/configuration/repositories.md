@@ -7,10 +7,13 @@ description: 仓库引擎、可见性、上游镜像、迁移与 S3 存储
 
 # 仓库与镜像
 
-仓库定义位于 `repositories.yaml`，可由 `RENOP_REPOSITORIES` 覆盖路径。管理员可在仓库管理中修改同一套
-经过校验的配置。仓库名称是不可变的小写 slug，并作为 URL 的第一个路径段。
+仓库定义存储在数据库中，通过仓库管理页面编辑。首次升级时，仅在数据库尚无仓库配置的情况下，
+RenoP 才导入 `repositories.yaml`（或 `RENOP_REPOSITORIES` 指定的文件），成功后将源文件归档为
+`repositories.yaml.migrated.<id>`。无效配置会停止启动并保留源文件。已有数据库配置始终优先，包括空仓库集合。
+全新安装直接在数据库中创建默认仓库，不再生成 YAML 文件。请备份数据库，并保护可能含有 S3 和镜像凭据的
+迁移归档。仓库名称是不可变的小写 slug，并作为 URL 的第一个路径段。
 
-## 配置示例
+## 旧配置迁移示例
 
 ```yaml
 repositories:

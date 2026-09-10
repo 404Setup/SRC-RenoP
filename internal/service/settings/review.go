@@ -85,7 +85,7 @@ func putRepositoryPublicationReview(c fiber.Ctx, state *core.AppState) error {
 	if policy != config.PublicationReviewOff {
 		nextRepository.AllowRedeployment = false
 	}
-	if err := saveRepositories(nextConfig); err != nil {
+	if err := saveRepositories(state, nextConfig); err != nil {
 		state.Inner.ConfigWriteLock.Unlock()
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to save repository settings")
 	}

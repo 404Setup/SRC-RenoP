@@ -27,7 +27,7 @@ an issue or chat transcript.
 
 ## The process does not start
 
-Check the configured paths and working directory first. Relative paths for `config.yaml`, `repositories.yaml`, the
+Check the configured paths and working directory first. Relative paths for `config.yaml`, the
 SQLite database, `index.json`, and local storage are resolved from the service's working environment, which can differ
 from an interactive shell.
 

@@ -15,11 +15,15 @@ utilise les mêmes structures validées et écrit les fichiers avec des permissi
 | Fichier             | Remplacement         | Usage                                                                 |
 |:--------------------|:---------------------|:----------------------------------------------------------------------|
 | `config.yaml`       | `RENOP_CONFIG`       | Serveur, base, aperçus, proxy, frontend, audit et mise à jour         |
-| `repositories.yaml` | `RENOP_REPOSITORIES` | Moteurs, visibilité, miroirs, politique Maven et S3                   |
+| Base de données | DSN de la base | Moteurs, visibilité, miroirs, politique Maven et S3                   |
 | `index.json`        | `RENOP_INDEX`        | Instantané de l’index de fichiers, reconstructible depuis le stockage |
 
 Comptes, API Token, sessions, équipes, audit et messages sont en base, jamais dans YAML. Limitez la lecture des fichiers
 de configuration au compte de service, car ils peuvent contenir des secrets.
+
+Les définitions des dépôts font partie de la sauvegarde de la base. Le YAML hérité est importé uniquement si
+aucune configuration des dépôts n’existe en base ; il ne remplace jamais un état existant. Conservez séparément
+les archives de migration pour un éventuel retour à une ancienne version de RenoP.
 
 ## Schéma de `config.yaml`
 

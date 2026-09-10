@@ -62,7 +62,7 @@ func putRepositoryDownloadStatistics(c fiber.Ctx, state *core.AppState) error {
 	nextConfig := oldConfig.DeepCopy()
 	enabled := *request.Enabled
 	nextConfig.Maven.Repositories[repository].DownloadStatistics = &enabled
-	if err := saveRepositories(nextConfig); err != nil {
+	if err := saveRepositories(state, nextConfig); err != nil {
 		state.Inner.ConfigWriteLock.Unlock()
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to save repository settings")
 	}

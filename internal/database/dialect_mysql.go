@@ -518,6 +518,9 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 	if err := initMailTables(db, true); err != nil {
 		return err
 	}
+	if err := initRepositorySettingsTable(db, true); err != nil {
+		return err
+	}
 	if err := initMavenTables(db, "MEDIUMTEXT NOT NULL"); err != nil {
 		return err
 	}

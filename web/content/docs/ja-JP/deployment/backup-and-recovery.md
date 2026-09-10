@@ -10,12 +10,16 @@ description: 整合したバックアップ、復元演習、バックエンド�
 設定、リポジトリポリシー、データベース状態、再構築できないアーティファクトを一緒に復元できて初めて、RenoP の
 バックアップは完全です。`index.json` または S3 bucket だけのコピーでは不十分です。
 
+リポジトリ定義はデータベースのバックアップに含まれます。旧 YAML はデータベースにリポジトリ設定がない場合のみ
+インポートされ、既存の設定を上書きしません。古い RenoP へのロールバックが必要な場合に備え、
+移行元の保管ファイルを別途保存してください。
+
 ## データを分類する
 
 | データ            | 代表的な場所                                    | 復旧時の役割                                                      |
 |:------------------|:------------------------------------------------|:------------------------------------------------------------------|
 | メイン設定        | `config.yaml` または `RENOP_CONFIG`             | Listener、database、proxy、security、preview、updater             |
-| リポジトリ定義    | `repositories.yaml` または `RENOP_REPOSITORIES` | Format、visibility、mirror、storage backend、policy               |
+| リポジトリ定義    | データベース | Format、visibility、mirror、storage backend、policy               |
 | データベース      | `renop.db` または外部 DSN                       | Account、permission、session、token、team、review、audit、message |
 | ローカルデータ    | `storage_path`                                  | Published package、upload、upstream cache                         |
 | S3 互換データ     | Bucket と repository prefix                     | S3-backed repository の package と cache                          |
@@ -40,11 +44,11 @@ index snapshot、local storage tree をコピーします。
 
 ```bash
 install -d /backup/renop
-cp config.yaml repositories.yaml renop.db index.json /backup/renop/
+cp config.yaml renop.db index.json /backup/renop/
 rsync -a storage/ /backup/renop/storage/
 ```
 
-実際の path は `RENOP_CONFIG`、`RENOP_REPOSITORIES`、`RENOP_INDEX`、database DSN、`storage_path` に従います。
+実際の path は `RENOP_CONFIG`、`RENOP_INDEX`、database DSN、`storage_path` に従います。
 所有者、permission、必要な extended attribute を保持し、temporary upload 用の空き容量も確保します。
 
 ## 外部データベースをバックアップする
@@ -79,7 +83,7 @@ Mirror cache は再取得できる場合がありますが、local publication �
 
 まず隔離した host または network に復元します。Backup を作成した RenoP version で動作確認し、必要な upgrade は別工程にします。
 
-1. `config.yaml`、`repositories.yaml`、certificate、integration secret を厳しい permission で復元する。
+1. `config.yaml`、certificate、integration secret を厳しい permission で復元する。
 2. Database を復元し、hostname、credential、TLS setting を確認する。
 3. Local storage を復元するか、同じ S3 bucket と prefix に接続する。
 4. `index.json` があれば復元し、なければ authoritative storage から再構築させる。

@@ -53,6 +53,9 @@ See [Third-party Login](../security/oauth-login.md) for credentials, provider pr
 
 The generic `/api/settings/repositories` routes are preferred. Maven-prefixed aliases remain for compatibility.
 
+Repository changes commit to the database before the live configuration is replaced. Deleting the last repository
+persists an empty set across restarts; legacy YAML is only an initial migration source.
+
 ### List repositories
 
 - **Path**: `GET /api/settings/repositories`

@@ -55,7 +55,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	suffix := uuid.NewString()[:8]
 	username := "dbcheck-" + suffix
 	now := time.Now().UnixMilli()
-	results := make([]DriverCheckResult, 0, 20)
+	results := make([]DriverCheckResult, 0, 21)
 	run := func(name string, check func() error) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -66,6 +66,29 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		}
 		results = append(results, DriverCheckResult{Name: name, Duration: time.Since(started)})
 		return nil
+	}
+	if err := run("repository configuration", func() error {
+		settings := config.MavenSettings{Repositories: map[string]*config.Repository{
+			"snapshot": {Name: "snapshot", Format: config.RepositoryFormatFiles, Visibility: "PRIVATE"},
+		}}
+		stored, err := db.InitializeRepositorySettings(settings)
+		if err != nil || stored == nil || len(stored.Repositories) != 1 || stored.Repositories["snapshot"] == nil {
+			return errorsOrMissing(err, "initial repository configuration")
+		}
+		stored, err = db.InitializeRepositorySettings(config.DefaultMavenSettings())
+		if err != nil || stored == nil || len(stored.Repositories) != 1 || stored.Repositories["snapshot"] == nil {
+			return errorsOrMissing(err, "repository migration is single-use")
+		}
+		if err := db.SaveRepositorySettings(config.MavenSettings{Repositories: map[string]*config.Repository{}}); err != nil {
+			return err
+		}
+		stored, err = db.GetRepositorySettings()
+		if err != nil || stored == nil || len(stored.Repositories) != 0 {
+			return errorsOrMissing(err, "empty repository configuration")
+		}
+		return nil
+	}); err != nil {
+		return results, err
 	}
 	if err := run("account and session", func() error {
 		if err := db.SaveToken(&core.AccessToken{

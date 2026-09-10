@@ -25,7 +25,7 @@ Session cookie、API token secret、password、S3/OAuth key、完全な Authoriz
 
 ## プロセスが起動しない
 
-まず path と working directory を確認します。`config.yaml`、`repositories.yaml`、SQLite、`index.json`、local storage の
+まず path と working directory を確認します。`config.yaml`、SQLite、`index.json`、local storage の
 relative path は
 service environment から解決され、interactive shell と異なる場合があります。
 

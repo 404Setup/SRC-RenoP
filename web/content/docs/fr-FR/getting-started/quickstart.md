@@ -25,7 +25,7 @@ Sans variable, RenoP génère un mot de passe et l’affiche une fois sur stdout
 
 ## Dépôts par défaut et nouveaux dépôts
 
-Le premier `repositories.yaml` contient trois dépôts Maven de compatibilité :
+Une nouvelle base contient trois dépôts Maven de compatibilité :
 
 | Chemin       | Visibilité | Politique                       |
 |:-------------|:-----------|:--------------------------------|
@@ -51,7 +51,7 @@ base et le stockage avec une opération authentifiée réelle avant d’ouvrir l
 | Variable                       | Défaut              | Usage                                        |
 |:-------------------------------|:--------------------|:---------------------------------------------|
 | `RENOP_CONFIG`                 | `config.yaml`       | Chemin de la configuration principale        |
-| `RENOP_REPOSITORIES`           | `repositories.yaml` | Chemin des dépôts                            |
+| `RENOP_REPOSITORIES`           | `repositories.yaml` | Import hérité ; ignoré après initialisation en base |
 | `RENOP_INDEX`                  | `index.json`        | Chemin de l’instantané d’index               |
 | `RENOP_DEFAULT_ADMIN_PASSWORD` | Généré une fois     | Mot de passe initial si `admin` n’existe pas |
 

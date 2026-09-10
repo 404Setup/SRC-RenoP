@@ -16,6 +16,17 @@ import (
 	"strings"
 )
 
+func initRepositorySettingsTable(db *sql.DB, mysql bool) error {
+	textType := "TEXT"
+	if mysql {
+		textType = "MEDIUMTEXT"
+	}
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS repository_settings (
+		id INT PRIMARY KEY, payload ` + textType + ` NOT NULL
+	);`)
+	return err
+}
+
 func initPackageDeprecationTable(db *sql.DB) error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS package_deprecations (
 		id VARCHAR(64) PRIMARY KEY,

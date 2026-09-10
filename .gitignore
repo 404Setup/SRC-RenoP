@@ -90,6 +90,7 @@ run/
 *.exe~
 *.json
 *.yaml
+*.yaml.migrated.*
 *.zip
 *.txt
 *.bin

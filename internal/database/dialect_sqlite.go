@@ -435,6 +435,9 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 	if err := initMailTables(db, false); err != nil {
 		return err
 	}
+	if err := initRepositorySettingsTable(db, false); err != nil {
+		return err
+	}
 	if err := initMavenTables(db, "TEXT NOT NULL"); err != nil {
 		return err
 	}

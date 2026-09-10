@@ -25,7 +25,7 @@ Without the variable, RenoP generates a random password and prints it once to st
 
 ## Default and new repositories
 
-The initial `repositories.yaml` contains three backward-compatible Maven repositories:
+A new database starts with three backward-compatible Maven repositories:
 
 | Path         | Visibility | Policy                         |
 |:-------------|:-----------|:-------------------------------|
@@ -53,7 +53,7 @@ traffic.
 | Variable                       | Default             | Purpose                                                  |
 |:-------------------------------|:--------------------|:---------------------------------------------------------|
 | `RENOP_CONFIG`                 | `config.yaml`       | Main configuration path                                  |
-| `RENOP_REPOSITORIES`           | `repositories.yaml` | Repository configuration path                            |
+| `RENOP_REPOSITORIES`           | `repositories.yaml` | Legacy import path; ignored after database initialization |
 | `RENOP_INDEX`                  | `index.json`        | Persisted file-index snapshot path                       |
 | `RENOP_DEFAULT_ADMIN_PASSWORD` | Generated once      | Initial `admin` password when the account does not exist |
 

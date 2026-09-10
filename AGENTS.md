@@ -87,6 +87,9 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   ClickHouse uses `clickhouse.Open` + EmbeddedRocksDB, never the `database/sql` adapter; preserve journal recovery and
   restart-safe copy/verify/rename schema migrations. Production SQL DELETE statements need a statically provable WHERE.
   Keep SQLite shutdown/WAL cleanup and use `internal/testutil.TempDir` for file-backed database tests.
+- **Repository configuration:** `internal/database/repository_settings.go` persists complete snapshots; startup migration
+  lives in `internal/bootstrap/repositories.go`. Import legacy `repositories.yaml` only before the initial database
+  snapshot, archive it after commit, and never recreate defaults for an existing empty repository set.
 - **Identity and authorization:** Ownership/membership uses immutable user IDs; public profiles use `/user/<username>`.
   Enforce live account, repository, package/team, and scoped-token permissions server-side. API tokens intersect current
   owner permissions; cookie-only sessions gate browser-only operations. Basic/password authentication is protocol-only.

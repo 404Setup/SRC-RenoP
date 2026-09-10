@@ -10,12 +10,16 @@ description: Согласованные копии, проверки восст�
 Копия RenoP полна только тогда, когда конфигурация, правила репозиториев, состояние базы и невосполнимые артефакты
 восстанавливаются вместе. Одного `index.json` или S3 bucket недостаточно.
 
+Определения репозиториев входят в резервную копию базы. Старый YAML импортируется только при отсутствии
+настроек репозиториев в базе и не заменяет существующее состояние. Сохраняйте архив миграции отдельно,
+если потребуется откат к старой версии RenoP.
+
 ## Классифицировать данные
 
 | Данные                   | Типичное место                               | Роль при восстановлении                                                  |
 |:-------------------------|:---------------------------------------------|:-------------------------------------------------------------------------|
 | Основная конфигурация    | `config.yaml` или `RENOP_CONFIG`             | Listener, база, proxy, security, previews, updater                       |
-| Репозитории              | `repositories.yaml` или `RENOP_REPOSITORIES` | Format, visibility, mirrors, storage backend, policy                     |
+| Репозитории              | База данных | Format, visibility, mirrors, storage backend, policy                     |
 | База данных              | `renop.db` или внешний DSN                   | Accounts, permissions, sessions, tokens, teams, reviews, audit, messages |
 | Локальные артефакты      | `storage_path`                               | Публикации, загрузки, upstream cache                                     |
 | S3-артефакты             | Bucket и prefix репозитория                  | Публикации и cache S3-репозиториев                                       |
@@ -41,11 +45,11 @@ snapshot не гарантирует их согласованность.
 
 ```bash
 install -d /backup/renop
-cp config.yaml repositories.yaml renop.db index.json /backup/renop/
+cp config.yaml renop.db index.json /backup/renop/
 rsync -a storage/ /backup/renop/storage/
 ```
 
-Используйте реальные пути из `RENOP_CONFIG`, `RENOP_REPOSITORIES`, `RENOP_INDEX`, DSN и `storage_path`. Сохраните
+Используйте реальные пути из `RENOP_CONFIG`, `RENOP_INDEX`, DSN и `storage_path`. Сохраните
 владельцев, права, необходимые атрибуты и свободное место для временных загрузок.
 
 ## Скопировать внешнюю базу
@@ -78,7 +82,7 @@ Mirror cache часто можно заполнить заново, локаль
 Сначала восстановите на изолированном хосте или в сети. Используйте версию RenoP, создавшую backup, проверьте её, а
 upgrade выполняйте отдельно.
 
-1. Восстановите `config.yaml`, `repositories.yaml`, certificates и secrets с жёсткими правами.
+1. Восстановите `config.yaml`, certificates и secrets с жёсткими правами.
 2. Восстановите базу и проверьте hostname, credentials и TLS.
 3. Восстановите локальный диск или подключите тот же S3 bucket/prefix.
 4. Восстановите `index.json` или позвольте RenoP перестроить индекс.

@@ -7,10 +7,14 @@ description: Moteurs, visibilité, miroirs, migration et stockage S3
 
 # Dépôts et miroirs
 
-Les définitions résident dans `repositories.yaml`, remplaçable par `RENOP_REPOSITORIES`. L’administration modifie les
-mêmes structures validées. Le nom est un slug minuscule immuable et le premier segment de l’URL.
+Les définitions des dépôts sont stockées dans la base de données et modifiées dans la gestion des dépôts. Lors de
+la première mise à niveau, RenoP importe `repositories.yaml` (ou `RENOP_REPOSITORIES`) uniquement en l’absence de
+configuration en base, puis archive le fichier sous `repositories.yaml.migrated.<id>`. Une entrée invalide arrête
+le démarrage sans remplacer le fichier. La base reste prioritaire, même si aucun dépôt n’y figure. Une nouvelle
+installation crée les dépôts par défaut en base sans produire de YAML. Sauvegardez la base et protégez l’archive,
+qui peut contenir des identifiants S3 et de miroir. Le nom est un slug minuscule immuable et le premier segment URL.
 
-## Exemple de configuration
+## Exemple de migration héritée
 
 ```yaml
 repositories:

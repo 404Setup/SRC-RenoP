@@ -42,7 +42,11 @@ consistent with RenoP's guarantees; S3 alone does not turn one process into a cl
 - **Cloudflare R2**
 - Any service implementing the required S3 API
 
-### Example (`repositories.yaml`)
+### Legacy migration example
+
+Repository definitions are part of the database backup. Legacy YAML is imported only when the database has no
+repository configuration; it cannot override an existing snapshot. Preserve any migration archive separately if
+rollback to an older RenoP version is required.
 
 ```yaml
 repositories:

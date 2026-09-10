@@ -42,7 +42,11 @@ S3 は managed object storage に適します。multi-node には外部 DB と R
 - **Cloudflare R2**
 - 必要な S3 API を実装する service
 
-### 例 (`repositories.yaml`)
+### 旧設定の移行例
+
+リポジトリ定義はデータベースのバックアップに含まれます。旧 YAML はデータベースにリポジトリ設定がない場合のみ
+インポートされ、既存の設定を上書きしません。古い RenoP へのロールバックが必要な場合に備え、
+移行元の保管ファイルを別途保存してください。
 
 ```yaml
 repositories:

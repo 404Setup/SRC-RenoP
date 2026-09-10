@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"go.yaml.in/yaml/v3"
 
 	"renop/internal/config"
 	"renop/internal/core"
@@ -196,7 +195,7 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 
 		newConfig.Maven.Repositories[repoName] = repo.DeepCopy()
 
-		if err := saveRepositories(newConfig); err != nil {
+		if err := saveRepositories(state, newConfig); err != nil {
 			return err
 		}
 		state.Inner.Config.Store(newConfig)
@@ -286,7 +285,7 @@ func replaceRepositoryConfig(state *core.AppState, repository, expectedFormat st
 		}
 		updatedConfig := currentConfig.DeepCopy()
 		updatedConfig.Maven.Repositories[repository] = replacement.DeepCopy()
-		if err := saveRepositories(updatedConfig); err != nil {
+		if err := saveRepositories(state, updatedConfig); err != nil {
 			return err
 		}
 		state.Inner.Config.Store(updatedConfig)
@@ -483,7 +482,7 @@ func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		newConfig := oldConfig.DeepCopy()
 		delete(newConfig.Maven.Repositories, repoName)
 
-		if err := saveRepositories(newConfig); err != nil {
+		if err := saveRepositories(state, newConfig); err != nil {
 			return err
 		}
 		state.Inner.Config.Store(newConfig)
@@ -544,19 +543,9 @@ func requireUnlockedRepository(c fiber.Ctx, state *core.AppState, repository str
 	return nil
 }
 
-func saveRepositories(cfg *config.Config) error {
-	yamlData, err := yaml.Marshal(&cfg.Maven)
-	if err != nil {
-		return err
+func saveRepositories(state *core.AppState, cfg *config.Config) error {
+	if state.GetDB() == nil {
+		return core.ErrDatabaseUnavailable
 	}
-
-	reposPath := os.Getenv("RENOP_REPOSITORIES")
-	if reposPath == "" {
-		reposPath = "repositories.yaml"
-	}
-	tmpPath := reposPath + ".tmp"
-	if err := utils.WritePrivateFile(tmpPath, yamlData); err != nil {
-		return err
-	}
-	return utils.SafeRename(tmpPath, reposPath)
+	return state.GetDB().SaveRepositorySettings(cfg.Maven)
 }

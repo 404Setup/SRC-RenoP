@@ -343,12 +343,6 @@ func (m *MavenSettings) setDefaults() {
 	if m.Repositories == nil {
 		m.Repositories = make(map[string]*Repository)
 	}
-	defaults := DefaultMavenSettings().Repositories
-	for k, v := range defaults {
-		if _, ok := m.Repositories[k]; !ok {
-			m.Repositories[k] = v
-		}
-	}
 	for _, repo := range m.Repositories {
 		if repo != nil && strings.TrimSpace(repo.Format) == "" {
 			repo.Format = RepositoryFormatMaven
@@ -377,20 +371,23 @@ func (m *MavenSettings) setDefaults() {
 			}
 		}
 	}
-	delete(m.Repositories, "snapshot")
 }
 
-func (m *MavenSettings) UnmarshalJSON(data []byte) error {
-	type alias MavenSettings
-	aux := (*alias)(m)
-	if err := json.Unmarshal(data, aux); err != nil {
-		return err
-	}
+// Normalize validates repository policy without adding or removing repositories.
+func (m *MavenSettings) Normalize() error {
 	if err := m.validatePublicationReviewPolicies(); err != nil {
 		return err
 	}
 	m.setDefaults()
 	return nil
+}
+
+func (m *MavenSettings) UnmarshalJSON(data []byte) error {
+	type alias MavenSettings
+	if err := json.Unmarshal(data, (*alias)(m)); err != nil {
+		return err
+	}
+	return m.Normalize()
 }
 
 func (m *MavenSettings) UnmarshalYAML(value *yaml.Node) error {
@@ -399,11 +396,7 @@ func (m *MavenSettings) UnmarshalYAML(value *yaml.Node) error {
 	if err := value.Decode(aux); err != nil {
 		return err
 	}
-	if err := m.validatePublicationReviewPolicies(); err != nil {
-		return err
-	}
-	m.setDefaults()
-	return nil
+	return m.Normalize()
 }
 
 type S3Config struct {

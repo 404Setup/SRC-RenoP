@@ -25,7 +25,7 @@ description: 以状态码为起点排查启动、认证、代理、协议、镜�
 
 ## 进程无法启动
 
-先检查配置路径与工作目录。`config.yaml`、`repositories.yaml`、SQLite 数据库、`index.json` 与本地存储使用
+先检查配置路径与工作目录。`config.yaml`、SQLite 数据库、`index.json` 与本地存储使用
 相对路径时，会相对于服务运行环境解析；这可能和交互式终端不同。
 
 常见原因包括监听端口被占用、YAML 格式错误、数据库 DSN 不可达、缺少写权限、TLS 文件无效，或服务账户无法读取

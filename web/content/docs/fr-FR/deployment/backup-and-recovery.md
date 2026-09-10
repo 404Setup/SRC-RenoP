@@ -10,12 +10,16 @@ description: Sauvegardes cohérentes, répétitions de restauration, migration d
 Une sauvegarde RenoP n’est complète que si configuration, règles de dépôts, état de la base et artefacts non
 reconstructibles peuvent être restaurés ensemble. Copier uniquement `index.json` ou un bucket S3 ne suffit pas.
 
+Les définitions des dépôts font partie de la sauvegarde de la base. Le YAML hérité est importé uniquement si
+aucune configuration des dépôts n’existe en base ; il ne remplace jamais un état existant. Conservez séparément
+les archives de migration pour un éventuel retour à une ancienne version de RenoP.
+
 ## Classer les données
 
 | Donnée                      | Emplacement courant                         | Rôle à la restauration                                              |
 |:----------------------------|:--------------------------------------------|:--------------------------------------------------------------------|
 | Configuration principale    | `config.yaml` ou `RENOP_CONFIG`             | Écoute, base, proxy, sécurité, aperçus, mise à jour                 |
-| Définition des dépôts       | `repositories.yaml` ou `RENOP_REPOSITORIES` | Format, visibilité, miroirs, stockage, règles                       |
+| Définition des dépôts       | Base de données | Format, visibilité, miroirs, stockage, règles                       |
 | Base de données             | `renop.db` ou DSN externe                   | Comptes, droits, sessions, jetons, équipes, revues, audit, messages |
 | Artefacts locaux            | `storage_path`                              | Paquets publiés, envois, cache amont                                |
 | Artefacts S3 compatibles    | Bucket et préfixe par dépôt                 | Paquets et cache des dépôts S3                                      |
@@ -43,11 +47,11 @@ configuration, l’index et tout le stockage local.
 
 ```bash
 install -d /backup/renop
-cp config.yaml repositories.yaml renop.db index.json /backup/renop/
+cp config.yaml renop.db index.json /backup/renop/
 rsync -a storage/ /backup/renop/storage/
 ```
 
-Adaptez les chemins définis par `RENOP_CONFIG`, `RENOP_REPOSITORIES`, `RENOP_INDEX`, le DSN et `storage_path` ; les
+Adaptez les chemins définis par `RENOP_CONFIG`, `RENOP_INDEX`, le DSN et `storage_path` ; les
 noms ci-dessus sont les valeurs usuelles. Préservez propriétaire, permissions, attributs nécessaires et espace pour les
 fichiers temporaires.
 
@@ -85,7 +89,7 @@ différentes qu’après les distinguer de façon fiable.
 Restaurez d’abord sur un hôte ou réseau isolé. Utilisez la même version de RenoP que lors de la sauvegarde, validez le
 service, puis réalisez l’éventuelle mise à niveau séparément.
 
-1. Restaurez `config.yaml`, `repositories.yaml`, certificats et secrets avec des permissions strictes.
+1. Restaurez `config.yaml`, certificats et secrets avec des permissions strictes.
 2. Restaurez la base et vérifiez hôte, identifiants et TLS.
 3. Restaurez le disque ou reconnectez exactement le même bucket et préfixe S3.
 4. Restaurez `index.json` s’il existe ; sinon laissez RenoP reconstruire l’index.

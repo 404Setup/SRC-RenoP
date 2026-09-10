@@ -63,20 +63,3 @@ func LoadFileIndex(indexPath string) *index.FileIndex {
 	}
 	return idx
 }
-
-func LoadMaven(path string) config.MavenSettings {
-	file, err := os.Open(path)
-	if err != nil {
-		return config.DefaultMavenSettings()
-	}
-	defer file.Close()
-
-	var mavenSettings config.MavenSettings
-	err = yaml.NewDecoder(bufio.NewReader(file)).Decode(&mavenSettings)
-	if err != nil {
-		log.Printf("Failed to parse maven file: %v", err)
-		return config.DefaultMavenSettings()
-	}
-
-	return mavenSettings
-}

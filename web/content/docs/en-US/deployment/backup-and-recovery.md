@@ -10,12 +10,16 @@ description: Consistent backups, restore rehearsals, backend migration, and disa
 A RenoP backup is complete only when configuration, repository policy, database state, and non-rebuildable artifact data
 can be restored together. Copying `index.json` or an S3 bucket alone is not enough.
 
+Repository definitions are part of the database backup. Legacy YAML is imported only when the database has no
+repository configuration; it cannot override an existing snapshot. Preserve any migration archive separately if
+rollback to an older RenoP version is required.
+
 ## Classify the data
 
 | Data                        | Typical location                            | Recovery role                                                                 |
 |:----------------------------|:--------------------------------------------|:------------------------------------------------------------------------------|
 | Main configuration          | `config.yaml` or `RENOP_CONFIG`             | Listener, database, proxy, security, previews, updater                        |
-| Repository definitions      | `repositories.yaml` or `RENOP_REPOSITORIES` | Format, visibility, mirrors, storage backend, policy                          |
+| Repository definitions      | Database | Format, visibility, mirrors, storage backend, policy                          |
 | Database                    | `renop.db` or external DSN                  | Accounts, permissions, sessions, tokens, teams, reviews, audit, messages      |
 | Local artifact data         | `storage_path`                              | Published packages, uploads, cached upstream content                          |
 | S3-compatible artifact data | Bucket and per-repository prefix            | Published packages and cached content for S3-backed repositories              |
@@ -42,11 +46,11 @@ configuration, repository file, index snapshot, and local storage tree.
 
 ```bash
 install -d /backup/renop
-cp config.yaml repositories.yaml renop.db index.json /backup/renop/
+cp config.yaml renop.db index.json /backup/renop/
 rsync -a storage/ /backup/renop/storage/
 ```
 
-Use the paths configured through `RENOP_CONFIG`, `RENOP_REPOSITORIES`, `RENOP_INDEX`, the database DSN, and
+Use the paths configured through `RENOP_CONFIG`, `RENOP_INDEX`, the database DSN, and
 `storage_path`; the example names are defaults. Preserve file ownership, permissions, extended attributes where
 required, and sufficient free space for temporary upload files.
 
@@ -81,7 +85,7 @@ retention rules only after you can distinguish them reliably.
 Restore to an isolated host or network first. Use the same RenoP version that created the backup, confirm that the
 restored service works, and then perform an upgrade separately if required.
 
-1. Restore `config.yaml`, `repositories.yaml`, certificates, and integration secrets with restrictive permissions.
+1. Restore `config.yaml`, certificates, and integration secrets with restrictive permissions.
 2. Restore the database and verify that its configured hostname, credentials, and TLS settings are valid.
 3. Restore local storage or reconnect the exact S3 bucket and prefix.
 4. Restore `index.json` if available; otherwise allow RenoP to rebuild indexes from authoritative storage.

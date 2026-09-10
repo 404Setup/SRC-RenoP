@@ -53,6 +53,9 @@ Voir [Connexion via un service tiers](../security/oauth-login.md) pour les ident
 
 Préférez `/api/settings/repositories`. Les alias préfixés par Maven restent disponibles pour compatibilité.
 
+Les changements sont validés en base avant de remplacer la configuration active. La suppression du dernier dépôt
+reste effective après redémarrage ; le YAML hérité sert uniquement à la migration initiale.
+
 ### Lister les dépôts
 
 - **Chemin** : `GET /api/settings/repositories`

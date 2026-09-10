@@ -7,11 +7,14 @@ description: Repository engines, visibility, upstream mirrors, migration, and S3
 
 # Repositories & Mirrors
 
-Repository definitions live in `repositories.yaml`, overridden by `RENOP_REPOSITORIES`. Administrators can edit the
-same validated settings from repository management. Repository names are immutable lowercase slugs and form the first
-URL path segment.
+Repository definitions are stored in the database and edited through repository management. On the first upgrade,
+RenoP imports `repositories.yaml` (or `RENOP_REPOSITORIES`) only if no database snapshot exists, then archives the
+source as `repositories.yaml.migrated.<id>`. Invalid input stops startup without replacing the source. An existing
+database snapshot always wins, including an empty repository set. New installations create the default repositories
+in the database without creating a YAML file. Back up the database and protect the archived file, which can contain
+S3 and mirror credentials. A repository name is an immutable lowercase slug and the first URL segment.
 
-## Configuration example
+## Legacy migration example
 
 ```yaml
 repositories:
