@@ -1,0 +1,36 @@
+# Release targets shared by local builds and the Actions matrices.
+@{
+    Targets = @(
+        @{ GOOS = 'darwin'; GOARCH = 'amd64' },
+        @{ GOOS = 'darwin'; GOARCH = 'amd64v2' },
+        @{ GOOS = 'darwin'; GOARCH = 'amd64v3' },
+        @{ GOOS = 'darwin'; GOARCH = 'amd64v4' },
+        @{ GOOS = 'darwin'; GOARCH = 'arm64' },
+        @{ GOOS = 'freebsd'; GOARCH = 'amd64' },
+        @{ GOOS = 'freebsd'; GOARCH = 'amd64v2' },
+        @{ GOOS = 'freebsd'; GOARCH = 'amd64v3' },
+        @{ GOOS = 'freebsd'; GOARCH = 'amd64v4' },
+        @{ GOOS = 'freebsd'; GOARCH = 'arm64' },
+        @{ GOOS = 'linux'; GOARCH = 'amd64' },
+        @{ GOOS = 'linux'; GOARCH = 'amd64v2' },
+        @{ GOOS = 'linux'; GOARCH = 'amd64v3' },
+        @{ GOOS = 'linux'; GOARCH = 'amd64v4' },
+        @{ GOOS = 'linux'; GOARCH = 'arm64' },
+        @{ GOOS = 'linux'; GOARCH = 'loong64' },
+        @{ GOOS = 'linux'; GOARCH = 'riscv64' },
+        @{ GOOS = 'netbsd'; GOARCH = 'amd64' },
+        @{ GOOS = 'netbsd'; GOARCH = 'amd64v2' },
+        @{ GOOS = 'netbsd'; GOARCH = 'amd64v3' },
+        @{ GOOS = 'netbsd'; GOARCH = 'amd64v4' },
+        @{ GOOS = 'openbsd'; GOARCH = 'amd64' },
+        @{ GOOS = 'openbsd'; GOARCH = 'amd64v2' },
+        @{ GOOS = 'openbsd'; GOARCH = 'amd64v3' },
+        @{ GOOS = 'openbsd'; GOARCH = 'amd64v4' },
+        @{ GOOS = 'openbsd'; GOARCH = 'arm64' },
+        @{ GOOS = 'windows'; GOARCH = 'amd64' },
+        @{ GOOS = 'windows'; GOARCH = 'amd64v2' },
+        @{ GOOS = 'windows'; GOARCH = 'amd64v3' },
+        @{ GOOS = 'windows'; GOARCH = 'amd64v4' },
+        @{ GOOS = 'windows'; GOARCH = 'arm64' }
+    )
+}

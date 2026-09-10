@@ -83,7 +83,7 @@ pnpm run build:frontend
 # 3. Compile binary
 pwsh ./build.ps1 c nb    # Current OS only, unzipped binary output
 pwsh ./build.ps1 c       # Current OS packaged as a raw Brotli stream
-pwsh ./build.ps1 s       # Mainstream platforms (Linux/Windows amd64/amd64v3/arm64)
+pwsh ./build.ps1 s       # Mainstream platforms (Linux/Windows amd64/amd64v4/arm64)
 pwsh ./build.ps1         # Full cross-compilation matrix
 ```
 

@@ -23,6 +23,15 @@
 .PARAMETER PreviousCommit
     Full source revision of the preceding formal release.
 
+.PARAMETER Target
+    Build one release target, for example linux/amd64v3. Used by Actions matrix jobs.
+
+.PARAMETER PrepareOnly
+    Generate shared protobuf, embedded mail data, and frontend assets without compiling targets.
+
+.PARAMETER SkipPreparation
+    Reuse generated inputs downloaded from the same workflow run.
+
 .PARAMETER BuildConcurrency
     Maximum number of target compilation tasks running at once. The upper
     bound is four. Compilation slots are released before packaging begins.
@@ -46,6 +55,10 @@ param(
     [string]$Development,
     [string]$Commit,
     [string]$PreviousCommit,
+    [ValidatePattern('^[a-z0-9]+/[a-z0-9]+$')]
+    [string]$Target,
+    [switch]$PrepareOnly,
+    [switch]$SkipPreparation,
     [ValidateRange(1, 4)]
     [int]$BuildConcurrency = 4,
     [ValidateRange(1, 8)]
@@ -108,39 +121,7 @@ $displayVersion = if ($Version -match '^(?i:[0-9a-f]{40}|[0-9a-f]{64})$') {
 }
 $safeVersion = $displayVersion -replace '[^A-Za-z0-9._-]', '_'
 
-$allTargets = @(
-    @{ GOOS = 'darwin'; GOARCH = 'amd64' },
-    @{ GOOS = 'darwin'; GOARCH = 'amd64v2' },
-    @{ GOOS = 'darwin'; GOARCH = 'amd64v3' },
-    @{ GOOS = 'darwin'; GOARCH = 'amd64v4' },
-    @{ GOOS = 'darwin'; GOARCH = 'arm64' },
-    @{ GOOS = 'freebsd'; GOARCH = 'amd64' },
-    @{ GOOS = 'freebsd'; GOARCH = 'amd64v2' },
-    @{ GOOS = 'freebsd'; GOARCH = 'amd64v3' },
-    @{ GOOS = 'freebsd'; GOARCH = 'amd64v4' },
-    @{ GOOS = 'freebsd'; GOARCH = 'arm64' },
-    @{ GOOS = 'linux'; GOARCH = 'amd64' },
-    @{ GOOS = 'linux'; GOARCH = 'amd64v2' },
-    @{ GOOS = 'linux'; GOARCH = 'amd64v3' },
-    @{ GOOS = 'linux'; GOARCH = 'amd64v4' },
-    @{ GOOS = 'linux'; GOARCH = 'arm64' },
-    @{ GOOS = 'linux'; GOARCH = 'loong64' },
-    @{ GOOS = 'linux'; GOARCH = 'riscv64' },
-    @{ GOOS = 'netbsd'; GOARCH = 'amd64' },
-    @{ GOOS = 'netbsd'; GOARCH = 'amd64v2' },
-    @{ GOOS = 'netbsd'; GOARCH = 'amd64v3' },
-    @{ GOOS = 'netbsd'; GOARCH = 'amd64v4' },
-    @{ GOOS = 'openbsd'; GOARCH = 'amd64' },
-    @{ GOOS = 'openbsd'; GOARCH = 'amd64v2' },
-    @{ GOOS = 'openbsd'; GOARCH = 'amd64v3' },
-    @{ GOOS = 'openbsd'; GOARCH = 'amd64v4' },
-    @{ GOOS = 'openbsd'; GOARCH = 'arm64' },
-    @{ GOOS = 'windows'; GOARCH = 'amd64' },
-    @{ GOOS = 'windows'; GOARCH = 'amd64v2' },
-    @{ GOOS = 'windows'; GOARCH = 'amd64v3' },
-    @{ GOOS = 'windows'; GOARCH = 'amd64v4' },
-    @{ GOOS = 'windows'; GOARCH = 'arm64' }
-)
+$allTargets = (Import-PowerShellDataFile (Join-Path $repositoryRoot 'scripts/build-targets.psd1')).Targets
 
 switch ($Mode) {
     's' {
@@ -161,6 +142,13 @@ switch ($Mode) {
     default { $targets = $allTargets }
 }
 
+if ($Target) {
+    if ($Mode -ne 'full') { throw '-Target cannot be combined with a platform mode.' }
+    $targets = @($allTargets | Where-Object { "$($_.GOOS)/$($_.GOARCH)" -eq $Target })
+    if ($targets.Count -ne 1) { throw "Unknown release target: $Target" }
+}
+if ($PrepareOnly -and $SkipPreparation) { throw '-PrepareOnly and -SkipPreparation are mutually exclusive.' }
+
 $availablePlatforms = @(& go tool dist list | ForEach-Object { $_.Trim() })
 $unsupportedTargets = @($targets | Where-Object {
     $baseArch = if ($_.GOARCH -match '^(amd64)(v[1-4])?$') { 'amd64' } else { $_.GOARCH }
@@ -172,7 +160,7 @@ if ($unsupportedTargets.Count -gt 0) {
 }
 
 $dist = Join-Path $repositoryRoot 'dist'
-if (-not $noBundle) {
+if (-not $noBundle -and -not $PrepareOnly) {
     if (Test-Path -LiteralPath $dist) {
         Remove-Item -LiteralPath $dist -Recurse -Force
     }
@@ -382,8 +370,18 @@ $buildWorkspace = $null
 $activeCompileWorkers = [System.Collections.Generic.List[object]]::new()
 $activeCompressionWorkers = [System.Collections.Generic.List[object]]::new()
 try {
-    Invoke-ProtobufGenerate
-    Build-FrontendAssets
+    if ($SkipPreparation) {
+        foreach ($prepared in @('pkg/pb/api.pb.go', 'pkg/pb/session.pb.go',
+                'internal/mail/data/disposable_domains.txt', 'internal/service/frontend/renop-html/dist/js/main.js')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $repositoryRoot $prepared) -PathType Leaf)) {
+                throw "Prepared build input is missing: $prepared"
+            }
+        }
+    } else {
+        Invoke-ProtobufGenerate
+        Build-FrontendAssets
+    }
+    if ($PrepareOnly) { Write-Host 'Prepared shared build inputs.'; return }
 
     $env:CGO_ENABLED = '0'
 
@@ -402,9 +400,9 @@ try {
 
     $jobs = [System.Collections.Generic.List[object]]::new()
     for ($targetIndex = 0; $targetIndex -lt $targets.Count; $targetIndex++) {
-        $target = $targets[$targetIndex]
-        $goos = $target.GOOS
-        $goarch = $target.GOARCH
+        $targetSpec = $targets[$targetIndex]
+        $goos = $targetSpec.GOOS
+        $goarch = $targetSpec.GOARCH
         $binaryExtension = if ($goos -eq 'windows') { '.exe' } else { '' }
         if ($noBundle) {
             $binaryName = if ($targets.Count -eq 1) {

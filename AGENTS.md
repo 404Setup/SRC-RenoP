@@ -199,10 +199,14 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   Nightly metadata is rebuilt by `.github/scripts/nightly-info.ps1`; publishing requires PowerShell 7.5 or later
   to preserve JSON date strings. Cleanup follows the sorted obsolete entries after successful publication;
   preserve retained trees, skip missing directories without consuming the deletion budget, and surface HTTP failures.
-  The custom linker receives `-o2` through `-ldflags`; do not pass it as a `go build` flag.
-  Actions share the workflow-level `renop-actions` FIFO group with `queue: max`; retain serial job dependencies.
-  Compile/compression pools remain independently bounded; see `scripts/build-target.ps1` and
-  `scripts/compress-target.ps1`.
+  The custom linker receives `-o3` and `-fmth` through `-ldflags`; preserve the shared flags in `build.ps1`.
+  Actions share the workflow-level `renop-actions` FIFO group with `queue: max`. Within each run, prepare shared
+  inputs once, compile the `scripts/build-targets.psd1` matrix concurrently, then package the complete build matrix
+  concurrently and assemble a verified full manifest before publishing. No per-workflow matrix parallelism cap.
+  Local compile/compression pools remain independently bounded; CI selects one target per runner with `-Target`
+  and `-SkipPreparation`. Packaging and assembly live in `.github/scripts/package-matrix-target.ps1` and
+  `assemble-matrix.ps1`; only the final `dist-artifacts` artifact is publishable. Pin the prepared Go runtime version
+  across the matrix, share module caches, keep target build caches separate, and run obsolete-cache cleanup once.
 
 ## Implementation standards
 

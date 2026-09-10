@@ -26,6 +26,14 @@ inputs:
     description: Dependency file used to key the Go module and build caches
     required: false
     default: go.sum
+  clean-cache:
+    description: Clean obsolete caches once before a build matrix starts
+    required: false
+    default: "true"
+  cache-suffix:
+    description: Separate target compilation caches within a matrix
+    required: false
+    default: ""
 
 outputs:
   go-version:
@@ -62,7 +70,7 @@ runs:
           -OutputFile $env:GITHUB_OUTPUT
 
     - name: Clean obsolete Go runtime and caches
-      if: inputs.cache == 'true'
+      if: inputs.cache == 'true' && inputs.clean-cache == 'true'
       shell: pwsh
       env:
         SETUP_CURRENT_TAG: ${{ steps.resolve.outputs.tag }}
@@ -119,16 +127,23 @@ runs:
         if ($LASTEXITCODE -ne 0 -or $paths.Where({ [string]::IsNullOrWhiteSpace($_) }).Count -gt 0) {
           throw 'Unable to determine the Go cache directories.'
         }
-        $delimiter = "go-cache-$([guid]::NewGuid().ToString('N'))"
-        "paths<<$delimiter" >> $env:GITHUB_OUTPUT
-        $paths >> $env:GITHUB_OUTPUT
-        $delimiter >> $env:GITHUB_OUTPUT
+        "modules=$($paths[0])" >> $env:GITHUB_OUTPUT
+        "build=$($paths[1])" >> $env:GITHUB_OUTPUT
 
-    - name: Restore Go module and build caches
+    - name: Restore shared Go module cache
       if: inputs.cache == 'true'
       uses: actions/cache@v6
       with:
-        path: ${{ steps.go-cache.outputs.paths }}
-        key: go-cache-${{ runner.os }}-${{ runner.arch }}-${{ steps.resolve.outputs.tag }}-${{ hashFiles(inputs.cache-dependency-path) }}
+        path: ${{ steps.go-cache.outputs.modules }}
+        key: go-cache-${{ runner.os }}-${{ runner.arch }}-${{ steps.resolve.outputs.tag }}-modules-${{ hashFiles(inputs.cache-dependency-path) }}
         restore-keys: |
-          go-cache-${{ runner.os }}-${{ runner.arch }}-${{ steps.resolve.outputs.tag }}-
+          go-cache-${{ runner.os }}-${{ runner.arch }}-${{ steps.resolve.outputs.tag }}-modules-
+
+    - name: Restore target Go build cache
+      if: inputs.cache == 'true'
+      uses: actions/cache@v6
+      with:
+        path: ${{ steps.go-cache.outputs.build }}
+        key: go-cache-${{ runner.os }}-${{ runner.arch }}-${{ steps.resolve.outputs.tag }}-build-${{ inputs.cache-suffix || 'host' }}-${{ hashFiles(inputs.cache-dependency-path) }}
+        restore-keys: |
+          go-cache-${{ runner.os }}-${{ runner.arch }}-${{ steps.resolve.outputs.tag }}-build-${{ inputs.cache-suffix || 'host' }}-

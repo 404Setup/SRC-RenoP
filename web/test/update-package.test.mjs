@@ -12,6 +12,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
+import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -80,6 +81,70 @@ test('release tooling decouples bounded compilation from raw Brotli packaging', 
     assert.match(workflow, /previous_commit/);
     assert.match(publish, /\$nightlyPackageRetention = 9/);
     assert.match(publish, /Get-NightlyReleases -CurrentRelease \$currentRelease -ExistingReleases/);
+});
+
+test('Actions matrices compile every target before packaging and assemble only a complete verified payload', () => {
+    const repositoryRoot = resolve(fileURLToPath(new URL('../..', import.meta.url)));
+    const workflow = readFileSync(resolve(repositoryRoot, '.github/workflows/build.yml'), 'utf8');
+    const compile = workflow.slice(workflow.indexOf('  build:'), workflow.indexOf('  package:'));
+    const packaging = workflow.slice(workflow.indexOf('  package:'), workflow.indexOf('  assemble:'));
+    assert.match(compile, /needs: \[metadata, prepare\]/);
+    assert.match(packaging, /needs: \[metadata, build\]/);
+    for (const job of [compile, packaging]) {
+        assert.match(job, /fail-fast: false/);
+        assert.match(job, /include: \$\{\{ fromJSON\(needs.metadata.outputs.targets\) \}\}/);
+        assert.doesNotMatch(job, /max-parallel:|continue-on-error:/);
+    }
+    assert.match(compile, /-Target \$env:BUILD_TARGET -SkipPreparation -nb/);
+    assert.match(workflow, /needs: \[metadata, assemble\]/);
+    assert.doesNotMatch(workflow, /pattern: ['"]\*['"]/);
+    const directory = mkdtempSync(resolve(tmpdir(), 'renop-matrix-test-'));
+    try {
+        const matrix = spawnSync('pwsh', ['-NoProfile', '-Command',
+            '(Import-PowerShellDataFile ./scripts/build-targets.psd1).Targets | ConvertTo-Json -Compress'],
+        {cwd: repositoryRoot, encoding: 'utf8'});
+        assert.equal(matrix.status, 0, matrix.stderr);
+        const targets = JSON.parse(matrix.stdout);
+        assert.equal(targets.length, 31);
+        assert.equal(new Set(targets.map(t => t.GOOS + '/' + t.GOARCH)).size, targets.length);
+        const packages = resolve(directory, 'packages');
+        mkdirSync(packages);
+        const raw = Buffer.from('executable fixture'), compressed = brotliCompressSync(raw);
+        for (const target of targets) {
+            const {GOOS: os, GOARCH: arch} = target;
+            const file = `renop-fixture-${os}-${arch}.br`;
+            writeFileSync(resolve(packages, file), compressed);
+            writeFileSync(resolve(packages, `${os}-${arch}.json`), JSON.stringify({os, arch, file,
+                sha256: createHash('sha256').update(compressed).digest('hex'), size: compressed.length,
+                uncompressed_size: raw.length, format: 'brotli', executable: os === 'windows' ? 'renop.exe' : 'renop'}));
+        }
+        const run = name => spawnSync('pwsh', ['-NoProfile', '-File', '.github/scripts/assemble-matrix.ps1',
+            '-PackageDir', packages, '-DistDir', resolve(directory, name), '-Version', 'fixture',
+            '-Development', 'true', '-Commit', 'a'.repeat(40)], {cwd: repositoryRoot, encoding: 'utf8', timeout: 30_000});
+        const success = run('complete');
+        assert.equal(success.status, 0, success.stdout + success.stderr);
+        const manifest = JSON.parse(readFileSync(resolve(directory, 'complete/manifest.json'), 'utf8').replace(/^\uFEFF/, ''));
+        assert.equal(manifest.targets.length, targets.length);
+        assert.equal(manifest.commit, 'a'.repeat(40));
+        assert.equal(manifest.development, true);
+        assert.deepEqual(manifest.targets.map(t => t.os + '/' + t.arch), targets.map(t => t.GOOS + '/' + t.GOARCH));
+        const payload = spawnSync('pwsh', ['-NoProfile', '-File', '.github/scripts/test-release-payload.ps1',
+            '-DistDir', resolve(directory, 'complete')], {cwd: repositoryRoot, encoding: 'utf8'});
+        assert.equal(payload.status, 0, payload.stdout + payload.stderr);
+        const target = targets[0];
+        writeFileSync(resolve(packages, `renop-fixture-${target.GOOS}-${target.GOARCH}.br`), Buffer.alloc(compressed.length));
+        const corrupted = run('corrupt');
+        assert.notEqual(corrupted.status, 0);
+        assert.match(corrupted.stderr, /hash or size mismatch/);
+        rmSync(resolve(packages, `${target.GOOS}-${target.GOARCH}.json`));
+        const missing = run('missing');
+        assert.notEqual(missing.status, 0);
+        assert.match(missing.stderr, /Expected exactly 31/);
+    } finally {
+        assert.equal(dirname(directory), resolve(tmpdir()));
+        assert.match(directory.split(/[\\/]/).at(-1), /^renop-matrix-test-/);
+        rmSync(directory, {recursive: true, force: true});
+    }
 });
 
 test('publishing cleans newest obsolete trees after publication and skips missing directories', async () => {

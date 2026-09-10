@@ -25,6 +25,7 @@ jobs:
       tag: ${{ steps.metadata.outputs.tag }}
       commit: ${{ steps.metadata.outputs.commit }}
       previous_commit: ${{ steps.metadata.outputs.previous_commit }}
+      targets: ${{ steps.metadata.outputs.targets }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -62,6 +63,8 @@ jobs:
           }
           $development = if ($release) { 'false' } else { 'true' }
           $tag = if ($release) { $version } else { '' }
+          $targets = (Import-PowerShellDataFile ./scripts/build-targets.psd1).Targets
+          "targets=$($targets | ConvertTo-Json -Compress)" >> $env:GITHUB_OUTPUT
           "skip=$($skip.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
           "release=$($release.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
           "version=$version" >> $env:GITHUB_OUTPUT
@@ -72,21 +75,20 @@ jobs:
           Write-Host "Commit: $message"
           Write-Host "Version: $version sha=$commit (development=$development, skip=$skip)"
 
-  build:
-    name: Build all platforms
+  prepare:
+    name: Prepare shared build inputs
     needs: metadata
     if: needs.metadata.outputs.skip != 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      go-version: ${{ steps.go.outputs.go-version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
       - name: Install custom Go runtime
+        id: go
         uses: ./.github/actions/setup-go-runtime
-        with:
-          cache: true
-          cache-dependency-path: go.sum
       - name: Install pnpm
         uses: pnpm/action-setup@v6
         with:
@@ -101,27 +103,158 @@ jobs:
         uses: ./.github/actions/setup-protoc
         with:
           version: "36.0"
-      - name: Install protoc-gen-go
-        run: go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-      - name: Build and package
+      - name: Generate shared sources and frontend
+        shell: pwsh
+        run: |
+          ./build.ps1 -PrepareOnly
+          if ($LASTEXITCODE -ne 0) { throw 'Shared build preparation failed.' }
+          go mod download
+          if ($LASTEXITCODE -ne 0) { throw 'Module download failed.' }
+          go build -o "$env:RUNNER_TEMP/renop-brotli" ./cmd/renop-brotli
+          if ($LASTEXITCODE -ne 0) { throw 'Brotli tool build failed.' }
+          tar -cf "$env:RUNNER_TEMP/prepared-inputs.tar" pkg/pb/api.pb.go pkg/pb/session.pb.go internal/mail/data internal/service/frontend/renop-html/dist
+          if ($LASTEXITCODE -ne 0) { throw 'Shared input archive failed.' }
+      - name: Upload prepared sources
+        uses: actions/upload-artifact@v7
+        with:
+          name: prepared-inputs
+          path: ${{ runner.temp }}/prepared-inputs.tar
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 1
+      - name: Upload native packaging tool
+        uses: actions/upload-artifact@v7
+        with:
+          name: packaging-tool
+          path: ${{ runner.temp }}/renop-brotli
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 1
+
+  build:
+    name: Compile ${{ matrix.GOOS }}/${{ matrix.GOARCH }}
+    needs: [metadata, prepare]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.metadata.outputs.targets) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install the prepared Go runtime version
+        uses: ./.github/actions/setup-go-runtime
+        with:
+          go-version: ${{ needs.prepare.outputs.go-version }}
+          clean-cache: false
+          cache-suffix: ${{ matrix.GOOS }}-${{ matrix.GOARCH }}
+      - name: Download shared sources
+        uses: actions/download-artifact@v8
+        with:
+          name: prepared-inputs
+          path: ${{ runner.temp }}/prepared
+      - name: Compile one target
+        shell: pwsh
+        env:
+          BUILD_TARGET: ${{ matrix.GOOS }}/${{ matrix.GOARCH }}
+          RENOP_VERSION: ${{ needs.metadata.outputs.version }}
+          RENOP_DEVELOPMENT: ${{ needs.metadata.outputs.development }}
+          RENOP_COMMIT: ${{ needs.metadata.outputs.commit }}
+          RENOP_PREVIOUS_COMMIT: ${{ needs.metadata.outputs.previous_commit }}
+        run: |
+          tar -xf "$env:RUNNER_TEMP/prepared/prepared-inputs.tar"
+          if ($LASTEXITCODE -ne 0) { throw 'Shared input extraction failed.' }
+          New-Item -ItemType Directory -Path ./dist -Force | Out-Null
+          Set-Location ./dist
+          ../build.ps1 -Target $env:BUILD_TARGET -SkipPreparation -nb -Version $env:RENOP_VERSION -Development $env:RENOP_DEVELOPMENT -Commit $env:RENOP_COMMIT -PreviousCommit $env:RENOP_PREVIOUS_COMMIT
+          if ($LASTEXITCODE -ne 0) { throw "Compilation failed for $env:BUILD_TARGET" }
+      - name: Upload compiled executable
+        uses: actions/upload-artifact@v7
+        with:
+          name: executable-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
+          path: dist/renop*
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 1
+
+  package:
+    name: Package ${{ matrix.GOOS }}/${{ matrix.GOARCH }}
+    needs: [metadata, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.metadata.outputs.targets) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Download compiled executable
+        uses: actions/download-artifact@v8
+        with:
+          name: executable-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
+          path: executable
+      - name: Download packaging tool
+        uses: actions/download-artifact@v8
+        with:
+          name: packaging-tool
+          path: tools
+      - name: Restore packaging tool permissions
+        run: chmod +x tools/renop-brotli
+      - name: Compress the target
+        shell: pwsh
+        env:
+          BUILD_TARGET: ${{ matrix.GOOS }}/${{ matrix.GOARCH }}
+          RENOP_VERSION: ${{ needs.metadata.outputs.version }}
+        run: ./.github/scripts/package-matrix-target.ps1 -Target $env:BUILD_TARGET -Version $env:RENOP_VERSION -BinaryDir ./executable -DistDir ./packages -BrotliTool ./tools/renop-brotli
+      - name: Upload target package
+        uses: actions/upload-artifact@v7
+        with:
+          name: package-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
+          path: packages/
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 1
+
+  assemble:
+    name: Assemble and validate all targets
+    needs: [metadata, package]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Download target packages
+        uses: actions/download-artifact@v8
+        with:
+          pattern: package-*
+          path: packages
+          merge-multiple: true
+      - name: Assemble the release manifest
         shell: pwsh
         env:
           RENOP_VERSION: ${{ needs.metadata.outputs.version }}
           RENOP_DEVELOPMENT: ${{ needs.metadata.outputs.development }}
           RENOP_COMMIT: ${{ needs.metadata.outputs.commit }}
           RENOP_PREVIOUS_COMMIT: ${{ needs.metadata.outputs.previous_commit }}
-        run: pwsh -NoProfile -File ./build.ps1 -Version $env:RENOP_VERSION -Development $env:RENOP_DEVELOPMENT -Commit $env:RENOP_COMMIT -PreviousCommit $env:RENOP_PREVIOUS_COMMIT
-      - name: Upload build artifacts
+        run: |
+          ./.github/scripts/assemble-matrix.ps1 -PackageDir ./packages -DistDir ./dist -Version $env:RENOP_VERSION -Development $env:RENOP_DEVELOPMENT -Commit $env:RENOP_COMMIT -PreviousCommit $env:RENOP_PREVIOUS_COMMIT
+          ./.github/scripts/test-release-payload.ps1 -DistDir ./dist
+      - name: Upload complete release artifacts
         uses: actions/upload-artifact@v7
         with:
           name: dist-artifacts
           path: |
             dist/*.br
             dist/manifest.json
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 1
 
   publish:
     name: Publish to official update host
-    needs: [metadata, build]
+    needs: [metadata, assemble]
     if: needs.metadata.outputs.skip != 'true'
     runs-on: ubuntu-latest
     steps:
@@ -132,9 +265,8 @@ jobs:
       - name: Download build artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: '*'
+          name: dist-artifacts
           path: dist
-          merge-multiple: true
       - name: Validate update payload boundary
         shell: pwsh
         run: pwsh -NoProfile -File ./.github/scripts/test-release-payload.ps1 -DistDir ./dist
@@ -172,7 +304,7 @@ jobs:
 
   release:
     name: Publish GitHub release notes and assets
-    needs: [metadata, build, publish]
+    needs: [metadata, assemble, publish]
     if: needs.metadata.outputs.release == 'true' && needs.metadata.outputs.skip != 'true'
     runs-on: ubuntu-latest
     steps:
@@ -183,9 +315,8 @@ jobs:
       - name: Download build artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: '*'
+          name: dist-artifacts
           path: dist
-          merge-multiple: true
       - name: Build changelog from commits
         id: changelog
         shell: pwsh

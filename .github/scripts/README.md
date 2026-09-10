@@ -7,9 +7,26 @@ the build artifact; release documents are attached separately to GitHub releases
 The workflow uses one repository-wide `renop-actions` concurrency group with `queue: max` and
 `cancel-in-progress: false`. Only one workflow run executes at a time across all branches and release channels;
 other runs wait in FIFO order based on when they entered the concurrency queue. Within a run, `needs` orders
-metadata, build, publish, and release jobs. GitHub supports at most 100 pending runs per group; further runs
+metadata, shared preparation, the compile matrix, the packaging matrix, assembly, publication, and release jobs. GitHub supports at most 100 pending runs per group; further runs
 are canceled when the queue is full. Queue arrival order can differ from dispatch or commit order. See
 [GitHub's concurrency contract](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency).
+
+The 31 targets in `scripts/build-targets.psd1` each receive an independent Actions compile job, with no
+`max-parallel` limit. The shared preparation job generates protobufs, embedded mail data, and frontend sidecars once.
+Every compile job uses that artifact and the same resolved Go runtime version. Module caches are shared; compiled
+Go caches are keyed by target, and obsolete-cache cleanup runs only during preparation. The local `build.ps1`
+worker limits do not limit the CI matrix.
+
+All compile jobs must succeed before any packaging job starts. Packaging also runs as a matrix using one shared
+native Brotli tool, at quality 11. `assemble-matrix.ps1` rejects missing, extra, renamed, or corrupted packages and
+creates the single release manifest in target-list order. Publishing downloads only `dist-artifacts`, so raw binaries,
+prepared inputs, packaging tools, and per-target descriptors never reach the update host. Any matrix failure blocks
+assembly and publication. Concurrency remains subject to the repository's available GitHub runner quota; measure
+elapsed time from an actual Actions run rather than assuming a fixed speedup.
+
+Local entry points are `./build.ps1 -PrepareOnly` and
+`./build.ps1 -Target linux/arm64 -SkipPreparation -nb`; existing local full, `s`, and `c` modes retain their bounded pools.
+See [GitHub matrix and artifact dependencies](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/run-job-variations).
 
 For nightly builds, `nightly-info.ps1` first removes every historical `targets` field and adds the current build's
 fresh target metadata. It sorts known releases by Git topology, newest first, then inserts missing eligible
@@ -40,3 +57,6 @@ The same check runs through `pnpm run test:web`.
 
 `web/test/update-package.test.mjs` exercises publication against an isolated HTTP server, including reversed
 remote history, missing directories, deletion denial, and upload/metadata failures.
+
+The matrix assembly regression in `web/test/update-package.test.mjs` checks the complete target set, artifact
+boundary, digest validation, missing-target rejection, and compile-before-package dependency.
