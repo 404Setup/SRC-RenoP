@@ -1,0 +1,36 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+export default Object.freeze({
+    "legal.title": "法律文件",
+    "legal.settingsHint": "管理執行個體政策與瀏覽器同意設定。使用前請替換佔位文件。",
+    "legal.termsTitle": "服務條款",
+    "legal.documentHint": "支援 Markdown，每份文件最多 512 KiB。留空會還原佔位內容。",
+    "legal.cookieBanner": "顯示 Cookie 浮窗",
+    "legal.cookieBannerHint": "訪客隨時可從頁尾重新開啟偏好設定。",
+    "legal.preview": "預覽",
+    "legal.edit": "編輯",
+    "legal.invalid": "請使用有效文字，每份文件不得超過 512 KiB。",
+    "legal.saveFailed": "無法儲存法律文件設定。",
+    "legal.loadFailed": "法律文件暫時無法使用，請重試。",
+    "legal.consentLabel": "我同意私隱政策與服務條款。",
+    "legal.consentRequired": "請同意目前的私隱政策與服務條款。",
+    "legal.cookiesRequired": "請允許瀏覽器使用必要 Cookie 後繼續。",
+    "legal.cookieTitle": "Cookie 選擇",
+    "legal.cookieDescription": "必要 Cookie 用於登入與安全功能。是否載入第三方安全驗證服務，由你選擇。",
+    "legal.necessary": "必要 Cookie",
+    "legal.necessaryDescription": "用於工作階段、安全狀態及記住你的選擇。",
+    "legal.optional": "第三方安全驗證",
+    "legal.optionalDescription": "使用受保護操作時，允許載入已設定的安全驗證服務。",
+    "legal.necessaryOnly": "僅必要 Cookie",
+    "legal.acceptAll": "全部接受",
+    "legal.cookiePreferences": "Cookie 偏好設定",
+    "legal.savePreferences": "儲存偏好"
+});

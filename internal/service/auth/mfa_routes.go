@@ -23,6 +23,7 @@ import (
 
 	"renop/internal/core"
 	"renop/internal/service/audit"
+	"renop/internal/service/legal"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -86,6 +87,9 @@ func getMFAChallenge(c fiber.Ctx, state *core.AppState) error {
 }
 
 func completeMFALogin(c fiber.Ctx, state *core.AppState, challenge *mfaChallenge, factor string) error {
+	if err := legal.RequireConsent(c, state); err != nil {
+		return err
+	}
 	consumed, err := loadMFAChallenge(c, state, true)
 	if err != nil || consumed.snapshot != challenge.snapshot {
 		return mfaError(c, core.ErrMFAInvalid)
@@ -99,6 +103,9 @@ func completeMFALogin(c fiber.Ctx, state *core.AppState, challenge *mfaChallenge
 	c.Locals("verified_fido_credential", challenge.credentialID)
 	user := buildSynthUser(account)
 	if err := issueBrowserSession(c, state, user, challenge.method+"+"+factor); err != nil {
+		if errors.Is(err, legal.ErrConsentRequired) {
+			return err
+		}
 		return mfaError(c, err)
 	}
 	setPrivateResponseHeaders(c)
@@ -106,6 +113,9 @@ func completeMFALogin(c fiber.Ctx, state *core.AppState, challenge *mfaChallenge
 }
 
 func verifyMFATOTP(c fiber.Ctx, state *core.AppState) error {
+	if err := legal.RequireConsent(c, state); err != nil {
+		return err
+	}
 	var request struct {
 		Code string `json:"code"`
 	}
@@ -165,6 +175,9 @@ func beginMFAPasskey(c fiber.Ctx, state *core.AppState) error {
 }
 
 func finishMFAPasskey(c fiber.Ctx, state *core.AppState) error {
+	if err := legal.RequireConsent(c, state); err != nil {
+		return err
+	}
 	var request struct {
 		Credential json.RawMessage `json:"credential"`
 	}

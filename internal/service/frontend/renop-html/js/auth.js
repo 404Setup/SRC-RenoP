@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {ensureLegalConsent} from './legal-consent.js';
 import {fetchProto, getAuthHeaders, postProto} from './api.js';
 import {showAlert} from './alert.js';
 import {t} from './i18n.js';
@@ -360,6 +361,7 @@ export async function initializeSession() {
  * @returns {Promise<void>}
  */
 export async function login(name, secret) {
+    if (!(await ensureLegalConsent('login'))) return;
     loginError.style.display = 'none';
 
     try {
@@ -484,6 +486,7 @@ export async function fidoLogin() {
     const name = usernameInput ? usernameInput.value.trim() : '';
 
     try {
+        if (!(await ensureLegalConsent('login')) || controller.signal.aborted) return;
         const beginRes = await fetch('/api/auth/fido/login/begin', {
             method: 'POST',
             signal: controller.signal,

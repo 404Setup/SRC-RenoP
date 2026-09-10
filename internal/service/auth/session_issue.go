@@ -20,12 +20,16 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
+	"renop/internal/service/legal"
 	"renop/internal/utils"
 )
 
 func issueBrowserSession(c fiber.Ctx, state *core.AppState, user *config.User, method string) error {
 	if user == nil {
 		return core.ErrUserProfileNotFound
+	}
+	if err := legal.RequireConsent(c, state); err != nil {
+		return err
 	}
 	accessToken := state.GetTokenByName(user.Username)
 	if accessToken == nil {
@@ -78,7 +82,7 @@ func issueBrowserSession(c fiber.Ctx, state *core.AppState, user *config.User, m
 	}
 	audit.Log(state, &core.AuditLogEntry{
 		Username: user.Username, Operator: user.Username, Action: audit.ActionLogin,
-		Details: "User logged in successfully", AuthMethod: authMethod, SessionID: publicID, IP: ip,
+		Details: "User logged in successfully; accepted policy " + legal.AcceptedRevision(c), AuthMethod: authMethod, SessionID: publicID, IP: ip,
 	})
 	return nil
 }

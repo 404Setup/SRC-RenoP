@@ -8,19 +8,21 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-export const MAX_PRIVACY_POLICY_BYTES = 512 << 10;
+export const MAX_LEGAL_DOCUMENT_BYTES = 512 << 10;
 
 /**
- * Read one successful UTF-8 plain-text privacy policy within the shared size limit.
- * @param {Response} response - Same-origin policy response.
+ * Read successful UTF-8 legal content with an explicit MIME type and byte limit.
+ * @param {Response} response - Same-origin legal response.
+ * @param {string} [expectedType='text/plain'] - Required media type.
+ * @param {number} [maxBytes=MAX_LEGAL_DOCUMENT_BYTES] - Maximum decoded bytes.
  * @returns {Promise<string>} Validated policy text.
  */
-export async function readPrivacyPolicyResponse(response) {
+export async function readLegalTextResponse(response, expectedType = 'text/plain', maxBytes = MAX_LEGAL_DOCUMENT_BYTES) {
     if (!response?.ok) throw new Error('privacy policy request failed');
     const contentType = String(response.headers.get('Content-Type') || '').split(';', 1)[0].trim().toLowerCase();
-    if (contentType && contentType !== 'text/plain') throw new Error('privacy policy response is not plain text');
+    if (contentType && contentType !== expectedType) throw new Error('legal response has an unexpected content type');
     const declaredLength = Number(response.headers.get('Content-Length'));
-    if (Number.isFinite(declaredLength) && declaredLength > MAX_PRIVACY_POLICY_BYTES) {
+    if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
         throw new Error('privacy policy response exceeds the size limit');
     }
     if (!response.body?.getReader) throw new Error('privacy policy response is not streamable');
@@ -34,13 +36,15 @@ export async function readPrivacyPolicyResponse(response) {
             const {done, value} = await reader.read();
             if (done) break;
             consumed += value.byteLength;
-            if (consumed > MAX_PRIVACY_POLICY_BYTES) {
-                await reader.cancel();
+            if (consumed > maxBytes) {
                 throw new Error('privacy policy response exceeds the size limit');
             }
             output += decoder.decode(value, {stream: true});
         }
         output += decoder.decode();
+    } catch (error) {
+        await reader.cancel().catch(() => {});
+        throw error;
     } finally {
         reader.releaseLock();
     }

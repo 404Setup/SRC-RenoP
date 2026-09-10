@@ -196,6 +196,7 @@
                         <renop-icon aria-hidden="true" name="chevronLeft"></renop-icon>
                         <span data-i18n="nav.backHome">Back to home</span>
                     </a>
+                    <div class="account-legal-slot" id="login-legal-consent-slot"></div>
                 </header>
                 <form class="account-page-form" id="login-form">
                     <div class="account-field">
@@ -400,6 +401,7 @@
                         <renop-icon aria-hidden="true" name="chevronLeft"></renop-icon>
                         <span data-i18n="nav.signIn">Sign in</span>
                     </a>
+                    <div class="account-legal-slot" id="registration-legal-consent-slot"></div>
                 </header>
                 <form class="account-page-form" id="registration-form">
                     <p class="account-form-error" id="registration-availability" role="status"></p>
@@ -1542,13 +1544,18 @@
                 </div>
             </div>
         </div>
+        <section aria-labelledby="legal-page-title" class="tab-content legal-page" id="tab-content-legal" style="display: none;"></section>
     </main>
     <footer>
         <div id="footer-links">
             <a data-i18n="footer.organization" href="{{RENOP.ORGANIZATION_WEBSITE}}" target="_blank">Organization</a>
-            <span class="separator" id="privacy-policy-separator" style="display: none;">·</span>
-            <a data-i18n="footer.privacyPolicy" href="#" id="privacy-policy-link" style="display: none;">Privacy
+            <span class="separator" id="privacy-policy-separator">·</span>
+            <a data-i18n="footer.privacyPolicy" data-legal-link href="/privacy-policy" id="privacy-policy-link">Privacy
                 Policy</a>
+            <span class="separator">·</span>
+            <a data-i18n="legal.termsTitle" data-legal-link href="/terms-of-service">Terms of Service</a>
+            <span class="separator">·</span>
+            <button class="footer-link" data-cookie-preferences data-i18n="legal.cookiePreferences" type="button">Cookie preferences</button>
             <span id="icp-container" style="display: none;">
                 <span class="separator">·</span>
                 <a href="https://beian.miit.gov.cn/" id="icp-text" rel="noopener noreferrer" target="_blank">{{RENOP.ICP_LICENSE}}</a>
@@ -1558,30 +1565,13 @@
                 <a href="https://beian.mps.gov.cn/" id="public-security-filing-text" rel="noopener noreferrer"
                    target="_blank">{{RENOP.PUBLIC_SECURITY_FILING}}</a>
             </span>
-            <span id="legal-notice-container" style="display: none;">
+            <span id="legal-notice-container">
                 <span class="separator">·</span>
-                <a data-i18n="footer.legalNotice" data-url="{{RENOP.LEGAL_NOTICE_URL}}" id="legal-notice-link"
-                   rel="noopener noreferrer" target="_blank">Legal Notice</a>
+                <a data-i18n="footer.legalNotice" data-legal-link href="/legal-notice" id="legal-notice-link">Legal Notice</a>
             </span>
         </div>
         <div id="footer-copyright"></div>
     </footer>
-</div>
-
-<div class="modal" id="privacy-policy-modal" style="display: none;">
-    <div class="modal-backdrop" id="privacy-policy-backdrop"></div>
-    <div class="modal-content" style="max-width: 600px;">
-        <button aria-label="Close modal" class="close-btn" data-i18n-aria-label="modal.close"
-                id="btn-close-privacy-policy">&times;
-        </button>
-        <div class="modal-header">
-            <h3 class="modal-title" data-i18n="privacy.title">Privacy Policy</h3>
-        </div>
-        <div class="modal-body">
-            <div id="privacy-policy-content"
-                 style="white-space: pre-wrap; font-size: 0.9rem; line-height: 1.6; max-height: 60vh; overflow-y: auto;"></div>
-        </div>
-    </div>
 </div>
 
 <div class="modal" id="message-center-modal" style="display: none;">

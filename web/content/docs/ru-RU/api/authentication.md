@@ -194,3 +194,5 @@ Microsoft, Google, GitLab, Cloudflare, Stack Exchange и собственные 
 `DELETE /api/tokens/:name/retention/audit`. Поля `deleted_at`, `email_release_at`,
 `email_released_at`, `audit_purge_at` и `audit_purged_at` содержат миллисекунды Unix.
 Административный маршрут `DELETE /api/tokens/:name` применяет те же условия окончательного закрытия.
+
+[Правовые документы и cookie](../configuration/legal.md)

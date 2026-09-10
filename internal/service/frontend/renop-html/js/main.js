@@ -41,7 +41,9 @@ import {
 import {loadTicketCenterPage, openTicketCenter, ticketRouteFromPath} from './tickets.js';
 import {initMessageCenter, openMessageCenter} from './messages.js';
 import {initNotificationComposer, openNotificationComposer} from './notification-composer.js';
-import {initPrivacyPolicy} from './privacy-policy.js';
+import {initializeLegalConsent, legalPageFromPath, resetLegalConsent} from './legal-consent.js';
+import {initializeLegalPages, updateLegalPage} from './legal-pages.js';
+import {initializeCookieConsent} from './cookie-consent.js';
 import './cargo-messages.js';
 import './docker-messages.js';
 import './maven-messages.js';
@@ -64,6 +66,9 @@ import {protectedRouteDeniedEvent} from './protected-route.js';
 import {accountPageFromPath, isLoginPath, leaveLoginPage, loginReturnTo, navigateToLogin} from './login-route.js';
 
 await initI18n();
+initializeLegalConsent();
+initializeLegalPages();
+initializeCookieConsent();
 installAccountLanguageSync();
 initConfiguredFont();
 const backendAvailability = installBackendAvailabilityMonitor();
@@ -92,7 +97,7 @@ function isAccountTab(tabId) {
 $(window).on('languageChanged', async () => {
     updateCopyrightFooter();
 
-    const currentTab = profileRouteFromPath(window.location.pathname)
+    const currentTab = legalPageFromPath() ? 'legal' : profileRouteFromPath(window.location.pathname)
         ? 'profile'
         : (publicMavenDomainRouteFromPath() ? 'maven-domain'
             : (publicSuperTeamRouteFromPath() ? 'super-team'
@@ -302,6 +307,7 @@ window.addEventListener(protectedRouteDeniedEvent, event => {
 export async function switchTab(tabId) {
     const accountPage = accountPageFromPath();
     if (accountPage) tabId = accountPage;
+    if (legalPageFromPath()) tabId = 'legal';
     const routedAccountTab = accountTabFromPath();
     if (!cachedIsLoggedIn && (isAccountTab(tabId) || routedAccountTab)) {
         navigateToLogin(window.location.pathname, {replace: true});
@@ -360,10 +366,13 @@ export async function switchTab(tabId) {
         }
     });
 
+    void updateLegalPage(tabId === 'legal');
     if (enteringLogin) document.getElementById('username').focus({preventScroll: true});
     updateAccountRecoveryPage(tabId === 'recovery', enteringRecovery);
     updateMFALoginPage(tabId === 'login', enteringLogin);
     updateRegistrationPage(tabId === 'registration', enteringRegistration);
+    if (tabId !== 'login') resetLegalConsent('login');
+    if (tabId !== 'registration') resetLegalConsent('registration');
     updatePasswordRecoveryPage(tabId === 'password-recovery', enteringPasswordRecovery);
     if (accountPage) {
         void refreshPasswordRecoveryAvailability();
@@ -382,7 +391,7 @@ export async function switchTab(tabId) {
             link.href = '/account/forgot-password' + search;
         });
     }
-    if (!accountPage && tabId !== 'profile' && tabId !== 'maven-domain' && tabId !== 'super-team' && !isAccountTab(tabId)) {
+    if (!accountPage && tabId !== 'legal' && tabId !== 'profile' && tabId !== 'maven-domain' && tabId !== 'super-team' && !isAccountTab(tabId)) {
         localStorage.setItem('selectedTab', tabId);
     }
 
@@ -435,7 +444,7 @@ tabs.forEach(tab => {
     tab.addEventListener('click', (e) => {
         e.preventDefault();
         if (tab.classList.contains('active')) return;
-        if (accountPageFromPath() || profileRouteFromPath(window.location.pathname) || accountTabFromPath()) {
+        if (accountPageFromPath() || legalPageFromPath() || profileRouteFromPath(window.location.pathname) || accountTabFromPath()) {
             window.history.pushState(null, '', '/');
         }
         switchTab(tab.dataset.tab);
@@ -468,7 +477,7 @@ document.addEventListener('keydown', (e) => {
         const modals = document.querySelectorAll('.modal');
         modals.forEach(m => {
             if (m.style.display !== 'none' && m.style.display !== '') {
-                const closeBtn = m.querySelector('.close-btn') || m.querySelector('#user-editor-cancel') || m.querySelector('#btn-close-privacy-policy');
+                const closeBtn = m.querySelector('.close-btn') || m.querySelector('#user-editor-cancel');
                 if (closeBtn) {
                     closeBtn.click();
                 } else {
@@ -628,7 +637,7 @@ async function initializeApplication() {
                     return;
                 }
                 if (!cachedIsManager) return;
-                if (accountPageFromPath() || profileRouteFromPath(window.location.pathname) || accountTabFromPath()) {
+                if (accountPageFromPath() || legalPageFromPath() || profileRouteFromPath(window.location.pathname) || accountTabFromPath()) {
                     window.history.pushState(null, '', '/');
                 }
                 await switchTab(targetTab);
@@ -690,7 +699,6 @@ async function initializeApplication() {
             });
         }
 
-        initPrivacyPolicy();
 
         const icpText = document.getElementById('icp-text');
         const icpContainer = document.getElementById('icp-container');
@@ -710,22 +718,6 @@ async function initializeApplication() {
             }
         }
 
-        const legalNoticeLink = document.getElementById('legal-notice-link');
-        const legalNoticeContainer = document.getElementById('legal-notice-container');
-        if (legalNoticeLink && legalNoticeContainer) {
-            const rawUrl = legalNoticeLink.dataset.url?.trim();
-            if (rawUrl && rawUrl !== '{{RENOP.LEGAL_NOTICE_URL}}') {
-                try {
-                    const url = new URL(rawUrl);
-                    if ((url.protocol === 'http:' || url.protocol === 'https:') && !url.username && !url.password) {
-                        legalNoticeLink.href = url.href;
-                        legalNoticeContainer.style.display = 'inline';
-                    }
-                } catch {
-                    // Invalid direct YAML values remain hidden.
-                }
-            }
-        }
     } catch (e) {
     }
 }

@@ -25,6 +25,7 @@ import {
 import {exitProtectedRouteOnDenial} from './protected-route.js';
 import {logout} from './auth.js';
 import {restartApp} from './dashboard.js';
+import {renderLegalSettings} from './settings/legal.js';
 import {renderCacheSettings} from './settings/cache.js';
 import {renderRegistrationSettings} from './settings/registration.js';
 import {renderMavenDomainSettings} from './settings/maven-domains.js';
@@ -60,6 +61,7 @@ const DOMAIN_MESSAGE_TYPES = {
 };
 
 const SETTINGS_PAGES = Object.freeze({
+    legal: {label: 'legal.title', render: renderLegalSettings},
     frontend: {label: 'settings.domainFrontend', render: renderFrontendSettings},
     server: {label: 'settings.domainServer', render: renderServerSettings},
     proxy: {label: 'settings.domainProxy', render: renderProxySettings},
@@ -800,12 +802,6 @@ function renderFrontendSettings(container, data) {
         publicSecurityFilingInput
     ));
 
-    const legalNoticeInput = buildInput('url', data.legal_notice_url, 'https://example.com/legal', e => {
-        currentConfig.legal_notice_url = e.target.value;
-        enableSave();
-    });
-    complianceFields.appendChild(createFieldRow(t('settings.legalNotice'), t('settings.legalNoticeHint'), legalNoticeInput));
-
     wrap.appendChild(identitySection);
     wrap.appendChild(brandSection);
     wrap.appendChild(typographySection);
@@ -1496,6 +1492,7 @@ export async function saveDomainSettings() {
         renderSettingsForm(domain, currentConfig);
         draft.initial = structuredClone(draft.config);
         if (domain === 'oauth_providers') window.dispatchEvent(new Event('oauthProvidersChanged'));
+        if (domain === 'legal') window.dispatchEvent(new Event('legalSettingsChanged'));
         showAlert(t('settings.savedSuccess'), 'success');
     } catch (error) {
         if (generation === accountGeneration) showAlert(caughtErrorMessage(error, 'settings.saveFailed'), 'error');

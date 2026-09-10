@@ -31,6 +31,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
+	"renop/internal/service/legal"
 	"renop/internal/service/token"
 	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
@@ -614,6 +615,9 @@ func PostFidoLoginBegin(c fiber.Ctx, state *core.AppState) error {
 }
 
 func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenOp) error {
+	if err := legal.RequireConsent(c, state); err != nil {
+		return err
+	}
 	var req FidoLoginFinishRequest
 	if err := utils.ReadJSONLimited(c, &req, utils.MaxJSONBodySize); err != nil {
 		if errors.Is(err, fiber.ErrRequestEntityTooLarge) {
@@ -742,6 +746,9 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState, opChan chan<- token.
 
 	c.Locals("verified_fido_credential", matchedCred.ID)
 	if err := issueBrowserSession(c, state, authenticatedUser, "fido"); err != nil {
+		if errors.Is(err, legal.ErrConsentRequired) {
+			return err
+		}
 		if errors.Is(err, errMFARequired) || errors.Is(err, errMFAPrimaryRequired) || errors.Is(err, core.ErrMFAInvalid) {
 			return mfaError(c, err)
 		}

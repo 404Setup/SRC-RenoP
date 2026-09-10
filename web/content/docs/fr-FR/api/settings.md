@@ -17,7 +17,7 @@ l’opération. Les réponses utilisent protobuf lorsque `proto/api/v1/api.proto
 
 ## Pages de paramètres dans le navigateur
 
-Chaque domaine parmi les 14 annoncés dispose de sa propre page. Sur ordinateur, les catégories figurent à côté
+Chaque domaine parmi les 15 annoncés dispose de sa propre page. Sur ordinateur, les catégories figurent à côté
 du formulaire ; sur petit écran, un sélecteur les remplace. Précédent et suivant suivent le même ordre. Ouvrir une
 page charge uniquement sa configuration, sans charger tous les paramètres du service.
 
@@ -86,3 +86,5 @@ La découverte contient `maven_domains`. Valeur par défaut :
 Le fichier de configuration conserve ces champs sous `maven_domains`.
 Une modification enregistrée concerne les nouveaux verrouillages de sécurité, sans modifier les dates existantes
 ni le délai distinct de 31 jours d’une fermeture volontaire. Voir l’[état des domaines Maven](maven.md).
+
+[Documents juridiques et cookies](../configuration/legal.md)

@@ -49,6 +49,7 @@ func (a *AuditLogConfig) setDefaults() {
 }
 
 type Config struct {
+	Legal                 LegalConfig            `json:"legal" yaml:"legal"`
 	MavenDomains          MavenDomainConfig      `json:"maven_domains" yaml:"maven_domains"`
 	Registration          RegistrationConfig     `json:"registration" yaml:"registration"`
 	MFAEncryptionKey      string                 `json:"-" yaml:"mfa_encryption_key,omitempty"`
@@ -77,6 +78,9 @@ type Config struct {
 }
 
 func (c *Config) setDefaults() {
+	if c.Legal.PrivacyPolicy == "" && c.Legal.TermsOfService == "" && c.Legal.LegalNotice == "" {
+		c.Legal = DefaultLegalConfig()
+	}
 	if c.MavenDomains.ReleaseValue == 0 && c.MavenDomains.ReleaseUnit == "" {
 		c.MavenDomains = DefaultMavenDomainConfig()
 	}
@@ -152,6 +156,9 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 	c.Cache.Normalize()
 	c.Server.GPG.setDefaults()
 	c.Mail.Normalize()
+	if err := c.Legal.Normalize(); err != nil {
+		return err
+	}
 	c.GPG = c.Server.GPG.DeepCopy()
 	return c.MavenDomains.Validate()
 }
@@ -203,6 +210,9 @@ func (c *Config) UnmarshalYAML(value *yaml.Node) error {
 	c.Cache.Normalize()
 	c.Server.GPG.setDefaults()
 	c.Mail.Normalize()
+	if err := c.Legal.Normalize(); err != nil {
+		return err
+	}
 	c.GPG = c.Server.GPG.DeepCopy()
 	return c.MavenDomains.Validate()
 }
@@ -253,6 +263,7 @@ func (c *Config) DeepCopy() *Config {
 		return nil
 	}
 	return &Config{
+		Legal:                 c.Legal.DeepCopy(),
 		MFAEncryptionKey:      c.MFAEncryptionKey,
 		StoragePath:           strings.Clone(c.StoragePath),
 		EnableJavadocPreview:  c.EnableJavadocPreview,

@@ -29,6 +29,7 @@ import (
 
 	"renop/internal/core"
 	"renop/internal/service/audit"
+	"renop/internal/service/legal"
 	"renop/internal/service/token"
 )
 
@@ -121,6 +122,11 @@ func startGitHubOAuth(c fiber.Ctx, state *core.AppState, provider githubOAuthPro
 	}
 	if c.Query("intent") == "login" || c.Query("intent") == "register" {
 		profile = nil
+	}
+	if profile == nil && c.Query("intent") != "email" {
+		if err := legal.RequireConsent(c, state); err != nil {
+			return err
+		}
 	}
 	if profile != nil && returnTo == "/" {
 		returnTo = "/user/" + url.PathEscape(profile.Username) + "/edit"
@@ -291,6 +297,9 @@ func finishGitHubOAuth(c fiber.Ctx, state *core.AppState, opChan chan<- token.To
 	}
 	user.AuthenticationSnapshot = mfa.Snapshot
 	if err := issueBrowserSession(c, state, user, "github"); err != nil {
+		if errors.Is(err, legal.ErrConsentRequired) {
+			return oauthResultRedirect(c, "/account/login", legal.ConsentErrorCode)
+		}
 		if errors.Is(err, errMFARequired) {
 			return c.Redirect().To("/account/login?mfa=1&return_to=" + url.QueryEscape(record.ReturnTo))
 		}

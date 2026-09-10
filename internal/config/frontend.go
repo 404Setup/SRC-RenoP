@@ -56,7 +56,6 @@ type FrontendConfig struct {
 	BackgroundURL        string `json:"background_url" yaml:"background_url"`
 	IcpLicense           string `json:"icp_license" yaml:"icp_license"`
 	PublicSecurityFiling string `json:"public_security_filing" yaml:"public_security_filing"`
-	LegalNoticeURL       string `json:"legal_notice_url" yaml:"legal_notice_url"`
 	FontPreset           string `json:"font_preset" yaml:"font_preset"`
 	FontURL              string `json:"font_url" yaml:"font_url"`
 	CachedIndexHTML      []byte `json:"-" yaml:"-"`
@@ -123,7 +122,6 @@ func (f *FrontendConfig) DeepCopy() FrontendConfig {
 		BackgroundURL:        strings.Clone(f.BackgroundURL),
 		IcpLicense:           strings.Clone(f.IcpLicense),
 		PublicSecurityFiling: strings.Clone(f.PublicSecurityFiling),
-		LegalNoticeURL:       strings.Clone(f.LegalNoticeURL),
 		FontPreset:           strings.Clone(f.FontPreset),
 		FontURL:              strings.Clone(f.FontURL),
 		CachedIndexHTMLKey:   f.CachedIndexHTMLKey,

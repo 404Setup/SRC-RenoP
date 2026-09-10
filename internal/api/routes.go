@@ -12,64 +12,12 @@
 package api
 
 import (
-	"bytes"
-	"errors"
-	"fmt"
-	"io"
-	"log"
-	"os"
-	"sync"
-	"unicode/utf8"
-
 	"github.com/gofiber/fiber/v3"
 
 	"renop/internal/core"
+	"renop/internal/service/legal"
 	"renop/internal/service/repositorygate"
 )
-
-var (
-	privacyPolicy     []byte
-	privacyPolicyOnce sync.Once
-)
-
-const maxPrivacyPolicyBytes = 512 << 10
-
-func readPrivacyPolicyFile(path string) ([]byte, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	info, err := file.Stat()
-	if err != nil {
-		return nil, fmt.Errorf("inspect privacy policy: %w", err)
-	}
-	if !info.Mode().IsRegular() || info.Size() <= 0 || info.Size() > maxPrivacyPolicyBytes {
-		return nil, errors.New("privacy policy must be a non-empty regular file within 512 KiB")
-	}
-	data, err := io.ReadAll(io.LimitReader(file, maxPrivacyPolicyBytes+1))
-	if err != nil {
-		return nil, fmt.Errorf("read privacy policy: %w", err)
-	}
-	if len(data) == 0 || len(data) > maxPrivacyPolicyBytes || !utf8.Valid(data) || bytes.IndexByte(data, 0) >= 0 {
-		return nil, errors.New("privacy policy must contain bounded UTF-8 plain text")
-	}
-	return data, nil
-}
-
-func getCachedPolicy() []byte {
-	privacyPolicyOnce.Do(func() {
-		data, err := readPrivacyPolicyFile("privacy-policy.txt")
-		if err != nil {
-			if !errors.Is(err, os.ErrNotExist) {
-				log.Printf("Failed to load privacy policy: %v", err)
-			}
-			return
-		}
-		privacyPolicy = data
-	})
-	return privacyPolicy
-}
 
 // SetupAPIRoutes registers the general application API endpoints.
 func SetupAPIRoutes(router fiber.Router, state *core.AppState) {
@@ -132,19 +80,5 @@ func SetupAPIRoutes(router fiber.Router, state *core.AppState) {
 	router.Get("/badge/latest/:repo_name/*", func(c fiber.Ctx) error { return LatestBadge(c, state) })
 	router.Post("/maven/generate/pom/:repo_name/*", func(c fiber.Ctx) error { return GeneratePom(c, state) })
 
-	router.Head("/privacy-policy", func(c fiber.Ctx) error {
-		if getCachedPolicy() != nil {
-			return c.SendStatus(fiber.StatusOK)
-		}
-		return c.SendStatus(fiber.StatusNotFound)
-	})
-
-	router.Get("/privacy-policy", func(c fiber.Ctx) error {
-		policy := getCachedPolicy()
-		if policy != nil {
-			c.Set(fiber.HeaderContentType, "text/plain; charset=utf-8")
-			return c.Status(fiber.StatusOK).Send(policy)
-		}
-		return c.SendStatus(fiber.StatusNotFound)
-	})
+	legal.SetupRoutes(router, state)
 }

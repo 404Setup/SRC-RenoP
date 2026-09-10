@@ -44,7 +44,7 @@ func GetDomains(c fiber.Ctx) error {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 	return protohttp.Write(c, &pb.SettingsDomainsResponse{
-		Domains: []string{"frontend", "server", "proxy", "storage", "github_oauth", "oauth_providers", "super_teams", "publication_quota", "maven_domains", "cache", "mail", "registration", "updater", "index"},
+		Domains: []string{"frontend", "legal", "server", "proxy", "storage", "github_oauth", "oauth_providers", "super_teams", "publication_quota", "maven_domains", "cache", "mail", "registration", "updater", "index"},
 	})
 }
 
@@ -101,14 +101,6 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 		}
 		if msg.BackgroundUrl != "" {
 			if err := validateBackgroundURL(msg.BackgroundUrl); err != nil {
-				if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
-					return c.Status(fiberErr.Code).SendString(fiberErr.Message)
-				}
-				return c.Status(fiber.StatusBadRequest).SendString(err.Error())
-			}
-		}
-		if msg.LegalNoticeUrl != "" {
-			if err := validateExternalLinkURL(msg.LegalNoticeUrl); err != nil {
 				if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 					return c.Status(fiberErr.Code).SendString(fiberErr.Message)
 				}

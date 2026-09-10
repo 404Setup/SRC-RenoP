@@ -20,6 +20,8 @@ import (
 )
 
 func SetupSettingsRoutes(router fiber.Router, state *core.AppState) {
+	router.Get("/legal", func(c fiber.Ctx) error { return getLegalSettings(c, state) })
+	router.Put("/legal", func(c fiber.Ctx) error { return putLegalSettings(c, state) })
 	router.Get("/maven-domains", func(c fiber.Ctx) error { return getMavenDomainSettings(c, state) })
 	router.Put("/maven-domains", func(c fiber.Ctx) error { return putMavenDomainSettings(c, state) })
 	router.Get("/registration", func(c fiber.Ctx) error { return getRegistrationSettings(c, state) })

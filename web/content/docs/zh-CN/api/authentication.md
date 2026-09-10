@@ -172,3 +172,5 @@ Cookie，页面返回登录；其他凭据保持绑定，封禁仍然有效。`A
 `DELETE /api/tokens/:name/retention/audit` 提前清空行为日志。期限及完成时间字段均为 Unix 毫秒时间戳：
 `deleted_at`、`email_release_at`、`email_released_at`、`audit_purge_at` 和 `audit_purged_at`。
 管理员的 `DELETE /api/tokens/:name` 同样遵循上述永久注销条件。
+
+[法律文档与 Cookie 偏好](../configuration/legal.md)

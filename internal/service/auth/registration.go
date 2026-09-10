@@ -24,6 +24,7 @@ import (
 	"renop/internal/locale"
 	"renop/internal/mail"
 	"renop/internal/service/audit"
+	"renop/internal/service/legal"
 	"renop/internal/service/mailqueue"
 	"renop/internal/utils"
 )
@@ -142,6 +143,9 @@ func requestRegistrationCode(c fiber.Ctx, state *core.AppState) error {
 	if !cfg.Mail.Enabled {
 		return passwordResetError(c, 404, "mail_disabled")
 	}
+	if err := legal.RequireConsent(c, state); err != nil {
+		return err
+	}
 	var request struct {
 		Email    string `json:"email"`
 		Provider string `json:"provider"`
@@ -220,6 +224,9 @@ func postRegistration(c fiber.Ctx, state *core.AppState) error {
 	if !state.Inner.Config.Load().Registration.Enabled {
 		return registrationError(c, core.ErrRegistrationDisabled)
 	}
+	if err := legal.RequireConsent(c, state); err != nil {
+		return err
+	}
 	var request struct {
 		Provider     string `json:"provider"`
 		Username     string `json:"username"`
@@ -251,6 +258,10 @@ func postRegistration(c fiber.Ctx, state *core.AppState) error {
 	}
 	state.Inner.ConfigWriteLock.Lock()
 	cfg := state.Inner.Config.Load()
+	if err := legal.RequireConsent(c, state); err != nil {
+		state.Inner.ConfigWriteLock.Unlock()
+		return err
+	}
 	if !cfg.Registration.Enabled {
 		state.Inner.ConfigWriteLock.Unlock()
 		return registrationError(c, core.ErrRegistrationDisabled)
@@ -295,7 +306,7 @@ func postRegistration(c fiber.Ctx, state *core.AppState) error {
 	}
 	setRegistrationCookie(c, "")
 	audit.Log(state, &core.AuditLogEntry{Username: username, Operator: username, Action: audit.ActionUserRegister,
-		Details: "Registered account", AuthMethod: "Registration", IP: ip})
+		Details: "Registered account; accepted policy " + legal.AcceptedRevision(c), AuthMethod: "Registration", IP: ip})
 	avatarImported := false
 	if request.ImportAvatar && profile.GitHubID > 0 {
 		avatarImported = importRegistrationGitHubAvatar(c, state, profile)

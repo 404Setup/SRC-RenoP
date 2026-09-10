@@ -77,6 +77,12 @@ func TestPostAuthLogin(t *testing.T) {
 	assert.NoError(t, err)
 	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(bodyBytes))
 	req.Header.Set("Content-Type", protohttp.ContentType)
+	missing, err := app.Test(httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(bodyBytes)))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusPreconditionRequired, missing.StatusCode)
+	require.Empty(t, missing.Cookies())
+	require.NoError(t, missing.Body.Close())
+	req.Header.Set("X-Renop-Legal-Revision", cfg.Legal.Revision())
 
 	resp, err := app.Test(req)
 	assert.NoError(t, err)
@@ -100,6 +106,7 @@ func TestPostAuthLogin(t *testing.T) {
 	assert.Empty(t, details.GetSessionToken(), "login must not return raw session secret in body")
 
 	jsonRequest := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(`{"name":"admin","secret":"test-admin-password"}`))
+	jsonRequest.Header.Set("X-Renop-Legal-Revision", cfg.Legal.Revision())
 	jsonRequest.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 	jsonRequest.Header.Set(fiber.HeaderAccept, fiber.MIMEApplicationJSON)
 	jsonResponse, err := app.Test(jsonRequest)
@@ -116,6 +123,7 @@ func TestPostAuthLogin(t *testing.T) {
 	require.Empty(t, details.GetSessionToken())
 
 	denied := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(`{"name":"admin","secret":"wrong-password"}`))
+	denied.Header.Set("X-Renop-Legal-Revision", cfg.Legal.Revision())
 	denied.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 	deniedResponse, err := app.Test(denied)
 	require.NoError(t, err)

@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {ensureLegalConsent} from './legal-consent.js';
 import {t} from './i18n.js';
 import {showAlert} from './alert.js';
 import {runButtonAction} from './components/button.js';
@@ -179,12 +180,13 @@ importProfile.addEventListener('change', () => {
     username.value = importProfile.checked && pending.username_available ? pending.username : '';
     nickname.value = importProfile.checked ? pending.nickname : '';
 });
-github.addEventListener('click', () => {
+github.addEventListener('click', async () => {
     if (!active || fields.disabled) return;
+    if (!(await ensureLegalConsent('registration'))) return;
     window.location.assign('/api/auth/github/start?intent=register&return_to=' + encodeURIComponent(loginReturnTo()));
 });
 send.addEventListener('click', () => runButtonAction(send, async () => {
-    if (!active || fields.disabled || !email.reportValidity()) return;
+    if (!active || fields.disabled || !email.reportValidity() || !(await ensureLegalConsent('registration'))) return;
     const revision = epoch, address = email.value.trim();
     error.textContent = '';
     try {
@@ -204,7 +206,7 @@ send.addEventListener('click', () => runButtonAction(send, async () => {
 form.addEventListener('submit', event => {
     event.preventDefault();
     void runButtonAction(form.querySelector('[type="submit"]'), async () => {
-        if (!active || fields.disabled) return;
+        if (!active || fields.disabled || !(await ensureLegalConsent('registration'))) return;
         error.textContent = '';
         const passwordError = getPasswordLengthError(password.value);
         if (passwordError) {

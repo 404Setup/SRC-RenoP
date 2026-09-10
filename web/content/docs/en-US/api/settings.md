@@ -18,7 +18,7 @@ to the operation. Responses use protobuf where defined in `proto/api/v1/api.prot
 
 ## Settings pages in the browser
 
-The settings interface provides a separate page for each of the 14 advertised domains. Desktop navigation lists
+The settings interface provides a separate page for each of the 15 advertised domains. Desktop navigation lists
 the sections beside the form; smaller screens use a section selector. Previous and next controls follow the same
 ordered pages. Opening a page fetches its configuration only, rather than fetching every service configuration.
 
@@ -86,3 +86,5 @@ Discovery includes `maven_domains`. The default is:
 The configuration file stores the same fields under `maven_domains`. A saved change applies to newly created security
 locks without changing existing release dates or the separate 31-day voluntary closure period.
 See [Maven domain health](maven.md).
+
+[Legal documents and cookie choices](../configuration/legal.md)

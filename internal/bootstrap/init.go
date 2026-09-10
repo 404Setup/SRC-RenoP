@@ -120,7 +120,10 @@ func Initialize() (*core.AppState, BootstrapContext) {
 	if configPath == "" {
 		configPath = "config.yaml"
 	}
-	cfg := LoadConfig(configPath)
+	cfg, err := LoadConfig(configPath)
+	if err != nil {
+		log.Fatalf("Configuration initialization failed: %v", err)
+	}
 
 	repositoriesPath := os.Getenv("RENOP_REPOSITORIES")
 	if repositoriesPath == "" {
@@ -134,7 +137,6 @@ func Initialize() (*core.AppState, BootstrapContext) {
 	if dbInstance == nil {
 		log.Fatal("Database initialization returned nil — check your database configuration.")
 	}
-	var err error
 	cfg.Maven, err = loadRepositorySettings(dbInstance, repositoriesPath)
 	if err != nil {
 		_ = dbInstance.Close()

@@ -38,6 +38,7 @@ Service paths in this table are relative to `internal/service/`; all other paths
 | HTTP routing, search, middleware, public API                           | `internal/api/`, `internal/middleware/`, relevant service `routes.go`                                                                                                                                                                                        |
 | SQL, migrations, transactions, persistence caches                      | `internal/database/`; dialect logic in `clickhouse*.go`                                                                                                                                                                                                      |
 | Memory, Redis, Valkey cache backends                                   | `internal/cache/`, `internal/core/cache.go`, `internal/database/cache.go`; configuration in `settings/cache.go`                                                                                                                                              |
+| Legal documents and browser consent | `internal/config/legal.go`, `legal/`, `settings/legal.go`; public pages and consent in frontend `js/legal-*.js`, `js/cookie-consent.js` |
 | Login, sessions, Passkey, TOTP, OAuth, API tokens, profiles            | `auth/`; second factors in `mfa*.go`; email ownership in `internal/database/account_emails.go`, verification in `email_verification.go`, `github_email.go`; provider flows in `github_*.go`, `oauth_*.go`; OAuth configuration in `internal/config/oauth.go` |
 | Registration, retirement, recovery, avatars                            | `auth/`, `internal/database/`, matching `registration*`, `account_retirement*`, `recovery_codes*`, `password_reset*`, `avatar*` files; registration policy in `internal/config/registration.go` and `settings/registration.go`                               |
 | Account and IP suspensions                                             | `token/routes.go`, `internal/database/account_ban.go`, `internal/database/account_ip_ban.go`; request enforcement in `internal/middleware/anomaly.go`                                                                                                        |
@@ -166,6 +167,9 @@ Read the relevant implementation and tests for exact limits and exceptions befor
 - **Email:** `mailqueue/` owns the durable serial worker, rate limits, credit reservations, and status checks.
   Preserve encrypted queue payloads, persistent OAuth rotation, bounded history, and private status capabilities.
   An interrupted submission has an unknown outcome; never resend it automatically or treat acceptance as delivery.
+- **Legal documents:** `config.yaml` owns the three Markdown documents; no local policy file or external legal URL is read.
+  Keep bounded safe rendering and public access with expired credentials. Account entry requires the current privacy/terms
+  revision; optional browser services require explicit category consent, with preferences available from the footer.
 - **Frontend:** Reuse the shared UI, jQuery runtime, error, identity, clipboard, time, and animation helpers.
   Keep streaming/observers/native APIs where appropriate. Preserve keyboard/focus behavior, responsive layouts,
   viewport-bounded dialogs, and loading/empty/error states. A valid authenticated 403 must not log out the user.

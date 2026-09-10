@@ -86,8 +86,9 @@ func TestGitHubOAuthExistingAccountAndSingleUseSession(t *testing.T) {
 		TokenURL:     providerServer.URL + "/token",
 		APIURL:       providerServer.URL + "/api",
 	})
-	startResponse, err := app.Test(httptest.NewRequest(http.MethodGet,
-		"/auth/github/start?return_to=%2Fpackages", nil))
+	startRequest := httptest.NewRequest(http.MethodGet, "/auth/github/start?return_to=%2Fpackages", nil)
+	startRequest.Header.Set("X-Renop-Legal-Revision", cfg.Legal.Revision())
+	startResponse, err := app.Test(startRequest)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusSeeOther, startResponse.StatusCode)
 	location, err := url.Parse(startResponse.Header.Get("Location"))
@@ -103,6 +104,7 @@ func TestGitHubOAuthExistingAccountAndSingleUseSession(t *testing.T) {
 	require.Equal(t, "/?github_oauth=state_invalid", foreignCallback.Header.Get("Location"), "a callback from another browser must not sign in")
 	require.NoError(t, foreignCallback.Body.Close())
 	callbackRequest := httptest.NewRequest(http.MethodGet, callbackURL, nil)
+	callbackRequest.Header.Set("X-Renop-Legal-Revision", cfg.Legal.Revision())
 	for _, cookie := range startResponse.Cookies() {
 		callbackRequest.AddCookie(cookie)
 	}
@@ -142,6 +144,7 @@ func TestGitHubOAuthExistingAccountAndSingleUseSession(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, db.UpdateMFA(identity.Username, mfa.Snapshot, "encrypted-authenticator", false, 0, sessionCookie.Value))
 	reauthRequest := httptest.NewRequest(http.MethodGet, "/auth/github/start?intent=login&return_to=%2Fpackages", nil)
+	reauthRequest.Header.Set("X-Renop-Legal-Revision", cfg.Legal.Revision())
 	reauthRequest.AddCookie(sessionCookie)
 	reauthStart, err := app.Test(reauthRequest)
 	require.NoError(t, err)
@@ -150,6 +153,7 @@ func TestGitHubOAuthExistingAccountAndSingleUseSession(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, reauthStart.Body.Close())
 	reauthCallback := httptest.NewRequest(http.MethodGet, "/auth/github/callback?state="+url.QueryEscape(reauthURL.Query().Get("state"))+"&code=test-code", nil)
+	reauthCallback.Header.Set("X-Renop-Legal-Revision", cfg.Legal.Revision())
 	reauthCallback.AddCookie(sessionCookie)
 	for _, cookie := range reauthStart.Cookies() {
 		reauthCallback.AddCookie(cookie)

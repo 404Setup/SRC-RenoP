@@ -28,6 +28,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v3"
 	"google.golang.org/protobuf/proto"
 
 	"renop/internal/config"
@@ -95,6 +96,35 @@ func TestSuperTeamGlobalLimitsPersist(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, response.StatusCode)
 	response.Body.Close()
+}
+
+func TestLegalDocumentsPersistAndRejectInvalidContent(t *testing.T) {
+	app, state := setupSettingsTestApp(t, config.DefaultConfig())
+	send := func(body string) *http.Response {
+		request := httptest.NewRequest(http.MethodPut, "/legal", strings.NewReader(body))
+		request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+		response, err := app.Test(request)
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = response.Body.Close() })
+		return response
+	}
+	response := send(`{"privacy_policy":"# Privacy","terms_of_service":"# Terms","legal_notice":"# Notice","cookie_banner":false}`)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.Equal(t, "# Privacy", state.Inner.Config.Load().Legal.PrivacyPolicy)
+	require.False(t, state.Inner.Config.Load().Legal.CookieBanner)
+	stored, err := os.ReadFile(os.Getenv("RENOP_CONFIG"))
+	require.NoError(t, err)
+	var restored config.Config
+	require.NoError(t, yaml.Unmarshal(stored, &restored))
+	require.Equal(t, "# Privacy", restored.Legal.PrivacyPolicy)
+	require.False(t, restored.Legal.CookieBanner)
+	revision := state.Inner.Config.Load().Legal.Revision()
+	for _, body := range []string{`{"privacy_policy":"bad\u0000text"}`, `{"privacy_policy":"` + strings.Repeat("x", config.MaxLegalDocumentBytes+1) + `"}`} {
+		response = send(body)
+		require.Equal(t, http.StatusBadRequest, response.StatusCode)
+		require.Equal(t, "legal_settings_invalid", response.Header.Get("X-Renop-Error-Code"))
+		require.Equal(t, revision, state.Inner.Config.Load().Legal.Revision())
+	}
 }
 
 func TestMavenDomainReservationPeriodPersistsAndRejectsInvalidPeriods(t *testing.T) {
@@ -694,7 +724,6 @@ func TestFullFrontendUpdate(t *testing.T) {
 		BackgroundUrl:        "",
 		IcpLicense:           cfg.Frontend.IcpLicense,
 		PublicSecurityFiling: "京公网安备11000000000001号",
-		LegalNoticeUrl:       "https://custom.org/legal",
 		FontPreset:           config.FrontendFontCustom,
 		FontUrl:              "https://fonts.custom.org/interface.woff2",
 	})
@@ -712,9 +741,7 @@ func TestFullFrontendUpdate(t *testing.T) {
 	if updatedCfg.Frontend.Description != "New Description" {
 		t.Fatalf("expected Description to be updated to 'New Description', got %s", updatedCfg.Frontend.Description)
 	}
-	if updatedCfg.Frontend.LegalNoticeURL != "https://custom.org/legal" {
-		t.Fatalf("expected LegalNoticeUrl to be persisted, got %s", updatedCfg.Frontend.LegalNoticeURL)
-	}
+
 	if updatedCfg.Frontend.PublicSecurityFiling != "京公网安备11000000000001号" {
 		t.Fatalf("expected PublicSecurityFiling to be persisted, got %s", updatedCfg.Frontend.PublicSecurityFiling)
 	}
@@ -726,20 +753,6 @@ func TestFullFrontendUpdate(t *testing.T) {
 	if !bytes.Contains(updatedCfg.Frontend.CachedIndexHTML, []byte(`data-font-preset="custom"`)) ||
 		!bytes.Contains(updatedCfg.Frontend.CachedIndexHTML, []byte(`https://fonts.custom.org/interface.woff2`)) {
 		t.Fatal("frontend settings update did not refresh the cached H5 shell")
-	}
-}
-
-func TestFrontendUpdateRejectsUnsafeLegalNoticeURL(t *testing.T) {
-	tempDir := testutil.TempDir(t)
-	cfg := config.DefaultConfig()
-	cfg.StoragePath = tempDir
-	app, _ := setupSettingsTestApp(t, cfg)
-
-	msg := pb.FromFrontendConfig(cfg.Frontend)
-	msg.LegalNoticeUrl = "javascript:alert(1)"
-	resp := protoPUT(t, app, "/domain/frontend", msg)
-	if resp.StatusCode != http.StatusBadRequest {
-		t.Fatalf("expected PUT 400, got %d", resp.StatusCode)
 	}
 }
 
@@ -901,7 +914,6 @@ func TestZeroCopyMemorySafetyOnUpdate(t *testing.T) {
 		BackgroundUrl:        cfg.Frontend.BackgroundURL,
 		IcpLicense:           cfg.Frontend.IcpLicense,
 		PublicSecurityFiling: cfg.Frontend.PublicSecurityFiling,
-		LegalNoticeUrl:       cfg.Frontend.LegalNoticeURL,
 	}
 	bodyBytes, err := proto.Marshal(msg)
 	if err != nil {
@@ -1045,11 +1057,11 @@ func TestGetDomainsProtobuf(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected GET 200, got %d", resp.StatusCode)
 	}
-	if len(got.Domains) != 14 || !slices.Contains(got.Domains, "proxy") || !slices.Contains(got.Domains, "oauth_providers") ||
+	if len(got.Domains) != 15 || !slices.Contains(got.Domains, "legal") || !slices.Contains(got.Domains, "proxy") || !slices.Contains(got.Domains, "oauth_providers") ||
 		!slices.Contains(got.Domains, "github_oauth") || !slices.Contains(got.Domains, "super_teams") ||
 		!slices.Contains(got.Domains, "publication_quota") || !slices.Contains(got.Domains, "cache") ||
 		!slices.Contains(got.Domains, "mail") || !slices.Contains(got.Domains, "registration") || !slices.Contains(got.Domains, "maven_domains") || slices.Contains(got.Domains, "gpg") {
-		t.Fatalf("expected 14 domains including OAuth, registration, cache, mail and Maven domain settings while excluding gpg, got %v", got.Domains)
+		t.Fatalf("expected 15 domains including legal, OAuth, registration, cache, mail and Maven domain settings while excluding gpg, got %v", got.Domains)
 	}
 }
 

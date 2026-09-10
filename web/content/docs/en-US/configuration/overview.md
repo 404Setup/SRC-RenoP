@@ -116,7 +116,6 @@ frontend:
   font_url: ""
   icp_license: ""
   public_security_filing: ""
-  legal_notice_url: ""
 ```
 
 Branding URLs are validated before use. Background images must satisfy the configured WebP and size policy.
@@ -134,3 +133,5 @@ updater:
 
 `channel` is `release` or `nightly`. `mode` is `manual`, `auto_check`, or `auto_install`. Automatic checks are coalesced
 by the process-wide scheduler; update results are delivered to administrators through the message center.
+
+[Legal documents and cookie choices](./legal.md)

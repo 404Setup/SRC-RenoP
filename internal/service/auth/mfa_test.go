@@ -68,6 +68,7 @@ func TestMFASetupLoginReplayAndPolicyBoundaries(t *testing.T) {
 			contentType = protohttp.ContentType
 		}
 		req := httptest.NewRequest(method, path, bytes.NewReader(data))
+		req.Header.Set("X-Renop-Legal-Revision", cfg.Legal.Revision())
 		req.Header.Set("Content-Type", contentType)
 		for _, cookie := range cookies {
 			req.AddCookie(cookie)

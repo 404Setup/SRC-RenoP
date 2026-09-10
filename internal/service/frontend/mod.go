@@ -17,6 +17,9 @@ import (
 )
 
 func SetupFrontendRoutes(app fiber.Router, state *core.AppState) {
+	for _, path := range []string{"/privacy-policy", "/terms-of-service", "/legal-notice"} {
+		app.Get(path, func(c fiber.Ctx) error { return ServeIndex(c, state) })
+	}
 	app.Get("/", func(c fiber.Ctx) error { return ServeIndex(c, state) })
 	app.Get("/index.html", func(c fiber.Ctx) error { return ServeIndex(c, state) })
 	app.Get("/account/login", func(c fiber.Ctx) error { return ServeIndex(c, state) })

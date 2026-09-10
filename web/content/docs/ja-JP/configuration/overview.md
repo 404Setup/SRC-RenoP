@@ -114,7 +114,6 @@ frontend:
   font_url: ""
   icp_license: ""
   public_security_filing: ""
-  legal_notice_url: ""
 ```
 
 URL は使用前に検証します。背景画像は WebP と size policy を満たす必要があります。
@@ -132,3 +131,5 @@ updater:
 
 `channel` は `release` または `nightly`、`mode` は `manual`、`auto_check`、`auto_install` です。自動確認は
 process scheduler が統合し、結果を管理者へ通知します。
+
+[法的文書と Cookie の設定](./legal.md)

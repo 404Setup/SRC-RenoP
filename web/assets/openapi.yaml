@@ -1295,6 +1295,15 @@ components:
           description: |
             `full` re-indexes every file in storage. `diff` indexes only files not already recorded.
 
+    LegalConfig:
+      type: object
+      description: Administrator-authored UTF-8 Markdown, up to 512 KiB per document; empty fields restore placeholders.
+      properties:
+        privacy_policy: { type: string }
+        terms_of_service: { type: string }
+        legal_notice: { type: string }
+        cookie_banner: { type: boolean, default: true }
+
     FrontendConfig:
       type: object
       description: Web UI branding and localization settings (protobuf `FrontendConfig`).
@@ -1318,9 +1327,6 @@ components:
         public_security_filing:
           type: string
           description: Optional public security filing number displayed in the footer (China).
-        legal_notice_url:
-          type: string
-          description: Optional absolute HTTP(S) URL linked as the legal notice in the footer.
         font_preset:
           type: string
           enum: [ system, inter, noto_sans, open_sans, source_sans, custom ]
@@ -3265,6 +3271,9 @@ paths:
       summary: Password login
       description: |
         Authenticates with username and password and creates a browser session.
+        Requires the current revision from GET /api/legal in X-Renop-Legal-Revision or the renop_legal_consent cookie.
+        Missing or stale acceptance returns HTTP 428 with X-Renop-Error-Code legal_consent_required.
+        The same policy applies to registration, provider login starts, Passkey completion, and second-factor completion.
         The session id is delivered exclusively via `Set-Cookie`; `session_token` is empty for cookie logins.
       operationId: postAuthLogin
       security: [ ]
@@ -6152,32 +6161,103 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorBody"
 
-  /api/privacy-policy:
+  /api/legal:
     get:
-      tags: [ maven ]
-      summary: Privacy policy
-      description: Returns the contents of `privacy-policy.txt` from the working directory, if present.
-      operationId: getPrivacyPolicy
-      security: [ ]
+      tags: [ auth ]
+      summary: Current policy revision and cookie notice
+      operationId: getLegalMetadata
+      security: []
+      description: Public and uncached, including for requests with expired credentials. Account entry requires explicit acceptance of this revision.
       responses:
         "200":
-          description: Privacy policy text.
+          description: Current privacy-policy and terms revision.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ revision, cookie_banner ]
+                properties:
+                  revision: { type: string, pattern: '^[a-f0-9]{64}$' }
+                  cookie_banner: { type: boolean }
+  /api/legal/{document}:
+    get:
+      tags: [ auth ]
+      summary: Read a configured legal document
+      operationId: getLegalDocument
+      security: []
+      parameters:
+        - name: document
+          in: path
+          required: true
+          schema: { type: string, enum: [ privacy-policy, terms-of-service, legal-notice ] }
+      responses:
+        "200":
+          description: Uncached UTF-8 Markdown served as plain text, up to 512 KiB.
           content:
             text/plain:
-              schema:
-                type: string
-        "404":
-          description: File not present.
-    head:
-      tags: [ maven ]
-      summary: Privacy policy existence check
-      operationId: headPrivacyPolicy
-      security: [ ]
+              schema: { type: string }
+        "404": { description: Unknown document. }
+        "503": { description: Invalid document configuration. }
+  /api/privacy-policy:
+    get:
+      tags: [ auth ]
+      summary: Read the configured privacy policy
+      description: Compatibility alias for /api/legal/privacy-policy. No local policy file is read.
+      operationId: getPrivacyPolicy
+      security: []
       responses:
         "200":
-          description: File present.
-        "404":
-          description: File not present.
+          description: Uncached UTF-8 Markdown as plain text.
+          content:
+            text/plain:
+              schema: { type: string }
+    head:
+      tags: [ auth ]
+      summary: Read privacy-policy response headers
+      operationId: headPrivacyPolicy
+      security: []
+      responses:
+        "200": { description: Configured document available. }
+  /api/settings/legal:
+    get:
+      tags: [ settings ]
+      summary: Read legal documents and cookie notice settings
+      operationId: getLegalSettings
+      description: Requires settings administrator authority.
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current legal settings.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LegalConfig' }
+        "403": { $ref: '#/components/responses/PlainForbidden' }
+    put:
+      tags: [ settings ]
+      summary: Replace legal documents and cookie notice settings
+      operationId: putLegalSettings
+      description: Requires settings administrator authority. Applies atomically after durable configuration persistence. A changed privacy policy or terms invalidates earlier account-entry acceptance.
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LegalConfig' }
+      responses:
+        "200":
+          description: Saved legal settings.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LegalConfig' }
+        "400": { description: Invalid UTF-8, NUL, or document exceeding 512 KiB. }
+        "403": { $ref: '#/components/responses/PlainForbidden' }
+        "413": { description: Request exceeds 10 MiB. }
+        "415": { description: JSON content type required. }
+        "500": { description: Configuration could not be saved. }
 
   # ========== Settings ==========
   /api/settings/index/rebuild:

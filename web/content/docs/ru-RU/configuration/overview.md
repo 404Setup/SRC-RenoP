@@ -114,7 +114,6 @@ frontend:
   font_url: ""
   icp_license: ""
   public_security_filing: ""
-  legal_notice_url: ""
 ```
 
 URL проверяются до использования. Фон должен соответствовать политике WebP и размера.
@@ -132,3 +131,5 @@ updater:
 
 `channel` — `release` или `nightly`; `mode` — `manual`, `auto_check` или `auto_install`. Автопроверки объединяются
 планировщиком процесса, а результаты отправляются администраторам.
+
+[Правовые документы и cookie](./legal.md)

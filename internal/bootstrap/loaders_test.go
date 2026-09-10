@@ -35,7 +35,8 @@ func TestLoadConfig(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, os.WriteFile(cfgPath, data, 0644))
 
-		cfg := LoadConfig(cfgPath)
+		cfg, err := LoadConfig(cfgPath)
+		require.NoError(t, err)
 		assert.Equal(t, uint16(9090), cfg.Server.Port)
 	})
 
@@ -43,18 +44,20 @@ func TestLoadConfig(t *testing.T) {
 		dir := t.TempDir()
 		cfgPath := filepath.Join(dir, "missing.yaml")
 
-		cfg := LoadConfig(cfgPath)
+		cfg, err := LoadConfig(cfgPath)
+		require.NoError(t, err)
 		assert.NotNil(t, cfg)
 		assert.FileExists(t, cfgPath)
 	})
 
-	t.Run("invalid config file falls back to default", func(t *testing.T) {
+	t.Run("invalid config file is rejected", func(t *testing.T) {
 		dir := t.TempDir()
 		cfgPath := filepath.Join(dir, "invalid.yaml")
 		require.NoError(t, os.WriteFile(cfgPath, []byte("invalid: : : yaml"), 0644))
 
-		cfg := LoadConfig(cfgPath)
-		assert.NotNil(t, cfg)
+		cfg, err := LoadConfig(cfgPath)
+		require.Error(t, err)
+		require.Nil(t, cfg)
 	})
 }
 

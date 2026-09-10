@@ -282,7 +282,8 @@ message FrontendConfig {
   string organization_logo = 5;
   string background_url = 6;
   string icp_license = 7;
-  string legal_notice_url = 8;
+  reserved 8;
+  reserved "legal_notice_url";
   string public_security_filing = 9;
   string font_preset = 10;
   string font_url = 11;

@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {ensureLegalConsent} from './legal-consent.js';
 import {t} from './i18n.js';
 import {responseErrorMessage} from './response-errors.js';
 import {passkeyErrorMessage, requestPasskeyAssertion} from './fido-utils.js';
@@ -106,6 +107,7 @@ async function verifyFactor(factor) {
     abort = controller;
     errorBox.hidden = true;
     try {
+        if (!(await ensureLegalConsent('login')) || current !== sequence || controller.signal.aborted) return;
         let payload = {code: code.value};
         if (factor === 'passkey') {
             const begin = await mfaRequest('/passkey/begin', {});

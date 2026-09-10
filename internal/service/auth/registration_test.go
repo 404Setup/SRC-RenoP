@@ -69,6 +69,7 @@ func registrationRequest(t *testing.T, app *fiber.App, path string, body map[str
 		method = "POST"
 	}
 	request := httptest.NewRequest(method, path, reader)
+	request.Header.Set("X-Renop-Legal-Revision", config.DefaultLegalConfig().Revision())
 	request.Header.Set("Accept-Language", "fr-FR")
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
@@ -240,6 +241,7 @@ func TestRegistrationTreatsEquivalentProxyIPsAsOneAddress(t *testing.T) {
 		}
 		request := httptest.NewRequest("POST", "/api/auth/registration", strings.NewReader(body))
 		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("X-Renop-Legal-Revision", cfg.Legal.Revision())
 		request.Header.Set("X-Forwarded-For", ip)
 		response, err := app.Test(request)
 		require.NoError(t, err)

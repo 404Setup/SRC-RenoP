@@ -191,3 +191,5 @@ System administrators can read deadlines with `GET /api/tokens/:name/retention`,
 `DELETE /api/tokens/:name/retention/audit`. Deadline and completion fields use Unix milliseconds:
 `deleted_at`, `email_release_at`, `email_released_at`, `audit_purge_at`, and `audit_purged_at`.
 Administrator `DELETE /api/tokens/:name` follows the same permanent closure requirements.
+
+[Legal documents and cookie choices](../configuration/legal.md)

@@ -22,6 +22,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
+	"renop/internal/service/legal"
 	"renop/internal/service/token"
 	"renop/internal/utils/protohttp"
 	"renop/pkg/pb"
@@ -251,6 +252,9 @@ func AuthenticateUser(state *core.AppState, body *core.LoginRequest, opChan chan
 }
 
 func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenOp) error {
+	if err := legal.RequireConsent(c, state); err != nil {
+		return err
+	}
 	var req pb.LoginRequest
 	if err := protohttp.Read(c, &req); err != nil {
 		if err == fiber.ErrRequestEntityTooLarge {
@@ -280,6 +284,9 @@ func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenO
 
 	if user != nil {
 		if err := issueBrowserSession(c, state, user, "password"); err != nil {
+			if errors.Is(err, legal.ErrConsentRequired) {
+				return err
+			}
 			if errors.Is(err, errMFARequired) || errors.Is(err, core.ErrMFAInvalid) {
 				return mfaError(c, err)
 			}

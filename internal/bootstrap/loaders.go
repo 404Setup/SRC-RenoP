@@ -12,6 +12,8 @@ package bootstrap
 
 import (
 	"bufio"
+	"errors"
+	"fmt"
 	"log"
 	"os"
 
@@ -22,30 +24,39 @@ import (
 	"renop/internal/utils"
 )
 
-func LoadConfig(configPath string) *config.Config {
+// LoadConfig creates a missing configuration or rejects unreadable and invalid settings.
+func LoadConfig(configPath string) (*config.Config, error) {
 	file, err := os.Open(configPath)
 	var cfg *config.Config
 
 	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("open configuration: %w", err)
+		}
 		log.Printf("Config file not found at %s, using default config and creating it", configPath)
 		cfg = config.DefaultConfig()
 
-		yamlData, err := yaml.Marshal(&cfg)
-		if err == nil {
-			_ = utils.WritePrivateFile(configPath, yamlData)
+		yamlData, err := yaml.Marshal(cfg)
+		if err != nil {
+			return nil, err
+		}
+		if err := utils.WritePrivateFile(configPath, yamlData); err != nil {
+			return nil, fmt.Errorf("create configuration: %w", err)
 		}
 	} else {
 		defer file.Close()
 		err = yaml.NewDecoder(bufio.NewReader(file)).Decode(&cfg)
 		if err != nil {
-			log.Printf("Failed to parse config file: %v", err)
-			cfg = config.DefaultConfig()
+			return nil, fmt.Errorf("parse configuration: %w", err)
 		}
+	}
+	if cfg == nil {
+		return nil, errors.New("configuration must contain a settings mapping")
 	}
 
 	cfg.Frontend.CachedIndexHTML = []byte{}
 
-	return cfg
+	return cfg, nil
 }
 
 func LoadFileIndex(indexPath string) *index.FileIndex {

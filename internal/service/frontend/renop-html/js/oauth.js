@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {ensureLegalConsent} from './legal-consent.js';
 import {el} from '@renop/ui/dom';
 import {t} from './i18n.js';
 import {apiRequest} from './api.js';
@@ -20,7 +21,8 @@ import {LocalizedResponseError, responseErrorMessage} from './response-errors.js
 let publicProviders = [], privateProviders = [], profileUsername = '', profileRevision = 0, publicRevision = 0;
 
 /** Start a server-authorized provider action with a local return route. */
-function startOAuth(provider, intent) {
+async function startOAuth(provider, intent) {
+    if (['login', 'register'].includes(intent) && !(await ensureLegalConsent(intent === 'register' ? 'registration' : 'login'))) return;
     const returnTo = ['login', 'register'].includes(intent) ? loginReturnTo() : window.location.pathname;
     window.location.assign('/api/auth/oauth/' + encodeURIComponent(provider) + '/start?' + new URLSearchParams({
         intent,
@@ -54,6 +56,7 @@ export async function initializeOAuth() {
         current.searchParams.delete('provider');
         window.history.replaceState(window.history.state, '', current.pathname + current.search + current.hash);
         const messages = {
+            legal_consent_required: ['legal.consentRequired', 'error'],
             success: ['oauth.success', 'success'],
             linked: ['oauth.linked', 'success'],
             provider_denied: ['oauth.denied', 'info'],

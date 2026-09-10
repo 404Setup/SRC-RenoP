@@ -201,3 +201,5 @@ Les administrateurs consultent les échéances avec `GET /api/tokens/:name/reten
 `DELETE /api/tokens/:name/retention/audit`. Les champs `deleted_at`, `email_release_at`,
 `email_released_at`, `audit_purge_at` et `audit_purged_at` utilisent des millisecondes Unix.
 La route administrateur `DELETE /api/tokens/:name` applique les mêmes conditions de fermeture définitive.
+
+[Documents juridiques et cookies](../configuration/legal.md)

@@ -33,6 +33,7 @@ test('second-factor login keeps rejected and stale challenges out of authenticat
     };
     field('login-form').hidden = false;
     const context = vm.createContext({
+        ensureLegalConsent: async () => true,
         document: {getElementById: field},
         window: {
             addEventListener() {
@@ -132,6 +133,7 @@ test('Passkey assertion conversion preserves required user verification', async 
     let request;
     const buffer = new Uint8Array([1, 2, 3]).buffer;
     const context = vm.createContext({
+        ensureLegalConsent: async () => true,
         Uint8Array, atob, btoa, AbortController, DOMException, setTimeout, clearTimeout, setInterval, clearInterval,
         window: {
             PublicKeyCredential: true, addEventListener() {

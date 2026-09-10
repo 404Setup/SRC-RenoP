@@ -110,7 +110,6 @@ frontend:
   font_url: ""
   icp_license: ""
   public_security_filing: ""
-  legal_notice_url: ""
 ```
 
 品牌 URL 使用前会被校验。背景图必须满足 WebP 格式与大小策略。
@@ -128,3 +127,5 @@ updater:
 
 `channel` 为 `release` 或 `nightly`；`mode` 为 `manual`、`auto_check` 或 `auto_install`。自动检查由进程级调度器
 合并执行，结果通过消息中心发送给管理员。
+
+[法律文档与 Cookie 偏好](./legal.md)

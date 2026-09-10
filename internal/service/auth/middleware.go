@@ -24,6 +24,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/legal"
 	"renop/internal/utils"
 )
 
@@ -749,7 +750,8 @@ func credentialCacheKey(authHeader string, opaqueCargo bool) string {
 
 func AuthMiddleware(state *core.AppState) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		if c.Path() == "/api/auth/login" {
+		if c.Path() == "/api/auth/login" ||
+			((c.Method() == fiber.MethodGet || c.Method() == fiber.MethodHead) && legal.IsPublicPath(c.Path())) {
 			c.Locals("user", GuestUser)
 			return c.Next()
 		}

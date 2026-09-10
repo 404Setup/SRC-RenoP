@@ -182,3 +182,5 @@ Passkey、セッション、API Token、写真、復旧コード、メッセー�
 `DELETE /api/tokens/:name/retention/audit` で履歴を早期削除できます。
 `deleted_at`、`email_release_at`、`email_released_at`、`audit_purge_at`、`audit_purged_at`
 は Unix ミリ秒です。管理者用 `DELETE /api/tokens/:name` にも同じ永久閉鎖条件が適用されます。
+
+[法的文書と Cookie の設定](../configuration/legal.md)

@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {ensureLegalConsent} from './legal-consent.js';
 import {apiRequest} from './api.js';
 import {showAlert} from './alert.js';
 import {t} from './i18n.js';
@@ -22,7 +23,8 @@ let currentGitHubProfileStatus = null;
  * Start a GitHub OAuth flow that returns to the current routed page.
  * @returns {void}
  */
-function startGitHubOAuth() {
+async function startGitHubOAuth() {
+    if (isLoginPath() && !(await ensureLegalConsent('login'))) return;
     const returnTo = isLoginPath() ? loginReturnTo() : window.location.pathname || '/';
     window.location.assign('/api/auth/github/start?return_to=' + encodeURIComponent(returnTo) + (isLoginPath() ? '&intent=login' : ''));
 }
@@ -42,6 +44,7 @@ function showGitHubOAuthResult() {
         current.pathname + current.search + current.hash
     );
     const messages = {
+        legal_consent_required: ['legal.consentRequired', 'error'],
         success: ['login.githubSuccess', 'success'],
         linked: ['profile.githubLinked', 'success'],
         provider_denied: ['login.githubDenied', 'info'],

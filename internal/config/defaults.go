@@ -169,7 +169,6 @@ func DefaultFrontendConfig() FrontendConfig {
 		BackgroundURL:        "",
 		IcpLicense:           "",
 		PublicSecurityFiling: "",
-		LegalNoticeURL:       "",
 		FontPreset:           FrontendFontSystem,
 		FontURL:              "",
 		CachedIndexHTML:      []byte{},
@@ -185,6 +184,7 @@ func DefaultAuditLogConfig() AuditLogConfig {
 
 func DefaultConfig() *Config {
 	return &Config{
+		Legal:                 DefaultLegalConfig(),
 		StoragePath:           "storage",
 		EnableJavadocPreview:  true,
 		JavadocExtractPath:    "",

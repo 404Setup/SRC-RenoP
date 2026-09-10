@@ -24,6 +24,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
+	"renop/internal/service/legal"
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
@@ -96,6 +97,11 @@ func startOAuth(c fiber.Ctx, state *core.AppState) error {
 	}
 	if intent == "register" && !cfg.Registration.Enabled {
 		return registrationError(c, core.ErrRegistrationDisabled)
+	}
+	if intent == "login" || intent == "register" {
+		if err := legal.RequireConsent(c, state); err != nil {
+			return err
+		}
 	}
 	raw, err := newOAuthState()
 	if err != nil {
@@ -233,6 +239,9 @@ func finishOAuth(c fiber.Ctx, state *core.AppState) error {
 	user := buildSynthUser(account)
 	user.AuthenticationSnapshot = mfa.Snapshot
 	if err = issueBrowserSession(c, state, user, "oauth:"+provider); err != nil {
+		if errors.Is(err, legal.ErrConsentRequired) {
+			return providerOAuthRedirect(c, "/account/login", provider, legal.ConsentErrorCode)
+		}
 		if errors.Is(err, errMFARequired) {
 			return c.Redirect().To("/account/login?mfa=1&return_to=" + url.QueryEscape(record.ReturnTo))
 		}

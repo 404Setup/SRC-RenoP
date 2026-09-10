@@ -119,6 +119,7 @@ func TestAccountBanRevokesEveryCredentialAndCanBeLifted(t *testing.T) {
 	loginBody, err := proto.Marshal(&pb.LoginRequest{Name: "alice", Secret: "alice-password"})
 	require.NoError(t, err)
 	loginRequest := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(loginBody))
+	loginRequest.Header.Set("X-Renop-Legal-Revision", state.Inner.Config.Load().Legal.Revision())
 	loginRequest.Header.Set(fiber.HeaderContentType, protohttp.ContentType)
 	response, err = app.Test(loginRequest)
 	require.NoError(t, err)

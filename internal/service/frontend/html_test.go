@@ -1218,16 +1218,16 @@ func TestRoutedPagesServeSPAIndex(t *testing.T) {
 	}
 }
 
-func TestGenerateIndexHtmlIncludesEscapedLegalNoticeURL(t *testing.T) {
+func TestGenerateIndexHTMLUsesInternalLegalPages(t *testing.T) {
 	cfg := config.DefaultFrontendConfig()
-	cfg.LegalNoticeURL = `https://example.com/legal?a=1&b="notice"`
-
 	generated := string(GenerateIndexHTMLFromConfig(&cfg))
-	if strings.Contains(generated, "{{RENOP.LEGAL_NOTICE_URL}}") {
-		t.Fatal("generated HTML still contains the legal notice placeholder")
+	for _, path := range []string{"/privacy-policy", "/terms-of-service", "/legal-notice"} {
+		if !strings.Contains(generated, `href="`+path+`"`) {
+			t.Errorf("missing legal page %s", path)
+		}
 	}
-	if !strings.Contains(generated, `data-url="https://example.com/legal?a=1&amp;b=&#34;notice&#34;"`) {
-		t.Fatal("generated HTML does not contain the escaped legal notice URL")
+	if strings.Contains(generated, "privacy-policy-modal") || strings.Contains(generated, "LEGAL_NOTICE_URL") {
+		t.Fatal("obsolete legal navigation remains in the shell")
 	}
 }
 

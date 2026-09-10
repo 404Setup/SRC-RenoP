@@ -11,33 +11,43 @@
 package api
 
 import (
-	"bytes"
-	"errors"
-	"os"
-	"path/filepath"
-	"testing"
-
-	"github.com/stretchr/testify/assert"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/require"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"renop/internal/config"
+	"renop/internal/core"
+	"renop/internal/service/auth"
+	"testing"
 )
 
-func TestReadPrivacyPolicyFileEnforcesPlainTextBoundary(t *testing.T) {
-	directory := t.TempDir()
-	path := filepath.Join(directory, "privacy-policy.txt")
-	require.NoError(t, os.WriteFile(path, []byte("Privacy policy\n"), 0o600))
-	data, err := readPrivacyPolicyFile(path)
+func TestConfiguredLegalDocumentsReplaceFilePolicyAndReload(t *testing.T) {
+	cfg := config.DefaultConfig()
+	state := core.NewAppState()
+	state.Inner.Config.Store(cfg)
+	app := fiber.New()
+	app.Use(auth.AuthMiddleware(state))
+	SetupAPIRoutes(app.Group("/api"), state)
+	for _, path := range []string{"/api/privacy-policy", "/api/legal/privacy-policy", "/api/legal/terms-of-service", "/api/legal/legal-notice"} {
+		request := httptest.NewRequest(http.MethodGet, path, nil)
+		request.Header.Set(fiber.HeaderAuthorization, "Bearer expired")
+		response, err := app.Test(request)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, response.StatusCode)
+		require.Equal(t, "text/plain; charset=utf-8", response.Header.Get(fiber.HeaderContentType))
+		require.Equal(t, "no-store", response.Header.Get(fiber.HeaderCacheControl))
+		require.NoError(t, response.Body.Close())
+	}
+	next := cfg.DeepCopy()
+	next.Legal.PrivacyPolicy = "# Updated policy\n\n<script>inert text</script>"
+	require.NoError(t, next.Legal.Normalize())
+	state.Inner.Config.Store(next)
+	response, err := app.Test(httptest.NewRequest(http.MethodGet, "/api/privacy-policy", nil))
 	require.NoError(t, err)
-	assert.Equal(t, "Privacy policy\n", string(data))
-
-	require.NoError(t, os.WriteFile(path, []byte{'p', 0, 'x'}, 0o600))
-	_, err = readPrivacyPolicyFile(path)
-	require.Error(t, err)
-	require.NoError(t, os.WriteFile(path, []byte{0xff, 0xfe}, 0o600))
-	_, err = readPrivacyPolicyFile(path)
-	require.Error(t, err)
-	require.NoError(t, os.WriteFile(path, bytes.Repeat([]byte{'x'}, maxPrivacyPolicyBytes+1), 0o600))
-	_, err = readPrivacyPolicyFile(path)
-	require.Error(t, err)
-	_, err = readPrivacyPolicyFile(filepath.Join(directory, "missing.txt"))
-	assert.True(t, errors.Is(err, os.ErrNotExist))
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	require.NoError(t, err)
+	require.Equal(t, next.Legal.PrivacyPolicy, string(body))
+	require.Equal(t, "nosniff", response.Header.Get(fiber.HeaderXContentTypeOptions))
 }

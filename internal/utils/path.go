@@ -165,7 +165,8 @@ func IsValidRepositorySlug(name string) bool {
 // embedded assets rather than repository storage.
 func IsReservedRepositoryName(name string) bool {
 	switch strings.ToLower(strings.TrimSpace(name)) {
-	case "api", "assets", "css", "js", "svg", "javadoc", "javadocs", "cargodoc", "cargodocs", "cratedoc", "cratedocs":
+	case "api", "assets", "css", "js", "svg", "javadoc", "javadocs", "cargodoc", "cargodocs", "cratedoc", "cratedocs",
+		"privacy-policy", "terms-of-service", "legal-notice":
 		return true
 	default:
 		return false

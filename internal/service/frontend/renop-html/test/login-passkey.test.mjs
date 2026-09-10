@@ -123,6 +123,7 @@ test('native Passkey prompts bound waiting, restore buttons, and discard cancell
         });
     };
     const context = vm.createContext({
+        ensureLegalConsent: async () => true,
         Uint8Array, atob, btoa, AbortController, DOMException,
         window: browser, navigator: {credentials: {get: native, create: native}}, Date: {now: () => now},
         t: (key, values) => values ? `${key} (${values.seconds}s)` : key,
@@ -211,6 +212,7 @@ test('primary Passkey login never submits timed-out credentials or completes aft
     let delayedBegin = false, releaseBegin, delayedFinish = false, releaseFinish;
     let failure = new DOMException('', 'TimeoutError');
     const context = vm.createContext({
+        ensureLegalConsent: async () => true,
         AbortController, DOMException,
         window: {PublicKeyCredential: true, addEventListener: (type, callback) => listeners.set(type, callback)},
         document: {getElementById: () => ({value: 'alice'})},
@@ -249,6 +251,7 @@ test('primary Passkey login never submits timed-out credentials or completes aft
     failure = undefined;
     delayedBegin = true;
     const abandoned = context.fidoLogin();
+    await new Promise(resolve => setImmediate(resolve));
     listeners.get('popstate')();
     releaseBegin();
     await abandoned;

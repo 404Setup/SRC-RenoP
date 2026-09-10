@@ -116,7 +116,6 @@ func GenerateIndexHTMLFromConfig(cfg *config.FrontendConfig) []byte {
 		"{{RENOP.BACKGROUND_URL}}", html.EscapeString(cfg.BackgroundURL),
 		"{{RENOP.ICP_LICENSE}}", html.EscapeString(cfg.IcpLicense),
 		"{{RENOP.PUBLIC_SECURITY_FILING}}", html.EscapeString(cfg.PublicSecurityFiling),
-		"{{RENOP.LEGAL_NOTICE_URL}}", html.EscapeString(cfg.LegalNoticeURL),
 		"{{RENOP.FONT_PRESET}}", html.EscapeString(fontPreset),
 		"{{RENOP.FONT_URL}}", html.EscapeString(fontURL),
 		"{{RENOP.HASH}}", GetAssetsHash(),

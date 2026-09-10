@@ -48,6 +48,7 @@ test('registration gates confirmation, verifies email, imports optional profile,
     }
 
     const context = vm.createContext({
+        ensureLegalConsent: async () => true,
         document: {getElementById: field, querySelectorAll: () => links},
         window: {
             location: {search: '', assign: value => navigation.push(value)}, addEventListener: (_, fn) => {

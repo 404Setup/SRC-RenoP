@@ -36,6 +36,7 @@ test('OAuth controls preserve intent, enforce last-login state, and discard priv
     let release, delay = false;
     const publicChoices = [{id: 'demo', name: '<Example>'}];
     const context = vm.createContext({
+        ensureLegalConsent: async () => true,
         el: node, t: translate, URL, URLSearchParams, AbortSignal,
         document: {getElementById: element}, createIcon: () => node('icon'),
         window: {
@@ -82,7 +83,7 @@ test('OAuth controls preserve intent, enforce last-login state, and discard priv
     for (const [id, intent] of [['oauth-login-providers', 'login'], ['oauth-register-providers', 'register']]) {
         const button = buttons(element(id))[0];
         assert.equal(text(button), 'oauth.continue<Example>');
-        button.onclick();
+        await button.onclick();
         const url = new URL(destinations.at(-1), 'https://renop.example');
         assert.equal(url.pathname, '/api/auth/oauth/demo/start');
         assert.equal(url.searchParams.get('intent'), intent);

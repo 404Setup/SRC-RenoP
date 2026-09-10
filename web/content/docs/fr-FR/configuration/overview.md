@@ -116,7 +116,6 @@ frontend:
   font_url: ""
   icp_license: ""
   public_security_filing: ""
-  legal_notice_url: ""
 ```
 
 Les URL sont validées avant usage. L’arrière-plan doit respecter la politique WebP et de taille.
@@ -135,3 +134,5 @@ updater:
 `channel` vaut `release` ou `nightly`. `mode` vaut `manual`, `auto_check` ou `auto_install`. Les vérifications
 automatiques
 sont fusionnées par le planificateur et leurs résultats sont envoyés aux administrateurs.
+
+[Documents juridiques et cookies](./legal.md)
