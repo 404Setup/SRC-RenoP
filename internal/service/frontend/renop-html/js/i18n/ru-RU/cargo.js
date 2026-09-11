@@ -53,7 +53,7 @@ export default Object.freeze({
     "cargo.devDependencies": "Зависимости разработки",
     "cargo.buildDependencies": "Зависимости сборки",
     "cargo.optional": "необязательно",
-    "cargo.features": "Возможности (Features)",
+    "cargo.features": "Возможности",
     "cargo.noDependencies": "Нет зависимостей для этой версии.",
     "cargo.noFeatures": "Для этой версии не определено никаких возможностей.",
     "cargo.homepage": "Домашняя страница",

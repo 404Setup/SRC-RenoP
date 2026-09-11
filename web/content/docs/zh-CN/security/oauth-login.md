@@ -9,26 +9,167 @@ description: 配置 Microsoft、Google、GitLab、Cloudflare、Stack Exchange �
 
 ## 配置服务
 
-在管理员设置中打开**第三方登录**，统一配置 GitHub 和其他服务。GitHub 是内置条目，固定 ID 为 `github`，可在此启用或关闭。还可添加最多 32 个其他客户端，ID 最长 32 个字符，以小写字母开头，可包含小写字母、数字、下划线和连字符。已保存的 ID 用于识别现有绑定，不可编辑。每个账号支持一个 GitHub 绑定和最多 32 个其他服务绑定。
+在管理员设置中打开 **第三方登录**，统一配置 GitHub 和其他服务。GitHub 是内置条目，固定 ID 为 `github`，可在此启用或关闭。还可添加最多
+32 个其他客户端，ID 最长 32 个字符，以小写字母开头，可包含小写字母、数字、下划线和连字符。已保存的 ID 用于识别现有绑定，不可编辑。每个账号支持一个
+GitHub 绑定和最多 32 个其他服务绑定。
 
-为保持兼容，GitHub 继续使用 `server.github_oauth` 和回调 `/api/auth/github/callback`。现有配置和绑定自动显示在统一界面中。客户端 ID 最长 128 字节，密钥最长 512 字节；只有客户端 ID 不变时，空白密钥才保留原值。GitHub 用户与组织授权、已验证邮箱及手动同步头像功能继续可用。
+为保持兼容，GitHub 继续使用 `server.github_oauth` 和回调 `/api/auth/github/callback`。现有配置和绑定自动显示在统一界面中。客户端
+ID 最长 128 字节，密钥最长 512 字节；只有客户端 ID 不变时，空白密钥才保留原值。GitHub 用户与组织授权、已验证邮箱及手动同步头像功能继续可用。
 
 下文的服务配置与协议细节描述其他 OAuth 客户端；GitHub 保留现有授权流程和兼容回调。
 
 向服务提供商注册 Web 应用，并允许完整回调地址 `https://renop.example/api/auth/oauth/<provider-id>/callback`。OAuth
 端点及回调必须使用 HTTPS，开发时的 HTTP 回环地址除外。保存的配置立即用于新的授权；配置变更会使正在进行的授权失效。
 
-| 预设            | 应用设置与选项                                                                                                                                                                                                                                                                                                              | 邮箱处理                                                                                                                 |
-|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
-| `microsoft`     | [Microsoft 标识平台](https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc)；`tenant` 可为 `common`、`organizations`、`consumers` 或 Entra 租户 UUID，并须与应用支持的账号类型一致。默认授权范围为 `openid profile email`。                                                                           | [UserInfo](https://learn.microsoft.com/en-us/entra/identity-platform/userinfo) 不声明邮箱已验证，必须使用 RenoP 验证码。 |
-| `google`        | [Google OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect)；默认授权范围为 `openid profile email`。                                                                                                                                                                                      | 只有 `email_verified` 为布尔值 `true` 时，才将地址视为已验证。                                                           |
-| `gitlab`        | [GitLab OpenID Connect](https://docs.gitlab.com/integration/openid_connect_provider/)；`base_url` 默认为 `https://gitlab.com`，也可指定自托管实例。默认授权范围为 `openid profile email`。                                                                                                                                  | 未返回已验证的联系邮箱时，必须使用验证码。                                                                               |
-| `cloudflare`    | [创建 OAuth 客户端](https://developers.cloudflare.com/fundamentals/oauth/create-an-oauth-client/)并[完成集成](https://developers.cloudflare.com/fundamentals/oauth/integrate-with-cloudflare/)；`openid` 范围提供稳定的用户标识。私有客户端仅允许所属 Cloudflare 账号的成员使用；公开客户端需要通过 Cloudflare 的域名验证。 | 此预设不提供已验证的邮箱，必须使用 RenoP 验证码。                                                                        |
-| `stackexchange` | 注册 [Stack Apps 应用](https://stackapps.com/help/api-authentication)，填写客户端凭据和 API 密钥，选择 `site`，默认为 `stackoverflow`。RenoP 使用带 PKCE 的[授权码流程](https://api.stackexchange.com/docs/authentication)，并以网络级 `account_id` 作为身份。                                                              | 不提供联系邮箱，必须使用 RenoP 验证码。                                                                                  |
-| `custom`        | 配置授权、令牌和用户信息 URL，以及 JSON 字段路径。使用 OpenID Connect 时，还需配置签发者和 JWKS。                                                                                                                                                                                                                           | 只有邮箱字段及其验证字段均已映射，且验证值为布尔值 `true` 时才可信；否则必须使用验证码。                                 |
+| 预设            | 应用设置与选项                                                                                                                                                                                                                                                                                                                                      | 邮箱处理                                                                                                                 |
+|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| `microsoft`     | [Microsoft 标识平台](https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc)；`tenant` 可为 `common`、`organizations`、`consumers` 或 Entra 租户 UUID，并须与应用支持的账号类型一致。默认授权范围为 `openid profile email`。                                                                                                   | [UserInfo](https://learn.microsoft.com/en-us/entra/identity-platform/userinfo) 不声明邮箱已验证，必须使用 RenoP 验证码。 |
+| `google`        | [Google OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect)；默认授权范围为 `openid profile email`。                                                                                                                                                                                                              | 只有 `email_verified` 为布尔值 `true` 时，才将地址视为已验证。                                                           |
+| `gitlab`        | [GitLab OpenID Connect](https://docs.gitlab.com/integration/openid_connect_provider/)；`base_url` 默认为 `https://gitlab.com`，也可指定自托管实例。默认授权范围为 `openid profile email`。                                                                                                                                                          | 未返回已验证的联系邮箱时，必须使用验证码。                                                                               |
+| `cloudflare`    | [创建 OAuth 客户端](https://developers.cloudflare.com/fundamentals/oauth/create-an-oauth-client/)并[完成集成](https://developers.cloudflare.com/fundamentals/oauth/integrate-with-cloudflare/)；通过 `/oauth2/userinfo` 接口提供稳定的用户标识（`sub`）。私有客户端仅允许所属 Cloudflare 账号的成员使用；公开客户端需要通过 Cloudflare 的域名验证。 | 若授权范围中包含 `user-details.read`，自动检索已验证邮箱；否则使用 RenoP 验证码。                                        |
+| `stackexchange` | 注册 [Stack Apps 应用](https://stackapps.com/help/api-authentication)，填写客户端凭据和 API 密钥，选择 `site`，默认为 `stackoverflow`。RenoP 使用带 PKCE 的[授权码流程](https://api.stackexchange.com/docs/authentication)，并以网络级 `account_id` 作为身份。                                                                                      | 不提供联系邮箱，必须使用 RenoP 验证码。                                                                                  |
+| `custom`        | 配置授权、令牌和用户信息 URL，以及 JSON 字段路径。使用 OpenID Connect 时，还需配置签发者和 JWKS。                                                                                                                                                                                                                                                   | 只有邮箱字段及其验证字段均已映射，且验证值为布尔值 `true` 时才可信；否则必须使用验证码。                                 |
 
 Microsoft 根据租户和应用注册设置支持个人账号与 Entra ID 账号。Cloudflare 和 Stack Exchange
 无需填写虚构的邮箱映射。如果需要允许这类用户注册，请先启用[邮件发送](../configuration/mail.md)。
+
+## 服务接入指引
+
+### GitHub
+
+访问 GitHub 并进入 **Settings** -> **Developer settings** -> **OAuth Apps**，点击 **New OAuth App**（或使用组织下的
+Developer settings）。
+
+填写应用信息：
+
+- **Application name**：输入应用名称（例如 `RenoP`）。
+- **Homepage URL**：输入 RenoP 实例根地址（例如 `https://renop.example`）。
+- **Authorization callback URL**：输入 GitHub 专用回调地址 `https://renop.example/api/auth/github/callback`。注意 GitHub
+  使用固定的专属路径，而非普通 OAuth 的子路径。
+
+注册完成后，生成并复制 **Client Secret**，同时记录 **Client ID**。在 RenoP 管理员设置的 **第三方登录**中，打开内置的
+**GitHub** 项，填入凭据，保存并启用。
+
+### Microsoft Entra ID
+
+登录 Microsoft Entra 管理中心或 Azure 门户，进入 **标识** -> **应用程序** -> **应用注册**，点击 **新注册**。
+
+填写注册信息：
+
+- **名称**：应用名称（例如 `RenoP`）。
+- **受支持的帐户类型**：
+    - 允许任何 Microsoft 个人账号及工作/学校组织账号：选择“任何组织目录中的帐户和个人 Microsoft 帐户”，并在 RenoP 中配置
+      `tenant: common`。
+    - 仅允许工作或学校组织账号：选择“任何组织目录中的帐户”，并在 RenoP 中配置 `tenant: organizations`。
+    - 仅允许个人账号：选择“仅限个人 Microsoft 帐户”，并在 RenoP 中配置 `tenant: consumers`。
+    - 仅限当前组织：选择“仅此组织目录中的帐户”，并在 RenoP 中将 `tenant` 设置为当前目录（租户）ID。
+- **重定向 URI**：平台选择“Web”，输入 `https://renop.example/api/auth/oauth/microsoft/callback`。
+
+在 **证书和密码** 中添加客户端密码并立即复制其 **值**（Value）。在 **API 权限** 中确保具有 `User.Read` 委托权限，且 OpenID
+范围包含 `openid`、`profile` 与 `email`。在 RenoP 中添加类型为 `microsoft` 的服务，填入 Client ID、Client Secret 及 Tenant。
+
+### Google Cloud
+
+访问 Google Cloud 控制台，进入 **API 和服务** -> **凭据**。
+
+若尚未配置 **OAuth 同意屏幕**：
+
+- 用户类型选择 **外部**（或组织内部），填写应用信息并添加权限范围 `openid`、`.../auth/userinfo.email` 与
+  `.../auth/userinfo.profile`。
+
+在 **凭据** 页面点击 **创建凭据** -> **OAuth 客户端 ID**：
+
+- **应用类型**：Web 应用。
+- **已获授权的重定向 URI**：添加 `https://renop.example/api/auth/oauth/google/callback`。
+
+保存并复制 **客户端 ID** 与 **客户端密钥**。在 RenoP 中添加类型为 `google` 的服务，填入 Client ID 与 Client Secret（默认授权范围为
+`openid profile email`）。
+
+### GitLab
+
+在 GitLab.com 或自建 GitLab 实例中创建应用：
+
+- 实例全局配置： **Admin Area** -> **Applications**。
+- 用户个人配置： **User Settings** -> **Applications**。
+- 群组配置：群组 **Settings** -> **Applications**。
+
+填写应用参数：
+
+- **Name**：应用名称。
+- **Redirect URI**：`https://renop.example/api/auth/oauth/gitlab/callback`。
+- **Confidential**：保持勾选。
+- **Scopes**：勾选 `openid`、`profile`、`email` 以及 `read_user`。
+
+保存后记录 **Application ID**（Client ID）和 **Secret**。在 RenoP 中添加类型为 `gitlab` 的服务，自建实例需填写完整的
+`base_url`（例如 `https://gitlab.example.com`）。
+
+### Cloudflare
+
+在 Cloudflare 控制台中进入 **管理帐户** -> **OAuth 客户端**（Manage Account -> OAuth clients）。
+
+点击 **创建客户端**（Create client）并填写应用与协议参数：
+
+- **Client name**：输入客户端名称（例如 `RenoP`）。
+- **Response type**：响应类型支持 Token、ID Token 与 Code（多选）， **必须勾选 `Code`**（RenoP 使用基于授权码的 OAuth 2.0 流程）。
+- **Grant type**：授权类型支持 Authorization Code 与 Refresh Token（多选）， **必须勾选 `Authorization Code`**。
+- **Redirect URLs**：输入 RenoP 对应的完整回调地址，例如
+  `https://renop.example/api/auth/oauth/cloudflare/callback`（若自定义了服务 ID，请将 `cloudflare` 替换为实际 ID）。
+- **Client URL**（可选）：可填写 RenoP 实例主页（例如 `https://renop.example`）。若后续需要将应用提升为公开（Public）客户端，必须填写此项并按要求添加
+  DNS TXT 记录完成域名验证；若仅供当前 Cloudflare 账号成员私有使用则可选。
+- **Token authentication method**：令牌身份验证方法（三选一，需与 RenoP 中的配置保持一致）：
+    - **Client Secret POST**（默认与推荐）：客户端在令牌兑换请求体中发送 Client Secret。在 RenoP 中令牌认证方式默认为
+      `client_secret_post`。
+    - **Client Secret Basic**：客户端通过 HTTP Basic 认证标头发送 Client Secret。若 Cloudflare 客户端选择了此项，需在 RenoP
+      中将令牌认证方式对应设为
+      `client_secret_basic`。RenoP 同时内置自动协商机制，当因方式不匹配收到 HTTP 401 时会自动尝试对应方式。
+    - **PKCE**：公共客户端模式，无需客户端密钥。在 RenoP 中将令牌认证方式设为 `none`，此时无需配置客户端密钥。
+- **Post-logout redirect URLs**（可选）：登出后重定向地址，例如 `https://renop.example`。
+- **Allowed CORS origins**（可选）：允许跨域访问的来源地址；由于 RenoP 授权码兑换由服务端发起，通常可保持留空。
+
+点击 **Continue** 并配置权限范围（Scopes）：
+
+- 选择客户端所需的 API 权限（至少勾选一项，如 `User Details: Read`）。
+- **授权范围说明**：在 RenoP 管理设置的 **授权范围**（Scopes）中，可保持留空或填入在 Cloudflare 中勾选的 API 权限（支持空格或逗号分隔，例如
+  `memberships.read, user-details.read, offline_access, openid`）。
+- **邮箱与用户信息自动同步**：若权限中包含了 `user-details.read`，RenoP 会在登录与注册时自动调用 Cloudflare API（
+  `/client/v4/user`）获取用户的已验证主邮箱及用户名，无需手动输入邮件验证码。若未授予该权限，新用户通过 `/oauth2/userinfo`
+  提供的稳定主体标识（`sub`）登录，并需通过 RenoP 邮件验证码完成验证。
+
+创建后记录 **Client ID**，以及弹窗中仅展示一次的 **Client Secret**（若使用 Client Secret POST 或 Client Secret Basic；注意必须为
+OAuth 客户端创建时生成的 Client Secret，切勿填入 Cloudflare API Token 或 Global API Key）。在 RenoP 中添加类型为
+`cloudflare` 的服务，填入 Client ID、Client Secret（若有）并匹配令牌认证方式（默认为 `client_secret_post`）。系统会自动去除首尾多余空格。
+
+### Stack Exchange
+
+访问 Stack Apps 注册页面（`https://stackapps.com/apps/oauth/register`）。
+
+填写注册信息：
+
+- **Application Name**：应用名称。
+- **OAuth Domain**：RenoP 实例所在主机域名（例如 `renop.example`，不含协议与端口）。
+- **Enable Client Side Flow**：保持未选中。
+
+提交后记录 **Client Id**、 **Client Secret** 以及 **Key**（调用 API 和配额所需的 API 密钥）。在 RenoP 中添加类型为
+`stackexchange` 的服务，填入 Client ID、Client Secret 与 API Key。站点 `site` 默认可使用 `stackoverflow`。
+
+### 自定义服务
+
+对于 Keycloak、Authentik、Authelia、Casdoor 或 Dex 等标准 OpenID Connect / OAuth 2.0 服务，选择类型 `custom`。
+
+配置主要端点：
+
+- **授权 URL**：用户重定向授权端点。
+- **令牌 URL**：授权码兑换令牌端点。
+- **用户信息 URL**：获取用户属性的端点。
+- **签发者** 与 **JWKS URL**：启用 OIDC 签名验证时填写。
+- **授权范围**：空格分隔的 Scope 列表（如 `openid profile email`）。
+- **客户端认证方式**：根据提供商要求选择 `client_secret_post` 或 `client_secret_basic`。
+
+配置声明映射：
+
+- `subject`：稳定唯一用户标识的 JSON 路径（如 `sub` 或 `id`）。
+- `username` 与 `name`：用户名和昵称路径。
+- `email` 与 `email_verified`：邮箱地址及布尔验证标记路径。
 
 ## 配置与凭据
 

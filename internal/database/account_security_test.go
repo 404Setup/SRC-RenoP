@@ -51,8 +51,24 @@ func TestPasswordLoginPolicyAcceptsExistingLegacyShortUsername(t *testing.T) {
 	enabled, err := db.PasswordLoginEnabled("r3")
 	require.NoError(t, err)
 	assert.True(t, enabled)
+
+	security, err := db.GetAccountSecurity("r3")
+	require.NoError(t, err)
+	assert.True(t, security.PasswordLoginEnabled)
+	assert.True(t, security.PasswordConfigured)
+
+	require.NoError(t, db.SaveToken(&core.AccessToken{
+		Name: "404", EncryptedSecret: "legacy-password-hash", CreatedAt: time.Now().UTC().Format(time.RFC3339),
+	}))
+	security404, err := db.GetAccountSecurity("404")
+	require.NoError(t, err)
+	assert.True(t, security404.PasswordLoginEnabled)
+	assert.True(t, security404.PasswordConfigured)
+
 	_, validReplacement := core.NormalizeUsername("r3")
 	assert.False(t, validReplacement, "legacy login compatibility must not relax replacement username rules")
+	_, valid404 := core.NormalizeUsername("404")
+	assert.False(t, valid404, "legacy login compatibility must not relax replacement username rules")
 }
 
 func TestPrivateAccountSecurityAndRecoveryLifecycle(t *testing.T) {

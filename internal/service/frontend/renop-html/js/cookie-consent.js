@@ -9,9 +9,11 @@
  */
 
 import {el} from '@renop/ui/dom';
+import {closeModalWithAnim, openModalWithAnim} from '@renop/ui/modal';
 import {t} from './i18n.js';
 import {loadLegalMetadata} from './legal-consent.js';
 import {parseCookiePreferences} from './cookie-preferences.js';
+import {createIcon} from './components/icon.js';
 
 const storageKey = 'renop_cookie_preferences';
 let metadata, choice, banner;
@@ -60,34 +62,128 @@ export async function openCookiePreferences() {
     }
     const policyRevision = metadata.revision;
     const previousFocus = document.activeElement;
-    const optional = el('input', {type: 'checkbox', checked: readChoice()?.optional === true});
-    const dialog = el('dialog', {id: 'cookie-preferences-dialog', class: 'cookie-preferences', 'aria-labelledby': 'cookie-preferences-title'});
-    const close = () => dialog.close();
+
+    const modal = el('div', {
+        class: 'modal cookie-preferences-modal',
+        id: 'cookie-preferences-dialog',
+        role: 'dialog',
+        'aria-modal': 'true',
+        'aria-labelledby': 'cookie-preferences-title',
+        style: {display: 'none'}
+    });
+    const backdrop = el('div', {class: 'modal-backdrop'});
+    const modalContent = el('div', {class: 'modal-content modal-glass cookie-preferences-content'});
+
+    const close = () => {
+        closeModalWithAnim(modal, () => {
+            modal.remove();
+            const target = previousFocus?.isConnected ? previousFocus : document.querySelector('[data-cookie-preferences]');
+            target?.focus({preventScroll: true});
+        });
+    };
+
+    const closeBtn = el('button', {type: 'button', class: 'close-btn', ariaLabel: t('modal.close') || 'Close', onclick: close});
+    closeBtn.appendChild(createIcon('close'));
+
+    const header = el('div', {class: 'modal-header'},
+        el('h3', {class: 'modal-title', id: 'cookie-preferences-title'},
+            createIcon('compliance'),
+            text('span', 'legal.cookiePreferences')
+        ),
+        closeBtn
+    );
+
     const save = value => {
         if (policyRevision === metadata.revision) saveChoice(value);
         close();
     };
-    dialog.append(
-        text('h2', 'legal.cookiePreferences', {id: 'cookie-preferences-title'}),
-        text('p', 'legal.cookieDescription'),
-        el('label', {class: 'cookie-category'}, el('input', {type: 'checkbox', checked: true, disabled: true}),
-            el('span', {}, text('strong', 'legal.necessary'), text('span', 'legal.necessaryDescription'))),
-        el('label', {class: 'cookie-category'}, optional,
-            el('span', {}, text('strong', 'legal.optional'), text('span', 'legal.optionalDescription'))),
-        el('a', {href: '/privacy-policy', target: '_blank', rel: 'noopener'}, t('footer.privacyPolicy')),
-        el('div', {class: 'cookie-actions'},
-            text('button', 'legal.necessaryOnly', {type: 'button', class: 'pill-btn pill-btn--soft', onclick: () => save(false)}),
-            text('button', 'legal.acceptAll', {type: 'button', class: 'pill-btn pill-btn--soft', onclick: () => save(true)}),
-            text('button', 'legal.savePreferences', {type: 'button', class: 'pill-btn pill-btn--soft', onclick: () => save(optional.checked)}),
-            text('button', 'modal.close', {type: 'button', class: 'pill-btn pill-btn--soft', onclick: close})),
+
+    const optionalInput = el('input', {
+        type: 'checkbox',
+        id: 'cookie-optional-toggle',
+        checked: readChoice()?.optional === true
+    });
+    const optionalToggle = el('label', {class: 'cfg-toggle', for: 'cookie-optional-toggle'},
+        optionalInput,
+        el('span', {class: 'cfg-toggle-track'},
+            el('span', {class: 'cfg-toggle-thumb'})
+        )
     );
-    dialog.addEventListener('close', () => {
-        dialog.remove();
-        const target = previousFocus?.isConnected ? previousFocus : document.querySelector('[data-cookie-preferences]');
-        target?.focus({preventScroll: true});
-    }, {once: true});
-    document.body.appendChild(dialog);
-    dialog.showModal();
+
+    const necessaryCard = el('div', {class: 'cookie-pref-card is-disabled'},
+        el('div', {class: 'cookie-pref-card-header'},
+            el('div', {class: 'cookie-pref-card-title-wrap'},
+                text('h4', 'legal.necessary', {class: 'cookie-pref-card-title'}),
+                text('span', 'common.yes', {class: 'cookie-pref-badge'})
+            ),
+            el('label', {class: 'cfg-toggle', 'aria-hidden': 'true', style: {opacity: '0.6', cursor: 'default'}},
+                el('input', {type: 'checkbox', checked: true, disabled: true}),
+                el('span', {class: 'cfg-toggle-track'},
+                    el('span', {class: 'cfg-toggle-thumb'})
+                )
+            )
+        ),
+        text('p', 'legal.necessaryDescription', {class: 'cookie-pref-card-desc'})
+    );
+
+    const optionalCard = el('div', {class: 'cookie-pref-card'},
+        el('div', {class: 'cookie-pref-card-header'},
+            el('div', {class: 'cookie-pref-card-title-wrap'},
+                text('h4', 'legal.optional', {class: 'cookie-pref-card-title'})
+            ),
+            optionalToggle
+        ),
+        text('p', 'legal.optionalDescription', {class: 'cookie-pref-card-desc'})
+    );
+
+    const policyLink = el('div', {class: 'cookie-pref-policy-link'},
+        el('a', {href: '/privacy-policy', target: '_blank', rel: 'noopener'},
+            createIcon('externalLink'),
+            text('span', 'footer.privacyPolicy')
+        )
+    );
+
+    const body = el('div', {class: 'modal-body cookie-preferences-body'},
+        text('p', 'legal.cookieDescription', {class: 'cookie-pref-intro'}),
+        necessaryCard,
+        optionalCard,
+        policyLink
+    );
+
+    const footer = el('div', {class: 'modal-footer cookie-preferences-footer'},
+        text('button', 'legal.necessaryOnly', {
+            type: 'button',
+            class: 'action-btn',
+            onclick: () => save(false)
+        }),
+        el('div', {class: 'cookie-pref-footer-actions'},
+            text('button', 'legal.savePreferences', {
+                type: 'button',
+                class: 'action-btn',
+                onclick: () => save(optionalInput.checked)
+            }),
+            text('button', 'legal.acceptAll', {
+                type: 'button',
+                class: 'action-btn primary-btn',
+                onclick: () => save(true)
+            })
+        )
+    );
+
+    modalContent.append(header, body, footer);
+    modal.append(backdrop, modalContent);
+
+    const onKeydown = e => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            close();
+        }
+    };
+    document.addEventListener('keydown', onKeydown, {once: true});
+    backdrop.addEventListener('click', close, {once: true});
+
+    document.body.appendChild(modal);
+    openModalWithAnim(modal);
 }
 
 /** Render the floating notice only while a category choice is still needed. */

@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {buildInput, createSection} from '../cfg-ui.js';
 import {createFieldRow, createIcon} from '../components.js';
@@ -15,6 +16,7 @@ import {t} from '../i18n.js';
 
 /** Render the reservation period applied when a publishing domain becomes unsafe. */
 export function renderMavenDomainSettings(container, data, changed) {
+    const wrap = el('div', {class: 'cfg-layout'});
     const section = createSection(createIcon('network'), t('maven.healthSettings'), t('maven.healthSettingsHint'), {defaultCollapsed: true});
     section.id = 'settings-maven-domains';
     const value = buildInput('number', data.release_value, '2', event => {
@@ -33,5 +35,6 @@ export function renderMavenDomainSettings(container, data, changed) {
     unit.querySelector('button')?.setAttribute('aria-label', t('mail.unit'));
     section.querySelector('.cfg-fields').append(
         createFieldRow(t('maven.releasePeriod'), '', value), createFieldRow(t('mail.unit'), '', unit));
-    container.appendChild(section);
+    wrap.appendChild(section);
+    container.appendChild(wrap);
 }

@@ -11,7 +11,7 @@ RenoP fournit une API HTTP complète pour l’administration, les intégrations 
 le serveur écoute sur `http://localhost:3000`.
 
 
-La [page API](/api) dédiée permet de basculer entre le Markdown RenoPAPI et le rendu OpenAPI. Les liens comme `/api/authentication` ouvrent un article ; `?view=openapi` sélectionne la spécification. Le visualiseur auto-hébergé se charge à la demande et n’exécute aucune requête API. Le [fichier OpenAPI](/assets/openapi.yaml) reste téléchargeable. La documentation générale ne contient plus la catégorie API ; les anciens liens `/docs/api/...` redirigent vers `/api/...`.
+La [référence API](/api) documente les points de terminaison d’administration, d’intégration cliente et de surveillance. La spécification brute [OpenAPI](/assets/openapi.yaml) est également disponible au téléchargement.
 
 ## Structure des routes
 

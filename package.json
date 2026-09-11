@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=24.0.0"
   },
-  "packageManager": "pnpm@11.20.0",
+  "packageManager": "pnpm@12.3.4",
   "description": "RenoP monorepo root (workspace for web, frontend, shared UI)",
   "scripts": {
     "build:web": "pnpm --filter renop-web build",
@@ -13,8 +13,5 @@
     "test:frontend": "pnpm --filter renop-html test",
     "check:i18n": "pnpm --filter renop-html check:i18n",
     "build:ui-consumers": "pnpm --filter renop-web build && pnpm --filter renop-html build"
-  },
-  "scarfSettings": {
-    "enabled": false
   }
 }

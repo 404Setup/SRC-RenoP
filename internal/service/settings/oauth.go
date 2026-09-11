@@ -32,10 +32,9 @@ type oauthProviderSettings struct {
 
 func oauthSettings(server config.ServerConfig) fiber.Map {
 	github := server.GitHubOAuth
-	values := []oauthProviderSettings{{OAuthProviderConfig: config.OAuthProviderConfig{
+	values := []oauthProviderSettings{{
 		ID: "github", Type: "github", Name: "GitHub", Enabled: github.Enabled,
-		ClientID: github.ClientID, CallbackURL: github.CallbackURL,
-	}, ClientSecretConfigured: github.ClientSecret != ""}}
+		ClientID: github.ClientID, CallbackURL: github.CallbackURL, ClientSecretConfigured: github.ClientSecret != ""}}
 	for _, p := range server.OAuthProviders {
 		value := oauthProviderSettings{OAuthProviderConfig: p.Resolved(), ClientSecretConfigured: p.ClientSecret != "", APIKeyConfigured: p.APIKey != ""}
 		value.ClientSecret, value.APIKey = "", ""
@@ -67,19 +66,25 @@ func normalizeOAuthSettings(current []config.OAuthProviderConfig, request []oaut
 	for _, value := range request {
 		p := value.OAuthProviderConfig
 		p.ID, p.Type, p.Name = strings.TrimSpace(p.ID), strings.TrimSpace(p.Type), strings.TrimSpace(p.Name)
+		p.ClientID = strings.TrimSpace(p.ClientID)
+		p.ClientSecret = strings.TrimSpace(p.ClientSecret)
+		p.APIKey = strings.TrimSpace(p.APIKey)
+		p.CallbackURL = strings.TrimSpace(p.CallbackURL)
+		p.BaseURL = strings.TrimSpace(p.BaseURL)
+		p.TokenAuth = strings.TrimSpace(p.TokenAuth)
 		if seen[p.ID] {
 			return nil, invalid
 		}
 		seen[p.ID] = true
 		for _, old := range current {
-			if old.ID != p.ID || old.Type != p.Type || old.ClientID != p.ClientID || old.Resolved().TokenURL != p.Resolved().TokenURL {
+			if old.ID != p.ID || old.Type != p.Type || strings.TrimSpace(old.ClientID) != p.ClientID || old.Resolved().TokenURL != p.Resolved().TokenURL {
 				continue
 			}
 			if p.ClientSecret == "" && !value.ClearClientSecret {
-				p.ClientSecret = old.ClientSecret
+				p.ClientSecret = strings.TrimSpace(old.ClientSecret)
 			}
 			if p.APIKey == "" && !value.ClearAPIKey {
-				p.APIKey = old.APIKey
+				p.APIKey = strings.TrimSpace(old.APIKey)
 			}
 		}
 		if value.ClearClientSecret {

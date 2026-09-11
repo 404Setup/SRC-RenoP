@@ -12,6 +12,7 @@ package auth
 
 import (
 	"errors"
+	"log"
 	"strings"
 	"time"
 
@@ -80,6 +81,7 @@ func getAccountSecurity(c fiber.Ctx, state *core.AppState) error {
 	}
 	security, err := state.GetDB().GetAccountSecurity(user.Username)
 	if err != nil {
+		log.Printf("Failed to load account security for %s: %v", user.Username, err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load account security")
 	}
 	setPrivateResponseHeaders(c)
@@ -116,6 +118,7 @@ func putPrivateEmail(c fiber.Ctx, state *core.AppState) error {
 	}
 	account, err := state.GetDB().GetMFAState(user.Username)
 	if err != nil {
+		log.Printf("Failed to get MFA state for email update of %s: %v", user.Username, err)
 		return emailVerificationError(c, err)
 	}
 	security, err := state.GetDB().UpdateAccountEmailFromSession(user.Username,
@@ -125,6 +128,7 @@ func putPrivateEmail(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusConflict).SendString("Email address is already in use")
 	}
 	if err != nil {
+		log.Printf("Failed to update private email for %s: %v", user.Username, err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update private email")
 	}
 	recordPrivateEmailChange(c, state, user.Username)
@@ -167,6 +171,7 @@ func putPasswordLogin(c fiber.Ctx, state *core.AppState) error {
 		c.Set("X-Renop-Error-Code", "ACCOUNT_PASSWORD_NOT_CONFIGURED")
 		return c.Status(fiber.StatusConflict).SendString("Set a password before enabling password login")
 	case err != nil:
+		log.Printf("Failed to update password login for %s: %v", user.Username, err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update password login")
 	}
 	username, operator, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
@@ -186,13 +191,16 @@ func postRecoveryCodes(c fiber.Ctx, state *core.AppState) error {
 	}
 	displayCodes, hashes, err := generateRecoveryCodeSet()
 	if err != nil {
+		log.Printf("Failed to generate recovery codes for %s: %v", user.Username, err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to generate recovery codes")
 	}
 	if err := state.GetDB().ReplaceRecoveryCodes(user.Username, hashes); err != nil {
+		log.Printf("Failed to store recovery codes for %s: %v", user.Username, err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to store recovery codes")
 	}
 	security, err := state.GetDB().GetAccountSecurity(user.Username)
 	if err != nil {
+		log.Printf("Failed to reload account security for %s: %v", user.Username, err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to reload account security")
 	}
 	username, operator, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)

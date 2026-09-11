@@ -52,14 +52,26 @@ test('empty optional cards are omitted while actionable collections remain', () 
     assert.match(docker, /String\(image\.description \|\| ''\)\.trim\(\) \|\| canManageL2/);
 });
 
-test('Maven exposes copy-ready dependency declarations', () => {
+test('Maven exposes copy-ready dependency declarations and compact facts layout', () => {
     const maven = source('js', 'browser', 'maven.js');
+    const mavenStyles = source('css', 'browser', 'maven.css');
+    const settingsStyles = source('css', 'manager', 'settings.css');
     assert.match(maven, /function mavenImportSection/);
     assert.match(maven, /<dependency>\\n  <groupId>/);
     assert.match(maven, /Gradle Kotlin DSL/);
     assert.match(maven, /Gradle Groovy DSL/);
+    assert.match(maven, /id:\s*'sbt'/);
+    assert.match(maven, /id:\s*'ivy'/);
+    assert.match(maven, /id:\s*'grape'/);
+    assert.match(maven, /id:\s*'leiningen'/);
+    assert.match(maven, /id:\s*'bazel'/);
+    assert.match(maven, /id:\s*'jbang'/);
     assert.match(maven, /copyText\(copy, current\.value\)/);
+    assert.match(mavenStyles, /\.maven-import-code\s*\{[^}]*background:\s*var\(--snippet-bg/);
+    assert.doesNotMatch(maven, /\{\s*label:\s*t\('maven\.scm'\)[^}]*wide:\s*true/);
+    assert.doesNotMatch(settingsStyles, /\.settings-sidebar\s*\{[^}]*position:\s*sticky/);
 });
+
 
 test('Docker digest feedback preserves the stable SHA pill', () => {
     const helper = source('js', 'browser', 'copy-feedback.js');

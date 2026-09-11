@@ -15,7 +15,7 @@ export default Object.freeze({
     ...base,
     "repos.formatNpmDesc": "兼容 npm、pnpm、Yarn 同 Bun 嘅 JavaScript 套件儲存庫",
     "details.npmSubtitle": "設定客戶端、安裝套件並向已保留嘅名稱發布版本",
-    "npm.repositoryDescription": "發布同鏡像不可變嘅 JavaScript 套件版本，並按套件管理 L0-L4 權限。",
+    "npm.repositoryDescription": "託管與鏡像 JavaScript 套件版本，支援細粒度權限控制與多版本管理。",
     "npm.noPackages": "呢個儲存庫暫時冇可用嘅 npm 套件。",
     "npm.createPackageHint": "用 npm 客戶端發布之前，必須先保留套件名稱。",
     "npm.packageCreationQueued": "npm 套件建立申請正在等待審核",

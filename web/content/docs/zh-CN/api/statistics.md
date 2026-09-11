@@ -19,8 +19,8 @@ Manifest 时记录一次拉取，不按每个 Blob 重复计数。
 `GET /api/statistics` 返回 API Token 所属账号的统计。`GET /api/statistics/users/:username` 使用相同的账号
 边界；查询其他账号必须使用系统管理员 Token。
 
-两个接口都只接受带 `statistics:read` 的 Bearer API Token。浏览器 Session Cookie 与 Basic 凭据会被拒绝。
-查询前会先写入内存中的待处理计数，因此成功响应包含当前服务进程已经接受的下载。
+两个接口均要求携带 `statistics:read` 权限的 Bearer API Token。
+查询时会自动刷写内存中的待写入计数，确保返回最新、完整的下载统计数据。
 
 ## 系统查询
 

@@ -231,7 +231,7 @@ func finishGitHubOAuth(c fiber.Ctx, state *core.AppState, opChan chan<- token.To
 	if transport, transportOK := client.Transport.(*http.Transport); transportOK {
 		defer transport.CloseIdleConnections()
 	}
-	ctx, cancel := context.WithTimeout(c.Context(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(c.Context(), 30*time.Second)
 	defer cancel()
 	tokenResponse, err := exchangeGitHubCode(ctx, client, provider, cfg.Server.GitHubOAuth, code)
 	if err != nil {

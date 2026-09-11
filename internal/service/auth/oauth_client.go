@@ -42,38 +42,92 @@ type oauthUserInfo struct {
 	AvatarURL     string
 }
 
-func exchangeOAuthCode(ctx context.Context, client *http.Client, p config.OAuthProviderConfig, code, verifier string) (oauthTokens, error) {
-	form := url.Values{"grant_type": {"authorization_code"}, "client_id": {p.ClientID}, "code": {code}, "redirect_uri": {p.CallbackURL}}
+func validateOAuthTokens(p config.OAuthProviderConfig, tokens oauthTokens) error {
+	if len(tokens.Error) != 0 && string(tokens.Error) != "null" || tokens.AccessToken == "" || len(tokens.AccessToken) > 16384 ||
+		strings.ContainsAny(tokens.AccessToken, "\r\n\x00") || len(tokens.IDToken) > 16384 ||
+		tokens.TokenType != "" && !strings.EqualFold(tokens.TokenType, "bearer") || tokens.TokenType == "" && p.Type != "stackexchange" {
+		return errors.New("OAuth provider rejected the authorization code")
+	}
+	return nil
+}
+
+func requestOAuthTokens(ctx context.Context, client *http.Client, p config.OAuthProviderConfig, code, verifier, authMethod string, rawBasic bool) (oauthTokens, int, error) {
+	clientID := strings.TrimSpace(p.ClientID)
+	clientSecret := strings.TrimSpace(p.ClientSecret)
+	callbackURL := strings.TrimSpace(p.CallbackURL)
+	form := url.Values{"grant_type": {"authorization_code"}, "code": {code}, "redirect_uri": {callbackURL}}
+	if authMethod != "client_secret_basic" {
+		form.Set("client_id", clientID)
+	}
 	if !p.DisablePKCE {
 		form.Set("code_verifier", verifier)
 	}
-	if p.TokenAuth == "client_secret_post" {
-		form.Set("client_secret", p.ClientSecret)
+	if authMethod == "client_secret_post" {
+		form.Set("client_secret", clientSecret)
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.TokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
-		return oauthTokens{}, errors.New("OAuth token request is invalid")
+		return oauthTokens{}, 0, errors.New("OAuth token request is invalid")
 	}
-	if p.TokenAuth == "client_secret_basic" {
-		req.SetBasicAuth(url.QueryEscape(p.ClientID), url.QueryEscape(p.ClientSecret))
+	if authMethod == "client_secret_basic" {
+		if rawBasic {
+			req.SetBasicAuth(clientID, clientSecret)
+		} else {
+			req.SetBasicAuth(url.QueryEscape(clientID), url.QueryEscape(clientSecret))
+		}
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "RenoP-OAuth/1")
 	response, err := client.Do(req)
 	if err != nil {
-		return oauthTokens{}, errors.New("OAuth token request failed")
+		return oauthTokens{}, 0, errors.New("OAuth token request failed")
 	}
+	statusCode := response.StatusCode
 	var tokens oauthTokens
 	if err = decodeOAuthResponse(response, &tokens); err != nil {
-		return oauthTokens{}, err
+		return oauthTokens{}, statusCode, err
 	}
-	if len(tokens.Error) != 0 && string(tokens.Error) != "null" || tokens.AccessToken == "" || len(tokens.AccessToken) > 16384 ||
-		strings.ContainsAny(tokens.AccessToken, "\r\n\x00") || len(tokens.IDToken) > 16384 ||
-		tokens.TokenType != "" && !strings.EqualFold(tokens.TokenType, "bearer") || tokens.TokenType == "" && p.Type != "stackexchange" {
-		return oauthTokens{}, errors.New("OAuth provider rejected the authorization code")
+	return tokens, statusCode, nil
+}
+
+func exchangeOAuthCode(ctx context.Context, client *http.Client, p config.OAuthProviderConfig, code, verifier string) (oauthTokens, error) {
+	primaryMethod := p.TokenAuth
+	if primaryMethod == "" {
+		primaryMethod = "client_secret_post"
 	}
-	return tokens, nil
+	tokens, statusCode, err := requestOAuthTokens(ctx, client, p, code, verifier, primaryMethod, false)
+	if err == nil {
+		if valErr := validateOAuthTokens(p, tokens); valErr != nil {
+			return oauthTokens{}, valErr
+		}
+		return tokens, nil
+	}
+	if statusCode == http.StatusUnauthorized && p.ClientSecret != "" && primaryMethod != "none" {
+		type attempt struct {
+			method   string
+			rawBasic bool
+		}
+		var fallbacks []attempt
+		if primaryMethod == "client_secret_basic" {
+			fallbacks = []attempt{
+				{method: "client_secret_basic", rawBasic: true},
+				{method: "client_secret_post", rawBasic: false},
+			}
+		} else if primaryMethod == "client_secret_post" {
+			fallbacks = []attempt{
+				{method: "client_secret_basic", rawBasic: false},
+				{method: "client_secret_basic", rawBasic: true},
+			}
+		}
+		for _, alt := range fallbacks {
+			altTokens, _, altErr := requestOAuthTokens(ctx, client, p, code, verifier, alt.method, alt.rawBasic)
+			if altErr == nil && validateOAuthTokens(p, altTokens) == nil {
+				return altTokens, nil
+			}
+		}
+	}
+	return oauthTokens{}, err
 }
 
 func getOAuthJSON(ctx context.Context, client *http.Client, endpoint, accessToken string, destination any) error {
@@ -208,6 +262,41 @@ func fetchOAuthUserInfo(ctx context.Context, client *http.Client, p config.OAuth
 	for _, proof := range []core.ProviderEmail{profileEmail, tokenEmail} {
 		if proof.Email != "" {
 			info.Identity.Emails = append(info.Identity.Emails, proof)
+		}
+	}
+	if p.Type == "cloudflare" && tokens.AccessToken != "" && (info.Email == "" || info.Username == "" || info.Name == "") {
+		cfEndpoint := "https://api.cloudflare.com/client/v4/user"
+		if p.BaseURL != "" {
+			cfEndpoint = strings.TrimRight(p.BaseURL, "/") + "/client/v4/user"
+		}
+		var cfUser struct {
+			Success bool `json:"success"`
+			Result  struct {
+				Email     string `json:"email"`
+				Username  string `json:"username"`
+				FirstName string `json:"first_name"`
+				LastName  string `json:"last_name"`
+			} `json:"result"`
+		}
+		if err := getOAuthJSON(ctx, client, cfEndpoint, tokens.AccessToken, &cfUser); err == nil && cfUser.Success {
+			if info.Email == "" {
+				if email, valid := core.NormalizeEmail(cfUser.Result.Email); valid && email != "" {
+					info.Email = email
+					info.EmailVerified = true
+					info.Identity.Emails = append(info.Identity.Emails, core.ProviderEmail{Email: email, Verified: true})
+				}
+			}
+			if info.Username == "" && cfUser.Result.Username != "" {
+				info.Username = cfUser.Result.Username
+			}
+			if info.Name == "" {
+				fullName := strings.TrimSpace(cfUser.Result.FirstName + " " + cfUser.Result.LastName)
+				if fullName != "" {
+					info.Name = fullName
+				} else if cfUser.Result.Username != "" {
+					info.Name = cfUser.Result.Username
+				}
+			}
 		}
 	}
 	if p.Type == "gitlab" && p.UserInfoURL == "https://gitlab.com/oauth/userinfo" {

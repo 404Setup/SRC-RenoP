@@ -30,9 +30,24 @@ async function startOAuth(provider, intent) {
     }));
 }
 
+export function getProviderIconName(provider) {
+    const rawType = (typeof provider === 'object' ? (provider.type || provider.id) : provider) || '';
+    const type = rawType.toLowerCase();
+    if (['github', 'google', 'microsoft', 'entra', 'gitlab', 'cloudflare', 'stackexchange'].includes(type)) {
+        return type;
+    }
+    return 'oauthCustom';
+}
+
 /** Build a provider action without interpreting provider-supplied text as markup. */
-function providerButton(label, provider, intent, className = 'pill-btn pill-btn--soft profile-action-btn') {
-    return el('button', {type: 'button', class: className, onclick: () => startOAuth(provider, intent)}, label);
+function providerButton(label, provider, intent, className = 'pill-btn pill-btn--soft profile-action-btn', iconName = null) {
+    const id = typeof provider === 'string' ? provider : provider.id;
+    const children = [];
+    if (iconName) {
+        children.push(createIcon(iconName, {width: 20, height: 20, class: 'account-provider-icon'}));
+    }
+    children.push(label);
+    return el('button', {type: 'button', class: className, onclick: () => startOAuth(id, intent)}, ...children);
 }
 
 /** Render the configured public providers on both account entry pages. */
@@ -41,7 +56,7 @@ function renderPublicProviders() {
         const container = document.getElementById('oauth-' + intent + '-providers');
         if (!container) continue;
         container.replaceChildren(...publicProviders.map(provider =>
-            providerButton(t('oauth.continue', {provider: provider.name}), provider.id, intent, 'account-provider')));
+            providerButton(t('oauth.continue', {provider: provider.name}), provider, intent, 'account-provider', getProviderIconName(provider))));
         container.hidden = publicProviders.length === 0;
     }
 }
@@ -137,7 +152,7 @@ function renderPrivateProviders() {
             : t('oauth.connectedAs', {login: provider.login || provider.name})) : t('oauth.notConnected');
         container.appendChild(el('div', {class: 'profile-settings-section'},
             el('div', {class: 'profile-section-card-header'},
-                el('div', {class: 'profile-section-icon'}, createIcon('user')),
+                el('div', {class: 'profile-section-icon'}, createIcon(getProviderIconName(provider))),
                 el('div', {class: 'profile-section-meta'}, el('h3', {class: 'profile-section-title'}, provider.name),
                     el('p', {class: 'profile-section-desc'}, status))),
             el('div', {class: 'profile-section-body profile-github-body'},

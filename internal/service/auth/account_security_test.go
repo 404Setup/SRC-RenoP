@@ -64,6 +64,7 @@ func TestPasswordCredentialAcceptsExistingLegacyShortUsername(t *testing.T) {
 	require.NoError(t, db.SaveToken(account))
 	state := core.NewAppState()
 	state.Inner.DB = db
+	state.Inner.Config.Store(config.DefaultConfig())
 
 	credential, err := VerifyAccountCredential(state, account, "legacy-secret")
 	require.NoError(t, err)
@@ -72,6 +73,25 @@ func TestPasswordCredentialAcceptsExistingLegacyShortUsername(t *testing.T) {
 	credential, err = VerifyAccountCredential(state, account, "wrong-secret")
 	require.NoError(t, err)
 	assert.Nil(t, credential)
+
+	statuses, err := oauthProfileStatuses(state, "r3")
+	require.NoError(t, err)
+	assert.NotNil(t, statuses)
+	securityR3, err := state.GetDB().GetAccountSecurity("r3")
+	require.NoError(t, err)
+	assert.True(t, securityR3.PasswordLoginEnabled)
+
+	account404 := &core.AccessToken{
+		Name: "404", EncryptedSecret: string(passwordHash), CreatedAt: time.Now().UTC().Format(time.RFC3339),
+		Permissions: []string{"base"},
+	}
+	require.NoError(t, db.SaveToken(account404))
+	statuses404, err := oauthProfileStatuses(state, "404")
+	require.NoError(t, err)
+	assert.NotNil(t, statuses404)
+	security404, err := state.GetDB().GetAccountSecurity("404")
+	require.NoError(t, err)
+	assert.True(t, security404.PasswordLoginEnabled)
 }
 
 func TestRecoveryCodeHashingUsesOneWayHighEntropyVerifiers(t *testing.T) {

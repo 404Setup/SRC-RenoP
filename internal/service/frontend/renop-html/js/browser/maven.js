@@ -32,10 +32,10 @@ import {
 } from '../package-deprecation.js';
 import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '../response-errors.js';
 import {
-    createResourceLockButton,
     createResourceLockBadge,
-    resourceLockReason,
+    createResourceLockButton,
     createResourceLockNotices,
+    resourceLockReason,
     resourceReadLocked,
     resourceWriteLocked
 } from '../resource-locks.js';
@@ -584,7 +584,7 @@ function mavenProjectInformationSection(details) {
         {label: t('maven.organization'), value: organization},
         {label: t('maven.inceptionYear'), value: project.inception_year},
         {label: t('maven.licenses'), value: licenses, wide: true},
-        {label: t('maven.scm'), value: project.scm_url ? mavenExternalLink(project.scm_url) : null, wide: true},
+        {label: t('maven.scm'), value: project.scm_url ? mavenExternalLink(project.scm_url) : null},
         {label: t('maven.issueTracker'), value: issueTracker, wide: true},
         {label: t('maven.developers'), value: developers, wide: true}
     ]);
@@ -605,6 +605,14 @@ function mavenImportSection(artifact) {
         },
         {id: 'gradle-kotlin', label: 'Gradle Kotlin DSL', value: `implementation("${coordinate}")`},
         {id: 'gradle-groovy', label: 'Gradle Groovy DSL', value: `implementation '${coordinate}'`},
+        {id: 'sbt', label: 'SBT', value: `libraryDependencies += "${artifact.group_id}" % "${artifact.artifact_id}" % "${version}"`},
+        {id: 'ivy', label: 'Ivy', value: `<dependency org="${artifact.group_id}" name="${artifact.artifact_id}" rev="${version}" />`},
+        {
+            id: 'grape', label: 'Grape', value: `@Grapes(\n  @Grab(group='${artifact.group_id}', module='${artifact.artifact_id}', version='${version}')\n)`
+        },
+        {id: 'leiningen', label: 'Leiningen', value: `[${artifact.group_id}/${artifact.artifact_id} "${version}"]`},
+        {id: 'bazel', label: 'Bazel', value: `artifact("${coordinate}")`},
+        {id: 'jbang', label: 'JBang', value: `//DEPS ${coordinate}`}
     ];
     const tabs = el('div', {class: 'maven-import-tabs', role: 'tablist'});
     const code = el('code', {});

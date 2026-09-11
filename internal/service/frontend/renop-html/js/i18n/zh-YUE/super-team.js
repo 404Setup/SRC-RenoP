@@ -12,6 +12,9 @@ import base from '../zh-HK/super-team.js';
 
 export default Object.freeze({
     ...base,
+    "superTeam.prefixHint": "2–64 位小寫字母、數字、連字號或者底線，建立咗之後冇得改。",
+    "superTeam.membersHint": "團隊成員會自動繼承對應套件嘅操作權限。",
+    "superTeam.createLimitHint": "單個帳戶最多可以建立嘅超級團隊數量。",
     "audit.action.SUPER_TEAM_CREATE": "建立超級團隊",
     "audit.action.SUPER_TEAM_UPDATE": "更新超級團隊",
     "audit.action.SUPER_TEAM_DELETE": "刪除超級團隊",

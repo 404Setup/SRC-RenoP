@@ -282,3 +282,204 @@ func TestOAuthIDTokenValidation(t *testing.T) {
 	require.False(t, config.ValidOAuthURL("https://user:secret@example.com/avatar"))
 	require.False(t, config.ValidOAuthURL("http://169.254.169.254/latest/meta-data"))
 }
+
+func TestCloudflareOAuthFlow(t *testing.T) {
+	var receivedAuthHeader string
+	var receivedForm url.Values
+	var tokenMode string
+	var returnSub string = "cf-user-999"
+	var serveCFUser bool
+
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/token":
+			require.NoError(t, r.ParseForm())
+			receivedAuthHeader = r.Header.Get("Authorization")
+			receivedForm = r.Form
+			if tokenMode == "require_post" && receivedAuthHeader != "" {
+				w.WriteHeader(http.StatusUnauthorized)
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"error":             "invalid_client",
+					"error_description": "Client authentication failed",
+				})
+				return
+			}
+			if tokenMode == "require_basic" && (receivedAuthHeader == "" || receivedForm.Get("client_secret") != "") {
+				w.WriteHeader(http.StatusUnauthorized)
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"error":             "invalid_client",
+					"error_description": "Client authentication failed",
+				})
+				return
+			}
+			if tokenMode == "always_fail_401" {
+				w.WriteHeader(http.StatusUnauthorized)
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"error":             "invalid_client",
+					"error_description": "Invalid client credentials",
+				})
+				return
+			}
+			_, _ = io.WriteString(w, `{"access_token":"cf-access-token","token_type":"Bearer"}`)
+		case "/userinfo":
+			require.Equal(t, "Bearer cf-access-token", r.Header.Get("Authorization"))
+			_ = json.NewEncoder(w).Encode(map[string]any{"sub": returnSub})
+		case "/client/v4/user":
+			require.Equal(t, "Bearer cf-access-token", r.Header.Get("Authorization"))
+			if !serveCFUser {
+				w.WriteHeader(http.StatusForbidden)
+				_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "errors": []string{"forbidden"}})
+				return
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"success": true,
+				"result": map[string]any{
+					"id":         returnSub,
+					"email":      "cfuser@example.com",
+					"username":   "cfuser",
+					"first_name": "Cloud",
+					"last_name":  "Flare",
+				},
+			})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(mockServer.Close)
+
+	app, state, cfg := registrationTestApp(t)
+	cfg.Registration.Enabled = true
+
+	// 1. Test startOAuth URL generation without scopes or nonce (defaults to client_secret_post)
+	cfProvider := config.OAuthProviderConfig{
+		ID: "cf", Type: "cloudflare", Name: "Cloudflare", Enabled: true,
+		ClientID: "  cf-client-id  ", ClientSecret: "  cf-secret \n",
+		CallbackURL: "https://renop.example/api/auth/oauth/cf/callback",
+	}.Resolved()
+	require.Equal(t, "client_secret_post", cfProvider.TokenAuth)
+	require.Equal(t, "cf-client-id", cfProvider.ClientID)
+	require.Equal(t, "cf-secret", cfProvider.ClientSecret)
+	cfProvider.AuthorizeURL = mockServer.URL + "/auth"
+	cfProvider.TokenURL = mockServer.URL + "/token"
+	cfProvider.UserInfoURL = mockServer.URL + "/userinfo"
+	cfProvider.BaseURL = mockServer.URL
+	require.NoError(t, cfProvider.Validate())
+
+	cfg.Server.OAuthProviders = []config.OAuthProviderConfig{cfProvider}
+	state.Inner.Config.Store(cfg)
+	setupOAuthRoutes(app.Group("/api/auth"), state)
+
+	startResp := registrationRequest(t, app, "/api/auth/oauth/cf/start?intent=login", nil, nil)
+	require.Equal(t, 303, startResp.StatusCode)
+	targetURL, err := url.Parse(startResp.Header.Get("Location"))
+	require.NoError(t, err)
+
+	require.Equal(t, "cf-client-id", targetURL.Query().Get("client_id"))
+	require.Equal(t, "https://renop.example/api/auth/oauth/cf/callback", targetURL.Query().Get("redirect_uri"))
+	require.Equal(t, "code", targetURL.Query().Get("response_type"))
+	require.Empty(t, targetURL.Query().Get("scope"), "Cloudflare must not send scopes by default")
+	require.Empty(t, targetURL.Query().Get("nonce"), "Cloudflare must not send nonce")
+	require.NotEmpty(t, targetURL.Query().Get("code_challenge"))
+
+	// 2. Test startOAuth with comma-separated scopes normalized to space-separated
+	cfProviderWithScopes := cfProvider
+	cfProviderWithScopes.Scopes = "memberships.read, user-details.read, offline_access, openid"
+	cfg.Server.OAuthProviders = []config.OAuthProviderConfig{cfProviderWithScopes}
+	state.Inner.Config.Store(cfg)
+
+	startWithScopes := registrationRequest(t, app, "/api/auth/oauth/cf/start?intent=login", nil, nil)
+	require.Equal(t, 303, startWithScopes.StatusCode)
+	targetURLWithScopes, err := url.Parse(startWithScopes.Header.Get("Location"))
+	require.NoError(t, err)
+	require.Equal(t, "memberships.read user-details.read offline_access openid", targetURLWithScopes.Query().Get("scope"))
+
+	// 3. Test code exchange with default client_secret_post (and verify whitespace trimmed)
+	receivedAuthHeader = ""
+	receivedForm = nil
+	tokens, err := exchangeOAuthCode(context.Background(), mockServer.Client(), cfProvider, "code-1", "verifier-1")
+	require.NoError(t, err)
+	require.Equal(t, "cf-access-token", tokens.AccessToken)
+	require.Equal(t, "cf-client-id", receivedForm.Get("client_id"))
+	require.Equal(t, "cf-secret", receivedForm.Get("client_secret"))
+	require.Equal(t, "verifier-1", receivedForm.Get("code_verifier"))
+	require.Empty(t, receivedAuthHeader)
+
+	// 4. Test code exchange with explicit client_secret_basic
+	cfBasic := cfProvider
+	cfBasic.TokenAuth = "client_secret_basic"
+	receivedAuthHeader = ""
+	receivedForm = nil
+	tokens, err = exchangeOAuthCode(context.Background(), mockServer.Client(), cfBasic, "code-2", "verifier-2")
+	require.NoError(t, err)
+	require.Equal(t, "cf-access-token", tokens.AccessToken)
+	require.NotEmpty(t, receivedAuthHeader)
+	require.Empty(t, receivedForm.Get("client_id"), "client_secret_basic must not send client_id in POST body")
+	require.Empty(t, receivedForm.Get("client_secret"))
+	require.Equal(t, "verifier-2", receivedForm.Get("code_verifier"))
+
+	// 5. Test automatic fallback: configured as client_secret_post, but server requires client_secret_basic
+	tokenMode = "require_basic"
+	receivedAuthHeader = ""
+	receivedForm = nil
+	tokens, err = exchangeOAuthCode(context.Background(), mockServer.Client(), cfProvider, "code-fallback-basic", "verifier-fb1")
+	require.NoError(t, err, "must fall back to client_secret_basic when client_secret_post returns 401")
+	require.Equal(t, "cf-access-token", tokens.AccessToken)
+	require.NotEmpty(t, receivedAuthHeader)
+	require.Empty(t, receivedForm.Get("client_secret"))
+
+	// 6. Test automatic fallback: configured as client_secret_basic, but server requires client_secret_post
+	tokenMode = "require_post"
+	receivedAuthHeader = ""
+	receivedForm = nil
+	tokens, err = exchangeOAuthCode(context.Background(), mockServer.Client(), cfBasic, "code-fallback-post", "verifier-fb2")
+	require.NoError(t, err, "must fall back to client_secret_post when client_secret_basic returns 401")
+	require.Equal(t, "cf-access-token", tokens.AccessToken)
+	require.Equal(t, "cf-client-id", receivedForm.Get("client_id"))
+	require.Equal(t, "cf-secret", receivedForm.Get("client_secret"))
+
+	// 7. Test detailed error message when authentication fails
+	tokenMode = "always_fail_401"
+	_, err = exchangeOAuthCode(context.Background(), mockServer.Client(), cfProvider, "code-bad", "verifier-bad")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "401")
+	require.Contains(t, err.Error(), "invalid_client")
+	require.Contains(t, err.Error(), "Invalid client credentials")
+	tokenMode = ""
+
+	// 8. Test code exchange with none (PKCE only)
+	cfPKCE := cfProvider
+	cfPKCE.TokenAuth = "none"
+	cfPKCE.ClientSecret = ""
+	receivedAuthHeader = ""
+	receivedForm = nil
+	tokens, err = exchangeOAuthCode(context.Background(), mockServer.Client(), cfPKCE, "code-3", "verifier-3")
+	require.NoError(t, err)
+	require.Equal(t, "cf-access-token", tokens.AccessToken)
+	require.Equal(t, "cf-client-id", receivedForm.Get("client_id"))
+	require.Empty(t, receivedForm.Get("client_secret"))
+	require.Equal(t, "verifier-3", receivedForm.Get("code_verifier"))
+	require.Empty(t, receivedAuthHeader)
+
+	// 9. Test fetchOAuthUserInfo returns subject when /client/v4/user is unavailable
+	serveCFUser = false
+	info, err := fetchOAuthUserInfo(context.Background(), mockServer.Client(), cfProvider, tokens, "")
+	require.NoError(t, err)
+	require.Equal(t, "cf-user-999", info.Identity.Subject)
+	require.Equal(t, cfProvider.Authority(""), info.Identity.Authority)
+	require.Empty(t, info.Email)
+
+	// 10. Test fetchOAuthUserInfo automatically enriches verified email and user profile from /client/v4/user
+	serveCFUser = true
+	infoEnriched, err := fetchOAuthUserInfo(context.Background(), mockServer.Client(), cfProvider, tokens, "")
+	require.NoError(t, err)
+	require.Equal(t, "cf-user-999", infoEnriched.Identity.Subject)
+	require.Equal(t, "cfuser@example.com", infoEnriched.Email)
+	require.True(t, infoEnriched.EmailVerified)
+	require.Equal(t, "cfuser", infoEnriched.Username)
+	require.Equal(t, "Cloud Flare", infoEnriched.Name)
+	require.Equal(t, "cfuser", infoEnriched.Identity.Login)
+	require.Len(t, infoEnriched.Identity.Emails, 1)
+	require.Equal(t, "cfuser@example.com", infoEnriched.Identity.Emails[0].Email)
+	require.True(t, infoEnriched.Identity.Emails[0].Verified)
+}

@@ -24,20 +24,30 @@ window.addEventListener('message', async event => {
     const failed = () => send('renop-captcha-error');
     const expired = () => send('renop-captcha-expired');
     document.documentElement.lang = options.language || 'en';
-    document.body.style.cssText = 'margin:0;padding:8px;box-sizing:border-box;min-width:0;background:transparent';
+    document.body.style.cssText = 'margin:0;padding:6px;box-sizing:border-box;min-width:0;background:transparent;display:flex;justify-content:center;align-items:center;min-height:100%;overflow:visible;';
     const widget = document.getElementById('widget');
+    if (widget && widget.style) widget.style.cssText = 'display:flex;justify-content:center;align-items:center;width:100%;min-width:0;overflow:visible;';
     const size = window.innerWidth < 340 ? 'compact' : 'normal';
     const language = options.language?.startsWith('zh-') ? options.language.replace('zh-YUE', 'zh-HK')
         : options.language === 'pt-PT' ? 'pt-PT' : String(options.language || 'en').split('-')[0];
     let lastHeight = 0;
+    const isHiddenByDefault = options.provider === 'turnstile' || options.provider === 'recaptcha_invisible' || options.provider === 'recaptcha_v3';
     const observer = new MutationObserver(() => {
-        let height = 110;
+        let height = 0;
         for (const child of document.querySelectorAll('iframe')) {
             const rectangle = child.getBoundingClientRect();
-            if (rectangle.width && getComputedStyle(child).visibility !== 'hidden') height = Math.max(height, rectangle.height + 32);
+            if (rectangle.width && getComputedStyle(child).visibility !== 'hidden') {
+                height = Math.max(height, rectangle.height + 12);
+                if (rectangle.height > 20) send('renop-captcha-interactive');
+            }
         }
+        if (widget.firstElementChild) {
+            const rect = widget.firstElementChild.getBoundingClientRect();
+            if (rect.height > 0) height = Math.max(height, rect.height + 12);
+        }
+        if (height === 0) height = isHiddenByDefault ? 0 : 75;
         height = Math.min(900, Math.ceil(height));
-        if (height !== lastHeight) { lastHeight = height; send('renop-captcha-size', {height}); }
+        if (height !== lastHeight && height > 0) { lastHeight = height; send('renop-captcha-size', {height}); }
     });
     observer.observe(document.body, {childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'height', 'class']});
 
@@ -64,12 +74,14 @@ window.addEventListener('message', async event => {
         } else if (options.provider === 'turnstile') {
             await load('https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=renopCaptchaReady', {callback: true});
             window.turnstile.render(widget, {sitekey: options.site_key, action: options.action, theme: options.theme, size,
-                language, callback: complete, 'error-callback': failed, 'expired-callback': expired});
+                language, appearance: 'interaction-only',
+                callback: complete, 'error-callback': failed, 'expired-callback': expired,
+                'before-interactive-callback': () => send('renop-captcha-interactive')});
         } else if (options.provider === 'hcaptcha') {
             await load('https://js.hcaptcha.com/1/api.js?render=explicit&recaptchacompat=off&onload=renopCaptchaReady&hl=' + encodeURIComponent(language), {callback: true});
             window.hcaptcha.render(widget, {sitekey: options.site_key, theme: options.theme, size,
                 callback: complete, 'error-callback': failed, 'expired-callback': expired});
-        } else if (['recaptcha_v2', 'recaptcha_invisible', 'recaptcha_v3'].includes(options.provider)) {
+        } else if (options.provider.startsWith('recaptcha')) {
             const render = options.provider === 'recaptcha_v3' ? options.site_key : 'explicit';
             await load('https://www.google.com/recaptcha/api.js?' + new URLSearchParams({render, hl: language, onload: 'renopCaptchaReady'}), {callback: true});
             if (options.provider === 'recaptcha_v3') {

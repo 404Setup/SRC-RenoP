@@ -9,10 +9,12 @@
  */
 
 import {el} from '@renop/ui/dom';
+import {closeModalWithAnim, openModalWithAnim} from '@renop/ui/modal';
 import {t} from './i18n.js';
-import {optionalServicesAllowed, openCookiePreferences} from './cookie-consent.js';
+import {openCookiePreferences, optionalServicesAllowed} from './cookie-consent.js';
 import {readLegalTextResponse} from './legal-response.js';
 import {LocalizedResponseError} from './response-errors.js';
+import {createIcon} from './components/icon.js';
 
 const scopes = new Set(['password_login', 'registration', 'manual_mail', 'super_team_create', 'domain_create', 'package_create']);
 const providers = new Set(['recaptcha_v2', 'recaptcha_invisible', 'recaptcha_v3', 'turnstile', 'hcaptcha', 'friendlycaptcha']);
@@ -41,16 +43,39 @@ async function challenge(scope, signal, epoch) {
     const abort = () => controller.abort();
     signal?.addEventListener('abort', abort, {once: true});
     const previousFocus = document.activeElement;
-    const dialog = el('dialog', {class: 'captcha-dialog', 'aria-labelledby': 'captcha-title'});
-    const status = el('p', {role: 'status', 'aria-live': 'polite'}, t('captcha.loading'));
+    const modal = el('div', {class: 'modal captcha-modal', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'captcha-title', style: {display: 'none'}});
+    const backdrop = el('div', {class: 'modal-backdrop'});
+    const modalContent = el('div', {class: 'modal-content modal-glass modal-sm captcha-content'});
+    const closeBtn = el('button', {type: 'button', class: 'close-btn', ariaLabel: t('modal.close') || 'Close', onclick: abort});
+    closeBtn.appendChild(createIcon('close'));
+    const header = el('div', {class: 'modal-header'},
+        el('h3', {class: 'modal-title', id: 'captcha-title'}, createIcon('compliance'), el('span', {}, t('captcha.title'))),
+        closeBtn
+    );
+    const isHiddenByDefault = metadata.provider === 'turnstile' || metadata.provider === 'recaptcha_invisible' || metadata.provider === 'recaptcha_v3';
+    const status = el('p', {role: 'status', 'aria-live': 'polite', class: 'captcha-status'}, t(isHiddenByDefault ? 'captcha.verifying' : 'captcha.loading'));
     const host = el('div', {class: 'captcha-widget-host'});
-    const preferences = el('button', {type: 'button', class: 'pill-btn pill-btn--soft', onclick: () => void openCookiePreferences()}, t('legal.cookiePreferences'));
-    const retry = el('button', {type: 'button', class: 'pill-btn pill-btn--soft', hidden: true}, t('offline.retryBtn'));
-    const cancel = el('button', {type: 'button', class: 'pill-btn pill-btn--soft', onclick: abort}, t('common.cancel'));
-    dialog.append(el('h2', {id: 'captcha-title'}, t('captcha.title')), status, host,
-        el('div', {class: 'captcha-actions'}, preferences, retry, cancel));
-    document.body.appendChild(dialog);
-    dialog.showModal();
+    if (isHiddenByDefault) host.style.display = 'none';
+
+    const preferences = el('button', {type: 'button', class: 'action-btn', onclick: () => void openCookiePreferences()}, t('legal.cookiePreferences'));
+    const retry = el('button', {type: 'button', class: 'action-btn primary-btn', hidden: true}, t('offline.retryBtn'));
+    const cancel = el('button', {type: 'button', class: 'action-btn', onclick: abort}, t('common.cancel'));
+    const footer = el('div', {class: 'modal-footer captcha-actions'}, preferences, retry, cancel);
+    const body = el('div', {class: 'modal-body'}, status, host);
+    modalContent.append(header, body, footer);
+    modal.append(backdrop, modalContent);
+    document.body.appendChild(modal);
+    openModalWithAnim(modal);
+
+    const onKeydown = e => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            abort();
+        }
+    };
+    document.addEventListener('keydown', onKeydown);
+    backdrop.addEventListener('click', abort);
+
     let frame, nonce, frameTimer, verifying = false;
     try {
         return await new Promise((resolve, reject) => {
@@ -68,15 +93,26 @@ async function challenge(scope, signal, epoch) {
                 if (settled) return;
                 clearTimeout(frameTimer);
                 frame?.remove(); frame = undefined; verifying = false;
+                host.style.display = 'none';
                 status.textContent = t('captcha.failed'); retry.hidden = false;
             };
             const render = async () => {
                 try {
                     if (frame || verifying || settled) return;
-                    if (!await optionalServicesAllowed()) { status.textContent = t('captcha.consent'); return; }
+                    if (!await optionalServicesAllowed()) {
+                        host.style.display = 'none';
+                        status.textContent = t('captcha.consent');
+                        return;
+                    }
                     if (frame || verifying || settled || controller.signal.aborted) return;
                     retry.hidden = true;
-                    status.textContent = t('captcha.complete');
+                    if (isHiddenByDefault) {
+                        host.style.display = 'none';
+                        status.textContent = t('captcha.verifying');
+                    } else {
+                        host.style.display = '';
+                        status.textContent = t('captcha.loading');
+                    }
                     nonce = Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, '0')).join('');
                     frame = el('iframe', {class: 'captcha-frame', title: t('captcha.title'), src: '/api/captcha/widget',
                         sandbox: 'allow-scripts allow-same-origin allow-forms allow-popups', referrerPolicy: 'same-origin'});
@@ -96,10 +132,14 @@ async function challenge(scope, signal, epoch) {
                 if (settled || !frame || event.source !== frame.contentWindow || event.origin !== location.origin || message?.nonce !== nonce) return;
                 clearTimeout(frameTimer);
                 if (message.kind === 'renop-captcha-size') {
-                    if (Number.isFinite(message.height) && message.height >= 100 && message.height <= 900) frame.style.height = message.height + 'px';
+                    if (Number.isFinite(message.height) && message.height >= 50 && message.height <= 900) frame.style.height = message.height + 'px';
+                } else if (message.kind === 'renop-captcha-interactive') {
+                    host.style.display = '';
+                    status.textContent = t('captcha.loading');
                 } else if (message.kind === 'renop-captcha-error' || message.kind === 'renop-captcha-expired') failed();
                 else if (message.kind === 'renop-captcha-complete' && !verifying && typeof message.response === 'string' && message.response.length <= 16384) {
                     verifying = true;
+                    host.style.display = 'none';
                     status.textContent = t('captcha.verifying');
                     frame.remove(); frame = undefined;
                     try {
@@ -121,7 +161,6 @@ async function challenge(scope, signal, epoch) {
             const onPreferences = event => { if (event.detail?.optional) void render(); };
             const timer = setTimeout(() => finish('', new LocalizedResponseError(t('captcha.failed'))), 300000);
             controller.signal.addEventListener('abort', () => finish('', new LocalizedResponseError(t('captcha.cancelled'))), {once: true});
-            dialog.addEventListener('cancel', event => { event.preventDefault(); abort(); });
             retry.addEventListener('click', () => void render());
             window.addEventListener('message', onMessage);
             window.addEventListener('cookiePreferencesChanged', onPreferences);
@@ -130,10 +169,11 @@ async function challenge(scope, signal, epoch) {
     } finally {
         controller.abort();
         frame?.remove();
-        dialog.close(); dialog.remove();
+        document.removeEventListener('keydown', onKeydown);
         signal?.removeEventListener('abort', abort);
         if (activeController === controller) activeController = undefined;
         if (previousFocus?.isConnected) previousFocus.focus({preventScroll: true});
+        closeModalWithAnim(modal, () => { modal.remove(); });
     }
 }
 

@@ -17,6 +17,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"strings"
 	"time"
@@ -75,6 +76,7 @@ func emailVerificationError(c fiber.Ctx, err error) error {
 	case errors.Is(err, mailqueue.ErrRecipientBlocked):
 		return passwordResetError(c, 400, "mail_recipient_blocked")
 	default:
+		log.Printf("Email verification unhandled error: %v", err)
 		return passwordResetError(c, 503, "mail_unavailable")
 	}
 }
@@ -99,6 +101,7 @@ func queueProfileEmailVerification(c fiber.Ctx, state *core.AppState, username, 
 	cfg := state.Inner.Config.Load()
 	profile, err := state.GetDB().GetUserProfile(username)
 	if err != nil {
+		log.Printf("Failed to load user profile for email verification (%s): %v", username, err)
 		return emailVerificationError(c, err)
 	}
 	language := profile.Locale
@@ -107,6 +110,7 @@ func queueProfileEmailVerification(c fiber.Ctx, state *core.AppState, username, 
 	}
 	code, err := newEmailVerificationCode()
 	if err != nil {
+		log.Printf("Failed to generate email verification code for %s: %v", username, err)
 		return emailVerificationError(c, err)
 	}
 	session := c.Locals("current_session_id").(string)
@@ -121,6 +125,7 @@ func queueProfileEmailVerification(c fiber.Ctx, state *core.AppState, username, 
 			cfg.Mail.EncryptionKey, ip, cfg.Mail.ManualRate, alias)
 	}
 	if err != nil {
+		log.Printf("Failed to queue account email change for %s: %v", username, err)
 		return emailVerificationError(c, err)
 	}
 	mailqueue.Wake(state)
@@ -168,6 +173,7 @@ func confirmProfileEmailVerification(c fiber.Ctx, state *core.AppState) error {
 	security, err := state.GetDB().ConfirmAccountEmailChange(user.Username, session, email,
 		emailVerificationHash(cfg.Mail.EncryptionKey, "email_change", session+"\x00"+email, code), time.Now().UnixMilli())
 	if err != nil {
+		log.Printf("Failed to confirm account email change for %s: %v", user.Username, err)
 		return emailVerificationError(c, err)
 	}
 	recordPrivateEmailChange(c, state, user.Username)

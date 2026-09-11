@@ -32,8 +32,8 @@ Cargo 与 npm 每个成功版本统计一个存储文件和一次完整发布。
 配置与层描述符，并计为一次发布。Maven 对每个客户端 PUT 统计一个文件，在 POM 被接受时统计一次项目
 发布。纯文件引擎的每个 PUT 统计一个文件和一次发布。服务端生成的索引与校验文件不会单独增加用量。
 
-并发上传会先建立可过期的持久化预留。协议验证成功后预留转为已用额度；失败或遗留预留会被释放或由
-定时清理任务移除。状态响应同时包含已用量与有效预留，避免并行请求共同突破上限。
+并发上传时系统会提前进行额度预留，上传成功后计入正式用量，失败或超时的预留将自动释放。
+响应数据中同时包含当前已用量与活跃预留额度，确保额度控制准确。
 
 ## 接口
 
@@ -52,6 +52,6 @@ PUT /api/settings/publication-quota
 
 ## 强制执行
 
-配额耗尽时返回 `429 Too Many Requests`。`X-Renop-Error-Code` 使用
-`publication_file_quota`、`publication_byte_quota` 或 `publication_count_quota` 标识具体限制。配额检查在
-认证、存储库权限、软件包预创建、命名空间绑定与 Maven 域验证之后执行，不会赋予用户原本没有的权限。
+当超出配额限制时，接口返回 `429 Too Many Requests`，并通过 `X-Renop-Error-Code` 指明超限类型
+（`publication_file_quota`、`publication_byte_quota` 或 `publication_count_quota`）。
+配额检查在用户身份认证、存储库权限校验与发布前置规则通过后执行。

@@ -145,7 +145,7 @@ export default Object.freeze({
     "ticket.confirm.force_claim": "从当前处理人处接管此工单？",
     "ticket.confirm.release": "释放此工单，供其他有权限的处理人领取？",
     "ticket.confirm.escalate": "释放工单并升级给另一位系统管理员？升级三次后，最终接管人必须处理。",
-    "ticket.responsePrivacy": "提交者将看到此回复。请勿包含处理人员身份或账户隐私。举报成立时，请先通过资源或账户管理功能执行处罚，再确认结果。",
-    "ticket.reportPrivacy": "被举报方无法看到你的身份或举报内容。最终结果会通过站内消息通知，并在启用邮件时发送邮件。",
-    "ticket.createHint": "选择仓库以联系其版主，或选择全站以联系系统管理员。"
+    "ticket.responsePrivacy": "提交者将看到此回复，请勿包含处理人身份或隐私信息。举报成立时，请先执行对应处置再确认结果。",
+    "ticket.reportPrivacy": "被举报方无法看到您的身份或举报内容，处理结果将通过消息中心通知。",
+    "ticket.createHint": "选择对应仓库联系版主，或选择全站联系系统管理员。"
 });

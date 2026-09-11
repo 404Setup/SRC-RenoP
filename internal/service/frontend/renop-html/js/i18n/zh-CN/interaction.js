@@ -10,13 +10,13 @@
 
 export default Object.freeze({
     "resourceLock.reason.custom": "自定义原因",
-    "resourceLock.customHint": "可查看此资源的人均可看到，最多 256 个字符。",
+    "resourceLock.customHint": "所有可查看此资源的用户均可见，最长 256 个字符。",
     "resourceLock.inherited": "继承锁定",
     "resourceLock.versionsLocked": "部分版本已锁定",
 
     "resourceLock.unlock": "解锁",
     "maven.manageDomainTeam": "管理发布域团队",
-    "maven.domainTeamHint": "Maven 协作者归发布域所有，成员变更会影响使用此域的全部包。",
+    "maven.domainTeamHint": "发布域协作者将对使用该域的所有制品生效。",
     "ticket.reasonTitle": "举报理由",
     "ticket.reason.choose": "选择理由",
     "ticket.reason.spam": "垃圾或误导内容",

@@ -11,6 +11,7 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -68,14 +69,14 @@ type githubAPIIdentity struct {
 
 func oauthHTTPClient(cfg *config.Config) (*http.Client, error) {
 	transport := &http.Transport{
-		Proxy: nil,
+		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
-			Timeout:   5 * time.Second,
+			Timeout:   10 * time.Second,
 			KeepAlive: 30 * time.Second,
 		}).DialContext,
 		TLSClientConfig:        &tls.Config{MinVersion: tls.VersionTLS12},
-		TLSHandshakeTimeout:    5 * time.Second,
-		ResponseHeaderTimeout:  8 * time.Second,
+		TLSHandshakeTimeout:    10 * time.Second,
+		ResponseHeaderTimeout:  15 * time.Second,
 		MaxResponseHeaderBytes: 128 << 10,
 		MaxIdleConns:           4,
 		MaxIdleConnsPerHost:    2,
@@ -93,7 +94,7 @@ func oauthHTTPClient(cfg *config.Config) (*http.Client, error) {
 	}
 	return &http.Client{
 		Transport: transport,
-		Timeout:   15 * time.Second,
+		Timeout:   25 * time.Second,
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
@@ -105,9 +106,6 @@ func decodeOAuthResponse(response *http.Response, destination any) error {
 		return errors.New("OAuth response is missing")
 	}
 	defer utils.DiscardHTTPBody(response.Body, response.ContentLength)
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return fmt.Errorf("OAuth provider returned HTTP %d", response.StatusCode)
-	}
 	if response.ContentLength > githubOAuthResponseSize {
 		return errors.New("OAuth response exceeds the size limit")
 	}
@@ -117,6 +115,33 @@ func decodeOAuthResponse(response *http.Response, destination any) error {
 	}
 	if len(body) > githubOAuthResponseSize {
 		return errors.New("OAuth response exceeds the size limit")
+	}
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		var oauthErr struct {
+			Error            string `json:"error"`
+			ErrorDescription string `json:"error_description"`
+			Message          string `json:"message"`
+		}
+		if len(body) > 0 && json.Unmarshal(body, &oauthErr) == nil {
+			desc := oauthErr.ErrorDescription
+			if desc == "" {
+				desc = oauthErr.Message
+			}
+			if oauthErr.Error != "" && desc != "" {
+				return fmt.Errorf("OAuth provider returned HTTP %d: %s (%s)", response.StatusCode, oauthErr.Error, desc)
+			}
+			if oauthErr.Error != "" {
+				return fmt.Errorf("OAuth provider returned HTTP %d: %s", response.StatusCode, oauthErr.Error)
+			}
+			if desc != "" {
+				return fmt.Errorf("OAuth provider returned HTTP %d: %s", response.StatusCode, desc)
+			}
+		}
+		trimmed := bytes.TrimSpace(body)
+		if len(trimmed) > 0 && len(trimmed) <= 256 && !bytes.ContainsAny(trimmed, "\r\n\x00") {
+			return fmt.Errorf("OAuth provider returned HTTP %d: %s", response.StatusCode, string(trimmed))
+		}
+		return fmt.Errorf("OAuth provider returned HTTP %d", response.StatusCode)
 	}
 	return json.Unmarshal(body, destination)
 }

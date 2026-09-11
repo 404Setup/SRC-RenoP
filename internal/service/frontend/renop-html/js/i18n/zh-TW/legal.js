@@ -10,7 +10,7 @@
 
 export default Object.freeze({
     "legal.title": "法律文件",
-    "legal.settingsHint": "管理執行個體政策與瀏覽器同意設定。使用前請替換暫用文件。",
+    "legal.settingsHint": "設定執行個體隱私權政策、使用者條款與 Cookie 同意提示。",
     "legal.termsTitle": "使用者條款",
     "legal.documentHint": "支援 Markdown，每份文件最多 512 KiB。留空會還原暫用內容。",
     "legal.cookieBanner": "顯示 Cookie 浮窗",
@@ -24,9 +24,9 @@ export default Object.freeze({
     "legal.consentRequired": "請同意目前的隱私權政策與使用者條款。",
     "legal.cookiesRequired": "請允許瀏覽器使用必要 Cookie 後繼續。",
     "legal.cookieTitle": "Cookie 選擇",
-    "legal.cookieDescription": "必要 Cookie 用於登入與安全功能。你可以選擇是否載入第三方安全驗證服務。",
+    "legal.cookieDescription": "必要 Cookie 用於登入與安全防護。您可自行選擇是否啟用第三方人機驗證服務。",
     "legal.necessary": "必要 Cookie",
-    "legal.necessaryDescription": "用於工作階段、安全狀態及記住你的選擇。",
+    "legal.necessaryDescription": "用於維持登入狀態、保障安全並記住偏好設定。",
     "legal.optional": "第三方安全驗證",
     "legal.optionalDescription": "使用受保護操作時，允許載入已設定的安全驗證服務。",
     "legal.necessaryOnly": "僅必要 Cookie",

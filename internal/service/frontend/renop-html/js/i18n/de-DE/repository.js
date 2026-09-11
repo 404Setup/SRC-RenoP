@@ -52,7 +52,7 @@ export default Object.freeze({
     "repos.s3SecretKeyHint": "S3 Secret Key",
     "repos.s3ForcePathStyle": "Pfadstil erzwingen",
     "repos.s3ForcePathStyleHint": "Von einigen S3-kompatiblen Anbietern benötigt",
-    "repos.s3RedirectDownloads": "Downloads umleiten (302)",
+    "repos.s3RedirectDownloads": "Downloads umleiten",
     "repos.s3RedirectDownloadsHint": "Signierte Umleitungs-URLs erstellen statt zu proxyn",
     "repos.mirrorLabel": "Spiegelserver {index} — {name}",
     "repos.mirrorName": "Name",

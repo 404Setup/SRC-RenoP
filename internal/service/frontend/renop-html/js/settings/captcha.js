@@ -11,13 +11,14 @@
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {morphElementHeight} from '@renop/ui/height-anim';
-import {createSection, buildInput} from '../cfg-ui.js';
-import {createFieldRow, createToggleRow, createIcon, createCallout} from '../components.js';
+import {buildInput, createSection} from '../cfg-ui.js';
+import {createCallout, createFieldRow, createIcon, createToggleRow} from '../components.js';
 import {t} from '../i18n.js';
 
 /** Render one provider and its independent browser-action scopes with a write-only secret. */
 export function renderCaptchaSettings(container, data, changed) {
-    const section = createSection(createIcon('compliance'), t('captcha.title'), t('captcha.settingsHint'));
+    const wrap = el('div', {class: 'cfg-layout'});
+    const section = createSection(createIcon('compliance'), t('captcha.title'), t('captcha.settingsHint'), {defaultCollapsed: true});
     const fields = section.querySelector('.cfg-fields');
     const details = el('div', {class: 'cfg-fields'});
     const provider = makeCustomSelect([
@@ -36,12 +37,13 @@ export function renderCaptchaSettings(container, data, changed) {
     });
     fields.append(createFieldRow(t('captcha.provider'), '', provider), details);
     data.scopes ||= {};
-    const scopes = createSection(createIcon('compliance'), t('captcha.scopes'), t('captcha.automationHint'));
+    const scopes = createSection(createIcon('compliance'), t('captcha.scopes'), t('captcha.automationHint'), {defaultCollapsed: true});
     for (const scope of ['password_login', 'registration', 'manual_mail', 'super_team_create', 'domain_create', 'package_create']) {
         scopes.querySelector('.cfg-fields').append(createToggleRow(t(`captcha.scope.${scope}`), '', data.scopes[scope] === true,
             value => { data.scopes[scope] = value; changed(); }));
     }
-    container.append(section, scopes);
+    wrap.append(section, scopes);
+    container.append(wrap);
 
     /** Keep provider-only fields and native validity synchronized with the selected configuration. */
     function render() {

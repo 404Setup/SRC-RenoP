@@ -34,9 +34,9 @@ description: npm 软件包元数据、发布、tarball、发布标签、团队�
 作用域软件包名称可编码为单个路径参数，例如 `%40example%2Flibrary`。packument 响应支持 ETag 与 Last-Modified
 条件请求。请求 `application/vnd.npm.install-v1+json` 的客户端会收到大小受限的精简元数据。私有响应禁止共享缓存。
 
-一次发布文档只能包含一个语义化版本和一个 base64 tarball 附件。JSON 正文上限为 96 MiB，压缩 tarball 为
-64 MiB，解压内容为 512 MiB，文件条目为 100,000，`package.json` 为 2 MiB。每个软件包最多保留 5,000 条版本
-记录和合计 4 MiB 的版本元数据。服务器会将解码后的归档数据流式写入暂存区，不会发布只完成部分验证的 tarball。
+每次发布仅支持包含一个语义化版本及一个 Base64 编码的 tarball 附件。
+压缩 tarball 限制为 64 MiB，解压限制为 512 MiB，`package.json` 上限为 2 MiB。
+服务端执行严格的归档完整性校验，校验通过后制品方可正式入库发布。
 
 ## 发布标签与生命周期
 
@@ -46,8 +46,8 @@ description: npm 软件包元数据、发布、tarball、发布标签、团队�
 - **按修订号更新元数据或取消发布**：`PUT /{repo}/{package}/-rev/{revision}`
 - **按修订号删除软件包**：`DELETE /{repo}/{package}/-rev/{revision}`
 
-版本不可变。取消发布与删除会建立墓碑，因此已发布的语义化版本不可复用。修订号冲突返回 `409 Conflict`，
-客户端需要重新获取当前 packument。
+软件包版本具备不可变性。取消发布或删除后将永久废弃该版本号，不可重新上传同名版本。
+修订号冲突时返回 `409 Conflict`，客户端需重新获取最新元数据后重试。
 
 ## 浏览器管理 API
 

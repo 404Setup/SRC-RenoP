@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -260,13 +262,11 @@ func TestMailQueueConcurrentManualRequestsAndRestart(t *testing.T) {
 	var accepted atomic.Int32
 	var wg sync.WaitGroup
 	for range 12 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			if _, err := Enqueue(state, Request{To: "receiver@example.com", Scene: "test", Manual: true, IP: "192.0.2.4"}); err == nil {
 				accepted.Add(1)
 			}
-		}()
+		})
 	}
 	wg.Wait()
 	require.EqualValues(t, 1, accepted.Load())
@@ -309,17 +309,29 @@ func TestMailNotificationEventsAndRetirement(t *testing.T) {
 	require.NoError(t, w.notifications(control, time.Now()))
 	jobs, total, err := db.ListMailJobs("", "", key, 20, 0)
 	require.NoError(t, err)
-	require.Equal(t, 5, total)
+	require.Equal(t, 3, total)
 	scenes := map[string]bool{}
 	for _, job := range jobs {
 		scenes[job.Scene] = true
 	}
-	require.True(t, scenes["permission_changed"])
+	require.False(t, scenes["permission_changed"])
+	require.False(t, scenes["review_requested"])
+	require.True(t, scenes["account_banned"])
+	require.True(t, scenes["account_unbanned"])
 	require.True(t, scenes["super_team_invitation"])
+	inAppMessages, err := db.ListMessages("alice", 10, 0, "", time.Now().UnixMilli())
+	require.NoError(t, err)
+	hasPermissionMessage := false
+	for _, msg := range inAppMessages {
+		if msg.Kind == "permission_changed" {
+			hasPermissionMessage = true
+		}
+	}
+	require.True(t, hasPermissionMessage)
 	require.NoError(t, w.notifications(control, time.Now()))
 	_, total, err = db.ListMailJobs("", "", key, 20, 0)
 	require.NoError(t, err)
-	require.Equal(t, 5, total)
+	require.Equal(t, 3, total)
 	require.NoError(t, db.RetireAccount("alice", time.Now().UnixMilli()))
 	_, total, err = db.ListMailJobs("", "", key, 20, 0)
 	require.NoError(t, err)

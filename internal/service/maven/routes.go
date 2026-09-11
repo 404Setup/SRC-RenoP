@@ -258,7 +258,7 @@ func managedDomainListOptions(c fiber.Ctx, user *config.User) (core.MavenDomainL
 	options.Filtered = levelsValue != "" || statesValue != ""
 	seenLevels := make(map[int]struct{}, 5)
 	if levelsValue != "" {
-		for _, value := range strings.Split(levelsValue, ",") {
+		for value := range strings.SplitSeq(levelsValue, ",") {
 			level, parseErr := strconv.Atoi(strings.TrimSpace(value))
 			if parseErr != nil || level < core.MavenPermissionRead || level > core.MavenPermissionOwner ||
 				(administrator && level == core.MavenPermissionRead) {
@@ -276,7 +276,7 @@ func managedDomainListOptions(c fiber.Ctx, user *config.User) (core.MavenDomainL
 			return core.MavenDomainListOptions{}, core.ErrMavenPermissionDenied
 		}
 		seenStates := make(map[string]struct{}, 3)
-		for _, value := range strings.Split(statesValue, ",") {
+		for value := range strings.SplitSeq(statesValue, ",") {
 			state := strings.ToLower(strings.TrimSpace(value))
 			if _, exists := seenStates[state]; exists {
 				continue
@@ -656,9 +656,12 @@ func forceVerifyDomain(c fiber.Ctx, state *core.AppState) error {
 	if details.Domain.VerificationType != core.MavenVerificationMirror && details.Domain.VerificationType != core.MavenVerificationLegacy {
 		health, err = checkDomainHealth(c.Context(), state.Inner.Config.Load(), details.Domain)
 		if err != nil {
+			log.Printf("Maven force verify failed: checkDomainHealth error for domain %s: %v", details.Domain.Domain, err)
 			return c.Status(fiber.StatusBadGateway).SendString("Maven verification provider is unavailable")
 		}
 		if health.Status != "active" {
+			log.Printf("Maven force verify failed: domain %s health status is %q (expected active, lock_reason=%s, provider_type=%s, provider_id=%s)",
+				details.Domain.Domain, health.Status, health.LockReason, health.ProviderType, health.ProviderID)
 			return apiError(c, core.ErrMavenVerificationFailed)
 		}
 	}
@@ -671,21 +674,25 @@ func forceVerifyDomain(c fiber.Ctx, state *core.AppState) error {
 	if details.Domain.ClaimStatus != core.MavenDomainClaimPending {
 		if err := state.GetDB().MarkMavenDomainVerified(details.Domain.Domain,
 			details.Domain.VerificationCode, now, health); err != nil {
+			log.Printf("Maven force verify failed: MarkMavenDomainVerified for domain %s: %v", details.Domain.Domain, err)
 			return apiError(c, err)
 		}
 		details, err = state.GetDB().GetMavenDomainDetails(details.Domain.Domain, user.Username)
 		if err != nil {
+			log.Printf("Maven force verify failed: GetMavenDomainDetails for domain %s: %v", details.Domain.Domain, err)
 			return apiError(c, err)
 		}
 	}
 	if details.Domain.ClaimStatus == core.MavenDomainClaimPending {
 		if err := state.GetDB().ReviewMavenDomainClaim(details.Domain, health, user.Username,
 			core.ReviewStatusApproved, now); err != nil {
+			log.Printf("Maven force verify failed: ReviewMavenDomainClaim for domain %s: %v", details.Domain.Domain, err)
 			return apiError(c, err)
 		}
 	}
 	details, err = state.GetDB().GetMavenDomainDetails(details.Domain.Domain, user.Username)
 	if err != nil {
+		log.Printf("Maven force verify failed: reload GetMavenDomainDetails for domain %s: %v", details.Domain.Domain, err)
 		return apiError(c, err)
 	}
 	if err := ReconcileGlobalDomainCatalog(state, details.Domain.Domain, user.Username); err != nil {

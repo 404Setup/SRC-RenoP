@@ -257,8 +257,6 @@ function renderSettingsForm(domain, data) {
     void morphElementHeight(container, () => {
         container.replaceChildren();
         SETTINGS_PAGES[domain].render(container, data, enableSave);
-        const firstSection = container.querySelector('.cfg-section');
-        if (firstSection?.classList.contains('is-collapsed')) firstSection.querySelector('.cfg-section-header')?.click();
     }, {duration: 280});
 }
 

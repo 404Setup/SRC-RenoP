@@ -26,6 +26,39 @@ func TestOAuthProviderConfiguration(t *testing.T) {
 		r := p.Resolved()
 		if kind == "cloudflare" {
 			require.Equal(t, OAuthClaims{Subject: "sub"}, r.Claims)
+			require.Equal(t, "", r.Issuer)
+			require.Equal(t, "", r.Scopes)
+			require.Equal(t, "client_secret_post", r.TokenAuth)
+
+			// Trims credential whitespace
+			withSpaces := p
+			withSpaces.ClientID = "  client-id  "
+			withSpaces.ClientSecret = "  client-secret  \n"
+			resolvedSpaces := withSpaces.Resolved()
+			require.Equal(t, "client-id", resolvedSpaces.ClientID)
+			require.Equal(t, "client-secret", resolvedSpaces.ClientSecret)
+
+			// Normalizes comma-separated scopes
+			withScopes := p
+			withScopes.Scopes = "memberships.read, user-details.read, offline_access, openid"
+			require.Equal(t, "memberships.read user-details.read offline_access openid", withScopes.Resolved().Scopes)
+
+			// Cloudflare PKCE-only client without secret
+			cfPKCE := OAuthProviderConfig{ID: "cloudflare", Type: "cloudflare", Name: "Cloudflare", Enabled: true, ClientID: "client",
+				CallbackURL: "https://renop.example/api/auth/oauth/cloudflare/callback", TokenAuth: "none"}
+			require.NoError(t, cfPKCE.Validate())
+			require.False(t, cfPKCE.Resolved().DisablePKCE)
+
+			// Cloudflare Client Secret Basic
+			cfBasic := OAuthProviderConfig{ID: "cloudflare", Type: "cloudflare", Name: "Cloudflare", Enabled: true, ClientID: "client", ClientSecret: "secret",
+				CallbackURL: "https://renop.example/api/auth/oauth/cloudflare/callback", TokenAuth: "client_secret_basic"}
+			require.NoError(t, cfBasic.Validate())
+
+			// Cloudflare with disabled PKCE and client secret
+			cfNoPKCE := OAuthProviderConfig{ID: "cloudflare", Type: "cloudflare", Name: "Cloudflare", Enabled: true, ClientID: "client", ClientSecret: "secret",
+				CallbackURL: "https://renop.example/api/auth/oauth/cloudflare/callback", TokenAuth: "client_secret_post", DisablePKCE: true}
+			require.NoError(t, cfNoPKCE.Validate())
+			require.True(t, cfNoPKCE.Resolved().DisablePKCE)
 		}
 		require.True(t, ValidOAuthURL(r.AuthorizeURL), kind)
 		require.True(t, ValidOAuthURL(r.TokenURL), kind)

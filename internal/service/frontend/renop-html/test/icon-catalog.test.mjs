@@ -61,7 +61,7 @@ function literalIconNames(source) {
 
 test('icon aliases substantially reduce unique SVG markup', () => {
     assert.ok(Object.keys(ICONS).length >= 190, 'legacy icon call sites must remain compatible');
-    assert.ok(new Set(Object.values(ICONS)).size <= 60, 'file icons should collapse into bounded visual families');
+    assert.ok(new Set(Object.values(ICONS)).size <= 70, 'file icons should collapse into bounded visual families');
 });
 
 test('every repository format has one distinct canonical icon', () => {

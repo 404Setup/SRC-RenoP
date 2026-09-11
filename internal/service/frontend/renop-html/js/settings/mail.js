@@ -9,7 +9,6 @@
  */
 
 import {el} from '@renop/ui/dom';
-import {morphElementHeight} from '@renop/ui/height-anim';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {apiRequest} from '../api.js';
 import {buildInput, createSection, makeTagListInput} from '../cfg-ui.js';
@@ -96,11 +95,9 @@ export function renderMailSettings(container, data, changed) {
     const wrap = el('div', {class: 'cfg-layout', id: 'settings-mail'});
     const section = createSection(createIcon('send'), t('mail.title'), t('mail.description'), {defaultCollapsed: true});
     const fields = section.querySelector('.cfg-fields');
-    let presets = [], scenes = [], selectedID = data.accounts?.[0]?.id || '', testReceipt = null;
+    let presets = [], scenes = [], testReceipt = null;
     data.accounts ||= [];
-    const accountPicker = el('div', {class: 'mail-picker'});
-    const accountEditor = el('div', {class: 'cfg-fields'});
-    const accountStatus = el('div', {class: 'mail-status', role: 'status'});
+    let testAccountID = data.accounts?.[0]?.id || '';
     const testStatus = el('div', {class: 'mail-status', role: 'status', 'aria-live': 'polite'});
     const preview = el('iframe', {
         class: 'mail-preview',
@@ -109,7 +106,7 @@ export function renderMailSettings(container, data, changed) {
         referrerpolicy: 'no-referrer'
     });
     const history = el('div', {class: 'mail-history', role: 'status'});
-    let historyPage = 0, historyStatus = '', historyGeneration = 0, historyBusy = false, statusGeneration = 0;
+    let historyPage = 0, historyStatus = '', historyGeneration = 0, historyBusy = false;
     let previewScene = 'registration_verify';
 
     /** Add a bounded input and keep invalid edits visible to native validation. */
@@ -197,8 +194,10 @@ export function renderMailSettings(container, data, changed) {
     }
     renderMailRecipientPolicy(fields, data, changed);
 
-    const accountsSection = createSection(createIcon('user'), t('mail.accounts'), t('mail.routingHint'), {defaultCollapsed: true});
+    const accountsSection = createSection(createIcon('send'), t('mail.accounts'), t('mail.routingHint'), {defaultCollapsed: true});
     const accountsFields = accountsSection.querySelector('.cfg-fields');
+    const accountsList = el('div', {class: 'cfg-service-stack', style: {marginTop: '1rem'}});
+    const loadError = el('div', {class: 'mail-status', role: 'status'});
     const add = action(t('mail.addAccount'), async () => {
         if (data.accounts.length >= 64 || !presets.length) return;
         const preset = presets.find(value => value.id === 'smtp-custom') || presets[0];
@@ -206,219 +205,311 @@ export function renderMailSettings(container, data, changed) {
         const account = {id, name: '', enabled: true, from: '', from_name: '', scenes: []};
         applyMailPreset(account, preset);
         data.accounts.push(account);
-        selectedID = account.id;
         changed();
-        renderAccounts();
-        accountEditor.querySelector('input')?.focus();
+        renderAccounts(account.id);
+        const newCard = accountsList.querySelector(`[data-account-id="${account.id}"]`);
+        newCard?.querySelector('input')?.focus();
     });
     add.disabled = true;
-    accountsFields.append(createFieldRow(t('mail.accounts'), '', accountPicker), el('div', {class: 'mail-actions'}, add), accountEditor, accountStatus);
+    accountsFields.append(el('div', {class: 'mail-actions'}, add), loadError, accountsList);
 
-    /** Display the selected provider with only its relevant transport fields. */
-    function renderAccounts() {
-        void morphElementHeight(accountEditor, renderAccountsContent, {duration: 240});
-    }
-
-    /** Build the active editor while keeping its draft and selection. */
-    function renderAccountsContent() {
-        accountPicker.replaceChildren();
-        accountEditor.replaceChildren();
-        accountStatus.replaceChildren();
-        ++statusGeneration;
+    /** Display each account as its own collapsible section. */
+    function renderAccounts(newId = null) {
         add.disabled = !presets.length || data.accounts.length >= 64;
-        const account = data.accounts.find(value => value.id === selectedID) || data.accounts[0];
-        selectedID = account?.id || '';
-        if (!account) {
-            accountEditor.appendChild(createCallout('info', t('mail.noAccounts')));
+        updateTestAccountOptions();
+
+        const currentlyExpanded = new Set();
+        for (const child of accountsList.children) {
+            if (child.dataset?.accountId && !child.classList.contains('is-collapsed')) {
+                currentlyExpanded.add(child.dataset.accountId);
+            }
+        }
+        if (newId) currentlyExpanded.add(newId);
+
+        accountsList.replaceChildren();
+
+        if (!data.accounts.length) {
+            accountsList.appendChild(createCallout('info', t('mail.noAccounts')));
             return;
         }
-        accountPicker.appendChild(makeCustomSelect(data.accounts.map(value => ({
-            value: value.id,
-            label: value.name || value.from || PROVIDERS[value.provider]
-        })), selectedID, value => {
-            selectedID = value;
-            renderAccounts();
-        }));
-        input(accountEditor, account, 'name');
-        accountEditor.appendChild(createToggleRow(t('mail.accountEnabled'), '', account.enabled === true, checked => {
-            account.enabled = checked;
-            changed();
-        }));
-        const provider = makeCustomSelect(Object.entries(PROVIDERS).map(([value, label]) => ({
-            value,
-            label
-        })), account.provider, value => {
-            const preset = presets.find(item => item.account.provider === value);
-            if (!preset) return;
-            applyMailPreset(account, preset);
-            if (data.clear_secrets) delete data.clear_secrets[account.id];
-            if (data.secrets_configured) delete data.secrets_configured[account.id];
-            changed();
-            renderAccounts();
-        });
-        accountEditor.appendChild(createFieldRow(t('mail.provider'), '', provider));
-        const choices = presets.filter(value => value.account.provider === account.provider);
-        const picker = makeCustomSelect([{
-            value: '',
-            label: t('mail.custom')
-        }, ...choices.map(value => ({value: value.id, label: value.name}))], account.preset || '', id => {
-            const preset = choices.find(value => value.id === id);
-            if (preset) {
-                const keepSecrets = account.provider !== 'smtp' || account.smtp_host === preset.account.smtp_host && account.username === preset.account.username;
-                const secrets = keepSecrets ? Object.fromEntries(SECRET_KEYS.map(key => [key, account[key] || ''])) : {};
-                applyMailPreset(account, preset);
-                Object.assign(account, secrets);
-                if (!keepSecrets && data.secrets_configured) delete data.secrets_configured[account.id];
-            } else account.preset = '';
-            changed();
-            renderAccounts();
-        });
-        accountEditor.appendChild(createFieldRow(t('mail.preset'), t('mail.presetHint'), picker));
-        const preset = choices.find(value => value.id === account.preset);
-        if (preset) {
-            const capabilities = ['quota_api', 'balance_api', 'status_api', 'paid_overage'].map(key => t(`mail.${key}`) + ': ' + t(preset[key] ? 'common.yes' : 'common.no')).join(' · ');
-            accountEditor.appendChild(el('p', {class: 'hint-text'}, capabilities));
-            if (preset.price_source?.startsWith('https://')) accountEditor.appendChild(el('a', {
-                href: preset.price_source,
-                target: '_blank',
-                rel: 'noopener noreferrer'
-            }, t('mail.priceSource') + ' · ' + preset.price_checked));
-        }
-        input(accountEditor, account, 'from', {type: 'email'});
-        input(accountEditor, account, 'from_name');
-        if (account.provider === 'smtp') {
-            input(accountEditor, account, 'smtp_host');
-            input(accountEditor, account, 'smtp_port', {type: 'number', min: 1, max: 65535});
-            select(accountEditor, account, 'smtp_security', [{value: 'plain', label: 'SMTP'}, {
-                value: 'tls',
-                label: 'SMTP SSL/TLS'
-            }, {value: 'starttls', label: 'STARTTLS'}]);
-            input(accountEditor, account, 'username');
-        } else {
-            input(accountEditor, account, 'endpoint');
-        }
-        if (['ses', 'aliyun', 'tencent'].includes(account.provider)) input(accountEditor, account, 'region');
-        if (account.provider === 'tencent') input(accountEditor, account, 'tencent_template_id', {
-            type: 'number',
-            min: 0,
-            max: Number.MAX_SAFE_INTEGER,
-            hint: t('mail.tencentTemplateHint')
-        });
-        if (account.provider === 'cloudflare') input(accountEditor, account, 'account_id');
-        if (['graph', 'feishu'].includes(account.provider)) input(accountEditor, account, 'mailbox', {hint: t('mail.mailboxHint')});
-        if (['graph', 'smtp'].includes(account.provider)) input(accountEditor, account, 'tenant', {hint: t('mail.tenantHint')});
-        if (['graph', 'gmail', 'feishu', 'smtp'].includes(account.provider)) input(accountEditor, account, 'client_id');
-        const secrets = account.provider === 'smtp' ? ['password', 'client_secret', 'access_token', 'refresh_token']
-            : ['graph', 'gmail', 'feishu'].includes(account.provider) ? ['client_secret', 'access_token', 'refresh_token']
-                : ['ses', 'aliyun', 'tencent'].includes(account.provider) ? ['api_key', 'api_secret', 'session_token'] : ['api_key'];
-        for (const key of secrets) {
-            const configured = data.secrets_configured?.[account.id]?.includes(key);
-            input(accountEditor, account, key, {type: 'password', hint: configured ? t('mail.secretStored') : ''});
-            if (configured) accountEditor.appendChild(createToggleRow(t('mail.clearSecret', {name: t(`mail.${key}`)}), '', data.clear_secrets?.[account.id]?.includes(key) || false, checked => {
-                data.clear_secrets ||= {};
-                const values = new Set(data.clear_secrets[account.id] || []);
-                if (checked) values.add(key); else values.delete(key);
-                data.clear_secrets[account.id] = [...values];
-                changed();
-            }));
-        }
-        const sceneList = el('div', {class: 'mail-scenes'});
-        for (const scene of ['*', ...scenes]) {
-            const checkbox = el('input', {type: 'checkbox', checked: account.scenes?.includes(scene) || false});
-            checkbox.addEventListener('change', () => {
-                const values = new Set(account.scenes || []);
-                if (checkbox.checked) values.add(scene); else values.delete(scene);
-                account.scenes = [...values];
-                changed();
-            });
-            sceneList.appendChild(el('label', {}, checkbox, el('span', {}, t(`mail.scene.${scene === '*' ? 'all' : scene}`))));
-        }
-        accountEditor.appendChild(createFieldRow(t('mail.scenes'), t('mail.routingHint'), sceneList));
-        input(accountEditor, account.quota, 'limit', {
-            type: 'number',
-            max: 1000000000,
-            label: 'quota',
-            hint: t('mail.quotaHint')
-        });
-        select(accountEditor, account.quota, 'period', ['hour', 'day', 'week', 'month'], 'quotaPeriod');
-        accountEditor.appendChild(createToggleRow(t('mail.force_send'), t('mail.forceHint'), account.force_send === true, value => {
-            account.force_send = value;
-            changed();
-        }));
-        input(accountEditor, account.overage, 'limit', {
-            type: 'number',
-            max: 1000000000,
-            label: 'overage',
-            hint: t('mail.overageHint')
-        });
-        select(accountEditor, account.overage, 'period', ['hour', 'day', 'week', 'month'], 'overagePeriod');
-        input(accountEditor, account, 'balance_micros', {
-            type: 'number',
-            scale: 1000000,
-            optional: true,
-            min: -1e15,
-            max: 1e15,
-            hint: t('mail.balanceHint')
-        });
-        if (['aliyun', 'tencent'].includes(account.provider)) {
-            accountEditor.appendChild(createToggleRow(t('mail.fetch_balance'), '', account.fetch_balance === true, value => {
-                account.fetch_balance = value;
-                changed();
-            }));
-            input(accountEditor, account, 'billing_endpoint');
-        }
-        input(accountEditor, account.pricing, 'currency');
-        select(accountEditor, account.pricing, 'rounding', ['proportional', 'batch'], 'rounding', t('mail.pricingHint'));
-        const tiers = el('div', {class: 'mail-tiers'});
 
-        /** Rebuild ordered tiers after adding or removing a pricing boundary. */
-        function renderTiers() {
-            tiers.replaceChildren();
-            account.pricing.tiers ||= [];
-            account.pricing.tiers.forEach((tier, index) => {
-                const row = el('div', {class: 'mail-tier'});
-                input(row, tier, 'up_to', {type: 'number', min: 0, max: 1000000000, hint: t('mail.upToHint')});
-                input(row, tier, 'amount_micros', {type: 'number', min: 0, max: 1e12, scale: 1000000});
-                input(row, tier, 'batch_size', {type: 'number', min: 1, max: 1000000000});
-                row.appendChild(action(t('common.remove'), async () => {
-                    account.pricing.tiers.splice(index, 1);
+const MAIL_PROVIDER_ICONS = {
+    cloudflare: 'cloudflare',
+    graph: 'microsoft',
+    gmail: 'google',
+    smtp: 'send',
+    ses: 'network',
+    sendgrid: 'send',
+    aliyun: 'network',
+    tencent: 'network',
+    feishu: 'send'
+};
+
+        data.accounts.forEach(account => {
+            const isExpanded = newId ? account.id === newId : currentlyExpanded.has(account.id);
+            const providerIcon = MAIL_PROVIDER_ICONS[account.provider] || 'send';
+            const accSection = createSection(
+                createIcon(providerIcon),
+                account.name || account.from || PROVIDERS[account.provider] || account.id,
+                '',
+                {defaultCollapsed: !isExpanded}
+            );
+            accSection.dataset.accountId = account.id;
+            const accFields = accSection.querySelector('.cfg-fields');
+            const accTitle = accSection.querySelector('.cfg-section-title');
+            const accSubtitle = accSection.querySelector('.cfg-section-subtitle');
+
+            const updateHeader = () => {
+                const providerName = PROVIDERS[account.provider] || account.provider || 'SMTP';
+                const displayName = account.name || account.from || providerName;
+                if (accTitle) {
+                    accTitle.replaceChildren(
+                        el('span', {class: 'cfg-service-title-text'}, displayName),
+                        el('span', {class: `cfg-service-badge ${account.enabled ? 'cfg-service-badge--active' : 'cfg-service-badge--disabled'}`},
+                            account.enabled ? t('mail.enabled') : t('common.no')
+                        ),
+                        el('span', {class: 'cfg-service-badge cfg-service-badge--provider'}, providerName)
+                    );
+                }
+                if (accSubtitle) {
+                    const metaParts = [];
+                    if (account.from && displayName !== account.from) metaParts.push(account.from);
+                    if (account.provider === 'smtp' && account.smtp_host) metaParts.push(account.smtp_host + (account.smtp_port ? `:${account.smtp_port}` : ''));
+                    if (account.scenes && account.scenes.length > 0) metaParts.push(`${account.scenes.length} ${t('mail.scenes') || 'scenes'}`);
+                    accSubtitle.textContent = metaParts.join(' · ') || account.from || providerName;
+                }
+                const iconDiv = accSection.querySelector('.cfg-section-icon');
+                if (iconDiv) {
+                    iconDiv.replaceChildren(createIcon(MAIL_PROVIDER_ICONS[account.provider] || 'send', {width: 20, height: 20}));
+                }
+                accSection.classList.toggle('cfg-service-card--active', Boolean(account.enabled));
+                updateTestAccountOptions();
+            };
+            updateHeader();
+
+            const nameInput = input(accFields, account, 'name');
+            nameInput.addEventListener('input', updateHeader);
+
+            accFields.appendChild(createToggleRow(t('mail.accountEnabled'), '', account.enabled === true, checked => {
+                account.enabled = checked;
+                updateHeader();
+                changed();
+            }));
+
+            const provider = makeCustomSelect(Object.entries(PROVIDERS).map(([value, label]) => ({
+                value,
+                label
+            })), account.provider, value => {
+                const preset = presets.find(item => item.account.provider === value);
+                if (!preset) return;
+                applyMailPreset(account, preset);
+                if (data.clear_secrets) delete data.clear_secrets[account.id];
+                if (data.secrets_configured) delete data.secrets_configured[account.id];
+                changed();
+                renderAccounts(account.id);
+            });
+            accFields.appendChild(createFieldRow(t('mail.provider'), '', provider));
+
+            const choices = presets.filter(value => value.account.provider === account.provider);
+            const picker = makeCustomSelect([{
+                value: '',
+                label: t('mail.custom')
+            }, ...choices.map(value => ({value: value.id, label: value.name}))], account.preset || '', id => {
+                const preset = choices.find(value => value.id === id);
+                if (preset) {
+                    const keepSecrets = account.provider !== 'smtp' || account.smtp_host === preset.account.smtp_host && account.username === preset.account.username;
+                    const secrets = keepSecrets ? Object.fromEntries(SECRET_KEYS.map(key => [key, account[key] || ''])) : {};
+                    applyMailPreset(account, preset);
+                    Object.assign(account, secrets);
+                    if (!keepSecrets && data.secrets_configured) delete data.secrets_configured[account.id];
+                } else account.preset = '';
+                changed();
+                renderAccounts(account.id);
+            });
+            accFields.appendChild(createFieldRow(t('mail.preset'), t('mail.presetHint'), picker));
+
+            const preset = choices.find(value => value.id === account.preset);
+            if (preset) {
+                const capabilities = ['quota_api', 'balance_api', 'status_api', 'paid_overage'].map(key => t(`mail.${key}`) + ': ' + t(preset[key] ? 'common.yes' : 'common.no')).join(' · ');
+                accFields.appendChild(el('p', {class: 'hint-text'}, capabilities));
+                if (preset.price_source?.startsWith('https://')) accFields.appendChild(el('a', {
+                    href: preset.price_source,
+                    target: '_blank',
+                    rel: 'noopener noreferrer'
+                }, t('mail.priceSource') + ' · ' + preset.price_checked));
+            }
+
+            const fromInput = input(accFields, account, 'from', {type: 'email'});
+            fromInput.addEventListener('input', updateHeader);
+            input(accFields, account, 'from_name');
+
+            if (account.provider === 'smtp') {
+                input(accFields, account, 'smtp_host');
+                input(accFields, account, 'smtp_port', {type: 'number', min: 1, max: 65535});
+                select(accFields, account, 'smtp_security', [{value: 'plain', label: 'SMTP'}, {
+                    value: 'tls',
+                    label: 'SMTP SSL/TLS'
+                }, {value: 'starttls', label: 'STARTTLS'}]);
+                input(accFields, account, 'username');
+            } else {
+                input(accFields, account, 'endpoint');
+            }
+
+            if (['ses', 'aliyun', 'tencent'].includes(account.provider)) input(accFields, account, 'region');
+            if (account.provider === 'tencent') input(accFields, account, 'tencent_template_id', {
+                type: 'number',
+                min: 0,
+                max: Number.MAX_SAFE_INTEGER,
+                hint: t('mail.tencentTemplateHint')
+            });
+            if (account.provider === 'cloudflare') input(accFields, account, 'account_id');
+            if (['graph', 'feishu'].includes(account.provider)) input(accFields, account, 'mailbox', {hint: t('mail.mailboxHint')});
+            if (['graph', 'smtp'].includes(account.provider)) input(accFields, account, 'tenant', {hint: t('mail.tenantHint')});
+            if (['graph', 'gmail', 'feishu', 'smtp'].includes(account.provider)) input(accFields, account, 'client_id');
+
+            const secrets = account.provider === 'smtp' ? ['password', 'client_secret', 'access_token', 'refresh_token']
+                : ['graph', 'gmail', 'feishu'].includes(account.provider) ? ['client_secret', 'access_token', 'refresh_token']
+                    : ['ses', 'aliyun', 'tencent'].includes(account.provider) ? ['api_key', 'api_secret', 'session_token'] : ['api_key'];
+
+            for (const key of secrets) {
+                const configured = data.secrets_configured?.[account.id]?.includes(key);
+                input(accFields, account, key, {type: 'password', hint: configured ? t('mail.secretStored') : ''});
+                if (configured) accFields.appendChild(createToggleRow(t('mail.clearSecret', {name: t(`mail.${key}`)}), '', data.clear_secrets?.[account.id]?.includes(key) || false, checked => {
+                    data.clear_secrets ||= {};
+                    const values = new Set(data.clear_secrets[account.id] || []);
+                    if (checked) values.add(key); else values.delete(key);
+                    data.clear_secrets[account.id] = [...values];
+                    changed();
+                }));
+            }
+
+            const sceneList = el('div', {class: 'mail-scenes'});
+            for (const scene of ['*', ...scenes]) {
+                const checkbox = el('input', {type: 'checkbox', checked: account.scenes?.includes(scene) || false});
+                checkbox.addEventListener('change', () => {
+                    const values = new Set(account.scenes || []);
+                    if (checkbox.checked) values.add(scene); else values.delete(scene);
+                    account.scenes = [...values];
+                    changed();
+                });
+                sceneList.appendChild(el('label', {}, checkbox, el('span', {}, t(`mail.scene.${scene === '*' ? 'all' : scene}`))));
+            }
+            accFields.appendChild(createFieldRow(t('mail.scenes'), t('mail.routingHint'), sceneList));
+
+            input(accFields, account.quota, 'limit', {
+                type: 'number',
+                max: 1000000000,
+                label: 'quota',
+                hint: t('mail.quotaHint')
+            });
+            select(accFields, account.quota, 'period', ['hour', 'day', 'week', 'month'], 'quotaPeriod');
+
+            accFields.appendChild(createToggleRow(t('mail.force_send'), t('mail.forceHint'), account.force_send === true, value => {
+                account.force_send = value;
+                changed();
+            }));
+
+            input(accFields, account.overage, 'limit', {
+                type: 'number',
+                max: 1000000000,
+                label: 'overage',
+                hint: t('mail.overageHint')
+            });
+            select(accFields, account.overage, 'period', ['hour', 'day', 'week', 'month'], 'overagePeriod');
+
+            input(accFields, account, 'balance_micros', {
+                type: 'number',
+                scale: 1000000,
+                optional: true,
+                min: -1e15,
+                max: 1e15,
+                hint: t('mail.balanceHint')
+            });
+
+            if (['aliyun', 'tencent'].includes(account.provider)) {
+                accFields.appendChild(createToggleRow(t('mail.fetch_balance'), '', account.fetch_balance === true, value => {
+                    account.fetch_balance = value;
+                    changed();
+                }));
+                input(accFields, account, 'billing_endpoint');
+            }
+
+            input(accFields, account.pricing, 'currency');
+            select(accFields, account.pricing, 'rounding', ['proportional', 'batch'], 'rounding', t('mail.pricingHint'));
+
+            const tiers = el('div', {class: 'mail-tiers'});
+            function renderTiers() {
+                tiers.replaceChildren();
+                account.pricing.tiers ||= [];
+                account.pricing.tiers.forEach((tier, index) => {
+                    const row = el('div', {class: 'mail-tier'});
+                    input(row, tier, 'up_to', {type: 'number', min: 0, max: 1000000000, hint: t('mail.upToHint')});
+                    input(row, tier, 'amount_micros', {type: 'number', min: 0, max: 1e12, scale: 1000000});
+                    input(row, tier, 'batch_size', {type: 'number', min: 1, max: 1000000000});
+                    row.appendChild(action(t('common.remove'), async () => {
+                        account.pricing.tiers.splice(index, 1);
+                        changed();
+                        renderTiers();
+                    }));
+                    tiers.appendChild(row);
+                });
+                const addTier = action(t('mail.addTier'), async () => {
+                    account.pricing.tiers.push({up_to: 0, amount_micros: 0, batch_size: 1});
                     changed();
                     renderTiers();
-                }));
-                tiers.appendChild(row);
-            });
-            const addTier = action(t('mail.addTier'), async () => {
-                account.pricing.tiers.push({up_to: 0, amount_micros: 0, batch_size: 1});
-                changed();
-                renderTiers();
-            });
-            addTier.disabled = account.pricing.tiers.length >= 20;
-            tiers.appendChild(addTier);
-        }
+                });
+                addTier.disabled = account.pricing.tiers.length >= 20;
+                tiers.appendChild(addTier);
+            }
+            renderTiers();
 
-        renderTiers();
-        accountEditor.append(tiers, el('div', {class: 'mail-actions'}, action(t('mail.refreshStatus'), async () => {
-            const generation = ++statusGeneration;
-            const value = await requestJSON('/accounts/' + encodeURIComponent(account.id));
-            if (generation !== statusGeneration || selectedID !== account.id || !wrap.isConnected) return;
-            accountStatus.replaceChildren();
-            for (const [key, amount] of [
-                ['attempts', value.attempts], ['charged', value.charged], ['remaining', value.remaining_quota], ['overage', value.remaining_overage],
-                ['balance_micros', value.balance_micros == null ? null : value.balance_micros / 1000000],
-                ['spent', (value.spent_micros || 0) / 1000000],
-                ['calibrationAt', formatTimestamp(value.calibration_at, {fallback: t('common.none')})],
-            ]) accountStatus.appendChild(el('p', {}, t(`mail.${key}`) + ': ' + (amount ?? t('common.unknown'))));
-            if (value.calibration_error) accountStatus.appendChild(el('p', {}, t('mail.calibrationFailed')));
-        }), action(t('mail.removeAccount'), async () => {
-            data.accounts.splice(data.accounts.indexOf(account), 1);
-            if (data.clear_secrets) delete data.clear_secrets[account.id];
-            changed();
-            renderAccounts();
-        })));
+            const accStatus = el('div', {class: 'mail-status', role: 'status'});
+            let accStatusGen = 0;
+            accFields.append(tiers, el('div', {class: 'mail-actions'}, action(t('mail.refreshStatus'), async () => {
+                const gen = ++accStatusGen;
+                const value = await requestJSON('/accounts/' + encodeURIComponent(account.id));
+                if (gen !== accStatusGen || !wrap.isConnected) return;
+                accStatus.replaceChildren();
+                for (const [key, amount] of [
+                    ['attempts', value.attempts], ['charged', value.charged], ['remaining', value.remaining_quota], ['overage', value.remaining_overage],
+                    ['balance_micros', value.balance_micros == null ? null : value.balance_micros / 1000000],
+                    ['spent', (value.spent_micros || 0) / 1000000],
+                    ['calibrationAt', formatTimestamp(value.calibration_at, {fallback: t('common.none')})],
+                ]) accStatus.appendChild(el('p', {}, t(`mail.${key}`) + ': ' + (amount ?? t('common.unknown'))));
+                if (value.calibration_error) accStatus.appendChild(el('p', {}, t('mail.calibrationFailed')));
+            }), action(t('mail.removeAccount'), async () => {
+                data.accounts.splice(data.accounts.indexOf(account), 1);
+                if (data.clear_secrets) delete data.clear_secrets[account.id];
+                changed();
+                renderAccounts();
+            })), accStatus);
+
+            accountsList.appendChild(accSection);
+        });
     }
 
     const operations = createSection(createIcon('send'), t('mail.delivery'), t('mail.savedOnly'), {defaultCollapsed: true});
     const operationFields = operations.querySelector('.cfg-fields');
+    const testAccountRow = el('div', {class: 'mail-test-account'});
+
+    function updateTestAccountOptions() {
+        if (!data.accounts.length) {
+            testAccountRow.replaceChildren(el('span', {class: 'hint-text'}, t('mail.noAccounts')));
+            return;
+        }
+        if (!data.accounts.some(acc => acc.id === testAccountID)) {
+            testAccountID = data.accounts[0].id;
+        }
+        const picker = makeCustomSelect(data.accounts.map(acc => ({
+            value: acc.id,
+            label: acc.name || acc.from || PROVIDERS[acc.provider] || acc.id
+        })), testAccountID, value => {
+            testAccountID = value;
+        });
+        testAccountRow.replaceChildren(picker);
+    }
+    operationFields.appendChild(createFieldRow(t('mail.accounts'), '', testAccountRow));
+
     const testTo = buildInput('email', '', 'name@example.com', () => {
     });
     testTo.required = true;
@@ -440,10 +531,14 @@ export function renderMailSettings(container, data, changed) {
 
     operationFields.append(el('div', {class: 'mail-actions'}, action(t('mail.sendTest'), async () => {
         if (!testTo.reportValidity()) return;
+        if (!testAccountID) {
+            showAlert(t('mail.noAccounts'), 'error');
+            return;
+        }
         const receipt = await requestJSON('/test', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({account_id: selectedID, to: testTo.value.trim()})
+            body: JSON.stringify({account_id: testAccountID, to: testTo.value.trim()})
         });
         testReceipt = receipt;
         testStatus.textContent = t('mail.status.queued');
@@ -530,6 +625,6 @@ export function renderMailSettings(container, data, changed) {
         }));
         renderAccounts();
     }).catch(() => {
-        if (wrap.isConnected) accountStatus.textContent = t('mail.requestFailed');
+        if (wrap.isConnected) loadError.textContent = t('mail.requestFailed');
     });
 }

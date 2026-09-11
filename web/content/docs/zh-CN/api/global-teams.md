@@ -56,8 +56,8 @@ POST /api/super-teams/{prefix}/members 接受一至二十个用户名和一个 T
 处理一次的消息中心邀请；系统管理员则立即添加有效账户。
 
 PUT /api/super-teams/{prefix}/members/{username} 修改角色。DELETE /api/super-teams/{prefix}/members/{username}
-移除成员或退出团队。POST /api/super-teams/invitations/{id}/{decision} 接受 `accept` 或 `reject`；并发或重复响应不会
-让同一邀请生效两次。
+移除成员或退出团队。POST /api/super-teams/invitations/{id}/{decision} 处理邀请（`accept` 或 `reject`），
+具备幂等性，不可重复处理。
 
 ## API Token 边界
 

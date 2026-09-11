@@ -11,7 +11,7 @@ description: 公开健康检查、运行时指标、历史快照与受保护诊�
 `server.debug_mode`。
 
 
-基于 schema 的状态响应同时支持 protobuf 和 ProtoJSON。使用 `Accept: application/json` 获取 JSON，默认返回 protobuf。下方示例表示解码后的逻辑值；ProtoJSON 在线格式中的 64 位整数为十进制字符串。健康检查文本与性能分析下载保留原有格式。
+基于 Schema 的状态接口支持 Protobuf 与 JSON 格式。传入 `Accept: application/json` 请求头将返回 JSON 响应（未指定时默认返回 Protobuf）。下方示例展示了解码后的响应结构；健康检查纯文本与诊断文件保持原有格式。
 
 ```sh
 curl --fail -H "Accept: application/json" http://localhost:3000/api/status/instance

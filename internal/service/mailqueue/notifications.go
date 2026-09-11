@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -18,6 +20,8 @@ import (
 	"renop/internal/core"
 	"renop/internal/mail"
 	"renop/internal/service/audit"
+
+	"github.com/google/uuid"
 )
 
 func ignorableNotification(err error) bool {
@@ -47,13 +51,26 @@ func (w *worker) notifications(control mail.Control, now time.Time) error {
 		case audit.ActionFIDOUpdate:
 			scene = "security_changed"
 		case audit.ActionUserPermissionUpdate:
-			scene = "permission_changed"
+			details := entry.Details
+			if details == "" {
+				details = "Your account permissions have been updated."
+			}
+			_, _ = db.SaveMessageIfAbsent(&core.UserMessage{
+				ID:        uuid.NewString(),
+				Recipient: entry.Username,
+				Kind:      "permission_changed",
+				Severity:  "info",
+				Title:     "Permissions updated",
+				Body:      details,
+				DedupeKey: "audit-permission:" + strconv.FormatInt(entry.ID, 10),
+				CreatedAt: time.Now().UnixMilli(),
+			})
 		case audit.ActionUserBan:
 			scene = "account_banned"
 		case audit.ActionUserUnban:
 			scene = "account_unbanned"
 		case audit.ActionReviewRequest:
-			scene = "review_requested"
+			// Do not send emails for review/ticket submissions.
 		case audit.ActionPublicationQuotaUpdate:
 			if strings.HasPrefix(entry.Details, "Owner type: user,") {
 				scene = "quota_changed"
@@ -82,23 +99,18 @@ func (w *worker) notifications(control mail.Control, now time.Time) error {
 		return err
 	}
 	for _, message := range messages {
-		scene := "notification"
-		switch message.Kind {
-		case "review_pending", "ticket_pending":
-			scene = "pending_reviews"
-		case "review_result", "ticket_result":
-			scene = "review_status"
-		default:
-			if strings.Contains(message.Kind, "invitation") {
-				scene = "collaboration_invitation"
-				if strings.Contains(message.Kind, "super_team") {
-					scene = "super_team_invitation"
-				}
+		scene := ""
+		if strings.Contains(message.Kind, "invitation") {
+			scene = "collaboration_invitation"
+			if strings.Contains(message.Kind, "super_team") {
+				scene = "super_team_invitation"
 			}
 		}
-		_, err = Enqueue(w.state, Request{ID: message.ID, Username: message.Recipient, Actor: "system", Scene: scene})
-		if err != nil && !ignorableNotification(err) {
-			return err
+		if scene != "" {
+			_, err = Enqueue(w.state, Request{ID: message.ID, Username: message.Recipient, Actor: "system", Scene: scene})
+			if err != nil && !ignorableNotification(err) {
+				return err
+			}
 		}
 		if err = db.AcknowledgeMailMessage(message.ID, time.Now().UnixMilli()); err != nil {
 			return err

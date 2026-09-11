@@ -92,7 +92,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v6
         with:
-          version: 11.20.0
+          version: 12.3.4
       - name: Install Node.js
         uses: actions/setup-node@v7
         with:
@@ -207,12 +207,12 @@ jobs:
         env:
           BUILD_TARGET: ${{ matrix.GOOS }}/${{ matrix.GOARCH }}
           RENOP_VERSION: ${{ needs.metadata.outputs.version }}
-        run: ./.github/scripts/package-matrix-target.ps1 -Target $env:BUILD_TARGET -Version $env:RENOP_VERSION -BinaryDir ./executable -DistDir ./packages -BrotliTool ./tools/renop-brotli
+        run: ./.github/scripts/package-matrix-target.ps1 -Target $env:BUILD_TARGET -Version $env:RENOP_VERSION -BinaryDir ./executable -DistDir ./release-packages -BrotliTool ./tools/renop-brotli
       - name: Upload target package
         uses: actions/upload-artifact@v7
         with:
           name: package-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
-          path: packages/
+          path: release-packages/
           compression-level: 0
           if-no-files-found: error
           retention-days: 1
@@ -229,7 +229,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           pattern: package-*
-          path: packages
+          path: release-packages
           merge-multiple: true
       - name: Assemble the release manifest
         shell: pwsh
@@ -239,7 +239,7 @@ jobs:
           RENOP_COMMIT: ${{ needs.metadata.outputs.commit }}
           RENOP_PREVIOUS_COMMIT: ${{ needs.metadata.outputs.previous_commit }}
         run: |
-          ./.github/scripts/assemble-matrix.ps1 -PackageDir ./packages -DistDir ./dist -Version $env:RENOP_VERSION -Development $env:RENOP_DEVELOPMENT -Commit $env:RENOP_COMMIT -PreviousCommit $env:RENOP_PREVIOUS_COMMIT
+          ./.github/scripts/assemble-matrix.ps1 -PackageDir ./release-packages -DistDir ./dist -Version $env:RENOP_VERSION -Development $env:RENOP_DEVELOPMENT -Commit $env:RENOP_COMMIT -PreviousCommit $env:RENOP_PREVIOUS_COMMIT
           ./.github/scripts/test-release-payload.ps1 -DistDir ./dist
       - name: Upload complete release artifacts
         uses: actions/upload-artifact@v7

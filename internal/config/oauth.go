@@ -75,12 +75,26 @@ func ValidOAuthURL(value string) bool {
 	return u.Scheme == "https" || u.Scheme == "http" && (u.Hostname() == "localhost" || ip != nil && ip.IsLoopback())
 }
 
+// NormalizeOAuthScopes converts comma-separated or multi-space scopes into standard RFC 6749 space-delimited format.
+func NormalizeOAuthScopes(scopes string) string {
+	if strings.Contains(scopes, ",") {
+		scopes = strings.ReplaceAll(scopes, ",", " ")
+	}
+	return strings.Join(strings.Fields(scopes), " ")
+}
+
 // Resolved applies official provider endpoints while retaining administrator-selected credentials and instance settings.
 func (p OAuthProviderConfig) Resolved() OAuthProviderConfig {
+	p.ClientID = strings.TrimSpace(p.ClientID)
+	p.ClientSecret = strings.TrimSpace(p.ClientSecret)
+	p.APIKey = strings.TrimSpace(p.APIKey)
+	p.CallbackURL = strings.TrimSpace(p.CallbackURL)
+	p.BaseURL = strings.TrimSpace(p.BaseURL)
+	p.TokenAuth = strings.TrimSpace(p.TokenAuth)
 	if p.TokenAuth == "" {
 		p.TokenAuth = "client_secret_post"
 	}
-	if p.Type != "custom" {
+	if p.Type != "custom" && p.Type != "cloudflare" {
 		p.Claims = OAuthClaims{Subject: "sub", Username: "preferred_username", Name: "name", Email: "email", EmailVerified: "email_verified", Avatar: "picture"}
 		p.DisablePKCE = false
 	}
@@ -108,9 +122,9 @@ func (p OAuthProviderConfig) Resolved() OAuthProviderConfig {
 		p.UserInfoURL, p.JWKSURL, p.Issuer = base+"/oauth/userinfo", base+"/oauth/discovery/keys", base
 	case "cloudflare":
 		p.AuthorizeURL, p.TokenURL = "https://dash.cloudflare.com/oauth2/auth", "https://dash.cloudflare.com/oauth2/token"
-		p.UserInfoURL, p.JWKSURL = "https://dash.cloudflare.com/oauth2/userinfo", "https://dash.cloudflare.com/.well-known/jwks.json"
-		p.Issuer, defaultScopes = "https://dash.cloudflare.com", "openid"
+		p.UserInfoURL, p.Issuer, p.JWKSURL = "https://dash.cloudflare.com/oauth2/userinfo", "", ""
 		p.Claims = OAuthClaims{Subject: "sub"}
+		defaultScopes = ""
 	case "stackexchange":
 		if p.Site == "" {
 			p.Site = "stackoverflow"
@@ -124,6 +138,8 @@ func (p OAuthProviderConfig) Resolved() OAuthProviderConfig {
 	}
 	if p.Scopes == "" {
 		p.Scopes = defaultScopes
+	} else {
+		p.Scopes = NormalizeOAuthScopes(p.Scopes)
 	}
 	return p
 }

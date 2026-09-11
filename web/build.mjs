@@ -210,12 +210,6 @@ for (const section of ['docs', 'api']) {
     ]));
     writeFileSync(join(outDir, 'content', `${section}-index.json`), JSON.stringify({...publicIndex, locales}));
 }
-const swaggerDir = join(root, 'node_modules', 'swagger-ui-dist');
-const vendorDir = join(outDir, 'assets', 'swagger-ui');
-ensureDir(vendorDir);
-for (const filename of ['swagger-ui-bundle.js', 'swagger-ui.css', 'LICENSE', 'NOTICE']) {
-    copyFileSync(join(swaggerDir, filename), join(vendorDir, filename));
-}
 copyDir(contentDocs, join(outDir, 'content', 'docs'));
 
 const configUrl = pathToFileURL(join(root, 'rolldown.config.mjs')).href;

@@ -7,15 +7,11 @@ description: 浏览器会话、个人资料、登录方式、恢复代码与会�
 
 # 认证 API
 
-浏览器认证使用 HttpOnly `renop_session` Cookie。个人资料与会话列表不会返回会话密钥，请求头和 URL 也不
-接受该密钥。私有安全设置接口仅接受浏览器会话，不接受密码或 API Token。
+浏览器端认证使用具备 `HttpOnly` 属性的 `renop_session` Cookie。为保障安全性，用户信息与会话列表中均不包含会话私钥，接口也不支持通过请求头或 URL 参数传递该密钥。账号核心安全设置仅限有效浏览器会话访问。
 
-浏览器登录页面为 `/account/login`。密码、Passkey 和第三方登录完成后，会返回可选查询参数 `return_to`
-指定的本站路径，不保留查询参数和片段。外部地址、认证接口及超过 1,024 个字符的值会回退到 `/`
-。会话过期时进入登录页；已登录用户遇到权限不足时返回首页，保留当前会话。
+Web 登录入口为 `/account/login`，支持通过 `return_to` 参数指定登录成功后跳转的本站站内路径（外部链接或无效路径将默认重定向至首页）。会话失效时自动引导至登录页，权限不足时返回首页并保留当前登录态。
 
-[二次验证](../security/two-step-verification.md)说明验证器配置、Passkey 二次验证、待完成登录响应与恢复流程。二次验证
-Passkey 不算作初次登录方式。离线恢复会移除验证器并关闭 Passkey 二次验证；邮件重置密码会保留这两项设置。
+关于验证器配置、二次验证、等待验证响应及离线恢复机制，请参阅[二次验证](../security/two-step-verification.md)。离线恢复时将重置双重验证；通过邮件找回密码则继续保留原有二步验证设置。
 
 ## 使用密码或邮箱登录
 
@@ -45,14 +41,11 @@ Passkey 不算作初次登录方式。离线恢复会移除验证器并关闭 Pa
 - **GitHub 回调**：`GET /api/auth/github/callback`
 - **GitHub 可用状态**：`GET /api/auth/github/status`
 
-只有管理员完成 OAuth 配置后才显示 GitHub 登录。RenoP 请求读取用户与组织，保存不可变 Provider ID 和当前
-Principal 快照，但不会持久化 OAuth Access Token。
+GitHub 登录需由管理员配置 OAuth 参数后启用。RenoP 仅读取公开用户与组织基础资料，保存不可变 Provider ID 与账号快照，不持久化 OAuth Access Token。
 
-未绑定本地账号的 GitHub 身份需要完成[账号注册](../security/registration.md)并设置密码。OAuth 请求
-`read:user read:org user:email`，回调必须携带发起授权时的浏览器 Cookie。
+首次使用未绑定的 GitHub 账号登录时，需先完成[账号注册](../security/registration.md)并设置密码。授权请求范围为 `read:user read:org user:email`，回调过程严格校验安全会话 Cookie。
 
-Microsoft、Google、GitLab、Cloudflare、Stack Exchange 和自定义 OAuth 客户端使用[第三方登录 API](../security/oauth-login.md)
-，支持账号绑定、注册时必要的邮箱验证、可选资料导入，以及相同的二次验证策略。
+Microsoft、Google、GitLab 等其他身份提供商请参阅[第三方登录 API](../security/oauth-login.md)，支持账号绑定、邮箱所有权校验与统一的二次验证流程。
 
 ## 当前账号与公开个人资料
 
@@ -81,41 +74,38 @@ Microsoft、Google、GitLab、Cloudflare、Stack Exchange 和自定义 OAuth 客
 
 ### 邮件验证码找回密码
 
-独立页面 `/account/forgot-password` 验证账号已记录的安全邮箱。邮件服务关闭时，该页面及申请、确认 API 返回 `404`
-；登录和恢复账号页面隐藏邮件找回入口。离线恢复页面 `/account/recovery` 仍可使用。
+独立找回密码页面为 `/account/forgot-password`。当系统邮件服务未启用时，该功能相关端点返回 `404`，
+同时界面自动隐藏邮件找回入口。离线恢复仍可通过 `/account/recovery` 进行。
 
-- **可用状态**：`GET /api/auth/password-reset/status` 返回 `{"enabled":true}` 或 `{"enabled":false}`。
-- **发送验证码**：`POST /api/auth/password-reset/request` 接收 `{"email":"admin@example.com"}`，邮件持久化入队后返回 `202`
-  及 `{id,status,ticket}`，此时尚未发送。
-- **投递状态**：`GET /api/auth/mail/:id` 通过 `X-Renop-Mail-Ticket` 请求头接收私有凭据。页面每 3 秒查询一次，最长 10
-  分钟，离开页面即停止，并显示失败或未能确认的投递状态。服务商接受邮件不代表收件人已收到。凭据不得写入 URL 或浏览器存储。
-- **重置密码**：`POST /api/auth/password-reset/confirm` 接收以下 JSON。两个 POST 请求均要求
-  `Content-Type: application/json`，请求体上限为 4,096 字节；密码须为 6–72 个 UTF-8 字节。
+- **可用状态**：`GET /api/auth/password-reset/status` 返回当前是否允许邮件找回密码。
+- **发送验证码**：`POST /api/auth/password-reset/request` 传入 `{"email":"admin@example.com"}`，
+  验证码生成并加入发送队列后返回 `202` 及发件任务标识。
+- **投递状态**：`GET /api/auth/mail/:id` 通过 Header 凭据 `X-Renop-Mail-Ticket` 查询邮件外发状态。
+- **重置密码**：`POST /api/auth/password-reset/confirm` 接收重置凭据并应用新密码。
+  密码长度需为 6–72 字符。
 
 ```json
 {"email":"admin@example.com","code":"01234567","new_password":"new_secure_password"}
 ```
 
-八位验证码有效期为 10 分钟，允许五次错误尝试。除配置的 IP 发信限流外，每个邮箱还受 60
-秒申请冷却限制。新验证码成功入队后才使旧码失效；入队失败则保留旧码。邮件入队、验证码存储和限流计数在同一事务中提交。邮箱验证记录最多保留
-2,048 条，入队前和定期清理时会删除过期记录。
+验证码为 8 位数字，有效期 10 分钟，最多允许尝试 5 次。
+为防止滥用，同邮箱具备申请冷却限制与 IP 发信速率保护。
+新验证码入队后旧码失效，保证重置凭证的有效性与时效性。
 
-收件策略允许的有效地址均会收到相同的邮箱控制权验证邮件，包括未注册地址，因此不能通过投递状态判断账号是否存在。重置时重新检查签发时的账号身份、邮箱、密码和安全状态版本。后来注册的账号不能使用此前签发的验证码；账号注销后旧码失效。
-
-成功时原子消费验证码、修改密码、启用密码登录并撤销浏览器会话。API 返回 `{status:"success",username}` 并清除会话
-Cookie，页面返回登录；其他凭据保持绑定，封禁仍然有效。`ACCOUNT_EMAIL_CODE_INVALID` 表示验证码无效、过期、错误次数耗尽、已使用或账号状态已变化。限流返回
-`429`，队列或服务故障返回 `503`。所有响应均使用 `Cache-Control: no-store`。
+为防范账号探测，针对有效格式的邮箱均采用一致的应答策略。
+验证成功后，新密码立即生效，同时撤销所有活跃的浏览器会话以确保安全。
+验证码无效、过期或达到尝试上限时返回 `ACCOUNT_EMAIL_CODE_INVALID`。
+限流时返回 `429`，服务异常时返回 `503`。
 
 ### 恢复代码
 
-独立的恢复账号页面为 `/account/recovery`，可通过登录页的 **恢复账号**
-入口打开，无需启用邮件服务。恢复成功后，浏览器清除原有会话并返回登录页，自动填入用户名，同时保留有效的本地 `return_to`
-目标。离开页面时会清空恢复代码和密码，这些内容不会写入浏览器历史记录。
+离线恢复页面为 `/account/recovery`，无需依赖外部邮件服务。
+使用恢复代码成功重置密码后，浏览器将重定向至登录页并自动带入用户名。
 
 - **生成**：`POST /api/auth/profile/recovery-codes`
 - **重设密码**：`POST /api/auth/recovery/password`
-- 系统一次显示 12 串一次性代码，只存储 Argon2id verifier。恢复时必须提供 4 串不同且未使用的代码；代码
-  原子消耗，已有会话全部撤销，并重新启用密码登录。
+- 系统一次性签发 12 组恢复代码（服务端仅保存 Argon2id 哈希）。
+  重置时需提供其中 4 组未使用的代码；验证通过后代码立即失效并撤销当前所有会话。
 
 ```json
 {
@@ -153,25 +143,26 @@ Cookie，页面返回登录；其他凭据保持绑定，封禁仍然有效。`A
 {"confirmation":"alice"}
 ```
 
-确认内容必须与当前用户名完全一致。注销成功返回 `204 No Content`；确认内容不匹配时返回 `400`，
-错误码为 `ACCOUNT_RETIREMENT_CONFIRMATION`。存在未满足的条件时返回 `409`、
-`ACCOUNT_RETIREMENT_BLOCKED` 及最新检查结果。检查字段包括 `eligible`、`protected_role`、
-`super_team_owner_count`、`maven_domain_owner_count`、`package_owner_count` 和 `pending_review_count`。
+确认内容必须与当前用户名完全一致。注销成功返回 `204 No Content`；
+确认信息不匹配返回 `400`（`ACCOUNT_RETIREMENT_CONFIRMATION`）；
+若存在未满足的注销前置条件，返回 `409`（`ACCOUNT_RETIREMENT_BLOCKED`）及详细检查项。
+检查字段包含 `eligible`、`protected_role`、`super_team_owner_count`、
+`maven_domain_owner_count`、`package_owner_count` 与 `pending_review_count`。
 
-超级管理员和仓库版主不能注销。账号不能仍持有超级团队 T4 身份、拥有使用中的 Maven 发布域、
-以 L4 身份管理未弃用的软件包，或存在待处理的审核申请。请先转让所有权、关闭发布域或将软件包永久弃用。
+超级管理员和仓库版主需先卸任管理职责方可注销。
+账号不得持有处于活跃状态的超级团队所有者（T4）身份、
+Maven 发布域所有权、未弃用软件包的管理权限或待处理的审核工单。
 
-注销后账号和用户名永久锁定，自动退出全部管理团队，解除全部第三方登录绑定，并清空 Passkey、
-活跃会话、API Token、头像、恢复代码和消息。登录将返回 `ACCOUNT_DELETED`。
-绑定邮箱保留 14 天，行为日志保留 30 天；到期后由定时清理任务分批释放。已发布的软件包仍可下载。
+注销后账号与用户名将被永久锁定，自动退出所有团队、解绑全部第三方登录，
+并清理关联的 Token、会话凭据及消息通知。
+已发布的开源软件包仍保持可用。
+绑定邮箱保留 14 天，行为日志保留 30 天后自动释放。
 
-解除的第三方身份可以立即绑定到其他有效账号；此操作不会释放已注销的用户名、缩短邮箱保留期或恢复已注销资源的所有权。
-
-超级管理员可通过 `GET /api/tokens/:name/retention` 查看保留期限，通过
+管理员可通过 `GET /api/tokens/:name/retention` 查看保留期限，通过
 `DELETE /api/tokens/:name/retention/email` 提前释放邮箱，或通过
-`DELETE /api/tokens/:name/retention/audit` 提前清空行为日志。期限及完成时间字段均为 Unix 毫秒时间戳：
-`deleted_at`、`email_release_at`、`email_released_at`、`audit_purge_at` 和 `audit_purged_at`。
-管理员的 `DELETE /api/tokens/:name` 同样遵循上述永久注销条件。
+`DELETE /api/tokens/:name/retention/audit` 提前清空日志。
+时间字段均采用毫秒级时间戳。
+管理员执行 `DELETE /api/tokens/:name` 时同样遵循注销检查规则。
 
 [法律文档与 Cookie 偏好](../configuration/legal.md)
 

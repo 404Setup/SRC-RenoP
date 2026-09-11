@@ -392,7 +392,7 @@ html.dark .maven-status-badge.is-pending {
     padding: 0.8rem 3rem 0.8rem 0.9rem;
     border: 1px solid var(--border-color);
     border-radius: 0.65rem;
-    background: var(--code-bg, color-mix(in srgb, var(--card-bg) 84%, #000));
+    background: var(--snippet-bg, color-mix(in srgb, var(--text-color) 4%, transparent));
 }
 
 .maven-import-code pre {

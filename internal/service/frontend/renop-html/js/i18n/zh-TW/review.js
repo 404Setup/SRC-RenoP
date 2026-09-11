@@ -60,7 +60,7 @@ export default Object.freeze({
     "ticket.confirm.force_claim": "從目前處理人處接管此工單？",
     "ticket.confirm.release": "釋出此工單，供其他有權限的處理人領取？",
     "ticket.confirm.escalate": "釋出工單並升級給另一位系統管理員？升級三次後，最終接管人必須處理。",
-    "ticket.responsePrivacy": "提交者將看到此回覆。請勿包含處理人員身分或帳號隱私。檢舉成立時，請先透過資源或帳號管理功能執行處罰，再確認結果。",
-    "ticket.reportPrivacy": "被檢舉方無法看到你的身分或檢舉內容。最終結果會透過站內訊息通知，並在啟用郵件時寄送郵件。",
-    "ticket.createHint": "選擇儲存庫以聯絡其版主，或選擇全站以聯絡系統管理員。"
+    "ticket.responsePrivacy": "提交者將看到此回覆，請勿包含處理人身分或隱私資訊。檢舉成立時，請先執行對應處置再確認結果。",
+    "ticket.reportPrivacy": "被檢舉方無法看到您的身分或檢舉內容，處理結果將透過訊息中心通知。",
+    "ticket.createHint": "選擇對應儲存庫聯絡版主，或選擇全站聯絡系統管理員。"
 });

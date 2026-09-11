@@ -16,6 +16,7 @@ import {t} from '../i18n.js';
 
 /** Render live registration policy and its persistent account and provider limits. */
 export function renderRegistrationSettings(container, data, changed) {
+    const wrap = el('div', {class: 'cfg-layout'});
     const section = createSection(createIcon('user'), t('registration.settingsTitle'), t('registration.settingsHint'), {defaultCollapsed: true});
     section.id = 'settings-registration';
     const fields = section.querySelector('.cfg-fields');
@@ -53,5 +54,6 @@ export function renderRegistrationSettings(container, data, changed) {
         row.append(createFieldRow(t('mail.count'), '', amount), createFieldRow(t('mail.unit'), '', unit));
         fields.appendChild(createFieldRow(t(`registration.${key}`), t('registration.intervalHint'), row));
     }
-    container.appendChild(section);
+    wrap.appendChild(section);
+    container.appendChild(wrap);
 }

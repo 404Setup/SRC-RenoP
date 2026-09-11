@@ -52,7 +52,7 @@ export default Object.freeze({
     "repos.s3SecretKeyHint": "S3 secret",
     "repos.s3ForcePathStyle": "Force Path Style",
     "repos.s3ForcePathStyleHint": "Required by some S3-compatible providers",
-    "repos.s3RedirectDownloads": "Redirect Downloads (302)",
+    "repos.s3RedirectDownloads": "Redirect Downloads",
     "repos.s3RedirectDownloadsHint": "Issue signed redirect URLs instead of proxying",
     "repos.mirrorLabel": "Mirror {index} — {name}",
     "repos.mirrorName": "Name",

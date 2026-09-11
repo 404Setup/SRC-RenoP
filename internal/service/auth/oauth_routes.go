@@ -15,6 +15,7 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
+	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -33,6 +34,7 @@ import (
 type oauthProfileStatus struct {
 	ID              string `json:"id"`
 	Name            string `json:"name"`
+	Type            string `json:"type,omitempty"`
 	Login           string `json:"login,omitempty"`
 	Configured      bool   `json:"configured"`
 	Linked          bool   `json:"linked"`
@@ -48,11 +50,11 @@ func setupOAuthRoutes(auth fiber.Router, state *core.AppState) {
 		setPrivateResponseHeaders(c)
 		providers := []fiber.Map{}
 		if state.Inner.Config.Load().Server.GitHubOAuth.Configured() {
-			providers = append(providers, fiber.Map{"id": "github", "name": "GitHub"})
+			providers = append(providers, fiber.Map{"id": "github", "name": "GitHub", "type": "github"})
 		}
 		for _, p := range state.Inner.Config.Load().Server.OAuthProviders {
 			if p.Configured() {
-				providers = append(providers, fiber.Map{"id": p.ID, "name": p.Name})
+				providers = append(providers, fiber.Map{"id": p.ID, "name": p.Name, "type": p.Type})
 			}
 		}
 		return c.JSON(fiber.Map{"providers": providers})
@@ -67,6 +69,7 @@ func setupOAuthRoutes(auth fiber.Router, state *core.AppState) {
 		}
 		statuses, err := oauthProfileStatuses(state, profile.Username)
 		if err != nil {
+			log.Printf("Failed to load OAuth profile statuses for %s: %v", profile.Username, err)
 			return passwordResetError(c, 503, "oauth_unavailable")
 		}
 		return c.JSON(fiber.Map{"providers": statuses})
@@ -137,9 +140,13 @@ func startOAuth(c fiber.Ctx, state *core.AppState) error {
 	query.Set("client_id", p.ClientID)
 	query.Set("redirect_uri", p.CallbackURL)
 	query.Set("response_type", "code")
-	query.Set("response_mode", "query")
+	if p.Type == "microsoft" {
+		query.Set("response_mode", "query")
+	}
 	query.Set("state", raw)
-	query.Set("scope", p.Scopes)
+	if scopes := config.NormalizeOAuthScopes(p.Scopes); scopes != "" {
+		query.Set("scope", scopes)
+	}
 	if p.Issuer != "" {
 		query.Set("nonce", raw)
 	}
@@ -187,10 +194,12 @@ func finishOAuth(c fiber.Ctx, state *core.AppState) error {
 	defer cancel()
 	tokens, err := exchangeOAuthCode(ctx, client, p, code, record.Verifier)
 	if err != nil {
+		log.Printf("OAuth %s code exchange failed: %v", provider, err)
 		return result("exchange_failed")
 	}
 	info, err := fetchOAuthUserInfo(ctx, client, p, tokens, raw)
 	if err != nil {
+		log.Printf("OAuth %s fetch user info failed: %v", provider, err)
 		return result("identity_failed")
 	}
 	if !oauthConfigurationCurrent(state, record) {
@@ -201,6 +210,7 @@ func finishOAuth(c fiber.Ctx, state *core.AppState) error {
 	}
 	linked, err := state.GetDB().GetOAuthIdentity(info.Identity)
 	if err != nil {
+		log.Printf("OAuth %s get identity failed: %v", provider, err)
 		return result("identity_failed")
 	}
 	if linked == nil {
@@ -215,6 +225,7 @@ func finishOAuth(c fiber.Ctx, state *core.AppState) error {
 		if code := providerEmailErrorCode(err); code != "" {
 			return result(code)
 		}
+		log.Printf("OAuth %s refresh identity failed for %s: %v", provider, linked.Username, err)
 		return result("session_changed")
 	}
 	state.InvalidateAccountAuthCache(true, linked.Username)
@@ -223,6 +234,7 @@ func finishOAuth(c fiber.Ctx, state *core.AppState) error {
 		return result("account_deleted")
 	}
 	if err != nil || mfa.UserID != linked.UserID {
+		log.Printf("OAuth %s get MFA state failed for %s: %v", provider, linked.Username, err)
 		return result("session_failed")
 	}
 	// Read the binding after the security snapshot so unlinking cannot authorize a later session.
@@ -309,17 +321,23 @@ func finishOAuthProfile(c fiber.Ctx, state *core.AppState, record core.Transient
 func oauthProfileStatuses(state *core.AppState, username string) ([]oauthProfileStatus, error) {
 	identities, err := state.GetDB().GetOAuthIdentities(username)
 	if err != nil {
+		log.Printf("Failed to get OAuth identities for %s: %v", username, err)
 		return nil, err
 	}
 	security, err := state.GetDB().GetAccountSecurity(username)
 	if err != nil {
+		log.Printf("Failed to get account security in oauthProfileStatuses for %s: %v", username, err)
 		return nil, err
 	}
 	statuses := []oauthProfileStatus{}
 	seen := map[string]bool{}
-	for _, p := range state.Inner.Config.Load().Server.OAuthProviders {
+	var providers []config.OAuthProviderConfig
+	if cfg := state.Inner.Config.Load(); cfg != nil {
+		providers = cfg.Server.OAuthProviders
+	}
+	for _, p := range providers {
 		p = p.Resolved()
-		status := oauthProfileStatus{ID: p.ID, Name: p.Name, Configured: p.Configured()}
+		status := oauthProfileStatus{ID: p.ID, Name: p.Name, Type: p.Type, Configured: p.Configured()}
 		status.CanVerifyEmail = status.Configured && p.Claims.Email != "" && p.Claims.EmailVerified != ""
 		status.CanImportAvatar = status.Configured && p.Claims.Avatar != ""
 		for _, identity := range identities {
@@ -346,10 +364,11 @@ func oauthProfileStatuses(state *core.AppState, username string) ([]oauthProfile
 	}
 	github, err := githubProfileStatusForAccount(state, username)
 	if err != nil {
+		log.Printf("Failed to get GitHub profile status for %s: %v", username, err)
 		return nil, err
 	}
 	if github.Configured || github.Linked {
-		statuses = append([]oauthProfileStatus{{ID: "github", Name: "GitHub", Login: github.GitHubLogin,
+		statuses = append([]oauthProfileStatus{{ID: "github", Name: "GitHub", Type: "github", Login: github.GitHubLogin,
 			Configured: github.Configured, Linked: github.Linked, CanDisconnect: github.CanDisconnect,
 			CanVerifyEmail: github.Configured, AuthorizedAt: github.AuthorizedAt,
 			PrincipalCount: github.PrincipalCount}}, statuses...)

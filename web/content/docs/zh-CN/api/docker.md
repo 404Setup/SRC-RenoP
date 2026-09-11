@@ -16,12 +16,11 @@ RenoP 实现 OCI Distribution Spec v2 与 Docker Registry v2 规范。
 规范化名称已在本地或适用的已启用上游镜像中存在时，创建返回 `409 Conflict`。无法确定上游结果时不会占用
 名称，并返回 `503 Service Unavailable`。
 
-管理 API 返回可读正文与 `X-Renop-Error-Code`，前端根据稳定错误码本地化，不显示原始服务端文本。OCI
-Distribution 接口继续使用规范要求的 `errors` 结构。
+管理 API 失败时返回对应错误体与 `X-Renop-Error-Code` 响应头；
+OCI Distribution 端点则严格遵循规范要求的 `errors` 结构。
 
-镜像页面提供包级 Markdown README。L3/L4 镜像成员或管理员可通过
-`PUT /api/docker/repositories/{repo}/images?image={name}` 更新。JSON `description` 的上限为 512 KiB，并通过
-共用的元素与 URL 白名单渲染。
+镜像详情页支持展示 Markdown 说明文档。L3/L4 镜像成员或管理员可通过
+`PUT /api/docker/repositories/{repo}/images?image={name}` 更新镜像描述（上限 512 KiB）。
 
 ## 版本检查
 

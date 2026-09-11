@@ -43,11 +43,11 @@ func (db *DB) accountIdentity(identifier string) (userID, username string, err e
 			JOIN user_email_addresses security ON security.user_id = p.user_id
 			WHERE security.email = ?`, email).Scan(&userID, &username)
 	} else {
-		normalizedUsername, valid := core.NormalizeUsername(identifier)
-		if !valid {
+		identifier = strings.ToLower(SanitizeInputString(identifier, maxTokenNameLen))
+		if identifier == "" || strings.ContainsAny(identifier, "\x00\r\n") {
 			return "", "", core.ErrRecoveryCodesInvalid
 		}
-		err = db.QueryRow(`SELECT user_id, username FROM user_profiles WHERE username = ?`, normalizedUsername).
+		err = db.QueryRow(`SELECT user_id, username FROM user_profiles WHERE username = ?`, identifier).
 			Scan(&userID, &username)
 	}
 	if errors.Is(err, sql.ErrNoRows) {

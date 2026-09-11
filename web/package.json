@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.20.0",
+  "packageManager": "pnpm@12.3.4",
   "description": "RenoP official website",
   "scripts": {
     "build": "node ./build.mjs",
@@ -17,13 +17,12 @@
   },
   "devDependencies": {
     "lightningcss": "^1.33.0",
-    "rolldown": "^1.2.5"
+    "rolldown": "^1.2.8"
   },
   "dependencies": {
     "@renop/ui": "workspace:*",
     "brotli-compress": "^2.2.2",
     "fflate": "^0.8.3",
-    "marked": "^18.0.10",
-    "swagger-ui-dist": "5.32.15"
+    "marked": "^18.0.12"
   }
 }

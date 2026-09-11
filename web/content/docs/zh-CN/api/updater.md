@@ -22,24 +22,22 @@ description: 检查新版本、更新通道切换与应用更新接口
 
 ## 启动在线安装
 
-`POST /api/updater/install` 在后台执行有界下载、哈希校验、Brotli/ZIP 解包与二进制平台校验。成功返回
-`{"status":"started"}`，不会自动重启进程。
-
-下载进度属于临时 UI 状态，使用 Toast 提示而不写入消息中心；检查结果与失败结果仍作为管理员通知保存。
+`POST /api/updater/install` 在后台执行下载、完整性校验、更新包解包与架构验证。
+成功返回 `{"status":"started"}`，不会自动重启进程。
+安装进度与最终状态将通过状态接口查询，异常将记录为管理员通知。
 
 ## 安装离线更新包
 
-`POST /api/updater/upload` 接受 multipart 字段 `file` 或 `package`，内容可为新版原始 `.br` 发布包或旧版
-`.zip` 包。大文件应使用 `purpose=updater` 的分块上传接口，并通过
+`POST /api/updater/upload` 接受 multipart 字段 `file` 或 `package`，
+内容可为 Brotli 格式（`.br`）或标准 `.zip` 安装包。
+大文件可通过 `purpose=updater` 的分块上传接口传输，并通过
 `POST /api/upload/chunked/{upload_id}/complete` 完成安装。
 
-服务端全程使用有界临时存储流式处理文件，校验可执行文件平台后返回 `ready_to_restart`。失败时不会向前端
-返回内部路径。
+服务端在后台完成更新包解包与平台架构校验，验证通过后状态更新为 `ready_to_restart`。
 
 ## 重启
 
-`POST /api/updater/restart` 会应用已准备的可执行文件（如有）并重启 RenoP。连接可能在客户端收到
-`{"status":"restarting"}` 前断开；官方前端会使用 Toast 提示系统即将重启。
+`POST /api/updater/restart` 将应用就绪的更新程序并安全重启 RenoP 服务进程。
 
 ## 稳定错误码
 

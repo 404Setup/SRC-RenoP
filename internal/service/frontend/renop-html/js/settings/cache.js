@@ -11,7 +11,7 @@
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {apiRequest} from '../api.js';
-import {buildInput, createSection} from '../cfg-ui.js';
+import {animateFieldsToggle, buildInput, createSection} from '../cfg-ui.js';
 import {createFieldRow, createIcon, createToggleRow, runButtonAction} from '../components.js';
 import {showAlert} from '../alert.js';
 import {responseErrorMessage} from '../response-errors.js';
@@ -22,15 +22,19 @@ export function renderCacheSettings(container, data, changed) {
     const wrap = el('div', {class: 'cfg-layout'});
     const section = createSection(createIcon('database'), t('cache.title'), t('cache.restart'), {defaultCollapsed: true});
     const fields = section.querySelector('.cfg-fields');
+    const remoteFields = el('div', {class: 'cfg-fields'});
+
     const mode = makeCustomSelect([
         {value: 'memory', label: t('cache.memory')},
         {value: 'redis', label: 'Redis'},
         {value: 'valkey', label: 'Valkey'},
     ], data.mode || 'memory', value => {
         data.mode = value;
+        animateFieldsToggle(remoteFields, value !== 'memory');
         changed();
     });
     fields.appendChild(createFieldRow(t('cache.mode'), t('cache.scope'), mode));
+
     for (const [key, type, placeholder, min, max] of [
         ['address', 'text', 'localhost:6379'], ['username', 'text', ''],
         ['password', 'password', ''], ['database', 'number', '0', 0, 65535],
@@ -51,14 +55,14 @@ export function renderCacheSettings(container, data, changed) {
             input.id = 'settings-cache-password';
             input.autocomplete = 'new-password';
         }
-        fields.appendChild(createFieldRow(t(`cache.${key}`), key === 'password' ? t('cache.keepPassword') : '', input));
+        remoteFields.appendChild(createFieldRow(t(`cache.${key}`), key === 'password' ? t('cache.keepPassword') : '', input));
     }
     const clearPassword = createToggleRow(t('cache.clearPassword'), '', false, checked => {
         data.clear_password = checked;
         changed();
     });
     clearPassword.id = 'settings-cache-clear-password';
-    fields.append(createToggleRow(t('cache.tls'), '', data.tls === true, checked => {
+    remoteFields.append(createToggleRow(t('cache.tls'), '', data.tls === true, checked => {
         data.tls = checked;
         changed();
     }), clearPassword);
@@ -74,7 +78,15 @@ export function renderCacheSettings(container, data, changed) {
             showAlert(t('cache.testFailed'), 'error');
         }
     }));
-    fields.appendChild(test);
+    remoteFields.appendChild(test);
+
+    if (data.mode === 'memory' || !data.mode) {
+        remoteFields.hidden = true;
+        remoteFields.inert = true;
+        remoteFields._fieldsVisible = false;
+    }
+    fields.appendChild(remoteFields);
+
     wrap.appendChild(section);
     container.appendChild(wrap);
 }

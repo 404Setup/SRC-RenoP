@@ -9,33 +9,195 @@ description: Configure Microsoft, Google, GitLab, Cloudflare, Stack Exchange, an
 
 ## Configure providers
 
-In administrator settings, open **Third-party login** to configure GitHub and other providers. GitHub is the built-in entry with the fixed ID `github`; enable or disable it there. Add up to 32 other clients with unique lowercase IDs of up to 32 characters, starting with a letter and using letters, digits, underscores, or hyphens. Saved IDs identify existing bindings and cannot be edited. Each account supports one GitHub binding and up to 32 other provider bindings.
+In administrator settings, open **Third-party login** to configure GitHub and other providers. GitHub is the built-in
+entry with the fixed ID `github`; enable or disable it there. Add up to 32 other clients with unique lowercase IDs of up
+to 32 characters, starting with a letter and using letters, digits, underscores, or hyphens. Saved IDs identify existing
+bindings and cannot be edited. Each account supports one GitHub binding and up to 32 other provider bindings.
 
-GitHub retains `server.github_oauth` and the callback `/api/auth/github/callback` for compatibility. Existing settings and bindings appear automatically in the unified interface. Its client ID is limited to 128 bytes and secret to 512 bytes; a blank secret is retained only for the same client ID. GitHub user and organization authorization, verified email, and manual avatar synchronization remain available.
+GitHub retains `server.github_oauth` and the callback `/api/auth/github/callback` for compatibility. Existing settings
+and bindings appear automatically in the unified interface. Its client ID is limited to 128 bytes and secret to 512
+bytes; a blank secret is retained only for the same client ID. GitHub user and organization authorization, verified
+email, and manual avatar synchronization remain available.
 
-The remaining provider configuration and protocol details below describe the additional OAuth clients; GitHub retains its existing authorization flow and compatibility callback.
+The remaining provider configuration and protocol details below describe the additional OAuth clients; GitHub retains
+its existing authorization flow and compatibility callback.
 
 Register a web application with the provider and allow the exact callback
 `https://renop.example/api/auth/oauth/<provider-id>/callback`. OAuth endpoints and callbacks require HTTPS, except HTTP
 loopback addresses used for development. New authorizations use saved settings immediately; changes invalidate
 authorizations already in progress.
 
-| Preset          | Application setup and options                                                                                                                                                                                                                                                                                                                                                            | Email handling                                                                                                                               |
-|-----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
-| `microsoft`     | [Microsoft identity platform](https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc); `tenant` is `common`, `organizations`, `consumers`, or an Entra tenant UUID. Match the application's supported account types. Default scopes: `openid profile email`.                                                                                                        | [UserInfo](https://learn.microsoft.com/en-us/entra/identity-platform/userinfo) does not assert email verification; a RenoP code is required. |
-| `google`        | [Google OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect); default scopes: `openid profile email`.                                                                                                                                                                                                                                                   | Accepts an address only as verified when `email_verified` is boolean `true`.                                                                 |
-| `gitlab`        | [GitLab OpenID Connect](https://docs.gitlab.com/integration/openid_connect_provider/); `base_url` defaults to `https://gitlab.com` and may select a self-hosted instance. Default scopes: `openid profile email`.                                                                                                                                                                        | Requires a code if a verified contact email is not returned.                                                                                 |
-| `cloudflare`    | [Create an OAuth client](https://developers.cloudflare.com/fundamentals/oauth/create-an-oauth-client/) and [integrate it](https://developers.cloudflare.com/fundamentals/oauth/integrate-with-cloudflare/). The `openid` scope supplies the stable subject. Private clients are restricted to the Cloudflare account's members; public clients require Cloudflare's domain verification. | No verified email is supplied by this preset; a RenoP code is required.                                                                      |
-| `stackexchange` | Register a [Stack Apps application](https://stackapps.com/help/api-authentication), set its client credentials and API key, and choose `site` (default `stackoverflow`). RenoP follows the [authorization-code flow](https://api.stackexchange.com/docs/authentication) with PKCE and uses the network `account_id`.                                                                     | No contact email is supplied; a RenoP code is required.                                                                                      |
-| `custom`        | Configure authorization, token, and user-info URLs plus JSON field paths. Add issuer and JWKS settings for OpenID Connect.                                                                                                                                                                                                                                                               | A mapped email is trusted only with a mapped boolean `true` verification field; otherwise a code is required.                                |
+| Preset          | Application setup and options                                                                                                                                                                                                                                                                                                                                                                                 | Email handling                                                                                                                               |
+|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| `microsoft`     | [Microsoft identity platform](https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc); `tenant` is `common`, `organizations`, `consumers`, or an Entra tenant UUID. Match the application's supported account types. Default scopes: `openid profile email`.                                                                                                                             | [UserInfo](https://learn.microsoft.com/en-us/entra/identity-platform/userinfo) does not assert email verification; a RenoP code is required. |
+| `google`        | [Google OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect); default scopes: `openid profile email`.                                                                                                                                                                                                                                                                        | Accepts an address only as verified when `email_verified` is boolean `true`.                                                                 |
+| `gitlab`        | [GitLab OpenID Connect](https://docs.gitlab.com/integration/openid_connect_provider/); `base_url` defaults to `https://gitlab.com` and may select a self-hosted instance. Default scopes: `openid profile email`.                                                                                                                                                                                             | Requires a code if a verified contact email is not returned.                                                                                 |
+| `cloudflare`    | [Create an OAuth client](https://developers.cloudflare.com/fundamentals/oauth/create-an-oauth-client/) and [integrate it](https://developers.cloudflare.com/fundamentals/oauth/integrate-with-cloudflare/). The `/oauth2/userinfo` endpoint supplies the stable subject (`sub`). Private clients are restricted to the Cloudflare account's members; public clients require Cloudflare's domain verification. | Automatically retrieves verified email if `user-details.read` is granted; otherwise a RenoP code is required.                                |
+| `stackexchange` | Register a [Stack Apps application](https://stackapps.com/help/api-authentication), set its client credentials and API key, and choose `site` (default `stackoverflow`). RenoP follows the [authorization-code flow](https://api.stackexchange.com/docs/authentication) with PKCE and uses the network `account_id`.                                                                                          | No contact email is supplied; a RenoP code is required.                                                                                      |
+| `custom`        | Configure authorization, token, and user-info URLs plus JSON field paths. Add issuer and JWKS settings for OpenID Connect.                                                                                                                                                                                                                                                                                    | A mapped email is trusted only with a mapped boolean `true` verification field; otherwise a code is required.                                |
 
 Microsoft supports personal accounts and Entra ID accounts according to the tenant and application registration.
 Cloudflare and Stack Exchange do not require a fabricated email mapping. If their users need to register,
 enable [email delivery](../configuration/mail.md) first.
 
+## Provider setup guides
+
+### GitHub
+
+Navigate to GitHub **Settings** -> **Developer settings** -> **OAuth Apps** and select **New OAuth App** (or open
+Developer settings under your organization).
+
+Set the application parameters:
+
+- **Application name**: The display name for your app (e.g. `RenoP`).
+- **Homepage URL**: The root URL of your RenoP instance (e.g. `https://renop.example`).
+- **Authorization callback URL**: The dedicated GitHub callback URL `https://renop.example/api/auth/github/callback`.
+  Notice that GitHub uses this fixed route rather than a dynamic provider subpath.
+
+Register the application, generate a **Client Secret**, and record both the **Client ID** and **Client Secret**. In
+RenoP administrator settings under **Third-party login**, open the built-in **GitHub** entry, supply the credentials,
+and enable the provider.
+
+### Microsoft Entra ID
+
+Sign in to the Microsoft Entra admin center or Azure portal. Go to **Identity** -> **Applications** -> **App
+registrations**, and click **New registration**.
+
+Configure the registration:
+
+- **Name**: Application name (e.g. `RenoP`).
+- **Supported account types**:
+    - For personal Microsoft accounts and any organizational directory: select "Accounts in any organizational directory
+      and personal Microsoft accounts", and set `tenant: common` in RenoP.
+    - For work and school accounts across organizations: select "Accounts in any organizational directory", and set
+      `tenant: organizations` in RenoP.
+    - For personal accounts only: select "Personal Microsoft accounts only", and set `tenant: consumers` in RenoP.
+    - For your single tenant only: select "Accounts in this organizational directory only", and set `tenant` to your
+      Directory (tenant) ID GUID.
+- **Redirect URI**: Select platform "Web" and input `https://renop.example/api/auth/oauth/microsoft/callback`.
+
+Under **Certificates & secrets**, add a new client secret and copy its **Value** immediately. Verify under **API
+permissions** that delegated `User.Read` permission is present with scopes `openid`, `profile`, and `email`. In RenoP,
+add a provider of type `microsoft`, and enter the Client ID, Client Secret, and Tenant.
+
+### Google Cloud
+
+Open the Google Cloud Console and navigate to **APIs & Services** -> **Credentials**.
+
+If you have not yet configured the **OAuth consent screen**:
+
+- Choose User Type **External** (or Internal for Google Workspace users), provide application details, and add the
+  scopes `openid`, `.../auth/userinfo.email`, and `.../auth/userinfo.profile`.
+
+Under **Credentials**, click **Create Credentials** -> **OAuth client ID**:
+
+- **Application type**: Web application.
+- **Authorized redirect URIs**: Add `https://renop.example/api/auth/oauth/google/callback`.
+
+Save and copy the **Client ID** and **Client Secret**. In RenoP, add a provider with type `google`, and input the Client
+ID and Client Secret (default scopes: `openid profile email`).
+
+### GitLab
+
+In GitLab.com or your self-hosted GitLab instance, create an OAuth application:
+
+- For instance-wide access: **Admin Area** -> **Applications**.
+- For your user profile: **User Settings** -> **Applications**.
+- For a group: Group **Settings** -> **Applications**.
+
+Set the parameters:
+
+- **Name**: Application name.
+- **Redirect URI**: `https://renop.example/api/auth/oauth/gitlab/callback`.
+- **Confidential**: Keep enabled.
+- **Scopes**: Check `openid`, `profile`, `email`, and `read_user`.
+
+Save and record the **Application ID** (Client ID) and **Secret**. In RenoP, add a provider with type `gitlab`. If
+connecting to a self-hosted instance, set `base_url` to your instance domain (e.g. `https://gitlab.example.com`).
+
+### Cloudflare
+
+In the Cloudflare dashboard, navigate to **Manage Account** -> **OAuth clients**.
+
+Click **Create client** and configure the application and protocol settings:
+
+- **Client name**: Enter a name for the client (e.g. `RenoP`).
+- **Response type**: Supports Token, ID Token, and Code (multi-select). **You must select `Code`** (RenoP uses
+  authorization code flow).
+- **Grant type**: Supports Authorization Code and Refresh Token (multi-select). **You must select
+  `Authorization Code`**.
+- **Redirect URLs**: Enter the full RenoP callback URL, such as
+  `https://renop.example/api/auth/oauth/cloudflare/callback` (replace `cloudflare` with your custom provider ID if
+  applicable).
+- **Client URL** (optional): RenoP instance homepage (e.g. `https://renop.example`). Required if you plan to promote the
+  client to a Public client later (requiring domain verification via DNS TXT record); optional for Private clients used
+  exclusively within your Cloudflare account.
+- **Token authentication method** (select one of three, matching RenoP configuration):
+    - **Client Secret POST** (default and recommended): Client sends the secret in the token exchange request body. In
+      RenoP, the token authentication method defaults to `client_secret_post`.
+    - **Client Secret Basic**: Client sends the secret via the HTTP Basic Authorization header. If selected in
+      Cloudflare, set RenoP's token authentication method to `client_secret_basic`. RenoP also includes automatic
+      negotiation if HTTP 401 is returned.
+    - **PKCE**: Public client mode without client secret. Set RenoP's token authentication method to `none` (no client
+      secret required).
+- **Post-logout redirect URLs** (optional): Post-logout destination, such as `https://renop.example`.
+- **Allowed CORS origins** (optional): Allowed cross-origin origins; can be left blank as token exchange is performed
+  server-to-server by RenoP.
+
+Click **Continue** and configure permission Scopes:
+
+- Select the API permissions required for the client (at least one permission such as `User Details: Read`).
+- **Scopes Configuration**: In RenoP's provider settings, leave the Scopes field empty (default), or enter the scopes
+  granted in Cloudflare (supports space or comma-separated lists, e.g.
+  `memberships.read, user-details.read, offline_access, openid`).
+- **Email & Profile Synchronization**: If `user-details.read` is granted, RenoP automatically calls Cloudflare's API
+  (`/client/v4/user`) during sign-in and registration to retrieve the verified account email and username, skipping
+  manual email verification. If not granted, new users sign in with the subject (`sub`) provided by `/oauth2/userinfo`
+  and verify their email via a RenoP email code.
+
+Save the client and copy the **Client ID**, as well as the **Client Secret** displayed in the popup (shown only once;
+note that this must be the OAuth Client Secret, not a Cloudflare API Token or Global API Key). In RenoP, add a provider
+with type `cloudflare`, inputting the Client ID, Client Secret (if applicable), and matching token authentication method
+(defaults to `client_secret_post`). Leading and trailing whitespace is automatically trimmed.
+
+### Stack Exchange
+
+Register an application on Stack Apps at `https://stackapps.com/apps/oauth/register`.
+
+Enter the details:
+
+- **Application Name**: Name of your application.
+- **OAuth Domain**: The host domain of RenoP without scheme or port (e.g. `renop.example`).
+- **Enable Client Side Flow**: Leave disabled.
+
+Submit the form and record the **Client Id**, **Client Secret**, and the **Key** (the API key required to authenticate
+API requests and quotas). In RenoP, add a provider with type `stackexchange`, providing the Client ID, Client Secret,
+and API Key. The `site` option defaults to `stackoverflow`.
+
+### Custom providers
+
+For OpenID Connect or OAuth 2.0 servers such as Keycloak, Authentik, Authelia, Casdoor, or Dex, select provider type
+`custom`.
+
+Configure the endpoints:
+
+- **Authorize URL**: Authorization redirect endpoint.
+- **Token URL**: Token exchange endpoint.
+- **UserInfo URL**: User profile information endpoint.
+- **Issuer** and **JWKS URL**: Required for OIDC signature verification.
+- **Scopes**: Space-delimited scopes, including `openid profile email` for OIDC.
+- **Token Auth**: Choose `client_secret_post` or `client_secret_basic` as required by your provider.
+
+Configure field mappings:
+
+- `subject`: Path to the unique stable identifier (e.g. `sub` or `id`).
+- `username` and `name`: Paths to user handles and display names.
+- `email` and `email_verified`: Paths to the email address and its boolean verification flag.
+
 ## Configuration and credentials
 
-Additional providers are stored in `server.oauth_providers`. The following example keeps clients disabled until their credentials
+Additional providers are stored in `server.oauth_providers`. The following example keeps clients disabled until their
+credentials
 are replaced:
 
 ```yaml

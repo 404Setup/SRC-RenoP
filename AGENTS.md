@@ -191,7 +191,7 @@ Read the relevant implementation and tests for exact limits and exceptions befor
   `internal/locale/` matches account and request languages; private preferences live in `user_profiles.locale`.
   `internal/mail/template_locales.go` covers every frontend language. Mail captures the recipient language when queued;
   browser language synchronization binds pending changes to immutable user IDs and preserves credential revisions.
-  preserve keys/placeholders, lazy locale loading, and bundle budgets. Website `/api` serves Markdown and a lazily loaded local Swagger UI; `/docs` excludes API references.
+  preserve keys/placeholders, lazy locale loading, and bundle budgets. Website `/api` serves Markdown; `/docs` excludes API references.
   Markdown sources remain in `web/content/docs/<locale>/api/` and `web/assets/openapi.yaml` owns the specification.
   Website translations must retain canonical
   files, heading outlines, examples, endpoints, and links; see `web/test/docs-parity.test.mjs`.

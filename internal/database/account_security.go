@@ -196,8 +196,8 @@ func (db *DB) GetTokenByEmail(email string) (*core.AccessToken, error) {
 
 // GetAccountSecurity returns private authentication state for one username.
 func (db *DB) GetAccountSecurity(username string) (*core.AccountSecurity, error) {
-	username = strings.ToLower(strings.TrimSpace(username))
-	if _, valid := core.NormalizeUsername(username); !valid {
+	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
+	if username == "" || strings.ContainsAny(username, "\x00\r\n") {
 		return nil, core.ErrUserProfileNotFound
 	}
 	security := &core.AccountSecurity{}

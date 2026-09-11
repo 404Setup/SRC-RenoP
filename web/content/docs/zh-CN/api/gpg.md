@@ -46,4 +46,4 @@ description: OpenPGP 公钥管理与签名验证状态
 ## 查询隔离中的发布
 
 - **路径**：`GET /api/auth/profile/gpg/releases`
-- **用途**：列出 `.renop.tmp.gpg` 中等待分离签名、公钥验证或最终发布的制品。
+- **用途**：列出因等待分离签名、公钥验证或发布确认而处于隔离暂存状态的制品。

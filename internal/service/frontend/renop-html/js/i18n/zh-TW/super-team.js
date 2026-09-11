@@ -12,6 +12,8 @@ import base from '../zh-HK/super-team.js';
 
 export default Object.freeze({
     ...base,
+    "superTeam.prefix": "團隊識別前綴",
+    "superTeam.createLimitHint": "單一帳號最多可建立的超級團隊數量。",
     "audit.action.SUPER_TEAM_CREATE": "建立超級團隊",
     "audit.action.SUPER_TEAM_UPDATE": "更新超級團隊",
     "audit.action.SUPER_TEAM_DELETE": "刪除超級團隊",

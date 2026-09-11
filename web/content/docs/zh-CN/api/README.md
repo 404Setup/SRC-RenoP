@@ -11,7 +11,7 @@ RenoP 提供用于管理自动化、客户端集成与健康监控的完整 HTTP
 `http://localhost:3000`。
 
 
-独立的 [API 页面](/api) 可切换 RenoPAPI Markdown 与 OpenAPI 渲染。`/api/authentication` 等深层链接打开文章，`?view=openapi` 选择接口规范。本地托管的 OpenAPI 渲染器按需加载，不执行 API 请求。仍可下载原始 [OpenAPI 文件](/assets/openapi.yaml)。常规文档不再包含 API 分类；旧 `/docs/api/...` 书签会转到 `/api/...`。
+[API 文档](/api) 提供系统管理、客户端集成与监控等接口说明。你也可以直接查阅或下载完整的原始 [OpenAPI 文件](/assets/openapi.yaml)。
 
 ## 路由结构
 
@@ -27,21 +27,17 @@ RenoP 提供用于管理自动化、客户端集成与健康监控的完整 HTTP
 
 ## 传输格式与 Protobuf
 
-基于消息模式的管理 API 支持 JSON（`application/json`）和二进制 protobuf（`application/x-protobuf` 或
-`application/protobuf`）。`Content-Type` 决定请求解码方式，`Accept` 决定响应格式。未指定或不支持的 `Accept`
-会保留旧客户端使用的 protobuf 响应；未指定请求类型时也沿用 protobuf 解码。消息定义见 `proto/api/v1/api.proto`。
+管理 API 原生支持 JSON（`application/json`）与二进制 Protobuf（`application/x-protobuf` 或 `application/protobuf`）。通过 `Content-Type` 指定请求体编码，通过 `Accept` 协商响应格式。未显式声明或不支持的 `Accept` 默认使用 Protobuf 响应；请求未指定类型时同样采用 Protobuf 解析。完整消息定义参见 `proto/api/v1/api.proto`。
 
-JSON 输出使用原始 snake_case 字段名，输入也接受 protobuf 的 camelCase 名称。64 位整数使用十进制字符串，
-字节字段使用 Base64 字符串。未知或重复的 JSON 字段会被拒绝。控制请求仍限制为 1 MiB，并保留端点原有的
-更小上限。原生仓库协议、上传二进制分块、健康检查纯文本与各端点的错误格式维持原状。
+JSON 输出使用标准 snake_case 字段名，解析输入时兼容 camelCase。64 位大整数表示为十进制字符串，字节数组采用 Base64 编码。系统会严格拒绝未知或重复的 JSON 字段。常规控制请求体上限为 1 MiB（端点另有较小限制的除外）。各包管理器的原生协议、分块上传二进制流、健康检查纯文本等继续遵循各自规范。
 
 ## 认证方式
 
-- **浏览器 Cookie**：`renop_session=<session_id>`。HttpOnly 会话密钥不接受通过请求头或 URL 传递。
-- **Bearer API Token**：`Authorization: Bearer <token>`。Token 能力始终与账号当前权限取交集。
-- **包协议 Basic Auth**：`Authorization: Basic <base64(user:password_or_token)>`。
+- **浏览器 Cookie**：使用 HttpOnly 的 `renop_session=<session_id>`，仅限浏览器交互，不支持通过 Header 或 URL 参数传递。
+- **Bearer API Token**：在请求头中传入 `Authorization: Bearer <token>`。Token 的实际可用权限受账号自身权限约束，二者取交集。
+- **包客户端 Basic Auth**：在请求头中传入 `Authorization: Basic <base64(user:password_or_token)>`。
 
-Basic Auth 不可调用管理 API。URL 查询参数凭据与 `Authorization: Session` 均会被拒绝。
+Basic Auth 仅适用于包客户端操作，不可用于管理 API。系统不接受在 URL 查询参数或使用 `Authorization: Session` 传递凭据。
 
 ## 常用 HTTP 状态码
 
